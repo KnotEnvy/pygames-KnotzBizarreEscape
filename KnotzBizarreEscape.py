@@ -30,12 +30,32 @@ grenade_thrown = False
 bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
 #grenade
 grenade_img = pygame.image.load('img/icons/grenade.png').convert_alpha()
-
+#item boxes
+health_box_img = pygame.image.load('img/icons/health_box.png').convert_alpha()
+ammo_box_img = pygame.image.load('img/icons/ammo_box.png').convert_alpha()
+grenade_box_img = pygame.image.load('img/icons/grenade_box.png').convert_alpha()
+item_boxes = {
+    'Health'    :health_box_img,
+    'Ammo'      :ammo_box_img,
+    'Grenade'   :grenade_box_img
+}
 
 
 #define colours
 BG = (144, 201, 120)
-BLACK = (255,255,255)
+BLACK = (0,0,0)
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+
+
+font = pygame.font.SysFont('Futura', 30)
+
+#draw text on screen
+def draw_text(text, font, text_col, x, y):
+    img = font.render(text, True, text_col)
+    screen.blit(img, (x, y))
+
 
 def draw_bg():
     screen.fill(BG)
@@ -44,7 +64,7 @@ def draw_bg():
 
 
 class Soldier(pygame.sprite.Sprite):
-    def __init__(self, char_type, x, y, scale, speed, ammo, grenades):
+    def __init__(self, char_type, x, y, scale, speed, ammo, grenade):
         pygame.sprite.Sprite.__init__(self)
         self.alive =True
         self.char_type = char_type
@@ -52,7 +72,7 @@ class Soldier(pygame.sprite.Sprite):
         self.ammo = ammo
         self.start_ammo = ammo
         self.shoot_cooldown = 0
-        self.grenades = grenades
+        self.grenade = grenade
         self.health = 100
         self.max_health = self.health
         self.direction = 1
@@ -173,6 +193,45 @@ class Soldier(pygame.sprite.Sprite):
     def draw(self):
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
 
+class ItemBox(pygame.sprite.Sprite):
+    def __init__(self, item_type, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.item_type = item_type
+        self.image = item_boxes[self.item_type]
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+    def update(self):
+        #check if player collision
+        if pygame.sprite.collide_rect(self, player):
+            #check what kind of box it was
+            if self.item_type == 'Health':
+                player.health += 25
+                if player.health > player.max_health:
+                    player.health = player.max_health
+            elif self.item_type == 'Ammo':
+                player.ammo += 20
+            elif self.item_type == 'Grenade':
+                player.grenade +=3
+            self.kill()
+
+class HealthBar():
+    def __init__(self, x, y, health, max_health):
+        self.x = x
+        self.y = y
+        self.health = health
+        self.max_health = max_health
+
+    def draw(self, health):
+        #update current health
+        self.health = health
+        #calculate health
+        ratio = self.health / self.max_health
+        pygame.draw.rect(screen, BLACK,(self.x-2, self.y-2, 154, 24))
+        pygame.draw.rect(screen, RED,(self.x, self.y, 150, 20))
+        pygame.draw.rect(screen, GREEN,(self.x, self.y, 150 * ratio, 20))
+
+
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
         pygame.sprite.Sprite.__init__(self)
@@ -275,6 +334,7 @@ class Explosion(pygame.sprite.Sprite):
             else:
                 self.image = self.images[self.frame_index]
 
+
     
 
 #sprite groups
@@ -282,12 +342,25 @@ enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 grenade_group = pygame.sprite.Group()
 explosion_group = pygame.sprite.Group()
+item_box_group = pygame.sprite.Group()
 
 
-player = Soldier('player', 200, 200, 3, 5, 20, 5) #these are the soldier class variables...
-enemy = Soldier('enemy', 500, 350, 3, 5, 20, 0)
-enemy2 = Soldier('enemy', 400, 350, 3, 5, 20, 0) 
-enemy3 = Soldier('enemy', 600,350, 3, 5, 20, 0)   ##these are the soldier class variables...     
+#temp - creating item boxes
+item_box = ItemBox('Health', 600, 300)
+item_box_group.add(item_box)
+item_box = ItemBox('Ammo', 500, 300)
+item_box_group.add(item_box)
+item_box = ItemBox('Grenade', 700, 300)
+item_box_group.add(item_box)
+
+
+
+player = Soldier('player', 200, 200, 1.75, 5, 20, 5) #these are the soldier class variables...
+health_bar = HealthBar(10,10, player.health, player.health)
+
+enemy = Soldier('enemy', 500, 350, 1.75, 5, 20, 0)
+enemy2 = Soldier('enemy', 400, 350, 1.75, 5, 20, 0) 
+enemy3 = Soldier('enemy', 600,350, 1.75, 5, 20, 0)   ##these are the soldier class variables...     
 enemy_group.add(enemy)
 enemy_group.add(enemy2)
 enemy_group.add(enemy3)
@@ -302,8 +375,24 @@ while run:
     clock.tick(FPS)
 
     draw_bg()
+    #show player health
+    health_bar.draw(player.health)
+    #show ammo
+    draw_text(f'AMMO: ', font, WHITE, 10, 35)
+    for x in range(player.ammo):
+        screen.blit(bullet_img, (90 + (x *10), 40))
+    #show health
+    draw_text(f'HEALTH: {player.health}', font, WHITE, 10, 60)
+       
+    #show grenade
+    draw_text(f'GRENADE: ', font, WHITE, 10, 85)
+    for x in range(player.grenade):
+        screen.blit(grenade_img, (130 + (x *15), 85))
+    
+
     player.update()
     player.draw()
+
     for enemy in enemy_group:
         enemy.update()
         enemy.draw()
@@ -312,9 +401,11 @@ while run:
     bullet_group.update()
     grenade_group.update()
     explosion_group.update()
+    item_box_group.update()
     bullet_group.draw(screen)
     grenade_group.draw(screen)
     explosion_group.draw(screen)
+    item_box_group.draw(screen)
 
     #check player actions
     if player.alive:
@@ -322,12 +413,12 @@ while run:
         if shoot:
             player.shoot()
         #throw grenades
-        elif grenade and grenade_thrown == False and player.grenades > 0:
+        elif grenade and grenade_thrown == False and player.grenade > 0:
             grenade = Grenade(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction),\
                         player.rect.top, player.direction)
             grenade_group.add(grenade)
             #reduce grenades
-            player.grenades -= 1
+            player.grenade -= 1
             grenade_thrown = True
             
         if player.in_air:
