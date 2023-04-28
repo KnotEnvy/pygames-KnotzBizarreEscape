@@ -1,5 +1,6 @@
 import pygame
 import os
+import random
 
 pygame.init()
 
@@ -16,7 +17,7 @@ FPS = 60
 
 #define game variables
 GRAVITY = 0.75
-TILE_SIZE = 100
+TILE_SIZE = 75
 
 #define player action variables
 moving_left = False
@@ -58,8 +59,8 @@ def draw_text(text, font, text_col, x, y):
 
 
 def draw_bg():
-    screen.fill(BG)
-    pygame.draw.line(screen, BLACK, (0, 400), (SCREEN_WIDTH, 400))
+    screen.fill(BLACK)
+    pygame.draw.line(screen, GREEN, (0, 400), (SCREEN_WIDTH, 400))
 
 
 
@@ -84,6 +85,15 @@ class Soldier(pygame.sprite.Sprite):
         self.frame_index = 0
         self.action = 0
         self.update_time = pygame.time.get_ticks()
+        #create ai specific variables
+        self.update_action(1)#1: run animation
+        self.move_counter = 0
+        self.vision = pygame.Rect(0, 0, 150 , 20)
+        self.idle = False
+        self.idle_counter = 0
+
+
+
         
         #load all images for players
         animation_types = ['Idle', "Run", "Jump", 'Death'] #<-- this is where you load the folders that house the animation png's
@@ -151,11 +161,47 @@ class Soldier(pygame.sprite.Sprite):
 
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:
-            self.shoot_cooldown = 20 #<--- reload speed
-            bullet = Bullet(self.rect.centerx + (0.6 * self.rect.size[0] * self.direction), self.rect.centery, self.direction) #<-- keeps bullet in front
+            self.shoot_cooldown = 20 #<--- reload speed #line below, is how far bullet is in front
+            bullet = Bullet(self.rect.centerx + (0.8 * self.rect.size[0] * self.direction),\
+                             self.rect.centery, self.direction) #<-- keeps bullet in front
             bullet_group.add(bullet)
             #reduce ammo
             self.ammo -= 1
+
+    def ai(self):
+        if self.alive and player.alive:
+            if self.idle == False and random.randint(1, 200) == 1:
+                self.update_action(0) #idle animation change
+                self.idle = True
+                self.idle_counter = 50
+            #check if ai is near player
+            if self.vision. colliderect(player.rect):
+                #stop running and face player
+                self.update_action(0) #0: idle animation
+                #shoot
+                self.shoot()
+            else:
+                if self.idle == False:
+                    if self.direction == 1:
+                        ai_moving_r = True
+                    else:
+                        ai_moving_r = False
+                    ai_moving_l = not ai_moving_r
+                    self.move(ai_moving_l, ai_moving_r)
+                    self.update_action(1) #1: run animation change
+                    self.move_counter += 1
+                    #update enemy vision as they move
+                    self.vision.center = (self.rect.centerx + 95 * self.direction, self.rect.centery) #pixel offset
+                    #pygame.draw.rect(screen, RED, self.vision)  
+                    if self.move_counter > TILE_SIZE:
+                        self.direction *= -1
+                        self.move_counter *= -1
+
+                else: 
+                    self.idle_counter -= 1
+                    if self.idle_counter <= 0:
+                        self.idle = False
+
 
 
     def update_animation(self):
@@ -312,7 +358,7 @@ class Explosion(pygame.sprite.Sprite):
         self.images = []
         for num in range(1, 6):
             img = pygame.image.load(f'img/explosion/exp{num}.png').convert_alpha()
-            img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
+            img = pygame.transform.scale(img, (int(img.get_width() * 1.25), int(img.get_height() * 1.25)))
             self.images.append(img)
         self.frame_index = 0
         self.image = self.images[self.frame_index]
@@ -358,9 +404,9 @@ item_box_group.add(item_box)
 player = Soldier('player', 200, 200, 1.75, 5, 20, 5) #these are the soldier class variables...
 health_bar = HealthBar(10,10, player.health, player.health)
 
-enemy = Soldier('enemy', 500, 350, 1.75, 5, 20, 0)
-enemy2 = Soldier('enemy', 400, 350, 1.75, 5, 20, 0) 
-enemy3 = Soldier('enemy', 600,350, 1.75, 5, 20, 0)   ##these are the soldier class variables...     
+enemy = Soldier('enemy', 500, 350, 1.75, 2, 20, 0)
+enemy2 = Soldier('enemy', 400, 350, 1.75, 3, 20, 0) 
+enemy3 = Soldier('enemy', 600,350, 1.75, 2, 20, 0)   ##these are the soldier class variables...     
 enemy_group.add(enemy)
 enemy_group.add(enemy2)
 enemy_group.add(enemy3)
@@ -394,6 +440,7 @@ while run:
     player.draw()
 
     for enemy in enemy_group:
+        enemy.ai()
         enemy.update()
         enemy.draw()
 
