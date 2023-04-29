@@ -19,10 +19,13 @@ FPS = 60
 
 #define game variables
 GRAVITY = 0.75
+SCROLL_THRESH = 200
 ROWS = 16  #<-- dependant on the asset size
 COLS = 150 #<-- dependant on how long you want your stage, times tile size
 TILE_SIZE = SCREEN_HEIGHT // ROWS
 TILE_TYPE = 21  #<-- defines the amount of assests you are pulling over with CSV
+screen_scroll = 0
+bg_scroll = 0
 level = 1
 
 #define player action variables
@@ -33,6 +36,11 @@ grenade = False
 grenade_thrown = False
 
 #load images
+pine1_img = pygame.image.load('img/Background/pine1.png').convert_alpha()
+pine2_img = pygame.image.load('img/Background/pine2.png').convert_alpha()
+mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
+sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
+
 #store tiles in a list for world csv file
 img_list = []
 for x in range(TILE_TYPE):
@@ -68,10 +76,19 @@ font = pygame.font.SysFont('Futura', 30)
 def draw_text(text, font, text_col, x, y):
     img = font.render(text, True, text_col)
     screen.blit(img, (x, y))
+
+#draw backgrounds
 def draw_bg():
-    screen.fill(BLACK)
+    screen.fill(BG)
+    width = sky_img.get_width()
+    for x in range(5):
+        screen.blit(sky_img, ((x * width) - bg_scroll * .5,0))
+        screen.blit(mountain_img, ((x * width) - bg_scroll * .6, SCREEN_HEIGHT - mountain_img.get_height()- 300))
+        screen.blit(pine1_img, ((x * width) - bg_scroll * .7, SCREEN_HEIGHT - mountain_img.get_height()- 150))
+        screen.blit(pine2_img, ((x * width) - bg_scroll *.8, SCREEN_HEIGHT - mountain_img.get_height()))
 
 
+#updates the world tiles and data for level generation
 class World():
     def __init__(self):
         self.obstacle_list = []
@@ -87,7 +104,7 @@ class World():
                     img_rect.y = y * TILE_SIZE
                     tile_data = (img, img_rect)
 
-                #this is where you create tile data matching your assest... try to keep what we have below when naming files
+        #this is where you create tile data matching your assest... try to keep what we have below when naming files
                     if tile >= 0 and tile <= 8:
                         self.obstacle_list.append(tile_data)
                     elif tile >= 9 and tile <= 10:
@@ -101,7 +118,7 @@ class World():
                         player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 20, 5) #scale, speed, ammo, grenades...
                         health_bar = HealthBar(10,10, player.health, player.health)
                     elif tile == 16:#create enemies
-                        enemy = Soldier('enemy', 500, 350, 1.65, 2, 20, 0) #scale, speed, ammo, grenades
+                        enemy = Soldier('enemy', x * TILE_SIZE, y * TILE_SIZE, 1.65, 2, 20, 0) #scale, speed, ammo, grenades
                         enemy_group.add(enemy)
                     elif tile == 17:#create ammo box
                         item_box = ItemBox('Ammo', x * TILE_SIZE, y * TILE_SIZE)
@@ -119,7 +136,8 @@ class World():
     
     def draw(self):
         for tile in self.obstacle_list:
-            screen.blit(tile[0], tile[1])
+            tile[1][0] += screen_scroll
+            screen.blit(tile[0], tile[1]) #<-- tile tuple, 0 = image of tile, 1 = rect of image
 
 
 class Soldier(pygame.sprite.Sprite):
@@ -185,6 +203,7 @@ class Soldier(pygame.sprite.Sprite):
 
     def move(self, moving_left, moving_right):
         #reset movement variables
+        screen_scroll = 0
         dx = 0
         dy = 0
 
@@ -232,6 +251,14 @@ class Soldier(pygame.sprite.Sprite):
         self.rect.x += dx
         self.rect.y += dy
 
+        #update scroll based on player position
+        if self.char_type == 'player':
+            if self.rect.right > SCREEN_WIDTH - SCROLL_THRESH or self.rect.left < SCROLL_THRESH:
+                self.rect.x -= dx
+                screen_scroll = -dx
+
+        return screen_scroll
+
 
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:
@@ -275,6 +302,9 @@ class Soldier(pygame.sprite.Sprite):
                     self.idle_counter -= 1
                     if self.idle_counter <= 0:
                         self.idle = False
+
+        #scroll
+        self.rect.x += screen_scroll
 
 
 
@@ -321,12 +351,18 @@ class Decoration(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
+    def update(self):
+        self.rect.x += screen_scroll
+
 class Water(pygame.sprite.Sprite):
     def __init__(self, img, x, y):
         pygame.sprite.Sprite.__init__(self)
-        self.imgage = img
-        self.rect = self.imgage.get_rect()
+        self.image = img
+        self.rect = self.image.get_rect()
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+    def update(self):
+        self.rect.x += screen_scroll
 
 class Exit(pygame.sprite.Sprite):
     def __init__(self, img, x, y):
@@ -334,6 +370,9 @@ class Exit(pygame.sprite.Sprite):
         self.image = img
         self.rect = self.image.get_rect()
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+    def update(self):
+        self.rect.x += screen_scroll
 
 class ItemBox(pygame.sprite.Sprite):
     def __init__(self, item_type, x, y):
@@ -344,6 +383,8 @@ class ItemBox(pygame.sprite.Sprite):
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
     def update(self):
+        #scroll
+        self.rect.x += screen_scroll
         #check if player collision
         if pygame.sprite.collide_rect(self, player):
             #check what kind of box it was
@@ -385,7 +426,7 @@ class Bullet(pygame.sprite.Sprite):
 
     def update(self):
      #move bullet
-        self.rect.x += (self.direction * self.speed)
+        self.rect.x += (self.direction * self.speed) + screen_scroll
         #check if offscreen
         if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
             self.kill()
@@ -451,7 +492,7 @@ class Grenade(pygame.sprite.Sprite):
             dx = self.direction * self.speed
             
         #update grenade position
-        self.rect.x += dx
+        self.rect.x += dx + screen_scroll
         self.rect.y += dy
 
         #countdown timer
@@ -484,6 +525,8 @@ class Explosion(pygame.sprite.Sprite):
         self.counter = 0
 
     def update(self):
+        #scroll
+        self.rect.x += screen_scroll
         EXPLOSION_SPEED = 4
         #update explosion animation
         self.counter += 1
@@ -605,7 +648,8 @@ while run:
             player.update_action(1)  #<-- action#1 (run)
         else: 
             player.update_action(0)  #idle
-        player.move(moving_left, moving_right)
+        screen_scroll = player.move(moving_left, moving_right)
+        bg_scroll -= screen_scroll
 
     #Keys and quit
     for event in pygame.event.get():
