@@ -25,8 +25,8 @@ SCROLL_THRESH = 200
 ROWS = 16  #<-- dependant on the asset size
 COLS = 150 #<-- dependant on how long you want your stage, times tile size
 TILE_SIZE = SCREEN_HEIGHT // ROWS
-TILE_TYPE = 21  #<-- defines the amount of assests you are pulling over with CSV
-MAX_LEVELS = 3
+TILE_TYPE = 21  #<-- defines the amount of assests in the collects for the level editor
+MAX_LEVELS = 3 #<-- total levels you have
 
 screen_scroll = 0
 bg_scroll = 0
@@ -112,8 +112,8 @@ def draw_text(text, font, text_col, x, y):
 def draw_bg():
     screen.fill(BG)
     width = sky_img.get_width()
-    for x in range(5):
-        screen.blit(sky_img, ((x * width) - bg_scroll * .5,0))
+    for x in range(5): #how many times the images repeat...
+        screen.blit(sky_img, ((x * width) - bg_scroll * .5,0)) #last number is how much the offset slows
         screen.blit(mountain_img, ((x * width) - bg_scroll * .6, SCREEN_HEIGHT - mountain_img.get_height()- 300))
         screen.blit(pine1_img, ((x * width) - bg_scroll * .7, SCREEN_HEIGHT - mountain_img.get_height()- 150))
         screen.blit(pine2_img, ((x * width) - bg_scroll *.8, SCREEN_HEIGHT - mountain_img.get_height()))
@@ -269,7 +269,7 @@ class Soldier(pygame.sprite.Sprite):
 
         #jump
         if self.jump == True and self.in_air == False:
-            self.vel_y = -11
+            self.vel_y = -10
             self.jump = False
             self.in_air = True
         #apply gravity
@@ -698,6 +698,9 @@ while run:
         world.draw()
         #show player health
         health_bar.draw(player.health)
+
+
+
         #show ammo
         draw_text(f'AMMO: ', font, WHITE, 10, 35)
         for x in range(player.ammo):
