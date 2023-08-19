@@ -4,6 +4,8 @@ import random
 import csv
 import button
 from pygame import mixer
+from level_editor import launch_level_editor
+
 
 mixer.init()
 pygame.init()
@@ -13,7 +15,7 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = int(SCREEN_WIDTH * 0.8)
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Shooter')
+pygame.display.set_caption('KnotzBizarreEscape')
 
 #set framerate
 clock = pygame.time.Clock()
@@ -63,6 +65,7 @@ grenade_fx.set_volume(0.5)
 start_img = pygame.image.load('img/start_btn.png').convert_alpha()
 exit_img = pygame.image.load('img/exit_btn.png').convert_alpha()
 restart_img = pygame.image.load('img/restart_btn.png').convert_alpha()
+level_editor_img = pygame.image.load('img/load_btn.png').convert_alpha()
 
 
 #background images
@@ -70,6 +73,7 @@ pine1_img = pygame.image.load('img/Background/pine1.png').convert_alpha()
 pine2_img = pygame.image.load('img/Background/pine2.png').convert_alpha()
 mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
 sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
+
 
 #store tiles in a list for world csv file
 img_list = []
@@ -92,7 +96,7 @@ item_boxes = {
 }
 
 
-#define colours
+#define colors
 BG = (144, 201, 120)
 BLACK = (0,0,0)
 WHITE = (255, 255, 255)
@@ -102,6 +106,9 @@ PINK = (235,65,54)
 
 
 font = pygame.font.SysFont('Futura', 30)
+
+level_editor_btn = button.Button(600, 400, level_editor_img, 1) # Assuming button.Button class is used for buttons
+
 
 #draw text on screen
 def draw_text(text, font, text_col, x, y):
@@ -689,7 +696,12 @@ while run:
             start_game = True
             start_intro = True
         if exit_button.draw(screen):
-         run = False
+            run = False
+        if level_editor_btn.draw(screen):
+            launch_level_editor()
+            
+        
+        
         
     else:
 
