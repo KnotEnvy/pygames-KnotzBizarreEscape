@@ -21,13 +21,6 @@ My Game is built using the following technologies and libraries:
 - PyOpenGL
 - PyBullet
 
-## Contributors
-
-- Knot Envy: Lead Developer
-- Knot Envy: Artist
-- Knot Envy: Sound
-- Knot Envy: Animation
-- Knot Envy: Creative design
 
 ## Contributing
 
