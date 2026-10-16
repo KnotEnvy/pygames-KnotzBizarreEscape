@@ -11,6 +11,10 @@
 //          until it is released; fresh presses still work.
 //   camera snapTo() finishes a running lock/unlock blend (unlock-then-snap no longer drags the view back);
 //          lock()-then-snapTo() lands inside the arena at once.
+//   load   (QA E04, fault injection) hud_gold.xml aborted once -> the retry recovers, Game is playable and respawns;
+//          aborted for good -> Preload's load-error screen (ready=false, state().loadErrors, no Game, no crash), then
+//          Enter after un-blocking reloads only the failed file and the Game starts; ui.json aborted once -> Boot's
+//          pack retry recovers.
 // Exit code 0 = pass. Usage: node game/tools/engine-selftest.mjs [--shots /tmp/dir]
 import { createServer } from 'vite';
 import { fileURLToPath } from 'node:url';
@@ -197,6 +201,84 @@ try {
     const errors3 = await p3.evaluate(() => window.__KBE.state().errors);
     if (errors3.length) pageErrors.push(...errors3);
     await p3.close();
+
+    // ---- load: fault injection (KBE-QA-E04). Phaser itself console.errors "File failed" for a failed MultiFile
+    // child, so only crash-type errors count here, not that log line.
+    const GAME_URL = `http://127.0.0.1:${port}/?scene=Game&fast=1&mute=1&god=1&seed=731`;
+    const crashes = st => st.errors.filter(e => !/File failed/.test(e));
+    const respawns = async pg => {
+        await pg.evaluate(() => window.__KBE.cheats.kill());
+        try { await pg.waitForFunction(() => window.__KBE.state().player?.alive === false, null, { timeout: 2000 }); } catch { return { died: false }; }
+        try { await pg.waitForFunction(() => window.__KBE.state().player?.alive === true, null, { timeout: 8000 }); return { died: true, respawned: true }; } catch { return { died: true, respawned: false }; }
+    };
+    const loadPage = async (pattern, failTimes) => {
+        const pg = await browser.newPage({ viewport: { width: 1152, height: 648 } });
+        const errs = [];
+        pg.on('pageerror', e => errs.push(e.message));
+        const hits = { aborted: 0, served: 0, block: failTimes };
+        await pg.route(pattern, route => {
+            if (hits.block > 0) { hits.block--; hits.aborted++; return route.abort('failed'); }
+            hits.served++; return route.continue();
+        });
+        await pg.goto(GAME_URL);
+        return { pg, errs, hits };
+    };
+    const healthyGame = pg => pg.evaluate(() => {
+        const s = window.__KBE.state();
+        return { ready: window.__KBE.ready, scene: s.scene, loadErrors: s.loadErrors, font: window.__KBE.game.cache.bitmapFont.exists('font_hud_gold'), hud: window.__KBE.game.scene.isActive('HUD'), level: s.level?.name ?? null, errors: s.errors };
+    });
+
+    {   // aborted once -> recovered by the automatic retry
+        const { pg, errs, hits } = await loadPage('**/assets/fonts/hud_gold.xml', 1);
+        await pg.waitForFunction(() => window.__KBE?.ready, null, { timeout: 30000 });
+        await pg.waitForTimeout(500);
+        const st = await healthyGame(pg);
+        const rs = await respawns(pg);
+        const errors = [...errs, ...crashes(await pg.evaluate(() => window.__KBE.state()))];
+        if (shots) await pg.screenshot({ path: path.join(shots, 'selftest-load-retry-recovered.png') });
+        check('load: hud_gold.xml aborted once -> retried, Game + HUD up, real level, respawn works', hits.aborted === 1 && hits.served >= 1 && st.scene === 'Game' && st.hud && st.font && st.level && st.loadErrors.length === 0 && rs.respawned && errors.length === 0, { hits, ...st, errors: errors.slice(0, 3), ...rs });
+        await pg.close();
+    }
+    {   // aborted for good -> error screen; un-block + Enter -> only the failed file reloads, Game starts
+        const { pg, errs, hits } = await loadPage('**/assets/fonts/hud_gold.xml', Infinity);
+        await pg.waitForFunction(() => (window.__KBE?.state().loadErrors ?? []).length > 0 && window.__KBE.state().scene === 'Preload', null, { timeout: 30000 });
+        await pg.waitForTimeout(1500); // nothing may route on afterwards
+        const st = await pg.evaluate(() => {
+            const s = window.__KBE.state();
+            const pre = window.__KBE.game.scene.getScene('Preload');
+            const texts = pre.children.list.filter(o => o.type === 'Text' && o.visible).map(o => o.text);
+            return { ready: window.__KBE.ready, scene: s.scene, scenes: s.scenes, loadErrors: s.loadErrors, texts, errors: s.errors };
+        });
+        const errors = [...errs, ...crashes(st)];
+        if (shots) await pg.screenshot({ path: path.join(shots, 'selftest-load-error-screen.png') });
+        const attempts = hits.aborted;
+        check('load: hud_gold.xml always failing -> 3 attempts, error screen, ready=false, no Game, no crash',
+            attempts === 3 && !st.ready && st.scene === 'Preload' && !st.scenes.includes('Game') && st.loadErrors.length === 1 && st.loadErrors[0].key === 'font_hud_gold'
+            && st.texts.includes('LOAD FAILED: CHECK CONNECTION') && st.texts.includes('1 FILE FAILED TO LOAD') && st.texts.includes('PRESS ENTER / CLICK TO RETRY') && errors.length === 0,
+            { attempts, ...st, errors: errors.slice(0, 3) });
+        await pg.unroute('**/assets/fonts/hud_gold.xml');
+        const requested = [];
+        pg.on('request', r => { if (r.url().includes('/assets/')) requested.push(new URL(r.url()).pathname); });
+        await pg.keyboard.press('Enter');
+        await pg.waitForFunction(() => window.__KBE?.ready, null, { timeout: 30000 });
+        await pg.waitForTimeout(500);
+        const st2 = await healthyGame(pg);
+        const rs = await respawns(pg);
+        const errors2 = [...errs, ...crashes(await pg.evaluate(() => window.__KBE.state()))];
+        if (shots) await pg.screenshot({ path: path.join(shots, 'selftest-load-error-retried.png') });
+        const onlyFailed = requested.every(u => /\/assets\/fonts\/hud_gold\.(xml|png)$/.test(u) || !/\/assets\/(fonts|packs)\//.test(u)) && requested.some(u => u.endsWith('hud_gold.xml')) && !requested.some(u => /\/assets\/packs\//.test(u));
+        check('load: un-block + Enter retries only the failed file; Game + HUD up, respawn works', onlyFailed && st2.scene === 'Game' && st2.hud && st2.font && st2.loadErrors.length === 0 && rs.respawned && errors2.length === 0, { requested: requested.slice(0, 8), ...st2, errors: errors2.slice(0, 3), ...rs });
+        await pg.close();
+    }
+    {   // a pack fetch aborted once -> Boot's pack retry recovers (not "skipped as missing")
+        const { pg, errs, hits } = await loadPage('**/assets/packs/ui.json', 1);
+        await pg.waitForFunction(() => window.__KBE?.ready, null, { timeout: 30000 });
+        await pg.waitForTimeout(500);
+        const st = await healthyGame(pg);
+        const errors = [...errs, ...crashes(st)];
+        check('load: ui.json pack aborted once -> refetched, Game + HUD up', hits.aborted === 1 && hits.served >= 1 && st.scene === 'Game' && st.hud && st.font && st.loadErrors.length === 0 && errors.length === 0, { hits, ...st, errors: errors.slice(0, 3) });
+        await pg.close();
+    }
     const errors = await page.evaluate(() => window.__KBE.state().errors);
     check('no page errors / __KBE errors', pageErrors.length === 0 && errors.length === 0, [...pageErrors, ...errors].slice(0, 5));
 } catch (e) {

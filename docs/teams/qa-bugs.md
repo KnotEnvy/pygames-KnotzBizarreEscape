@@ -2,6 +2,8 @@
 
 ## Release readiness
 
+> **Lead update (post-verification):** KBE-QA-E04 was fixed by Engine after this pass: pack/file loads retry with backoff, and persistent failures stop on a LOAD FAILED / retry screen with `ready=false` and `state().loadErrors`. Verified with QA's repro (blocked once → recovers; blocked permanently → error screen, retry works) and 4 new selftest checks (17/17). QA suite 19/19, flow ×5 15/15.
+
 **Ready for a supervised human playtest after a successful load; not a clean automated release sign-off.** All eight Phase C open findings are **RESOLVED**, and the Lead's mission-complete GO suppression passes. Healthy-load gameplay, boss completion/Results, production boot/audio/cheat gating, engine selftests and performance are solid. **One new conditional S1 remains open: E04, required-asset load failure can crash HUD creation and freeze the game.** Reloading is the current recovery. The three consecutive E2E runs and the flow repetition are retained as failures, not relabeled green: host `eth2` network notifications invalidated requests, with a resulting broken partial boot in the Continue repetition.
 
 Human acceptance still needs listening to the audio mix (especially sustained fire, boss roar and the death chain), judging Arcade/Casual difficulty and feel, testing a real GPU, and using a physical gamepad including reconnect/focus behavior. Warp coverage and a forward-only section bot do not establish an unassisted complete run.

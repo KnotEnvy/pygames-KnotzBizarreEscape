@@ -335,6 +335,7 @@ Other flow behavior:
   - `state()` returns `{scene, scenes, fps, player:{x,y,alive,weapon,ammo,bombs,lives}, score, rescued, enemies, cameraX, bossHp, boss, bossPhase, god, projectiles, enemyProjectiles, shotsFired, level:{stage,name,sandbox}, errors}` plus every `registerDebug` field (team fields win over engine defaults with the same key)
   - `cheats.god(on)`, `warp(x)`, `give(weapon, ammo?)`, `kill()` (**kills the player**), `killEnemies()`, `hurt(dmg?)`, `bombs(n)`, `boss()`
   - `press(action, ms)` reaches every live input, menus included.
+  - `state().loadErrors`: `[]` normally. Non-empty only on Preload's load-error screen: `[{kind:'pack'|'file', team, key, url, reason}]`, with `ready` false and no Game running.
 - **Add state fields:** gameplay code: `ctx.debug.register('grunts', () => count)` (run-scoped: dropped when the run
   ends, so stale closures never outlive a restart). Page-lifetime code (UI scenes, audio): `registerDebug(key, fn)`.
 - `state().errors` holds the last 20 of at most 200 recorded errors (window errors, unhandled rejections, `console.error`).
@@ -349,7 +350,7 @@ Other flow behavior:
 
 - **Depth:** `DEPTH.PLAYER`, `DEPTH.ENEMIES + 1`, ... (`src/core/depth.ts`).
 - **Engine textures:** `TEX.px` (1×1 white), `TEX.missing`, `TEX.bullet`, `TEX.enemyBullet`. Palette constants: `PAL`.
-- **Asset packs:** `public/assets/packs/<team>.json`. URLs are relative to `index.html` (`assets/sprites/...`). Every `aseprite` entry automatically gets its tags turned into valid global animations by Preload (`createAsepriteAnims`, see **Animations** below), so **tag names are anim keys** and must be globally unique (prefix them: `grunt_run`). A missing pack is skipped with a `console.info`.
+- **Asset packs:** `public/assets/packs/<team>.json`. URLs are relative to `index.html` (`assets/sprites/...`). Every `aseprite` entry automatically gets its tags turned into valid global animations by Preload (`createAsepriteAnims`, see **Animations** below), so **tag names are anim keys** and must be globally unique (prefix them: `grunt_run`). A pack that isn't deployed (404, or the dev server's HTML fallback) is skipped with a `console.info`. **Every file listed in a deployed pack is required:** a failed pack fetch or file is retried (3 attempts, 0.5 s / 1.5 s backoff), and if it still fails Preload shows the load-error screen instead of routing (see **Changelog (E04)**).
 - **Animations (`src/core/anims.ts`, exported from core):** Phaser 4.2.1's `anims.createFromAseprite` makes **zero-frame**
   animations for our `<key>#N` frame names (`exists()` is true, `play()` throws). Preload does not use it: every tag is
   built from the Aseprite JSON with the exact per-frame ms, `reverse`/`pingpong` honored, `repeat: 0` (Phaser's default).
@@ -369,6 +370,30 @@ Other flow behavior:
 
 
 ---
+
+## Changelog (E04: asset load failures, 2026-10-16)
+
+- **Required assets that fail to load no longer route into a crashing Game** (QA KBE-QA-E04; `BootScene.ts`,
+  `PreloadScene.ts`). Before, Boot skipped a pack on any fetch error and Preload only warned on a failed file, then
+  routed anyway; HUD's `bitmapText` threw on the missing `font_hud_gold` (`reading 'data'`), the view froze on the
+  loading bar and the player never respawned. Host network churn (`ERR_NETWORK_CHANGED`) triggered it organically.
+- **Retries:** Boot retries each pack fetch (3 attempts, 0.5 s then 1.5 s backoff). It now tells *not deployed* (404 or
+  other 4xx, HTML fallback: skipped quietly, as before) from *failed* (network error, 408/429/5xx, truncated JSON:
+  retried, then reported). Preload sets `load.maxRetries = 0` (Phaser's retry fires instantly, inside the same network
+  blip) and runs its own rounds instead: after each pass, every pack entry not in its cache, plus any failed request,
+  is re-queued under its own pack section, up to 3 attempts with the same backoff. A partly loaded MultiFile (font
+  PNG fine, XML failed) is re-queued whole; Phaser never cached its half.
+- **Load-error screen:** if anything still fails, Preload stays put. It shows *LOAD FAILED: CHECK CONNECTION*, the
+  failed file/pack count, up to three keys, and *PRESS ENTER / CLICK TO RETRY* (gamepad: any button). Retry re-fetches
+  only the failed packs and re-loads only the failed files (a fresh 3-attempt cycle), then routes normally. After three
+  failed manual retries the prompt becomes *... TO RELOAD* and reloads the page. Aseprite anims are created once,
+  after everything has loaded. `__KBE.ready` stays false and `state().loadErrors` lists the failures (otherwise `[]`).
+- **Selftest** (`engine-selftest.mjs`, now 17 checks): `hud_gold.xml` aborted once → recovered, real level, HUD up,
+  kill → respawn; aborted for good → 3 attempts, error screen, `ready=false`, no Game, no errors; then un-block +
+  Enter → only `hud_gold.png/.xml` requested, Game + HUD up, respawn works; `ui.json` aborted once → Boot refetches it.
+- **Note for QA:** the browser itself still logs `Failed to load resource: net::ERR_...` for every failed attempt, even
+  ones a retry recovers. A console guard that counts those will still flag network churn; `state().errors` stays
+  empty and the run is healthy. For load health, check `ready` and `state().loadErrors` instead.
 
 ## Changelog (Phase D, UI/Audio follow-up)
 
