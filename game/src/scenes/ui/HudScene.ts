@@ -37,6 +37,8 @@ export class HudScene extends Phaser.Scene {
     private goLeft = 0;
     private goT = 0;
     private locked = false;
+    /** Set once the boss falls: its arena unlock must not flash GO! over MISSION COMPLETE. */
+    private missionOver = false;
     // boss
     private bossBox!: Phaser.GameObjects.Container;
     private bossFill!: Phaser.GameObjects.Image;
@@ -68,6 +70,8 @@ export class HudScene extends Phaser.Scene {
         this.ctx = ctx;
         this.clock = 0;
         this.cleared = false;
+        this.locked = false;
+        this.missionOver = false;
         this.build();
         this.refreshAll();
         const bus = ctx.events.scoped(this);
@@ -78,15 +82,15 @@ export class HudScene extends Phaser.Scene {
         bus.on('weapon:changed', e => this.setWeapon(e.weapon, e.ammo, true));
         bus.on('rescued:changed', e => this.setRescued(e.value));
         bus.on('camera:lock', () => { this.locked = true; });
-        bus.on('camera:unlock', () => { if (!this.locked) return; this.locked = false; this.showGo(); });
+        bus.on('camera:unlock', () => { if (!this.locked) return; this.locked = false; if (!this.missionOver) this.showGo(); });
         bus.on('boss:spawn', e => this.bossSpawn(e));
         bus.on('boss:hp', e => this.bossSetHp(e));
         bus.on('boss:phase', e => { this.bossSetHp(e); this.bossFlash = 260; });
-        bus.on('boss:defeated', e => this.bossDefeated(e));
+        bus.on('boss:defeated', e => { this.missionOver = true; this.bossDefeated(e); });
         bus.on('ui:popup', e => this.popup(e.x, e.y, e.text, e.color));
         bus.on('enemy:killed', e => this.onKill(e));
         bus.on('ui:prompt', e => this.showPrompt(e.text, e.ms));
-        bus.on('stage:clear', () => this.onClear());
+        bus.on('stage:clear', () => { this.missionOver = true; this.onClear(); });
         bus.on('game:over', () => { this.callout.hide(); this.hidePrompt(); });
         bus.on('game:continue', () => { this.killChain = 0; this.refreshAll(); });
         bus.on('player:died', () => { this.killChain = 0; });
