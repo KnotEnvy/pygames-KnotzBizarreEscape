@@ -427,6 +427,13 @@ Other flow behavior:
   dev/preview SPA fallback hid this, but a real static host answered with a 404 console error.
 - **Cheats gated in production** (see §11): `CHEATS_ENABLED` in `params.ts`, `__KBE.cheatsEnabled`, and
   `ctx.debug.cheatsEnabled` (new, additive in `DebugService`).
+- **`camera.snapTo()` is a hard cut now (Levels' Phase D report).** It finishes any running lock/unlock blend and
+  restarts the forward-only left edge from the new view. Before this, `unlock()` then `snapTo()` let the unlock blend
+  drag the view back to the old arena (QA bot: "camera moved left 3494 → 3252"). While locked, a snap point inside
+  the arena lands the view inside it at once. A snap point outside the arena is treated as a teleport out and is not
+  pulled back. Either order of `snapTo()`/`unlock()` works, so Levels' snap-first warp workaround still works and is
+  now just redundant. `debugInfo()` also reports `blend`. Selftest: three new `camera:` checks on their own page
+  (the input checks leave the Game paused). They fail against the old `snapTo()`.
 
 ## Requests for other teams (Phase D)
 

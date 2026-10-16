@@ -2,16 +2,16 @@
 // per second over music_continue. Confirm → flow.continueGame() (fresh lives, score reset). 0 → GAME OVER +
 // jingle, then flow.quit() back to the Title.
 import Phaser from 'phaser';
-import { getContext, type GameContext } from '../../core';
+import { getContext, tagFrame, type GameContext } from '../../core';
 import { getAudio } from '../../audio';
 import { UI } from '../../config/tuning/ui';
-import { C, F, W, dimmer, frameOf, pad, text } from '../../ui/widgets';
+import { C, F, W, dimmer, pad, text } from '../../ui/widgets';
 import { Callout } from '../../ui/callout';
 import { MenuInput } from '../../ui/input';
 import { wipeOut } from '../../ui/transitions';
 import { uiLog } from '../../ui';
 
-type State = 'count' | 'over' | 'continuing' | 'leaving';
+type State = 'count' | 'over' | 'leaving';
 
 export class ContinueScene extends Phaser.Scene {
     private ctx!: GameContext;
@@ -23,7 +23,6 @@ export class ContinueScene extends Phaser.Scene {
     private acc = 0;
     private blink = 0;
     private overT = 0;
-    private waitT = 0;
     private state: State = 'count';
 
     constructor() { super('Continue'); }
@@ -47,7 +46,7 @@ export class ContinueScene extends Phaser.Scene {
     }
 
     private setNumber(n: number): void {
-        const f = frameOf(this, `countdown_${n}`);
+        const f = tagFrame(this, `countdown_${n}`);
         if (f !== undefined) this.number.setFrame(f);
     }
 
@@ -62,14 +61,17 @@ export class ContinueScene extends Phaser.Scene {
 
     private continueGame(): void {
         if (this.state !== 'count') return;
-        this.state = 'continuing';
-        this.waitT = 0;
+        this.state = 'leaving';
         uiLog('continue:continue');
         const audio = getAudio(this);
         audio.sfx('ui_start');
         audio.music(null, { fade: 150 });
         this.number.setVisible(false);
         this.press.setVisible(false);
+        // flow.continueGame() latches every key still held (the Enter that confirmed) until released, so the
+        // respawned player can't pause/jump/shoot on this press; no release-wait is needed here any more.
+        uiLog('continue:handoff');
+        this.ctx.flow.continueGame();
     }
 
     private gameOver(): void {
@@ -104,14 +106,6 @@ export class ContinueScene extends Phaser.Scene {
         } else if (this.state === 'over') {
             this.overT += dt;
             if (this.overT > UI.continue.gameOverHoldMs || (this.overT > 800 && this.menuInput.any)) this.leave();
-        } else if (this.state === 'continuing') {
-            // Hand off only once the confirm key is up, so the Game doesn't read this press as a pause.
-            this.waitT += dt;
-            if (!this.menuInput.anyHeld || this.waitT > 1500) {
-                this.state = 'leaving';
-                uiLog('continue:handoff');
-                this.ctx.flow.continueGame();
-            }
         }
     }
 }

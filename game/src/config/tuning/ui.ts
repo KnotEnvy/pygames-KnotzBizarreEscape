@@ -58,7 +58,15 @@ export const UI = {
         completeJingleDelayMs: 1100,
         flameLoopHoldMs: 450,
         rocketWhooshMs: 1400,
-        recentKeys: 24
+        recentKeys: 24,
+        /**
+         * Master safety limiter (a DynamicsCompressor after Phaser's master gain). Music alone peaks at about
+         * −5.8 dBFS (file −2.7 + bus 0.7), so it never touches the threshold; it only catches coincident SFX peaks
+         * (an explosion over a cannon shot over the music) that would otherwise hard-clip at the destination.
+         */
+        limiter: { thresholdDb: -3, kneeDb: 3, ratio: 20, attackS: 0.002, releaseS: 0.12 },
+        /** Mix meter (`__KBE.state().audio.mix`): peak-hold window for the busiest moment. */
+        mixHoldMs: 1500
     }
 } as const;
 

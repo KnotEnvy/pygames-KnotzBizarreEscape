@@ -287,22 +287,24 @@ turret_windup, boss roar/cannon/stomp/steam/flame/explode, crate_break, gate_sma
   Pause/Continue quit → Title; dim fades for overlays; HUD fade-to-black before the Results cut.
 
 ### Building blocks (`src/ui/`)
-`MenuInput` wraps `createInput(this)` (keyboard + pad) and **ignores the press that opened the menu**: a page-level keydown/keyup
-tracker (`keys.ts`) timestamps every key's hold, and a menu only accepts keyboard presses that started after it was requested
-(`since`; the Pause scene uses the `game:pause` moment, `flowStamps.pauseRequestedAt`, so a second Escape counts even when the
-first paused frame was slow). Pad/virtual actions held at the first sample are ignored until released. Also held-direction
-auto-repeat and `anyHeld` for handoffs. `Menu` =
+`MenuInput` wraps `createInput(this)` (keyboard + pad). Keyboard **press edges come from the page-level key tracker**
+(`keys.ts` timestamps every fresh keydown), not from the engine's per-frame sample: a release + re-press inside one frame and a
+tap shorter than a frame both count, on the frame the press started (Phase D). It **ignores the press that opened the menu**: a
+menu only accepts keyboard presses that started after it was requested (`since`; the Pause scene uses the `game:pause` moment,
+`flowStamps.pauseRequestedAt`, so a second Escape counts even when the first paused frame was slow). Pad/virtual actions held at
+the first sample are ignored until released. Also held-direction auto-repeat. `Menu` =
 rows with label/value, bouncing `ui_cursor`, blips. `Callout` = the drop/overshoot/flash/hold/fly-out slam used by the HUD, Intro,
 Continue and Results. `ControlsPanel` = bindings → `ui_prompts` glyphs (text key-caps for keys without art). `transitions.ts`,
-`widgets.ts` (bitmap text at native size, 9-slice panels, `frameOf(tag)`/`hasAnim`), `rank.ts`, `prefs.ts`.
+`widgets.ts` (bitmap text at native size, 9-slice panels, `icon()`/`playTag()` over core's `tagFrame`/`hasAnim`), `rank.ts`, `prefs.ts`.
 
 ## 6. Design decisions
 - **Scene stepping order matters.** Phaser steps active scenes top-most first and renders bottom-up. A menu therefore acts on a key
   edge *before* the Game samples the same key, so handing control to the Game on the frame of the press makes the engine read it as
-  a fresh `pause` (Enter is bound to confirm *and* pause). Continue and Title now hand off only once the confirm key is up
-  (`MenuInput.anyHeld`, 1–1.5 s cap). Menus judge presses by their start time, not by what is held when the menu's first frame
-  runs: the Escape that opened the Pause menu can't close it, but a new Escape 80 ms later does, even if the first paused frame
-  took 200 ms (SwiftShader's first level render).
+  a fresh `pause` (Enter is bound to confirm *and* pause). Since Phase D the engine latches every key still held when the Game
+  scene is created and in `flow.continueGame()` (ignored until released), so Title and Continue hand off immediately; the
+  UI-side release-wait (`anyHeld`, 1–1.5 s cap) is gone. Menus judge presses by their start time, not by what is held when the
+  menu's first frame runs: the Escape that opened the Pause menu can't close it, but a new Escape 3 ms after its release does,
+  even if the first paused frame took 200 ms (SwiftShader's first level render).
 - **One AudioEngine per game, not per run.** Music must survive scene changes (Title → Game crossfade, stage music under the Pause scene,
   jingles into Results). The per-run `ctx.audio` only adds the camera listener and stops the run's voices/loops on shutdown.
 - **Direct calls stay, events add information.** Removing other teams' `sfx()` calls isn't ours to do; instead `hint()` lets an event
@@ -319,7 +321,6 @@ Continue and Results. `ControlsPanel` = bindings → `ui_prompts` glyphs (text k
 - Rank uses a per-stage POW total from tuning (`UI.results.powTotal`, stage 1 = 5) because the engine doesn't report it.
 - `drone_buzz` isn't used as a loop (no per-drone start/stop hook); the direct call plays the dive whoosh.
 - Pad rebinding isn't offered (keyboard only). Pad glyphs assume the standard mapping.
-- Holding Enter for longer than the handoff cap (1–1.5 s) when starting/continuing still reaches the Game as a `pause` press.
 - The key art is static (no drift) to keep the 384×216 pixels crisp; the Title's motion is the logo glitch, snow and cursor.
 - No Preload progress-bar art (Engine owns Preload).
 
@@ -332,10 +333,9 @@ The three previously UI-gated tests (Title → Game → Pause → resume, kill/r
 `Continue` answers Enter with a fresh run (lives reset, score 0). `npm run typecheck` and `npm run check:phaser4` are clean.
 
 ## 9. Requests for other teams
-- **Engine**: `flow.update` pauses on `input.justDown('pause')` the very frame after a UI scene hands control back; a one-frame
-  `rebaseline()` of the Game's input in `continueGame()` and on `Game` CREATE (like the one on RESUME) would remove the UI-side
-  release-wait. Consider exposing the level's POW total on `LevelQuery` (`powTotal?`) for the Results rank. `boss:*` payloads already
-  carry x/y, thanks. `scene.sound` unlock state and camera centre are read directly (fine as is).
+- **Engine**: done in Phase D, thanks: held keys are latched on Game CREATE and in `continueGame()` (the UI release-wait is
+  removed), and `LevelQuery.powTotal?` exists (the Results rank uses it when a level reports it; see §10). `boss:*` payloads
+  already carry x/y. `scene.sound` unlock state and camera centre are read directly (fine as is).
 - **Enemies**: a per-drone `ctx.audio`-free hook isn't possible; if you want the buzz loop, call `getAudio(scene).loop('drone_buzz', {x})`
   from the drone and `stop()` it on death/offscreen (or emit a typed `enemy:spawn/despawn` event we can listen to).
 - **Levels**: `music_stage1`/`music_boss` keys are perfect. The `prompt` texts are plain; if you want key-cap art inside prompts, use
@@ -343,3 +343,76 @@ The three previously UI-gated tests (Title → Game → Pause → resume, kill/r
 - **FX**: the popup fallback stays off via `fx.popups=false`; thanks for the listener-count guard too. `reducedFlash`/`crt`/`shake` are
   exposed in Options and emit `settings:changed`.
 - **QA**: the UI-gated tests should now pass; `__KBE.state().ui.log` and `.audio` are there for flow/audio assertions.
+
+## 10. Phase D (final fix round)
+
+Scratch and evidence: `/tmp/kbe-ui/d_*.png`, probe `/tmp/kbe-ui/pause_race.mjs`. `npm run typecheck` clean, `check:phaser4 --strict`
+0/0, `node tools/engine-selftest.mjs` all passed, QA e2e 18/19 (the one failure is again QA's "no console errors" guard catching
+76 `net::ERR_NETWORK_CHANGED` resource errors from other agents' servers; `gameplay.spec.ts` passes 5/5 alone).
+
+### Fixes
+- **KBE-QA-U01 (S2) boss HP bar empty at full HP: fixed.** `bossbar_frame.png` is opaque on purpose (its dark `ink1` slot is
+  the "empty" bar), and the HUD added it *after* the fill and ghost in `bossBox`, painting over both. The container order is now
+  frame → ghost → fill → skull → name; the fill/ghost also hide at a 0 px crop. Verified with the Lead's capture command and the
+  HMG (`give('hmg')` + held X, 400 → 358 → 304 → 256) and the boss fixture: `d_bossbar_full.png` (400/400, full fill),
+  `d_bossbar_low2.png` (256/400), `d_bossbar_half_ghost.png` (200/400 mid-drain: lagging dark-red ghost + phase flash),
+  `d_bossbar_half.png`, `d_bossbar_near_empty.png` (12/400, a 6 px sliver); `d_bossbar_before.png` is the broken baseline.
+- **Pause → resume race: fixed in `MenuInput`.** Keyboard presses are now edge-detected from the page-level key tracker
+  (`keys.ts` keeps the time of the most recent fresh keydown per key, even after release) instead of the engine's per-frame
+  sample, so a release + re-press inside one frame (the 3 ms case the Engine diagnosed) and a sub-frame tap both count on the
+  frame they start. The opening-key filter (`since`) is unchanged. `pause_race.mjs` (8 rounds each): re-press 3 ms after release
+  8/8, 2 ms tap 8/8, held opener stays paused then a new press closes 8/8, Title with a 250 ms held Enter starts the Game unpaused
+  4/4, Continue with a 250 ms held Enter resumes unpaused with lives reset 3/3. QA's `flow.spec.ts` "Title → Game → Pause →
+  resume" `--repeat-each 5`: 5/5.
+- **Release-wait workaround removed** (Title `pendingStart`, Continue `continuing` state, `MenuInput.anyHeld`,
+  `keys.anyBoundKeyHeld/heldKeyCodes`): the engine's `latchHeld` on Game CREATE and in `continueGame()` has landed
+  (`engine-selftest` covers it). Title starts the Game straight after the wipe; Continue calls `flow.continueGame()` on the press.
+- **Core animation helpers everywhere** (rules review U1): `widgets.frameOf`/`hasAnim` are deleted; `icon()`/`playTag()` use core's
+  `tagFrame`/`hasAnim`; HUD (1UP badge, weapon icon), Results (rank), Continue (numerals) and controls (key-caps, pad glyphs) use
+  `tagFrame`; Title uses `playAnim` for the logo idle/glitch; the menu cursor and GO! use `hasAnim`. No `anims.exists` remains in
+  UI code (the checker's `anims-exists-zero-frame` rule is clean). A missing icon still falls back to the magenta `TEX.missing`
+  on purpose (loud in screenshots) and now warns once in dev.
+- **Magenta/missing sweep, every scene looked at:** `d_title_attract.png`, `d_title_menu.png` (cursor is the real arrow; the
+  magenta square in the Lead's `title_b.png` predates the engine's animation fix), `d_options.png`, `d_controls_page.png` (all
+  key-cap and pad glyphs), `d_pause_final.png`, `d_continue.png` (countdown numeral), `d_gameover.png`, `d_results.png` +
+  `d_results_rank.png` (rank stamp), `d_credits_fixed.png`, HUD: `d_bossbar_full.png` (1UP, life, pistol, bomb, skull icons),
+  `d_bossbar_low2.png` (HMG icon after `give`), `d_go.png` (GO! arrow). Nothing magenta. Found and fixed on the way: `©` and `•`
+  are not in the bitmap fonts (rendered as blanks in the Title footer, Credits and the Options controls header; now `(C)` and
+  `●`), the Pause pad-glyph column spilled past the right panel (`ControlsPanel.padX`, 136 for Pause), the Pause footer hint sat
+  over the level art (now inside the panel), and Credits lines leaked below the panel through the 0.7-alpha band (lines outside
+  the window are now hidden; no mask filter).
+- **Rules review U2:** `keys.ts` listeners are removed on `import.meta.hot.dispose` (no stacking on HMR).
+- **Results rank** uses the level's `LevelQuery.powTotal` when it reports one (`runInfo` in `src/ui/index.ts`, recorded on
+  `stage:start`/`stage:clear`), else the per-stage estimate from tuning as before.
+
+### Mix sanity pass (numeric; nobody has heard it)
+New `__KBE.state().audio.mix`: estimated sfx and music bus levels (dBFS, power sum of each playing voice's manifest RMS × every
+gain stage; the manifests are now in `packs/ui.json` as `sfx_manifest`/`music_manifest`), peak-held for 1.5 s with the voices
+playing at the peak, the loudest voice and its share, and the limiter's gain reduction. Default buses: music 0.7, sfx 0.9, master 1.
+
+| Moment (`d_mix_*.png`) | sfx bus | music bus | voices at the peak | loudest (share) | limiter |
+|---|---|---|---|---|---|
+| Bridge, HMG held, nothing hit | −24 (first shot −19.7) | −17.1 | hmg | hmg (1.0) | 0 |
+| Bridge arena wave 1, HMG held | peak −13.5, typical −16…−24 | −17.1 | enemy_death_1, hmg, pow_freed, impact_body | pow_freed (0.42) | −0.5 dB |
+| Boss arena, HMG held (cannons, hurt, metal hits, stomp) | peak −11.6, typical −20.5 | −16.3 | boss_hurt ×2, impact_metal, hmg, boss_stomp, explo_s | boss_stomp (0.48) | −2.9 dB |
+| Boss death chain | −7.0 | −16.3 (fading) | boss_roar, boss_death, explo_xl ×2, explo_m ×2 | explo_xl (0.22) | −3.5…−5.2 dB |
+
+Reading: the music sits 3–7 dB over the sustained HMG and only goes under the SFX bus at genuinely busy instants (bridge peak
++3.6 dB, boss fight +2…+5 dB, death chain +9 dB), which is the intended action-game balance. The HMG is never the loudest voice
+once anything else happens. Changes made from the numbers:
+- **Rapid-fire fatigue** (`SfxMeta.burst`): a start within `ms` of the previous one lowers the volume by `step` per consecutive
+  shot down to `floor`. `hmg` at 14/s is one continuous voice (70 ms file at 71 ms spacing): 0.6× after 7 shots (−24 dBFS
+  sustained, first shots −20); `pistol` 0.7×; `impact_*` 0.5× (they arrive at 14/s too). `hmg` max 3 → 2 (never more than 2 overlap).
+- **Peak hygiene:** `boss_cannon` 0.9 → 0.75 and `minMs` 60 → 120 (both antlers fired identical −3 dBFS peaks at the same instant,
+  summing past 0), `impact_metal` 0.7 → 0.5 (21 dB crest factor, peak −1 dBFS), `explo_m` max 3 → 2.
+- **Master limiter:** a `DynamicsCompressor` (threshold −3 dBFS, knee 3, ratio 20, attack 2 ms, release 120 ms) between Phaser's
+  `masterVolumeNode` and the destination (`UI.audio.limiter`; WebAudio only, skipped on HTML5/NoAudio). Music alone peaks at
+  −5.8 dBFS and never touches it; it caught up to 5.2 dB of stacked transients in the boss death chain that would otherwise have
+  hard-clipped at the destination. `audio.mix.limiterDb` shows it working.
+- Unchanged and worth a human ear: the death chain is deliberately the loudest moment (two overlapping `explo_xl`, by design
+  `max: 2`), the −6 dB death duck and the 0.55 boss-roar duck.
+
+### Requests (Phase D)
+- **QA:** `flow.spec.ts` can drop its 100 ms "MenuInput arms" wait if you like; `/tmp/kbe-ui/pause_race.mjs` is a harsher
+  version of the same flow. `audio.mix` is there for level checks (`peakSfxDb`, `loudest`, `limiterPeakDb`).
+- **Enemies:** the per-drone `loop('drone_buzz')` is exactly the hook we asked for, thanks; the catalog caps it at 3 voices.

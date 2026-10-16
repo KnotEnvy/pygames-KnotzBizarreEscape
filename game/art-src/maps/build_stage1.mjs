@@ -234,7 +234,7 @@ prop('sign_jump', 12, G);
 enemy('grunt', 20, G, { idle: 'sleep', facing: 'right' }); // back to the player: a free sneak-up beat (wakes on sight/noise)
 prop('watchtower', 27, G, { layer: 'back' });
 enemy('grunt', 27, 16, { facing: 'left' });
-enemy('grunt', 24, G, { patrol: 64 });
+enemy('grunt', 25, G, { patrol: 32 });          // patrols clear of the sleeper (x376-432)
 pow('hmg', 31, G - 1);
 // crouch lesson: painted DOWN + FIRE sign, then one low crate holding the first reward. Standing fire sails over
 // it, the crouch shot breaks it. The first crouching (low-cover) grunt follows right after.
@@ -299,10 +299,8 @@ hills(146, 168, 15, 18, 'ground', 4);
 
 prop('sign_arrow', 62, G);
 enemy('grunt', 68, G, { patrol: 48 });
-enemy('grunt', 74, G - 1);
 enemy('grunt', 77, G - 1, { idle: 'crouch' });
-enemy('grenadier', 85, 16);
-enemy('grunt', 84, G - 2);
+enemy('grenadier', 85, 16);                       // log-ledge grenadier alone: no grunt stacked under it
 pickup('points', 86, 15, { float: true });
 enemy('drone', 92, 12);
 prop('crate', 90, G - 1, { contains: 'bombs' });
@@ -357,10 +355,9 @@ for (let x = 174; x <= 246; x += 9) farPine(x, 15, 19, 2);
 
 prop('sign_danger', 171, G - 2);
 enemy('paratrooper', 179, 1);
-enemy('paratrooper', 184, 0);
 enemy('grunt', 183, 18);
-enemy('paratrooper', 194, 1);
-enemy('drone', 199, 12);
+enemy('paratrooper', 190, 1);                     // lands well before the arena's lock edge
+enemy('drone', 192, 12);                          // met before the arena, not hovering on its left wall
 prop('flag', 210, 18, { layer: 'back' });
 prop('lamp_post', 218, 18, { layer: 'back' });
 prop('supply_crate', 209, 18, { contains: 'bombs' });
@@ -368,8 +365,8 @@ prop('supply_crate', 209, 18, { contains: 'bombs' });
 const A1 = { lock: 'bridge' };
 enemy('grunt', 225, 18, { ...A1, wave: 1 });
 enemy('grunt', 227, 18, { ...A1, wave: 1, delay: 600 });
-enemy('paratrooper', 209, 0, { ...A1, wave: 1, delay: 1200 });
-enemy('paratrooper', 217, 0, { ...A1, wave: 1, delay: 1800 });
+enemy('paratrooper', 209, 0, { ...A1, wave: 1, delay: 2400 });  // the drop follows the grunts instead of joining them
+enemy('paratrooper', 217, 0, { ...A1, wave: 1, delay: 3400 });
 enemy('shield', 226, 18, { ...A1, wave: 2 });
 // wave 2/3 threats arrive one side at a time (staggered), never a simultaneous two-sided crossfire
 enemy('grunt', 198, 18, { ...A1, wave: 2, facing: 'right', delay: 1600 });
@@ -436,7 +433,7 @@ palisade(351, 359, G - 1, 4);
 
 prop('sign_danger', 254, G);
 enemy('grunt', 255, G, { idle: 'crouch' });
-enemy('shield', 266, 17);                         // the roof edge (x261-264) is a clear landing
+enemy('shield', 266, 17, { patrol: 0 });          // holds its post: the roof edge (x261-264) stays a clear landing
 enemy('turret', 268, 17, { mount: 'roof' });
 prop('alarm_light', 265, 12, { layer: 'back', on: true });
 prop('banner', 278, 16, { layer: 'back' });
@@ -452,7 +449,6 @@ enemy('grunt', 287, 14, { patrol: 48 });
 prop('alarm_light', 292, 12, { layer: 'back', on: true });
 enemy('shield', 302, G);
 enemy('shield', 306, G, { delay: 400 });
-enemy('grunt', 305, 15);
 enemy('grunt', 311, 12, { idle: 'crouch' });
 pickup('life', 314, 6, { hidden: true });
 enemy('drone', 320, 6);

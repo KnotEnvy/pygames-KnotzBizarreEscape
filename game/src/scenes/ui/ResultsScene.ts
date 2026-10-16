@@ -1,9 +1,10 @@
 // Results (started by the engine 3.5 s after stage:clear, Game already stopped): header slam, rows tally in with
 // score_tally ticks (score, POW bonus ×1000, accuracy, time, deaths, total), then the rank stamp. Confirm → Title.
 import Phaser from 'phaser';
+import { tagFrame } from '../../core';
 import { getAudio } from '../../audio';
 import { UI } from '../../config/tuning/ui';
-import { C, F, H, W, bar, frameOf, mmss, pad, panel, text } from '../../ui/widgets';
+import { C, F, H, W, bar, mmss, pad, panel, text } from '../../ui/widgets';
 import { Callout } from '../../ui/callout';
 import { MenuInput } from '../../ui/input';
 import { computeRank, rankPoints, type ResultsData } from '../../ui/rank';
@@ -65,7 +66,7 @@ export class ResultsScene extends Phaser.Scene {
             this.rowTexts.push({ label, value });
         });
         bar(this, 60, 82 + 5 * 14 + 2, 200, 1, C.sand3, 0.6);
-        const f = frameOf(this, `rank_${this.rank.toLowerCase()}`);
+        const f = tagFrame(this, `rank_${this.rank.toLowerCase()}`);
         this.stamp = this.add.image(300, 92, 'ui_rank', f).setOrigin(0.5, 0.5).setVisible(false).setDepth(15);
         text(this, 300, 156, 'RANK', F.hud, [0.5, 0]).setTint(C.ink5);
         this.press = text(this, W / 2, 198, 'PRESS START', F.hud, [0.5, 0.5]).setTint(C.sand5).setVisible(false);

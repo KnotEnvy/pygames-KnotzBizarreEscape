@@ -91,6 +91,7 @@ export function buildMap(scene: Phaser.Scene, extraColliders: Phaser.GameObjects
         name: String(props.name ?? 'Pine Ridge Breakout'),
         waterSurfaceAt: (x: number) => surface[Math.floor(x / map.tileWidth)] ?? null
     });
+    query.powTotal = spawns.filter(o => o.type === 'pow').length;
     return { map, ground, query, bounds, spawns, triggers, props };
 }
 

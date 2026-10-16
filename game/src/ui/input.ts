@@ -1,17 +1,19 @@
 // MenuInput: a menu's view of the engine's action-mapped input (keyboard + gamepad). Adds:
+//   press edges          keyboard presses are edge-detected from the page-level key tracker (`keys.ts`), not from
+//                        the engine's per-frame sample: a release + re-press inside one frame (the engine sees
+//                        the key down in both samples, so no edge) and a tap shorter than a frame both count,
+//                        on the frame the press started. Pad and programmatic presses use the engine's edge;
 //   opening-key filter   a keyboard press that started before the menu was requested (`since`) is ignored for its
 //                        whole hold: the Escape that paused the game can't close the Pause menu on the same press,
 //                        while a *new* press of the same key is accepted at once, even if the menu's first frame
 //                        came late (slow first render). Pad/virtual actions held at the first sample are ignored
 //                        until released;
-//   repeat               held up/down/left/right repeat after a delay, like a real menu cursor;
-//   anyHeld              for handing control to the Game (see TitleScene / ContinueScene).
+//   repeat               held up/down/left/right repeat after a delay, like a real menu cursor.
 import Phaser from 'phaser';
 import { createInput, type Action, type InputState } from '../core';
-import { anyBoundKeyHeld, boundKeyCodes, keyDownTime } from './keys';
+import { boundKeyCodes, keyDownTime, keyPressTime } from './keys';
 
 const MENU_ACTIONS: readonly Action[] = ['up', 'down', 'left', 'right', 'confirm', 'back', 'pause', 'jump', 'shoot'];
-const HANDOFF_ACTIONS: readonly Action[] = ['confirm', 'pause', 'back', 'jump', 'shoot'];
 const REPEAT_DELAY = 340;
 const REPEAT_EVERY = 105;
 
@@ -21,6 +23,10 @@ export class MenuInput {
     private since: number;
     /** Actions down at the first sample without a tracked key (gamepad, virtual presses), dropped when released. */
     private readonly ignoredActions = new Set<Action>();
+    /** keyCode → the press time this menu has already judged (counted as an edge, or older than `since`). */
+    private readonly seen = new Map<number, number>();
+    /** Actions whose press started this frame (computed once per update, so every query in a frame agrees). */
+    private readonly edges = new Set<Action>();
     private fresh = true;
     private repeatV = 0;
     private repeatH = 0;
@@ -42,14 +48,35 @@ export class MenuInput {
         } else {
             for (const a of this.ignoredActions) if (!this.raw.isDown(a)) this.ignoredActions.delete(a);
         }
+        this.edges.clear();
+        for (const a of MENU_ACTIONS) if (this.edge(a)) this.edges.add(a);
         this.v = this.axis('up', 'down', dt, 'repeatV');
         this.h = this.axis('left', 'right', dt, 'repeatH');
     }
 
+    /** Did a press of `a` start since the last update: a fresh keyboard press newer than `since`, else a pad/virtual edge. */
+    private edge(a: Action): boolean {
+        let hit = false;
+        let keyboard = false;
+        for (const code of boundKeyCodes(a)) {
+            const t = keyPressTime(code);
+            if (t === undefined) continue;
+            if (keyDownTime(code) !== undefined) keyboard = true;
+            if (this.seen.get(code) === t) continue;
+            this.seen.set(code, t);
+            if (t > this.since) hit = true;
+        }
+        if (hit) return true;
+        // A held keyboard key has been judged already (opening key, or counted on an earlier frame).
+        if (keyboard) return false;
+        return this.raw.justDown(a) && !this.ignoredActions.has(a);
+    }
+
     private axis(neg: Action, pos: Action, dt: number, timer: 'repeatV' | 'repeatH'): number {
+        if (this.justDown(pos)) { this[timer] = REPEAT_DELAY; return 1; }
+        if (this.justDown(neg)) { this[timer] = REPEAT_DELAY; return -1; }
         const d = (this.isDown(pos) ? 1 : 0) - (this.isDown(neg) ? 1 : 0);
         if (d === 0) { this[timer] = 0; return 0; }
-        if (this.justDown(pos) || this.justDown(neg)) { this[timer] = REPEAT_DELAY; return d; }
         this[timer] -= dt;
         if (this[timer] <= 0) { this[timer] = REPEAT_EVERY; return d; }
         return 0;
@@ -60,7 +87,7 @@ export class MenuInput {
     /** -1 left, +1 right, 0 none (edge + auto-repeat). */
     get horizontal(): number { return this.h; }
 
-    /** Is the action's current press one that started after the menu was requested? */
+    /** Is the action's current hold one that started after the menu was requested? */
     private accepted(a: Action): boolean {
         let keyboard = false;
         for (const code of boundKeyCodes(a)) {
@@ -73,7 +100,7 @@ export class MenuInput {
         return !this.ignoredActions.has(a);
     }
 
-    justDown(a: Action): boolean { return this.raw.justDown(a) && this.accepted(a); }
+    justDown(a: Action): boolean { return this.edges.has(a); }
     isDown(a: Action): boolean { return this.raw.isDown(a) && this.accepted(a); }
 
     /** Confirm = confirm action or jump (A). */
@@ -86,21 +113,12 @@ export class MenuInput {
         return false;
     }
 
-    /**
-     * True while a confirm/pause/back/jump/shoot key is still held (sampled or physical). Scenes that hand control
-     * to the Game wait for this to clear: Phaser steps scenes top-down, so a menu acts on a key edge before the
-     * Game samples it, and the Game would otherwise see the same press as a fresh `pause`.
-     */
-    get anyHeld(): boolean {
-        for (const a of HANDOFF_ACTIONS) if (this.raw.isDown(a)) return true;
-        return anyBoundKeyHeld(HANDOFF_ACTIONS);
-    }
-
     /** Re-arm (after a sub-screen closes: the key that closed it must not act here until released). */
     rearm(): void {
         this.since = performance.now();
         this.fresh = true;
         this.ignoredActions.clear();
+        this.edges.clear();
     }
 
     destroy(): void {

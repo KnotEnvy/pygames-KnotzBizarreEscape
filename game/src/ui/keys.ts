@@ -1,5 +1,6 @@
-// Keyboard helpers for menus: a page-wide tracker of physically held keys (so a menu opened by a key press
-// doesn't react to that same, still-held key), key-name ↔ keyCode lookups and prompt-sprite mapping.
+// Keyboard helpers for menus: a page-wide tracker of physical key presses (so a menu opened by a key press
+// doesn't react to that same, still-held key, and so a new press is seen the moment it starts), key-name ↔
+// keyCode lookups and prompt-sprite mapping.
 import Phaser from 'phaser';
 import { settings, type Action } from '../core';
 
@@ -10,45 +11,51 @@ for (const [name, code] of Object.entries(CODES)) if (typeof code === 'number' &
 const held = new Set<number>();
 /** keyCode → performance.now() of the press that started the current hold (auto-repeat doesn't refresh it). */
 const downAt = new Map<number, number>();
+/** keyCode → performance.now() of the most recent fresh press, kept after release (a tap shorter than a frame still counts). */
+const pressAt = new Map<number, number>();
 let installed = false;
+
+function onKeyDown(e: KeyboardEvent): void {
+    if (held.has(e.keyCode)) return;
+    held.add(e.keyCode);
+    // A repeat as the first event we see means the key was held before we listened (page load, refocus): not a press.
+    if (e.repeat) return;
+    const t = performance.now();
+    downAt.set(e.keyCode, t);
+    pressAt.set(e.keyCode, t);
+}
+function onKeyUp(e: KeyboardEvent): void { held.delete(e.keyCode); downAt.delete(e.keyCode); }
+function onBlur(): void { held.clear(); downAt.clear(); }
 
 function install(): void {
     if (installed || typeof window === 'undefined') return;
     installed = true;
-    window.addEventListener('keydown', e => {
-        if (!held.has(e.keyCode)) downAt.set(e.keyCode, performance.now());
-        held.add(e.keyCode);
-    }, true);
-    window.addEventListener('keyup', e => { held.delete(e.keyCode); downAt.delete(e.keyCode); }, true);
-    window.addEventListener('blur', () => { held.clear(); downAt.clear(); });
-}
-
-/** Is any keyboard key bound to one of these actions physically held right now? */
-export function anyBoundKeyHeld(actions: readonly Action[]): boolean {
-    install();
-    if (held.size === 0) return false;
-    const keys = settings.get().keys;
-    for (const a of actions) for (const name of keys[a] ?? []) {
-        const code = CODES[name];
-        if (code !== undefined && held.has(code)) return true;
-    }
-    return false;
+    window.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('keyup', onKeyUp, true);
+    window.addEventListener('blur', onBlur);
+    // Vite HMR re-evaluates this module: drop the old listeners instead of stacking a second set.
+    import.meta.hot?.dispose(() => {
+        window.removeEventListener('keydown', onKeyDown, true);
+        window.removeEventListener('keyup', onKeyUp, true);
+        window.removeEventListener('blur', onBlur);
+        installed = false;
+    });
 }
 
 export function keyCodeOf(name: string): number | undefined {
     return CODES[name];
 }
 
-/** Physically held DOM keyCodes right now (page-wide tracker). */
-export function heldKeyCodes(): ReadonlySet<number> {
-    install();
-    return held;
-}
-
 /** When the key's current hold started (performance.now()), or undefined if it isn't held. */
 export function keyDownTime(code: number): number | undefined {
     install();
     return downAt.get(code);
+}
+
+/** When the key's most recent press started (performance.now()), held or already released; undefined if never pressed. */
+export function keyPressTime(code: number): number | undefined {
+    install();
+    return pressAt.get(code);
 }
 
 /** DOM keyCodes bound to an action (settings.keys), resolved through Phaser's KeyCodes. */

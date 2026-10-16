@@ -42,6 +42,8 @@ def main():
             data = json.load(fh)
         for key, info in sorted(data.items()):
             files.append(dict(type="audio", key=key, url=[info["file"]]))
+        # The manifest itself (peak/RMS per file): the AudioEngine's mix meter estimates bus levels from it.
+        files.append(dict(type="json", key=f"{kind}_manifest", url=f"assets/audio/{kind}/{kind}_manifest.json"))
     pack = {"ui": {"files": files}, "meta": {"app": "Knotz Bizarre Escape", "team": "ui-audio", "generated_by": "tools/audio/make_pack.py", "version": "1.0"}}
     out = os.path.join(ASSETS, "packs", "ui.json")
     os.makedirs(os.path.dirname(out), exist_ok=True)

@@ -93,7 +93,7 @@ The contract keys come first. Extra optional keys are tagged *(ext)*. Factories 
 | `prop` | `kind` (24 sprite kinds, see props below), `layer` *(ext: `back` = decor behind actors, no body; `front` = over actors; omitted = gameplay prop at PROPS depth)*, `contains` *(ext: pickup kind dropped when destroyed)*, `stacked` *(ext)*, `variant` *(ext: prison_cell `broken`)*, `on` *(ext: alarm_light starts blinking)*, `lock` *(ext: alarm/door/gate reacting to that lock)*, `sweep` *(ext: searchlight sweeps)*, `spawns`/`count`/`interval` *(ext: bunker_door trickle-spawns that enemy kind while on screen)* |
 | `camera_lock` | `id`, `release` (clear or time), `waves` |
 | `checkpoint` | `id` |
-| `stage_end` | `requires` *(ext: `boss` = armed only after `boss:defeated`)* |
+| `stage_end` | `requires` *(ext: `boss` = armed only after `boss:defeated`)*. Fallback only: `boss:defeated` clears the stage by itself (Phase D) |
 | `music` | `key` |
 | `prompt` | `text` |
 | `ambience` | `fx` (snow, embers, fireflies) |
@@ -102,32 +102,32 @@ The contract keys come first. Extra optional keys are tagged *(ext)*. Factories 
 
 | # | Section | Tiles (px) | Beats |
 |---|---|---|---|
-| 1 | Prison Camp | 0–60 (0–960) | The player starts in a broken cell on a concrete slab. FIRE and JUMP signs sit before a 2-high sandbag wall. A sleeping guard, then watchtower #1 with a sniper on the deck and a patroller below. The **POW (hmg)** comes early. A barracks with crates and a supply shelf (bombs). The BOMB sign teaches the **sandbag turret** with an explosive barrel beside it. Watchtower #2 has a searchlight and a grunt. The palisade exit has an alarm light. 8 enemies, gentle |
-| 2 | Pine Forest | 60–170 (960–2720) | Terrain steps up 1 tile at a time. A log ledge holds a grenadier. A dip with an explosive barrel and a grunt pair. **Rock outcrop** (top row 17) with grenadier and crouching grunt, and icicles under its overhang. **Two giant climbable pines** (x 123 and x 134) with branch platforms wrapped in needle tiers, an upper route via a log, and the **POW in a tree (spread)** at row 9. Drones throughout. A log bridges a spiked ravine. A breather clearing with a supply crate (hmg), then the **first shield trooper** at the bank. Mid checkpoint at x 128. 20 enemies |
-| 3 | River Bridge | 170–250 (2720–4000) | A rope bridge (deck row 18) over a deadly river (surface row 21), with sagging handrails and pylons. Jump gaps at x 187–189 and 235–237. Paratroopers drop in. **Arena #1 `bridge`** (x 200–224, 384 px) on a mid-river rock island: wave 1 is grunts plus paratroopers, wave 2 adds shields from both sides plus a grenadier, wave 3 is drones plus a shield plus a paratrooper. The **POW (rocket)** is right after the arena. 21 enemies |
-| 4 | Regime Outpost | 250–360 (4000–5760) | A skyline of separate concrete buildings with gaps that show `gen_outpost_far`. Sandbag cover, then bunker A's roof with a turret. A catwalk runs over a bunker door that trickle-spawns grunts and over explosive barrels. A pedestal turret, then bunker B's roof with a grenadier. A **spike pit**, then a catwalk staircase up to structure C, with a **tunnel** under it. C's roof leads to the **hidden 1UP** at row 6. The **POW (flame)** is at the tunnel exit. Checkpoint, then **Arena #2 `bunker`** (x 322–346): grunts from two bunker doors, then shields from both sides plus a grenadier, with a roof turret on the right pillar. 24 enemies, embers ambience |
-| 5 | Moose Pen | 360–420 (5760–6720) | A breather with a supply crate (hmg), crates (bombs), a rocket pickup, the **POW (bombs)** and two fleeing grunts. Boss checkpoint at x 388, boss music trigger at x 389. **Arena `boss`** (x 390–420, 480 px, so the camera drifts 96 px): a hazard-striped steel floor, a low palisade, a watchtower, one plank platform on posts (x 392–395, row 18), and the **gate** set into a gatehouse at x 414. MOOSEZILLA spawns behind it. `stage_end` covers x 404–417 |
+| 1 | Prison Camp | 0–60 (0–960) | The player starts in a broken cell on a concrete slab. FIRE and JUMP signs sit before a 2-high sandbag wall. A sleeping guard (back turned: sneak-up beat), then watchtower #1 with a sniper on the deck and a patroller below. The **POW (hmg)** comes early. **Crouch lesson:** a ▼+FIRE sign and a prompt, then one low crate holding a points medal (standing fire sails over it, the crouch shot breaks it), then the first crouching grunt. A supply shelf (bombs). The BOMB sign teaches the **sandbag turret** with an explosive barrel beside it. Watchtower #2 has a searchlight and a grunt. The palisade exit has an alarm light. 7 enemies, gentle |
+| 2 | Pine Forest | 60–170 (960–2720) | Terrain steps up 1 tile at a time. A log ledge holds a grenadier. A dip with an explosive barrel and a grunt pair. **Rock outcrop** (top row 17) with grenadier and crouching grunt, and icicles under its overhang. **Two giant climbable pines** (x 123 and x 134) with branch platforms wrapped in needle tiers, an upper route via a log, and the **POW in a tree (spread)** at row 9. Drones throughout (all inside the resting view on the ground route). A log bridges a spiked ravine. A breather clearing with a supply crate (hmg), then the **first shield trooper** at the bank. Mid checkpoint at x 128. Pines carry lower boughs into the ground view; tree 2's right-hand cone climbs to the tree POW. 17 enemies |
+| 3 | River Bridge | 170–250 (2720–4000) | A rope bridge (deck row 18) over a deadly river (surface row 21), with sagging handrails and pylons. Jump gaps at x 187–189 and 235–237. Paratroopers drop in. **Arena #1 `bridge`** (x 200–224, 384 px) on a mid-river rock island: wave 1 is grunts plus paratroopers, wave 2 adds shields from both sides plus a grenadier, wave 3 is drones plus a shield plus a paratrooper, staggered so threats arrive one side at a time. `WAVE n/3` / `FINAL WAVE!` prompts. The **POW (rocket)** is right after the arena with no enemy on top of it (recovery beat). 18 enemies |
+| 4 | Regime Outpost | 250–360 (4000–5760) | A skyline of separate concrete buildings with gaps that show `gen_outpost_far`. A crouching grunt in front of a wide 2-high sandbag step up to bunker A's roof (shield + turret, the roof edge is a clear landing). A catwalk runs over a bunker door that trickle-spawns grunts and over explosive barrels. A pedestal turret, then bunker B's roof with a grenadier. A **spike pit**, then a catwalk staircase up to structure C, with a **tunnel** under it. C's roof leads to the **hidden 1UP** at row 6. The **POW (flame)** is at the tunnel exit. Checkpoint, then **Arena #2 `bunker`** (x 322–346): grunts from two bunker doors, then shields from both sides plus a grenadier, with a roof turret on the right pillar. A supply crate (bombs) after the arena. 22 enemies, embers ambience |
+| 5 | Moose Pen | 360–420 (5760–6720) | A breather with a supply crate (hmg), crates (bombs), a rocket pickup, the **POW (bombs)** and two fleeing grunts. Boss checkpoint at x 388, boss music trigger at x 389. **Arena `boss`** (x 390–420, 480 px, so the camera drifts 96 px): a hazard-striped steel floor, a low palisade, a watchtower, one plank platform on posts (x 392–395, row 18), and the **gate** set into a gatehouse at x 414. MOOSEZILLA spawns behind it. After the death chain the stage clears automatically wherever the player stands; `stage_end` (x 390–417, the whole floor) is a fallback |
 
 ### Checkpoints
 `cp_camp`@2, `cp_forest`@60, `cp_forest_b`@128, `cp_bridge`@170, `cp_outpost`@252, `cp_outpost_b`@318, `cp_pen`@360, `cp_boss`@388 (tile x).
 
 ### Totals (validator)
-- Enemies: 40 grunts, 6 grenadiers, 8 shields, 4 turrets, 10 drones, 7 paratroopers.
+- Enemies: 33 grunts, 6 grenadiers, 8 shields, 4 turrets, 9 drones, 6 paratroopers (66, Phase C had 75).
 - 5 POWs, one per weapon plus bombs.
-- Pickups: 3 points, 1 rocket, 1 life.
-- 58 props.
-- Triggers: 8 checkpoints, 3 camera locks, 6 ambience, 5 prompts, 2 music, 1 stage_end.
+- Pickups: 3 points, 1 rocket, 1 life (plus crate contents: the camp crouch crate holds a points medal).
+- 58 props (25 kinds: `sign_crouch` is new).
+- Triggers: 8 checkpoints, 3 camera locks, 6 ambience, 6 prompts, 2 music, 1 stage_end.
 
 ## Props (`public/assets/sprites/props/`, built by a helper agent, reviewed)
 
-All 24 props are anchored bottom-centre, except `prop_searchlight_beam`, whose origin is (0, 0.5). Texture key `prop_<kind>`, tags
+All 25 props are anchored bottom-centre, except `prop_searchlight_beam`, whose origin is (0, 0.5). Texture key `prop_<kind>`, tags
 `prop_<kind>_<anim>`. `art-src/props/manifest.json` has the canvas sizes, tags, suggested bodies and hp.
 
 | Group | Kinds |
 |---|---|
 | Destructibles | `crate` (hp 3), `supply_crate` (4), `barrel` (5), `explosive_barrel` (3; `damaged1` at hp 2, `damaged2` at hp 1), `sandbag` (10) |
 | Camp | `watchtower` (deck walkable at y = 32 from the canvas top, which matches a plank row 5 tiles up), `prison_cell` (`broken`, `intact`), `lamp_post`, `wire_coil` |
-| Signs | `sign_jump`, `sign_bomb`, `sign_shoot`, `sign_arrow` (animated), `sign_danger` |
+| Signs | `sign_jump`, `sign_bomb`, `sign_shoot`, `sign_crouch` (▼ + / FIRE), `sign_arrow` (animated), `sign_danger` |
 | Forest | `pine_fg`, `pine_mid`, `pine_dead` |
 | Outpost | `gate` (`closed`, `shake`, `smashed`; remove its body on smash), `alarm_light` (`off`, `on`), `searchlight` (+ `searchlight_beam`, additive blend recommended), `flag`, `banner`, `bunker_door` (`closed`, `open`; play once and hold) |
 
@@ -160,14 +160,13 @@ strip is ever uncovered.
 
 | File | Job |
 |---|---|
-| `index.ts` | `registerLevel(ctx)`: builds the map and parallax, `ctx.setLevel(query)` (the engine sandbox then steps aside), registers prop anims and factories, spawns the player and every prop, runs spawner/arenas/triggers each frame, debug fields and the `warp`/`boss` cheats |
+| `index.ts` | `registerLevel(ctx)`: builds the map and parallax, `ctx.setLevel(query)` (the engine sandbox then steps aside), registers the prop factories (prop animations come from Preload's `createAsepriteAnims`), spawns the player and every prop, runs spawner/arenas/triggers each frame, debug fields and the `warp`/`boss` cheats |
 | `map.ts` | Tilemap + the 4 layers (`bg_far_deco` TILES_BACK−2, `back` TILES_BACK, `ground` TILES_BACK+2, `front` TILES_FRONT), `createTileLevelQuery` (with `waterSurfaceAt`), Tiled object parsing, `sections` |
 | `parallax.ts` | Camera-fixed TileSprites per the plan above, crossfade forest → outpost. Updated at the scene's `PRE_RENDER` (after the engine camera moves at `POST_UPDATE`) with rounded offsets, so layers never lag the tiles or shimmer |
-| `animations.ts` | Rebuilds every `prop_*` animation from the cached Aseprite JSON (see Known gaps: Preload's `createFromAseprite` makes zero-frame anims for our `key#N` frame names) |
 | `props.ts` | `prop:<kind>` factories. Destructibles (crate, supply_crate, barrel, explosive_barrel, sandbag): neutral hurtbox from the manifest body, solid static body (players stand on them; stacked props fall when their support breaks), damaged frames, white hit flash, `fx:emit debris`, `crate_break`, `contains` → `ctx.spawn('pickup', kind, ...)`. Explosive barrels: `fx.explosion(m)` + `damage.applyRadial` (44 px, 6 dmg, neutral), chain reactions staggered 140 ms. Decor: `layer=back` at TILES_BACK+1 (behind the ground layer), `layer=front` above actors, else PROPS. Searchlight beam sweeps (ADD). Alarm lights (`on`, or lit while their `lock` arena runs). Bunker doors (`from=door` wave members, `spawns/count/interval` trickle while on screen). Gate (solid while closed, rumble, smash) |
 | `spawner.ts` | Proximity spawning, once per run: ground objects at view.right + 32 (enemies don't think beyond 32 px), drones + 64, paratroopers once their x is 64 px inside the view (they appear above the top edge and drift in). Objects > 96 px behind the view are skipped (warps). A factory that returns nothing (enemy cap) is retried |
-| `arenas.ts` | `camera_lock` arenas. Wave arena: locks when the camera is 48 px from its left edge → waves in order, members honour `delay` and `from=door`; members placed outside the walls spawn 12 px inside with ≤ 20 px patrol (enemies freeze > 32 px off-view and don't walk in); every member dead → next wave after 700 ms; last wave → unlock after 600 ms (`camera:unlock`, the UI's "GO!"). `release=time` (+ `time` s) supported. Boss arena: starts when the gate is on screen → 1.3 s gate rumble → smash → `ctx.spawn('boss', 'moosezilla', {arenaX0, arenaX1, facing})`; Moosezilla locks the camera itself and unlocks on `boss:defeated`. A foreign unlock (warp) relocks while the player is inside, otherwise abandons a wave arena (a live boss arena waits) |
-| `triggers.ts` | `checkpoint` and `music` fire on crossing the strip's left edge; `prompt` once when the feet are inside (`ui:prompt`, 3.5 s); `ambience` rects are published as `fx:zone` at load and `fx:ambience` follows the innermost zone; `stage_end` → `stage:clear` (`requires=boss` armed by `boss:defeated`) |
+| `arenas.ts` | `camera_lock` arenas. Wave arena: locks when the camera is 48 px from its left edge → waves in order, members honour `delay` and `from=door`; members placed outside the walls spawn 12 px inside with ≤ 20 px patrol (enemies freeze > 32 px off-view and don't walk in); every member dead → next wave after 700 ms; each wave start of a multi-wave arena emits `ui:prompt` `WAVE n/N` / `FINAL WAVE!`; last wave → unlock after 600 ms (`camera:unlock`, the UI's "GO!"). `release=time` (+ `time` s) supported. Boss arena: starts when the gate is on screen → 1.3 s gate rumble → smash → `ctx.spawn('boss', 'moosezilla', {arenaX0, arenaX1, facing})`; Moosezilla locks the camera itself and unlocks on `boss:defeated`. A foreign unlock (warp) relocks while the player is inside, otherwise abandons a wave arena (a live boss arena waits) |
+| `triggers.ts` | `checkpoint` and `music` fire on crossing the strip's left edge; `prompt` once when the feet are inside (`ui:prompt`, 3.5 s); `ambience` rects are published as `fx:zone` at load and `fx:ambience` follows the innermost zone; `boss:defeated` → `stage:clear` after `LEVEL.boss.clearDelayMs` (1.4 s, waits while the player is dead/respawning and up to 1.5 s for them to land); `stage_end` → `stage:clear` as a fallback (`requires=boss` armed by `boss:defeated`) |
 
 Hazards need no level code: water and spike tiles are non-colliding `hazard` tiles, so the player falls in and its
 `hazardAt(x, feet − 2)` check kills it (verified for both); FX places the splash with `waterSurfaceAt`. Water tiles animate natively:
@@ -184,12 +183,39 @@ which froze the boss off-view); `boss()` warps to `cp_boss` (walk right: the gat
 (doors open), `x=5900` moose pen, `x=6200` + hold right 1200 ms boss gate rumble/smash.
 
 ## Known gaps
-- Enemy props the level passes but the Enemies team doesn't handle yet: `idle` (`sleep`/`crouch`/`flee`), `mount` (turret base), `from=door`
-  (the level opens the door and spawns at it; the enemy just patrols). Enemies never walk toward the player, so wave members that start far
-  away only engage when the player approaches.
-- Stacked crates (and the lower crate row) sit below the standing shot line: crouch-shoot or grenade them.
-- The giant pines' needle tiers are at rows 2–4, above the resting camera, so in the forest they mostly read as tall trunks unless the camera climbs.
+- Enemies now read `idle` (`sleep`/`crouch`/`flee`), `mount` and `from=door`. Enemies never walk toward the player, so wave members that start
+  far away only engage when the player approaches.
+- Low crates sit below the standing shot line by design (taught by the camp crouch lesson): crouch-shoot or grenade them.
 - Water tiles animate on real time (the layer timer isn't hitstop-scaled); invisible in practice.
 - Turret mounts (`sandbag`, `roof`, `pedestal`) assume the enemies team draws the turret standing on its base. The `wall` style isn't used.
 - The bridge rope sag is a fixed 7-segment curve resampled per span. Handrails are back layer only (there's no front rope).
 - The hand-made haze is very subtle and could be dropped if it reads as noise at 5× scale.
+
+## Phase D: fixes and polish (2026-10-16)
+
+| ID / item | Change |
+|---|---|
+| **KBE-QA-L01** (S2) | `triggers.ts`: `boss:defeated` (emitted after the death chain) arms an automatic `stage:clear` 1.4 s later from any position (waits through a death/respawn, and up to 1.5 s for an airborne player to land). `stage_end` widened to the whole floor (x 390–417) as a fallback. `arenas.ts`: `boss:defeated` also retires an idle boss arena (a boss spawned outside the arena flow, e.g. `?enemytest=boss`, no longer lets the gate intro run after the clear and spawn a second MOOSEZILLA) |
+| **KBE-QA-L03** | Background trunks get three lower boughs (rows 7–15, alternating sides, widening, the lowest 6 rows above the ground so lanes stay clear). Climbable tree 1 gets a bough behind the outcrop log (that route visibly enters the canopy); tree 2 a right-hand cone R15/R12/R9 that climbs to the tree POW plus a low left bough. Quieter background: back-layer earth uses plain fills 60 % of the time (was 25 %), background rock has its own lower-contrast remap (`BG_ROCK_MAP` in `art-src/tiles/stage1.lua`), and the hill behind the outcrop lane is 2 rows lower |
+| Rules L1 | `props.ts`: a falling stacked prop's tween is kept and stopped in `breakProp`/on destroy; its callbacks bail on a dead prop |
+| Engine E2 landed | `src/level/animations.ts` deleted: Preload's `createAsepriteAnims` builds every `prop_*` tag; `playIf` uses core `hasAnim`. Verified in game: all 22 placed prop kinds play a valid animation (multi-frame: flag, banner, alarm light, lamp post, explosive barrel, sign arrow), zero empty `prop_*` animations |
+| QA #3 crouch | New prop `sign_crouch` (▼ + / FIRE, `art-src/props/signs.lua`, manifest, `packs/level.json`, validator kind list). Camp x34: sign + prompt `CROUCH SHOT: HOLD ↓ + X`, a single low crate at x37 with a points medal, then the first crouching grunt (x42). Verified: standing fire leaves the crate intact, the crouch shot breaks it and drops the medal |
+| QA #4 | Camp sleeper faces right (back to the player, so it isn't woken by sight on approach); its neighbour's patrol no longer walks over it. Pen guards keep `idle:flee`. Enemies read both |
+| QA #5 | Outpost: the sandbags fill x 257–260 (a 4-wide 2-high step against bunker A): no trough, two 2-tile hops to the roof. Crouching grunt moved in front of it (x255); roof shield moved to x266 with `patrol: 0` so the roof edge is a clear landing |
+| QA #10 | `WAVE n/N` / `FINAL WAVE!` prompts at each wave start. Recovery beats: rocket POW after the bridge arena without the grunt that stood on it; supply crate (bombs) after the bunker arena with one fewer grunt |
+| Pacing | Camp: removed the crouching grunt under the turret/tower crossfire. Forest: removed drone 101, grunt 74, the grunt under the log-ledge grenadier; outcrop grenadier/crouch grunt moved to x110/x115 (5 tiles of safe landing). Every ground-route drone now sits at row 12 (fully inside the resting view; rows 7–10 sat at/above the top edge but inside the AI's 32 px wake margin, so they could dive from off-screen). Bridge: one fewer entry paratrooper; the pre-arena paratrooper/drone moved off the arena's left wall; wave 1 paratroopers follow the grunts (2.4/3.4 s); wave 2 loses one grunt and staggers left grunt (1.6 s) then grenadier (3.4 s); wave 3 drones/paratrooper at 1.4/3.2/4.6 s. Outpost: removed the catwalk-stair grunt firing over the two shields |
+| Warp cheat | `warpTo` snaps the camera before unlocking it (`unlock()` starts a blend from the old x and `snapTo()` doesn't cancel it, so a warp out of a locked arena dragged the camera back and clamped the player to the old view: QA bot "Camera moved left 3494 → 3252"). It also abandons a running wave arena the destination leaves (`ArenaController.warped`) |
+
+**Arcade non-god route bot** (`phase-c.mjs --mode sections --difficulty arcade`, a run-right-and-fire bot that never crouches or turns):
+camp max x 742 → **974 (cleared)**, forest 1707 → 1768, bridge 3577 → 3578 (dies in the bridge arena to paratroopers landing *behind* it:
+visible, telegraphed threats a human turns to face), outpost stalled at 4169 → **5461** (into the bunker arena), pen 6494 → 6495 (cleared).
+
+**For Engine:** `CameraService.snapTo()` should finish any running lock/unlock blend (`this.blend = 1`); the level works around it.
+
+
+### Phase D follow-up: POW total
+
+- `level/map.ts` sets `query.powTotal` to the count of `pow` objects in the `spawns` layer (5 in stage 1) on the `LevelQuery` from
+  `createTileLevelQuery`, so the Results rank uses the real number. Verified in game: UI `runInfo` reads `{ stage: 1, powTotal: 5 }`
+  after `stage:start`. Validator OK (0 errors, 0 warnings), `tsc --noEmit` clean, `check:phaser4 --strict` clean.
+- Note: `__KBE.state().level` (engine `debug/hooks.ts`) doesn't list `powTotal`. Engine could add it if it's needed for QA.

@@ -33,7 +33,7 @@ const LINES: Array<[string, string] | null> = [
     null,
     ['MUSIC & SOUND', F.sand], ['SYNTHESIZED WITH NUMPY & SCIPY', F.hud],
     null,
-    ['MADE WITH', F.sand], ['PHASER 4.2.1  •  TYPESCRIPT  •  VITE', F.hud], ['ASEPRITE  •  TILED', F.hud],
+    ['MADE WITH', F.sand], ['PHASER 4.2.1  ●  TYPESCRIPT  ●  VITE', F.hud], ['ASEPRITE  ●  TILED', F.hud],
     null, null,
     ['THANKS FOR PLAYING!', F.fire]
 ];
@@ -105,6 +105,11 @@ export class CreditsScene extends Phaser.Scene {
         this.menuInput.update(dt);
         const fast = this.menuInput.isDown('down') || this.menuInput.isDown('confirm');
         this.roll.y -= dt * (fast ? 0.09 : 0.018);
+        // Lines outside the panel window are hidden (no mask filter): the covers only trim partially visible ones.
+        for (const line of this.roll.list as Phaser.GameObjects.BitmapText[]) {
+            const y = this.roll.y + line.y;
+            line.setVisible(y > 40 && y + line.height < 186);
+        }
         if (this.roll.y < 60 - this.rollH || (this.age > 400 && (this.menuInput.back || this.menuInput.justDown('pause') || this.menuInput.justDown('jump') || this.menuInput.justDown('shoot')))) this.close();
     }
 }

@@ -9,6 +9,8 @@
 //   input  (second page, plain ?scene=Game) a key held over from the menu that started the game (it reaches the
 //          Game only as auto-repeat keydowns) never pauses it; latchHeld()/flow.continueGame() ignore a held key
 //          until it is released; fresh presses still work.
+//   camera snapTo() finishes a running lock/unlock blend (unlock-then-snap no longer drags the view back);
+//          lock()-then-snapTo() lands inside the arena at once.
 // Exit code 0 = pass. Usage: node game/tools/engine-selftest.mjs [--shots /tmp/dir]
 import { createServer } from 'vite';
 import { fileURLToPath } from 'node:url';
@@ -142,9 +144,59 @@ try {
     cont.freshPause = await p2.evaluate(() => window.__kbePaused());
     await p2.evaluate(() => window.__kbeKey('keyup', 13, false));
     check('input: Enter held through continueGame() ignored until release; fresh Enter pauses', !cont.over && !cont.paused && !cont.confirmDown && cont.freshPause, cont);
+    // camera: snapTo() is a hard cut. It finishes a running unlock() blend (Levels' warp bug: unlock-then-snap
+    // dragged the view back to the old arena), and lock()-then-snapTo() lands inside the arena immediately.
     const errors2 = await p2.evaluate(() => window.__KBE.state().errors);
     if (errors2.length) pageErrors.push(...errors2);
     await p2.close();
+    // (own page: the input checks above leave the Game paused, and a paused scene never runs the camera)
+    const p3 = await browser.newPage({ viewport: { width: 1152, height: 648 } });
+    p3.on('pageerror', e => pageErrors.push(e.message));
+    await p3.goto(`http://127.0.0.1:${port}/?scene=Game&fast=1&mute=1&god=1`);
+    await p3.waitForFunction(() => window.__KBE?.ready, null, { timeout: 30000 });
+    await p3.waitForTimeout(500);
+    const cam = await p3.evaluate(async () => {
+        const g = window.__KBE.game.scene.getScene('Game'), c = g.internals.camera, w = c.cam.width;
+        const wait = ms => new Promise(r => setTimeout(r, ms));
+        const movePlayer = x => { const p = g.ctx.player(); if (p?.teleport) p.teleport(x, p.y); };
+        const out = {};
+        const x0 = c.debugInfo().x;
+        // unlock() then snapTo() far right (the bug path), and the workaround order snapTo() then unlock().
+        for (const [name, unlockFirst] of [['unlockSnap', true], ['snapUnlock', false]]) {
+            const base = c.debugInfo().x;
+            c.lock(base, base + w);
+            await wait(120);
+            const to = base + 2400;
+            movePlayer(to);
+            if (unlockFirst) { c.unlock(); c.snapTo(to, g.ctx.player()?.y ?? 200); }
+            else { c.snapTo(to, g.ctx.player()?.y ?? 200); c.unlock(); }
+            const snapped = c.debugInfo().x;
+            await wait(1);
+            const blend0 = c.debugInfo().blend;
+            let minX = snapped;
+            for (let t = 0; t < 900; t += 50) { await wait(50); minX = Math.min(minX, c.debugInfo().x); }
+            out[name] = { base, snapped, minX, blend0, blend: c.debugInfo().blend, locked: c.debugInfo().locked, ok: snapped > base + 1500 && minX >= snapped - 1 };
+        }
+        // lock() then an immediate snapTo() inside the arena: no blend, view inside [x0, x1].
+        const b = c.debugInfo().x;
+        c.lock(b + 200, b + 200 + w);
+        c.snapTo(b + 200 + w * 0.5, g.ctx.player()?.y ?? 200);
+        const at = c.debugInfo();
+        await wait(300);
+        const later = c.debugInfo();
+        out.lockSnap = { at: at.x, later: later.x, blend: at.blend, x0: at.x0, ok: at.blend === 1 && at.x >= at.x0 - 0.5 && at.x <= at.x1 - w + 0.5 && Math.abs(later.x - at.x) < 2 };
+        c.unlock();
+        out.x0 = x0;
+        return out;
+    });
+    check('camera: scene running (unlock blend progressed)', cam.snapUnlock.blend === 1, cam.snapUnlock);
+    check('camera: snapTo() after unlock() cancels the blend (no drag back)', cam.unlockSnap.ok, cam.unlockSnap);
+    check('camera: snapTo() then unlock() (Levels warp order) stays put', cam.snapUnlock.ok, cam.snapUnlock);
+    check('camera: lock() then snapTo() lands inside the arena at once', cam.lockSnap.ok, cam.lockSnap);
+
+    const errors3 = await p3.evaluate(() => window.__KBE.state().errors);
+    if (errors3.length) pageErrors.push(...errors3);
+    await p3.close();
     const errors = await page.evaluate(() => window.__KBE.state().errors);
     check('no page errors / __KBE errors', pageErrors.length === 0 && errors.length === 0, [...pageErrors, ...errors].slice(0, 5));
 } catch (e) {

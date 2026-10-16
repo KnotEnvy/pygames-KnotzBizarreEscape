@@ -567,6 +567,11 @@
         ]
       },
       {
+        "type": "json",
+        "key": "sfx_manifest",
+        "url": "assets/audio/sfx/sfx_manifest.json"
+      },
+      {
         "type": "audio",
         "key": "jingle_complete",
         "url": [
@@ -607,6 +612,11 @@
         "url": [
           "assets/audio/music/music_title.ogg"
         ]
+      },
+      {
+        "type": "json",
+        "key": "music_manifest",
+        "url": "assets/audio/music/music_manifest.json"
       }
     ]
   },

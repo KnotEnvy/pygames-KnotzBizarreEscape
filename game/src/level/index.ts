@@ -89,8 +89,10 @@ export function registerLevel(ctx: RegisterContext): void {
         }
         const to = best ?? { x, y: refY };
         arenas.warped(to.x);
-        ctx.camera.unlock();
+        // Snap BEFORE unlocking: unlock() starts its eased blend from the current x and snapTo() doesn't cancel a
+        // running blend, so unlock-then-snap dragged the camera back to the old arena (and clamped the player to it).
         ctx.camera.snapTo(to.x, to.y - 18);
+        ctx.camera.unlock();
         if (!p) return;
         if (p.teleport) { p.teleport(to.x, to.y); return; }
         const s = p.sprite as Phaser.GameObjects.Sprite;

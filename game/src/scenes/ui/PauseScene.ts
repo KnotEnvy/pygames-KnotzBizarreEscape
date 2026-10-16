@@ -48,9 +48,10 @@ export class PauseScene extends Phaser.Scene {
             ]
         });
         this.root.add(this.menu.container);
-        this.controls = new ControlsPanel(this, { x: 184, y: 84, rowHeight: 13, showPad: true });
+        // Pad column at 184 + 136 = 320..336: inside the 176..346 panel (at the default 150 it spilled past the edge).
+        this.controls = new ControlsPanel(this, { x: 184, y: 84, rowHeight: 13, showPad: true, padX: 136 });
         this.root.add(this.controls.container);
-        const foot = text(this, 192, 166, 'ESC  RESUME', F.plain, [0.5, 0]).setAlpha(0.6).setTint(C.ink5);
+        const foot = text(this, 104, 146, 'ESC: RESUME', F.plain, [0.5, 0]).setAlpha(0.6).setTint(C.ink5);
         this.root.add(foot);
         // Presses that started before the engine asked for the pause (the Escape that opened us) are ignored.
         this.menuInput = new MenuInput(this, flowStamps.pauseRequestedAt || undefined);

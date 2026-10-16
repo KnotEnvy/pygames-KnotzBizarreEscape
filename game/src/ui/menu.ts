@@ -1,8 +1,9 @@
 // Vertical menu: rows with a label and an optional value, a bouncing `ui_cursor`, the selected row tinted, and
 // menu blips. The owning scene drives it with `update(dt)` using a MenuInput.
 import Phaser from 'phaser';
+import { hasAnim } from '../core';
 import { getAudio } from '../audio';
-import { C, F, hasAnim, icon, text } from './widgets';
+import { C, F, icon, text } from './widgets';
 import type { MenuInput } from './input';
 
 export interface MenuRow {

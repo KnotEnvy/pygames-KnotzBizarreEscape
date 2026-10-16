@@ -2,10 +2,10 @@
 // (Start / Difficulty / Options / Credits). Confirm in attract mode starts the game at once (arcade style);
 // any other input opens the menu. Keyboard and gamepad via MenuInput.
 import Phaser from 'phaser';
-import { TEX, settings } from '../../core';
+import { TEX, playAnim, settings } from '../../core';
 import { getAudio } from '../../audio';
 import { UI } from '../../config/tuning/ui';
-import { C, F, H, W, hasAnim, text } from '../../ui/widgets';
+import { C, F, H, W, text } from '../../ui/widgets';
 import { MenuInput } from '../../ui/input';
 import { Menu } from '../../ui/menu';
 import { wipeIn, wipeOut } from '../../ui/transitions';
@@ -23,14 +23,12 @@ export class TitleScene extends Phaser.Scene {
     private glitchIn = 0;
     private logoReady = false;
     private starting = false;
-    private pendingStart = false;
-    private pendingT = 0;
     private overlay: 'none' | 'options' | 'credits' = 'none';
 
     constructor() { super('Title'); }
 
     create(): void {
-        this.attract = true; this.idle = 0; this.blink = 0; this.starting = false; this.pendingStart = false; this.overlay = 'none'; this.logoReady = false;
+        this.attract = true; this.idle = 0; this.blink = 0; this.starting = false; this.overlay = 'none'; this.logoReady = false;
         this.cameras.main.setBackgroundColor(C.dim);
         if (this.textures.exists('ui_keyart_title')) this.add.image(0, 0, 'ui_keyart_title').setOrigin(0, 0);
         else this.add.rectangle(0, 0, W, H, 0x1f3f7a, 1).setOrigin(0, 0);
@@ -46,7 +44,7 @@ export class TitleScene extends Phaser.Scene {
         }
         // logo
         this.logo = this.add.sprite(W / 2, -70, 'ui_logo').setDepth(10);
-        if (hasAnim(this, 'logo_idle')) this.logo.play('logo_idle');
+        playAnim(this.logo, 'logo_idle');
         this.tweens.add({
             targets: this.logo, y: 64, duration: UI.title.logoDropMs, delay: 120, ease: 'Back.easeOut',
             onComplete: () => { this.logoReady = true; this.glitchIn = this.nextGlitch(); }
@@ -68,7 +66,7 @@ export class TitleScene extends Phaser.Scene {
         this.menu.setVisible(false);
         // footer
         text(this, 4, 207, `V${(window.__KBE?.version ?? '0.1.0').split(' ')[0].toUpperCase()}`, F.plain).setAlpha(0.5).setDepth(10);
-        text(this, W - 4, 207, '© 2026 KNOTZ  •  PHASER 4', F.plain, [1, 0]).setAlpha(0.5).setDepth(10);
+        text(this, W - 4, 207, '(C) 2026 KNOTZ  ●  PHASER 4', F.plain, [1, 0]).setAlpha(0.5).setDepth(10);
         this.menuInput = new MenuInput(this);
         getAudio(this).music('music_title', { fade: 800 });
         wipeIn(this);
@@ -92,7 +90,8 @@ export class TitleScene extends Phaser.Scene {
         this.hint.setVisible(false);
         this.menu.setVisible(false);
         this.blink = 0;
-        wipeOut(this, () => { this.pendingStart = true; this.pendingT = 0; });
+        // The engine latches every key still held when the Game scene is created, so a held Enter can't pause it.
+        wipeOut(this, () => this.scene.start('Game'));
     }
 
     private openOverlay(which: 'options' | 'credits'): void {
@@ -111,19 +110,14 @@ export class TitleScene extends Phaser.Scene {
     update(_time: number, delta: number): void {
         const dt = Math.min(100, delta);
         this.menuInput.update(dt);
-        if (this.pendingStart) {
-            // Covered by the wipe: hand off once the confirm key is up (a held Enter would pause the Game at once).
-            this.pendingT += dt;
-            if (!this.menuInput.anyHeld || this.pendingT > 1000) { this.pendingStart = false; this.scene.start('Game'); }
-            return;
-        }
         // logo glitch
-        if (this.logoReady && hasAnim(this, 'logo_glitch')) {
+        if (this.logoReady) {
             this.glitchIn -= dt;
             if (this.glitchIn <= 0) {
                 this.glitchIn = this.nextGlitch();
-                this.logo.play('logo_glitch');
-                this.logo.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => { if (this.logo.active) this.logo.play('logo_idle'); });
+                if (playAnim(this.logo, 'logo_glitch')) {
+                    this.logo.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => { if (this.logo.active) playAnim(this.logo, 'logo_idle'); });
+                }
             }
         }
         if (this.overlay !== 'none') return;

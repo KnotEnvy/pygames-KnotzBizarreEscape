@@ -13,12 +13,19 @@ export interface SfxMeta {
     minMs?: number;
     /** The asset is authored as a seamless loop (a plain sfx() call still plays it once). */
     loop?: boolean;
+    /**
+     * Rapid-fire fatigue: when a start follows the previous one within `ms`, the volume drops by `step` per
+     * consecutive shot down to `floor` (the first shots of a burst keep their punch, a held trigger settles under
+     * the music). The counter resets after a gap longer than `ms`.
+     */
+    burst?: { ms: number; step: number; floor: number };
 }
 
 export const SFX_META: Record<string, SfxMeta> = {
     // weapons and explosions
-    pistol: { vol: 0.9, vary: 60, max: 4, minMs: 30 },
-    hmg: { vol: 0.7, vary: 60, max: 3, minMs: 40 },
+    pistol: { vol: 0.9, vary: 60, max: 3, minMs: 30, burst: { ms: 200, step: 0.05, floor: 0.7 } },
+    // 14 shots/s on a held trigger: a 70 ms file at 71 ms spacing is one continuous voice; fatigue it to 0.6× after 7.
+    hmg: { vol: 0.7, vary: 60, max: 2, minMs: 40, burst: { ms: 140, step: 0.06, floor: 0.6 } },
     spread: { vol: 1, max: 3, minMs: 40 },
     rocket_launch: { vol: 1, max: 2 },
     rocket_whoosh: { vol: 0.6, loop: true, max: 2 },
@@ -27,14 +34,15 @@ export const SFX_META: Record<string, SfxMeta> = {
     grenade_throw: { vol: 0.8, max: 3, minMs: 40 },
     grenade_bounce: { vol: 0.7, vary: 60, max: 3 },
     explo_s: { vol: 1, vary: 40, max: 4, minMs: 30 },
-    explo_m: { vol: 1, vary: 40, max: 3, minMs: 40 },
+    explo_m: { vol: 1, vary: 40, max: 2, minMs: 40 },
     explo_l: { vol: 1, vary: 40, max: 2, minMs: 60 },
     explo_xl: { vol: 1, vary: 40, max: 2, minMs: 80 },
     // impacts and melee
-    impact_dirt: { vol: 0.7, vary: 60, max: 4, minMs: 25 },
-    impact_wood: { vol: 0.7, vary: 60, max: 4, minMs: 25 },
-    impact_metal: { vol: 0.7, vary: 60, max: 4, minMs: 25 },
-    impact_body: { vol: 0.7, vary: 60, max: 4, minMs: 25 },
+    // HMG hits arrive at 14/s too: same fatigue. impact_metal is a 21 dB crest-factor tink (peak −1 dBFS): quieter.
+    impact_dirt: { vol: 0.7, vary: 60, max: 3, minMs: 25, burst: { ms: 140, step: 0.08, floor: 0.5 } },
+    impact_wood: { vol: 0.7, vary: 60, max: 3, minMs: 25, burst: { ms: 140, step: 0.08, floor: 0.5 } },
+    impact_metal: { vol: 0.5, vary: 60, max: 3, minMs: 25, burst: { ms: 140, step: 0.08, floor: 0.5 } },
+    impact_body: { vol: 0.7, vary: 60, max: 3, minMs: 25, burst: { ms: 140, step: 0.08, floor: 0.5 } },
     shield_tink: { vol: 0.8, vary: 60, max: 3, minMs: 40 },
     melee_slash: { vol: 1, max: 2, minMs: 60 },
     melee_hit: { vol: 1, max: 2, minMs: 60 },
@@ -66,7 +74,8 @@ export const SFX_META: Record<string, SfxMeta> = {
     boss_stomp: { vol: 1, max: 2, minMs: 100 },
     boss_steam: { vol: 0.6, loop: true, max: 2 },
     boss_hurt: { vol: 0.6, vary: 60, max: 2, minMs: 80 },
-    boss_cannon: { vol: 0.9, max: 2, minMs: 60 },
+    // Both antlers fire at once: one cannon sound per volley (two identical peaks at −3 dBFS would sum past 0).
+    boss_cannon: { vol: 0.75, max: 2, minMs: 120 },
     boss_charge: { vol: 1, max: 1 },
     boss_death: { vol: 1, max: 1 },
     // environment and props

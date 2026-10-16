@@ -14,6 +14,9 @@ export const flowStamps = { pauseRequestedAt: 0 };
 
 export const uiDebug = { intro: false, hud: null as unknown, lastPrompt: '', lastCallout: '', log: [] as string[] };
 
+/** Facts about the current run the Results scene needs after the Game is gone (the engine's payload lacks them). */
+export const runInfo = { stage: 0, powTotal: 0 };
+
 /** Dev trace of UI flow moments (`__KBE.state().ui.log`): scene opens/closes with a ms timestamp. */
 export function uiLog(msg: string): void {
     uiDebug.log.push(`${Math.round(performance.now())} ${msg}`);
@@ -30,6 +33,10 @@ export function registerUi(ctx: RegisterContext): void {
     bus.on('ui:prompt', e => { uiDebug.lastPrompt = e.text; });
     bus.on('game:pause', e => { if (e.paused) flowStamps.pauseRequestedAt = performance.now(); });
     uiDebug.intro = false;
+    // The level reports its POW count on LevelQuery (optional): remember it for the Results rank.
+    const notePows = (stage: number): void => { runInfo.stage = stage; runInfo.powTotal = ctx.level?.powTotal ?? 0; };
+    bus.on('stage:start', e => notePows(e.stage));
+    bus.on('stage:clear', e => notePows(e.stage));
     bus.once('stage:start', e => {
         if (PARAMS.fast || !sceneExists(ctx.scene, 'Intro')) return;
         uiDebug.intro = true;

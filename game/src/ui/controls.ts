@@ -1,8 +1,8 @@
 // Controls display: one row per action with the keyboard key-caps (from settings.keys) and the gamepad prompt
 // (from settings.pad). Used by the Pause help panel and the Options "CONTROLS" page (which can also rebind).
 import Phaser from 'phaser';
-import { settings, type Action } from '../core';
-import { C, F, frameOf, text } from './widgets';
+import { settings, tagFrame, type Action } from '../core';
+import { C, F, text } from './widgets';
 import { keyLabel, keyPromptTag, padPromptTag } from './keys';
 
 export interface ControlRowDef { action: Action; label: string }
@@ -18,7 +18,7 @@ export const CONTROL_ROWS: readonly ControlRowDef[] = [
 /** Key-cap: the prompt art when it exists, otherwise a small panel with the key's name. Returns the width used. */
 function keycap(scene: Phaser.Scene, container: Phaser.GameObjects.Container, x: number, y: number, keyName: string): number {
     const tag = keyPromptTag(keyName);
-    const frame = tag ? frameOf(scene, tag) : undefined;
+    const frame = tag ? tagFrame(scene, tag) : undefined;
     if (frame !== undefined) {
         container.add(scene.add.image(x, y, 'ui_prompts', frame).setOrigin(0, 0.5));
         return 40;
@@ -40,6 +40,8 @@ export interface ControlsPanelOptions {
     showPad?: boolean;
     /** Extra row for movement (arrows / d-pad). */
     movement?: boolean;
+    /** Pad glyph column, relative to x (default 150; the 16 px glyph must end inside the owning panel). */
+    padX?: number;
 }
 
 /** Builds (and rebuilds on demand) the rows into a container. */
@@ -62,6 +64,7 @@ export class ControlsPanel {
         const s = settings.get();
         const rh = this.opts.rowHeight ?? 14;
         const showPad = this.opts.showPad ?? true;
+        const padX = this.opts.x + (this.opts.padX ?? 150);
         let i = 0;
         if (this.opts.movement) {
             const y = this.opts.y + i * rh;
@@ -71,8 +74,8 @@ export class ControlsPanel {
             this.rowLabels.push(l);
             this.container.add(l);
             if (showPad) {
-                const tag = frameOf(this.scene, 'prompt_pad_dpad');
-                if (tag !== undefined) this.container.add(this.scene.add.image(this.opts.x + 150, y, 'ui_prompts', tag).setOrigin(0, 0.5));
+                const tag = tagFrame(this.scene, 'prompt_pad_dpad');
+                if (tag !== undefined) this.container.add(this.scene.add.image(padX, y, 'ui_prompts', tag).setOrigin(0, 0.5));
             }
             i++;
         }
@@ -88,9 +91,9 @@ export class ControlsPanel {
             if (showPad) {
                 const b = (s.pad[row.action] ?? [])[0];
                 const tag = b !== undefined ? padPromptTag(b) : null;
-                const frame = tag ? frameOf(this.scene, tag) : undefined;
-                if (frame !== undefined) this.container.add(this.scene.add.image(this.opts.x + 150, y, 'ui_prompts', frame).setOrigin(0, 0.5));
-                else if (b !== undefined) this.container.add(text(this.scene, this.opts.x + 170, y, `B${b}`, F.plain, [0.5, 0.5]));
+                const frame = tag ? tagFrame(this.scene, tag) : undefined;
+                if (frame !== undefined) this.container.add(this.scene.add.image(padX, y, 'ui_prompts', frame).setOrigin(0, 0.5));
+                else if (b !== undefined) this.container.add(text(this.scene, padX + 20, y, `B${b}`, F.plain, [0.5, 0.5]));
             }
             i++;
         }

@@ -6,6 +6,8 @@
 //   music   crossfades between at most two tracks, one-shot jingles that stop the music and emit 'music:ended',
 //           ducking (player death, boss roar, callouts), pause ducking
 //   buses   master (UI prefs) × music / sfx (engine settings); mute stays with the engine's bindGlobalMute
+//   limiter a DynamicsCompressor after Phaser's master gain catches coincident SFX peaks before they hard-clip
+//   meter   estimated music / sfx bus levels from the manifests' RMS (`__KBE.state().audio.mix`), peak-held
 //   unlock  sfx before the first gesture are dropped, the last music request is queued and starts on UNLOCKED
 // Fades run on the game STEP clock, so they keep moving while the Game scene is paused or in hitstop.
 import Phaser from 'phaser';
@@ -76,6 +78,26 @@ export interface AudioDebugState {
     musicBus: number;
     sfxBus: number;
     muted: boolean;
+    mix: MixState;
+}
+
+/** Estimated bus levels (dBFS, from the manifests' per-file RMS × every gain stage), now and at the loudest moment. */
+export interface MixState {
+    /** Current estimates (-99 = silence). */
+    sfxDb: number;
+    musicDb: number;
+    /** Loudest sfx-bus moment in the hold window and what was playing then. */
+    peakSfxDb: number;
+    peakMusicDb: number;
+    peakVoices: number;
+    peakKeys: string[];
+    /** Loudest single voice at that moment and its share of the sfx bus power (1 = it was the bus). */
+    loudest: string | null;
+    loudestShare: number;
+    /** Gain reduction the master limiter is applying right now (dB, ≤ 0), and the most it applied in the window. */
+    limiterDb: number;
+    limiterPeakDb: number;
+    limiter: boolean;
 }
 
 interface Voice {
@@ -152,6 +174,17 @@ export class AudioEngine {
     private listener: (() => number) | null = null;
     private lastGameplay: string | null = null;
     private readonly stats = { played: 0, dropped: 0, stolen: 0, lockedDrops: 0 };
+    /** Per-key rapid-fire counters (SfxMeta.burst). */
+    private readonly bursts = new Map<string, { n: number; last: number }>();
+    private limiter: DynamicsCompressorNode | null = null;
+    /** key → file RMS in dBFS (from the manifests the UI pack loads). */
+    private rmsDb: Map<string, number> | null = null;
+    private readonly mix: MixState = {
+        sfxDb: -99, musicDb: -99, peakSfxDb: -99, peakMusicDb: -99, peakVoices: 0, peakKeys: [], loudest: null, loudestShare: 0,
+        limiterDb: 0, limiterPeakDb: 0, limiter: false
+    };
+    private mixHold = 0;
+    private limiterHold = 0;
 
     private constructor(private readonly game: Phaser.Game) {
         this.sound = game.sound;
@@ -161,7 +194,37 @@ export class AudioEngine {
         settings.onChange(() => this.applySettings());
         onPrefsChange(() => this.applySettings());
         this.applySettings();
+        this.installLimiter();
         registerDebug('audio', () => this.debugState());
+    }
+
+    /**
+     * Insert a brick-wall-ish DynamicsCompressor between Phaser's master gain and the destination (WebAudio only;
+     * HTML5/NoAudio managers have no graph). Threshold −3 dBFS: the music alone (≤ −5.8 dBFS peaks) never
+     * reaches it; only stacked SFX transients do, and those would otherwise clip at the destination.
+     */
+    private installLimiter(): void {
+        const sm = this.sound as unknown as { context?: AudioContext; masterVolumeNode?: GainNode };
+        const ctx = sm.context;
+        const master = sm.masterVolumeNode;
+        if (!ctx || !master || typeof ctx.createDynamicsCompressor !== 'function') return;
+        const L = UI.audio.limiter;
+        try {
+            const c = ctx.createDynamicsCompressor();
+            c.threshold.value = L.thresholdDb;
+            c.knee.value = L.kneeDb;
+            c.ratio.value = L.ratio;
+            c.attack.value = L.attackS;
+            c.release.value = L.releaseS;
+            master.disconnect();
+            master.connect(c);
+            c.connect(ctx.destination);
+            this.limiter = c;
+            this.mix.limiter = true;
+        } catch (e) {
+            if (DEV) console.warn('[audio] master limiter not installed:', e);
+            try { master.connect(ctx.destination); } catch { /* already connected */ }
+        }
     }
 
     // ---------------------------------------------------------------- state
@@ -287,6 +350,13 @@ export class AudioEngine {
         if (meta.vary) {
             if (o.detune === undefined) detune += (Math.random() * 2 - 1) * meta.vary;
             base *= 1 + (Math.random() * 2 - 1) * UI.audio.vary.volume;
+        }
+        if (meta.burst) {
+            let b = this.bursts.get(key);
+            if (!b) this.bursts.set(key, b = { n: 0, last: -1e9 });
+            b.n = this.clock - b.last <= meta.burst.ms ? b.n + 1 : 0;
+            b.last = this.clock;
+            base *= Math.max(meta.burst.floor, 1 - b.n * meta.burst.step);
         }
         this.startVoice(key, base, sp.gain, detune, sp.pan, false, o.rate ?? 1);
     }
@@ -510,6 +580,7 @@ export class AudioEngine {
                 this.kill(v);
             }
         }
+        this.meter(dt);
         // timers
         for (let i = 0; i < this.timers.length; i++) {
             const t = this.timers[i];
@@ -525,6 +596,62 @@ export class AudioEngine {
         this.sound.off(Phaser.Sound.Events.UNLOCKED, this.onUnlocked, this);
         this.events.removeAllListeners();
         AudioEngine.byGame.delete(this.game);
+    }
+
+    // ---------------------------------------------------------------- mix meter
+
+    private fileRms(key: string): number {
+        if (!this.rmsDb) {
+            this.rmsDb = new Map();
+            const json = this.game.cache.json;
+            for (const k of ['sfx_manifest', 'music_manifest']) {
+                const m = json.exists(k) ? json.get(k) as Record<string, { rms_db?: number }> : null;
+                if (m) for (const [name, info] of Object.entries(m)) if (typeof info.rms_db === 'number') this.rmsDb.set(name, info.rms_db);
+            }
+        }
+        return this.rmsDb.get(key) ?? -16;
+    }
+
+    private static db(lin: number): number {
+        return lin > 1e-5 ? Math.round(20 * Math.log10(lin) * 10) / 10 : -99;
+    }
+
+    /** Estimate the sfx and music bus levels (power sum of every playing voice's file RMS × its gains) and peak-hold them. */
+    private meter(dt: number): void {
+        const s = settings.get();
+        const master = getPrefs().master;
+        let sfxPow = 0;
+        let loudest: string | null = null;
+        let loudestPow = 0;
+        for (const v of this.voices) {
+            if (v.done || v.pausedByEngine || !v.sound.isPlaying) continue;
+            const lin = Math.pow(10, this.fileRms(v.key) / 20) * Math.min(1, v.base * v.gain * v.user * v.fade) * s.sfxVolume * master;
+            const pow = lin * lin;
+            sfxPow += pow;
+            if (pow > loudestPow) { loudestPow = pow; loudest = v.key; }
+        }
+        let musicPow = 0;
+        const tracks = this.current && !this.current.done ? [this.current, ...this.outgoing] : this.outgoing;
+        for (const t of tracks) {
+            const lin = Math.pow(10, this.fileRms(t.key) / 20) * Math.min(1, t.vol * t.target) * s.musicVolume * this.duckGain * this.pauseDuck * master;
+            musicPow += lin * lin;
+        }
+        const m = this.mix;
+        m.sfxDb = AudioEngine.db(Math.sqrt(sfxPow));
+        m.musicDb = AudioEngine.db(Math.sqrt(musicPow));
+        m.limiterDb = this.limiter ? Math.round(this.limiter.reduction * 10) / 10 : 0;
+        this.mixHold -= dt;
+        if (m.sfxDb > m.peakSfxDb || this.mixHold <= 0) {
+            this.mixHold = UI.audio.mixHoldMs;
+            m.peakSfxDb = m.sfxDb;
+            m.peakMusicDb = m.musicDb;
+            m.peakVoices = this.voices.length;
+            m.peakKeys = this.voices.filter(v => !v.done && v.sound.isPlaying).map(v => v.key);
+            m.loudest = loudest;
+            m.loudestShare = sfxPow > 0 ? Math.round(loudestPow / sfxPow * 100) / 100 : 0;
+        }
+        this.limiterHold -= dt;
+        if (m.limiterDb < m.limiterPeakDb || this.limiterHold <= 0) { this.limiterHold = UI.audio.mixHoldMs; m.limiterPeakDb = m.limiterDb; }
     }
 
     // ---------------------------------------------------------------- diagnostics
@@ -564,7 +691,8 @@ export class AudioEngine {
             master: getPrefs().master,
             musicBus: s.musicVolume,
             sfxBus: s.sfxVolume,
-            muted: settings.muted
+            muted: settings.muted,
+            mix: { ...this.mix, peakKeys: this.mix.peakKeys.slice() }
         };
     }
 }

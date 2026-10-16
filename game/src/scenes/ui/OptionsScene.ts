@@ -75,7 +75,7 @@ export class OptionsScene extends Phaser.Scene {
         this.pageRoot.add(text(this, W / 2, 184, '↑↓ SELECT   ←→ ADJUST   ENTER OK   ESC BACK', F.plain, [0.5, 0.5]).setAlpha(0.6));
         // controls page
         this.controlsRoot.add(text(this, 60, 50, 'CONTROLS', F.gold));
-        this.controlsRoot.add(text(this, 322, 50, 'KEY  •  ALT  •  PAD', F.plain, [1, 0]).setAlpha(0.7));
+        this.controlsRoot.add(text(this, 322, 50, 'KEY  ●  ALT  ●  PAD', F.plain, [1, 0]).setAlpha(0.7));
         this.controls = new ControlsPanel(this, { x: 150, y: 70, rowHeight: 14, alternates: true, showPad: true, movement: true });
         this.controlsRoot.add(this.controls.container);
         this.controlsMenu = new Menu(this, {

@@ -62,13 +62,21 @@ export class CameraController implements CameraService {
         if (this.target) this.snapTo(this.target.x, this.target.y);
     }
 
+    /**
+     * Hard cut: finishes any running lock/unlock blend and restarts forward-only scrolling from the new view.
+     * While locked, a snap point inside the arena lands the view inside it; a snap point outside it is a teleport
+     * out (the caller unlocks next), so it isn't dragged back to the arena.
+     */
     snapTo(x: number, y: number): void {
         this.focusX = x;
         this.focusY = y;
         this.look = 0;
-        this.minScroll = -Infinity;
-        this.x = this.clampScrollX(x - this.cam.width * T.anchorX);
+        let sx = x - this.cam.width * T.anchorX;
+        if (this.locked && x >= this.lockX0 && x <= this.lockX1) sx = Phaser.Math.Clamp(sx, this.lockX0, this.lockX1 - this.cam.width);
+        this.x = this.clampScrollX(sx);
         this.y = this.clampScrollY(y - this.cam.height * T.anchorY);
+        this.blend = 1;
+        this.blendFrom = this.x;
         this.minScroll = this.x;
         this.cam.setScroll(this.x, this.y);
         this.updateView();
@@ -211,8 +219,8 @@ export class CameraController implements CameraService {
     }
 
     /** Debug info for the overlay / __KBE.state(). */
-    debugInfo(): { x: number; minScroll: number; locked: boolean; x0: number; x1: number } {
-        return { x: this.x, minScroll: this.minScroll, locked: this.locked, x0: this.lockX0, x1: this.lockX1 };
+    debugInfo(): { x: number; minScroll: number; locked: boolean; x0: number; x1: number; blend: number } {
+        return { x: this.x, minScroll: this.minScroll, locked: this.locked, x0: this.lockX0, x1: this.lockX1, blend: this.blend };
     }
 }
 

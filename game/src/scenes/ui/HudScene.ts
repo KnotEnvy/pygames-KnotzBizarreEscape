@@ -2,10 +2,10 @@
 // callouts, GO! arrow on camera unlock, the boss bar, floating score popups and level prompts. Everything is
 // driven by bus events; the layout follows GDD §9 and the Phase A mock (384×216).
 import Phaser from 'phaser';
-import { getContext, registerDebug, type GameContext, type GameEvents } from '../../core';
+import { getContext, hasAnim, registerDebug, tagFrame, type GameContext, type GameEvents } from '../../core';
 import { getAudio } from '../../audio';
 import { UI } from '../../config/tuning/ui';
-import { C, F, W, WEAPON_NAMES, frameOf, hasAnim, icon, pad, panel, text } from '../../ui/widgets';
+import { C, F, W, WEAPON_NAMES, icon, pad, panel, text } from '../../ui/widgets';
 import { Callout } from '../../ui/callout';
 import { fadeOut, wipeIn } from '../../ui/transitions';
 import { uiDebug } from '../../ui';
@@ -102,7 +102,7 @@ export class HudScene extends Phaser.Scene {
 
     private build(): void {
         // top-left: 1UP badge, score, lives
-        const oneUp = frameOf(this, 'hud_1up');
+        const oneUp = tagFrame(this, 'hud_1up');
         if (oneUp !== undefined) this.add.image(3, 3, 'ui_hud', oneUp).setOrigin(0, 0);
         else text(this, 4, 4, '1UP', F.gold);
         this.scoreText = text(this, 30, 5, pad(0, UI.hud.scoreDigits), F.gold);
@@ -127,7 +127,8 @@ export class HudScene extends Phaser.Scene {
         this.bossFrame = this.add.image(0, 0, 'ui_bossbar_frame').setOrigin(0, 0);
         const skull = icon(this, -19, -1, 'ui_icons', 'icon_skull');
         this.bossName = text(this, 2, -10, '', F.hud).setTint(C.red5);
-        this.bossBox.add([this.bossGhost, this.bossFill, this.bossFrame, skull, this.bossName]);
+        // The frame is opaque (its dark slot is the empty bar), so the ghost and the fill draw ABOVE it (KBE-QA-U01).
+        this.bossBox.add([this.bossFrame, this.bossGhost, this.bossFill, skull, this.bossName]);
         // callout, popups, prompt
         this.callout = new Callout(this, UI.hud.callout.y, 40);
         this.popups = [];
@@ -168,7 +169,7 @@ export class HudScene extends Phaser.Scene {
     private setWeapon(weapon: string, ammo: number, announce: boolean): void {
         const changed = weapon !== this.weapon;
         this.weapon = weapon;
-        const frame = frameOf(this, `icon_${weapon}`) ?? frameOf(this, 'icon_pistol');
+        const frame = tagFrame(this, `icon_${weapon}`) ?? tagFrame(this, 'icon_pistol');
         if (frame !== undefined) this.weaponIcon.setFrame(frame);
         this.setAmmo(ammo);
         const name = WEAPON_NAMES[weapon];
@@ -227,8 +228,10 @@ export class HudScene extends Phaser.Scene {
 
     private bossCrop(): void {
         const B = UI.hud.bossBar;
-        this.bossFill.setCrop(0, 0, Math.round(B.fillW * this.bossHp / this.bossMax), B.fillH);
-        this.bossGhost.setCrop(0, 0, Math.round(B.fillW * this.bossGhostHp / this.bossMax), B.fillH);
+        const w = Math.round(B.fillW * this.bossHp / this.bossMax);
+        const g = Math.round(B.fillW * this.bossGhostHp / this.bossMax);
+        this.bossFill.setCrop(0, 0, w, B.fillH).setVisible(w > 0);
+        this.bossGhost.setCrop(0, 0, g, B.fillH).setVisible(g > 0);
     }
 
     // ---------------------------------------------------------------- popups / prompts / clear

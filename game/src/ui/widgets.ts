@@ -1,6 +1,6 @@
 // Small construction helpers shared by the UI scenes (bitmap text, 9-slice panels, atlas tag frames, dimmers).
 import Phaser from 'phaser';
-import { TEX } from '../core';
+import { TEX, hasAnim, tagFrame } from '../core';
 import { UI } from '../config/tuning/ui';
 
 export const F = UI.fonts;
@@ -39,27 +39,20 @@ export function bar(scene: Scene, x: number, y: number, w: number, h: number, co
     return scene.add.image(x, y, TEX.px).setOrigin(0, 0).setDisplaySize(w, h).setTint(color).setAlpha(alpha);
 }
 
-/** The texture frame behind an Aseprite tag (its first frame), for static icons: `img.setFrame(frameOf(scene, 'icon_hmg'))`. */
-export function frameOf(scene: Scene, tag: string): string | number | undefined {
-    const anim = scene.anims.get(tag);
-    const f = anim?.frames[0];
-    return f ? f.frame.name : undefined;
-}
-
-/** An image showing a static Aseprite tag of `texture` (falls back to the engine's missing texture). */
+/**
+ * An image showing a static Aseprite tag of `texture` (core's `tagFrame`). Missing art falls back to the engine's
+ * magenta `TEX.missing` so it is obvious in a screenshot, and is reported once in dev.
+ */
 export function icon(scene: Scene, x: number, y: number, texture: string, tag: string): Phaser.GameObjects.Image {
-    const frame = frameOf(scene, tag);
-    if (frame === undefined || !scene.textures.exists(texture)) return scene.add.image(x, y, TEX.missing).setOrigin(0, 0);
+    const frame = tagFrame(scene, tag);
+    if (frame === undefined || !scene.textures.exists(texture)) {
+        if (import.meta.env.DEV) console.warn(`[ui] icon '${tag}' of '${texture}' is missing`);
+        return scene.add.image(x, y, TEX.missing).setOrigin(0, 0);
+    }
     return scene.add.image(x, y, texture, frame).setOrigin(0, 0);
 }
 
-/** True when an animation exists AND has frames (createFromAseprite leaves zero-frame tags behind; play() on those throws). */
-export function hasAnim(scene: Scene, key: string): boolean {
-    const a = scene.anims.get(key);
-    return !!a && a.frames.length > 0;
-}
-
-/** Play a tag on a sprite if it exists (missing art never throws). */
+/** Play a tag on a sprite if it is a valid animation (core's `hasAnim`: exists AND has frames); missing art never throws. */
 export function playTag(sprite: Phaser.GameObjects.Sprite, tag: string, repeat = -1): boolean {
     if (!sprite.scene || !hasAnim(sprite.scene, tag)) return false;
     sprite.play({ key: tag, repeat }, true);

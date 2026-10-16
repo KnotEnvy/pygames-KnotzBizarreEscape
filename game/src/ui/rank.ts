@@ -1,5 +1,6 @@
 // Results rank: accuracy (0..40 pts), rescues (0..40), deaths (20 → 0). Thresholds in UI.results.rank.
 import { UI } from '../config/tuning/ui';
+import { runInfo } from './index';
 
 export type Rank = 'S' | 'A' | 'B' | 'C';
 
@@ -16,7 +17,9 @@ export interface ResultsData {
 }
 
 export function rankPoints(r: ResultsData): number {
-    const powTotal = UI.results.powTotal[r.stage] ?? 5;
+    // The level's own POW count when it reported one for this stage, else the per-stage estimate from tuning.
+    const reported = runInfo.stage === r.stage ? runInfo.powTotal : 0;
+    const powTotal = reported > 0 ? reported : (UI.results.powTotal[r.stage] ?? 5);
     const acc = Math.max(0, Math.min(1, r.accuracy)) * 40;
     const pow = Math.min(1, r.rescued / Math.max(1, powTotal)) * 40;
     const life = Math.max(0, 20 - r.deaths * 7);
