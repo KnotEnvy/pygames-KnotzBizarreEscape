@@ -1,19 +1,25 @@
 // window.__KBE test/debug hooks (QA depends on these). Installed by main.ts before the game boots.
-//   __KBE.ready, __KBE.game, __KBE.version, __KBE.state(), __KBE.cheats.{god,warp,give,kill,bombs,boss}, __KBE.press(action, ms)
+//   __KBE.ready, __KBE.game, __KBE.version, __KBE.state(), __KBE.press(action, ms)
+//   __KBE.cheats.{god,warp,give,kill,killEnemies,hurt,bombs,boss}
+// kill() kills the PLAYER (QA's death/game-over flow); killEnemies() clears every live enemy hurtbox.
 import Phaser from 'phaser';
-import type { Action, DebugService, GameContext } from '../contracts';
+import type { Action, DebugService, GameContext, HitInfo, Hurtbox } from '../contracts';
 import { ACTIONS } from '../contracts';
 import { liveInputs } from '../input';
 import { PARAMS } from '../params';
+import { isSandboxLevel } from '../dev/sandboxLevel';
 
 type CheatFn = (...args: never[]) => void;
 
 const extras = new Map<string, () => unknown>();
 const cheatOverrides = new Map<string, CheatFn>();
-const errors: string[] = [];
+const errors: string[] = (window as unknown as { __KBE_ERRORS?: string[] }).__KBE_ERRORS ??= [];
+/** Survives module re-evaluation (dev hot reload) because it lives on window. */
+let globalTapped = (window as unknown as { __KBE_TAPPED?: boolean }).__KBE_TAPPED === true;
 let active: GameContext | null = null;
 let gameRef: Phaser.Game | null = null;
 let bossHp: number | null = null;
+let boss: { name: string; hp: number; maxHp: number; phase: number } | null = null;
 
 /** Add a field to __KBE.state(). Safe to call any time (overwrites the same key). */
 export function registerDebug(key: string, fn: () => unknown): void {
@@ -30,13 +36,43 @@ export const debugService: DebugService = {
 export function setActiveContext(ctx: GameContext | null): void {
     active = ctx;
     bossHp = null;
+    boss = null;
     if (!ctx) {
         cheatOverrides.clear();
         return;
     }
-    ctx.events.on('boss:hp', e => { bossHp = e.hp; });
-    ctx.events.on('boss:spawn', e => { bossHp = e.hp; });
-    ctx.events.on('boss:defeated', () => { bossHp = 0; });
+    syncGodFlag(ctx.cheats.god);
+    const track = (e: { name: string; hp: number; maxHp: number; phase: number }): void => {
+        bossHp = e.hp;
+        boss = { name: e.name, hp: e.hp, maxHp: e.maxHp, phase: e.phase };
+    };
+    ctx.events.on('boss:spawn', track);
+    ctx.events.on('boss:hp', track);
+    ctx.events.on('boss:phase', track);
+    ctx.events.on('boss:defeated', e => { track(e); bossHp = 0; if (boss) boss.hp = 0; });
+}
+
+/** Mirror the god flag where QA looks for it: state().god and game.registry 'god'. */
+function syncGodFlag(on: boolean): void {
+    gameRef?.registry.set('god', on);
+}
+
+/** The player's own hurtbox: the one owned by the player sprite, else the first live player-team box. */
+function playerHurtbox(ctx: GameContext, index = 0): Hurtbox | null {
+    const p = ctx.player(index);
+    let owned: Hurtbox | null = null, first: Hurtbox | null = null;
+    ctx.damage.forEach(h => {
+        if (h.team !== 'player' || !h.alive()) return;
+        if (p && h.owner === p.sprite && !owned) owned = h;
+        if (!first) first = h;
+    });
+    return owned ?? first;
+}
+
+function playerHit(ctx: GameContext, damage: number, kind: HitInfo['kind']): HitInfo {
+    const p = ctx.player();
+    const x = p?.x ?? 0, y = p?.centerY ?? 0;
+    return { damage, source: 'enemy', x, y, dirX: -(p?.facing ?? 1), dirY: 0, kind, weapon: 'cheat' };
 }
 
 export function getActiveContext(): GameContext | null {
@@ -60,6 +96,7 @@ function teleportPlayer(ctx: GameContext, x: number): void {
 const defaultCheats = {
     god(on = true): void {
         if (active) active.cheats.god = on;
+        syncGodFlag(on);
     },
     warp(x: number): void {
         if (active) teleportPlayer(active, x);
@@ -68,7 +105,31 @@ const defaultCheats = {
         if (!active) return;
         active.state.setWeapon(weapon, ammo ?? (weapon === 'pistol' ? Infinity : 999));
     },
+    /**
+     * Kill the player now: a lethal hit straight to the player's hurtbox, bypassing god mode and i-frames (the
+     * engine then counts exactly one life via player:died). The player team may override it with
+     * ctx.debug.cheat('kill', ...) if its death needs more than a lethal hit.
+     */
     kill(): void {
+        if (!active) return;
+        const ctx = active;
+        const p = ctx.player();
+        if (!p || !p.alive()) return;
+        const h = playerHurtbox(ctx);
+        if (!h) { console.warn('[__KBE.cheats.kill] the player has no registered hurtbox'); return; }
+        const info = playerHit(ctx, 9999, 'contact');
+        if (h.hit(info) !== false) {
+            ctx.events.emit('entity:hurt', { x: info.x, y: info.y, team: 'player', kind: info.kind, material: h.material ?? 'flesh', damage: info.damage, entity: h.kind });
+        }
+    },
+    /** A normal enemy hit on the player (respects god mode and i-frames): for immunity tests. */
+    hurt(damage = 1): void {
+        if (!active) return;
+        const h = playerHurtbox(active);
+        if (h) active.damage.deal(h, playerHit(active, damage, 'bullet'));
+    },
+    /** Kill every live enemy-team hurtbox (the pre-Phase-B meaning of kill()). */
+    killEnemies(): void {
         if (!active) return;
         const ctx = active;
         ctx.damage.forEach(h => {
@@ -121,6 +182,13 @@ function snapshot(): Record<string, unknown> {
         enemies: ctx ? ctx.damage.count('enemy') : 0,
         cameraX: ctx ? Math.round(ctx.camera.view().x) : 0,
         bossHp,
+        boss,
+        bossPhase: boss?.phase ?? null,
+        god: ctx ? ctx.cheats.god : PARAMS.god,
+        projectiles: ctx ? ctx.projectiles.countTeam('player') : 0,
+        enemyProjectiles: ctx ? ctx.projectiles.countTeam('enemy') : 0,
+        shotsFired: ctx ? (ctx.state as { stats?: { shots: number } }).stats?.shots ?? 0 : 0,
+        level: ctx ? { stage: ctx.level.stage ?? null, name: ctx.level.name ?? null, sandbox: isSandboxLevel(ctx.level) } : null,
         errors: errors.slice(-20)
     };
     for (const [k, fn] of extras) {
@@ -134,7 +202,10 @@ export interface KbeHandle {
     game: Phaser.Game | null;
     version: string;
     state(): Record<string, unknown>;
-    cheats: { god(on?: boolean): void; warp(x: number): void; give(weapon: string, ammo?: number): void; kill(): void; bombs(n?: number): void; boss(): void };
+    cheats: {
+        god(on?: boolean): void; warp(x: number): void; give(weapon: string, ammo?: number): void; kill(): void;
+        killEnemies(): void; hurt(damage?: number): void; bombs(n?: number): void; boss(): void;
+    };
     press(action: Action, ms?: number): void;
     params: unknown;
 }
@@ -145,13 +216,15 @@ declare global {
 
 export function installKbe(game: Phaser.Game, version: string): KbeHandle {
     gameRef = game;
+    syncGodFlag(PARAMS.god);
     const handle: KbeHandle = {
         ready: false,
         game,
         version,
         state: snapshot,
         cheats: {
-            god: cheat('god'), warp: cheat('warp'), give: cheat('give'), kill: cheat('kill'), bombs: cheat('bombs'), boss: cheat('boss')
+            god: cheat('god'), warp: cheat('warp'), give: cheat('give'), kill: cheat('kill'), killEnemies: cheat('killEnemies'),
+            hurt: cheat('hurt'), bombs: cheat('bombs'), boss: cheat('boss')
         },
         press(action: Action, ms?: number) {
             if (!ACTIONS.includes(action)) { console.warn(`[__KBE.press] unknown action '${action}'`); return; }
@@ -160,10 +233,16 @@ export function installKbe(game: Phaser.Game, version: string): KbeHandle {
         params: PARAMS
     };
     window.__KBE = handle;
-    window.addEventListener('error', e => { errors.push(String(e.message)); });
-    window.addEventListener('unhandledrejection', e => { errors.push(`unhandledrejection: ${String(e.reason)}`); });
-    const origError = console.error.bind(console);
-    console.error = (...args: unknown[]) => { errors.push(args.map(String).join(' ').slice(0, 300)); origError(...args); };
+    // Global listeners and the console.error tap are installed once per page, even if a dev hot-reload
+    // re-runs this module (otherwise every error would be recorded once per reload).
+    if (!globalTapped) {
+        globalTapped = true;
+        (window as unknown as { __KBE_TAPPED?: boolean }).__KBE_TAPPED = true;
+        window.addEventListener('error', e => { errors.push(String(e.message)); });
+        window.addEventListener('unhandledrejection', e => { errors.push(`unhandledrejection: ${String(e.reason)}`); });
+        const origError = console.error.bind(console);
+        console.error = (...args: unknown[]) => { errors.push(args.map(String).join(' ').slice(0, 300)); origError(...args); };
+    }
     return handle;
 }
 

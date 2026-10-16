@@ -34,7 +34,7 @@ def spectrogram_png(x, sr, path, height=160, width=640):
             break
     S = np.array(frames).T  # freq x time
     S = 20 * np.log10(S + 1e-6)
-    S = np.clip((S + 80) / 80, 0, 1)
+    S = np.clip((S - S.max() + 72) / 72, 0, 1)
     # log-frequency rows
     freqs = np.fft.rfftfreq(nfft, 1 / sr)
     rows = np.geomspace(40, sr / 2, height)

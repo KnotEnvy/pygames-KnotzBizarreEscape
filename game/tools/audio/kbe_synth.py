@@ -48,8 +48,9 @@ def sine(freq, dur, phase0=0.0):
 
 
 def square(freq, dur, duty=0.5):
+    """Pulse wave, DC-free for any duty cycle."""
     ph = _phase(freq, dur) % 1.0
-    return np.where(ph < duty, 1.0, -1.0)
+    return np.where(ph < duty, 1.0, -1.0) - (2.0 * duty - 1.0)
 
 
 pulse = square
@@ -462,10 +463,14 @@ def to_stereo(x, pan=0.0, width=0.0):
     return np.stack([l, r], axis=1)
 
 
-def write_ogg(path, x, sr=SR, quality=0.5):
+def write_ogg(path, x, sr=SR, quality=0.5, block=32768):
+    """Write OGG Vorbis in blocks (libsndfile's vorbis encoder segfaults on very large single writes)."""
     x = np.asarray(x, dtype=np.float32)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    sf.write(path, x, sr, format="OGG", subtype="VORBIS", compression_level=1.0 - quality)
+    ch = x.shape[1] if x.ndim == 2 else 1
+    with sf.SoundFile(path, "w", samplerate=sr, channels=ch, format="OGG", subtype="VORBIS", compression_level=1.0 - quality) as f:
+        for i in range(0, len(x), block):
+            f.write(x[i:i + block])
 
 
 def write_wav(path, x, sr=SR):

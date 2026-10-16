@@ -134,6 +134,8 @@ export interface LevelQuery {
     oneWayAt?(x: number, y: number): boolean;
     hazardAt?(x: number, y: number): HazardKind | null;
     materialAt?(x: number, y: number): TerrainMaterial;
+    /** Optional (Phase B): world y of the water surface at x, or null if there is no water column there. */
+    waterSurfaceAt?(x: number): number | null;
     /** Where the player starts (used when the level never spawns a `player_start`). */
     playerStart?: { x: number; y: number };
     /** Level name/number, for stage:start. */
@@ -249,6 +251,11 @@ export interface LevelPhysics {
     materialAt(x: number, y: number): TerrainMaterial;
     /** World y of the first standable surface (solid or one-way top) at x, scanning down from `fromY`. null if none. */
     groundBelow(x: number, fromY: number, maxDist?: number): number | null;
+    /**
+     * Phase B: world y of the water surface at x (top of the first `hazard=water` tile scanning down from the top
+     * of the level), or null. Uses `LevelQuery.waterSurfaceAt` when the level provides it.
+     */
+    waterSurfaceAt(x: number): number | null;
 }
 
 export interface FlowService {
@@ -259,12 +266,19 @@ export interface FlowService {
     pause(): void;
     resume(): void;
     readonly over: boolean;
+    /** Phase B: safe standing spot near `nearX` (on ground, not a hazard, inside the camera). y = ground surface. */
+    safeSpot(nearX: number): { x: number; y: number };
+    /** Phase B: true between a counted death of player `index` and the engine's game:respawn for it. */
+    isDead(index?: number): boolean;
 }
 
 export interface DebugService {
     /** Add a field to `__KBE.state()`. */
     register(key: string, fn: () => unknown): void;
-    /** Override a cheat implementation (god, warp, give, kill, bombs, boss). */
+    /**
+     * Override a cheat implementation: god, warp, give, kill (kills the player), killEnemies, hurt (normal hit
+     * on the player, respects god/i-frames), bombs, boss.
+     */
     cheat(name: string, fn: (...args: never[]) => void): void;
     readonly enabled: boolean;
 }

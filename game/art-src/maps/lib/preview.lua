@@ -48,18 +48,22 @@ for _, o in ipairs(layers.triggers.objects) do
 end
 
 -- props behind, then other markers
-local function propsPass(front)
+local function propsPass(front, target)
+  target = target or img
   for _, o in ipairs(layers.spawns.objects) do
     local p = {}
     for _, pr in ipairs(o.properties or {}) do p[pr.name] = pr.value end
     if o.type == "prop" and ((p.layer == "front") == front) then
       local im = propImage(p.kind)
       local x, y = math.floor(o.x), math.floor(o.y)
-      if im then img:drawImage(im, Point(x - im.width // 2, y - im.height))
+      if im then target:drawImage(im, Point(x - im.width // 2, y - im.height))
       else rect(x - 6, y - 12, 12, 12, C(200, 200, 200)) end
     end
   end
 end
+-- clean world (tiles + props, transparent sky) for the parallax composites
+local clean = Image(raw)
+propsPass(false, clean); propsPass(true, clean)
 propsPass(false)
 for _, o in ipairs(layers.spawns.objects) do
   local p = {}
@@ -106,6 +110,34 @@ for x0 = 0, W - 1, 384 do
   crop:drawImage(img, Point(-x0, -(H - 216)))
   save(crop, string.format("screen_%02d.png", sn), 3)
   sn = sn + 1
+end
+-- parallax-composited screens using the plan in docs/teams/level.md (camera resting on the map bottom)
+local BG = ROOT .. "/public/assets/backgrounds/stage1/"
+local function load(name)
+  local fh = io.open(BG .. name, "rb"); if not fh then return nil end; fh:close()
+  local sp = Sprite{ fromFile = BG .. name }; local im = Image(sp); sp:close(); return im
+end
+local PLX = {
+  { img = load("gen_sky.png"), sf = 0.015, y = 0 },
+  { img = load("gen_mountains.png"), sf = 0.08, y = 34 },
+  { img = load("gen_pines_far.png"), sf = 0.18, y = 91 },
+  { img = load("gen_pines_mid.png"), sf = 0.34, y = 90, before = 3840 },
+  { img = load("gen_outpost_far.png"), sf = 0.23, y = 67, after = 3840 },
+  { img = load("haze.png"), sf = 0.5, y = 112 },
+}
+local pn = 0
+for camX = 0, W - 384, 384 do
+  local view = Image(384, 216, ColorMode.RGB)
+  for _, l in ipairs(PLX) do
+    if l.img and (not l.before or camX < l.before) and (not l.after or camX >= l.after) then
+      local w = l.img.width
+      local off = -math.floor(camX * l.sf) % w
+      for x = off - w, 384, w do view:drawImage(l.img, Point(x, l.y)) end
+    end
+  end
+  view:drawImage(clean, Point(-camX, -(H - 216)))
+  save(view, string.format("plx_%02d.png", pn), 3)
+  pn = pn + 1
 end
 base:close()
 print("preview: " .. n .. " chunks")

@@ -11,6 +11,7 @@ unset DISPLAY WAYLAND_DISPLAY PULSE_SERVER
 if [ "${1:-}" = "--tiles" ]; then
   log=$(cd "$GAME" && bash tools/build-art.sh art-src/tiles/stage1.lua 2>&1 || true); echo "$log"
   echo "$log" | grep -q '^built stage1 tileset' || { echo "!! tileset build failed"; exit 1; }
+  (cd "$GAME" && bash tools/build-art.sh art-src/maps/haze.lua)
 fi
 
 node "$GAME/art-src/maps/build_stage1.mjs"
@@ -32,5 +33,5 @@ node "$GAME/art-src/maps/validate.mjs" "$TMJ"
 test -s "$OUT/stage1_full.png"
 # annotated preview (props + spawn markers) and section crops, drawn by Aseprite
 /home/knotz2/.local/bin/aseprite --batch --script-param root="$GAME" --script-param out="$OUT" \
-  --script "$GAME/art-src/maps/preview.lua"
+  --script "$GAME/art-src/maps/lib/preview.lua"
 echo "previews in $OUT"

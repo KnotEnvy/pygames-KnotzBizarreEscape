@@ -97,7 +97,7 @@ for (const o of L.spawns.objects) {
   const airborne = (o.type === 'enemy' && AIR_KINDS.includes(p.kind)) || o.type === 'boss';
   const isDecor = o.type === 'prop' && p.layer;
   if (!airborne && solidAt(tx, feet)) err(`${where}: feet inside a solid tile (${tx},${feet})`);
-  if (!airborne && !isDecor && !p.wave && !standable(tx, below) && !(o.type === 'prop' && ['alarm_light', 'searchlight'].includes(p.kind)))
+  if (!airborne && !isDecor && !p.wave && !p.stacked && !p.float && !standable(tx, below) && !(o.type === 'prop' && ['alarm_light', 'searchlight'].includes(p.kind)))
     warn(`${where}: nothing to stand on at tile (${tx},${below})`);
 }
 if (starts !== 1) err(`expected exactly 1 player_start, found ${starts}`);

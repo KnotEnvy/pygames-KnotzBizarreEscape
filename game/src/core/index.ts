@@ -13,5 +13,5 @@ export { getContext } from './context';
 export { registerDebug } from './debug/hooks';
 export { sceneExists } from './flow';
 export { TEX, PAL } from './textures';
-export { FallbackAudio } from './audio';
+export { FallbackAudio, applyMute } from './audio';
 export { ENGINE } from '../config/tuning/engine';

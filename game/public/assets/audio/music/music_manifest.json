@@ -1,0 +1,56 @@
+{
+  "jingle_complete": {
+    "bars": 3,
+    "bpm": 150,
+    "duration": 7.0,
+    "file": "assets/audio/music/jingle_complete.ogg",
+    "loop": false,
+    "peak_db": -1.9,
+    "rms_db": -14.3
+  },
+  "jingle_gameover": {
+    "bars": 2,
+    "bpm": 120,
+    "duration": 6.0,
+    "file": "assets/audio/music/jingle_gameover.ogg",
+    "loop": false,
+    "peak_db": -2.5,
+    "rms_db": -16.0
+  },
+  "music_boss": {
+    "bars": 48,
+    "bpm": 184,
+    "duration": 62.609,
+    "file": "assets/audio/music/music_boss.ogg",
+    "loop": true,
+    "peak_db": -1.9,
+    "rms_db": -13.2
+  },
+  "music_continue": {
+    "bars": 4,
+    "bpm": 120,
+    "duration": 8.0,
+    "file": "assets/audio/music/music_continue.ogg",
+    "loop": true,
+    "peak_db": -3.4,
+    "rms_db": -16.0
+  },
+  "music_stage1": {
+    "bars": 64,
+    "bpm": 170,
+    "duration": 90.353,
+    "file": "assets/audio/music/music_stage1.ogg",
+    "loop": true,
+    "peak_db": -2.7,
+    "rms_db": -14.0
+  },
+  "music_title": {
+    "bars": 32,
+    "bpm": 132,
+    "duration": 58.182,
+    "file": "assets/audio/music/music_title.ogg",
+    "loop": true,
+    "peak_db": -3.6,
+    "rms_db": -16.0
+  }
+}

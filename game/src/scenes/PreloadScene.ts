@@ -45,8 +45,11 @@ export class PreloadScene extends Phaser.Scene {
 
     create(): void {
         this.createAsepriteAnims();
-        setReady(true);
-        this.scene.start(this.route());
+        // Readiness = "the requested scene booted and (for Game) every team registered". Game sets it at the end of
+        // its own create(); any other target (Title, ...) flips it once its create() has run.
+        const target = this.route();
+        if (target !== 'Game') this.scene.get(target).events.once(Phaser.Scenes.Events.CREATE, () => setReady(true));
+        this.scene.start(target);
     }
 
     /** Every `aseprite` entry in any pack gets its tags turned into animations (key = tag name). */

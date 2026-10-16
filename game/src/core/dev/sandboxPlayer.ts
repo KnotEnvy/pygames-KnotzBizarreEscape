@@ -175,6 +175,6 @@ export function spawnDevPlayer(ctx: GameContext, x: number, y: number): Phaser.P
     });
 
     ctx.events.emit('player:spawn', { x, y });
-    spr.once(Phaser.GameObjects.Events.DESTROY, () => { unregister(); offRespawn(); offUpdate(); ctx.setPlayer(null); });
+    spr.once(Phaser.GameObjects.Events.DESTROY, () => { unregister(); offRespawn(); offUpdate(); if (ctx.player() === query) ctx.setPlayer(null); });
     return spr;
 }

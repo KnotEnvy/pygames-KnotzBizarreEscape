@@ -1,6 +1,6 @@
-# Enemies, AI and bosses — Phase A handoff
+# Enemies, AI and bosses — Phase A art and Phase B gameplay
 
-Phase A delivers original art and data only. No enemy AI or boss implementation is present, and this team has not written under `game/src/`. No archived graphics were copied. All opaque colors come from `K.PAL`; no palette exceptions.
+The Phase A handoff below describes the original art delivery. Phase B gameplay and verification are documented at the end of this file. No archived graphics were copied. All opaque colors come from `K.PAL`; no palette exceptions.
 
 ## Files and rebuilding
 
@@ -191,3 +191,105 @@ Art is complete for the requested roster and boss parts. Phase B still needs ani
 - **Effects:** provide a jumpable ground shockwave, an 88 px mouth flame cone, steam vent plume, shield spark, cannon-break metal bits and a 3 s boss chain-explosion sequence. Sockets and release timings are in the rig/data; gameplay owns damage separately from visual `explosion` events.
 - **UI / Audio:** route the existing enemy-killed/boss events to score/HP display; add red-soldier alarm/panic, metal shield tink/break, Buzzard bank, cannon charge/fire, moose roar/stomp/flame and final head-clang cues. Lead should settle exact audio keys in Phase B.
 - **QA:** verify ≥300 ms attack telegraphs at normal speed and slowmo, offscreen-fire suppression, no shield/body double hit, chute conversion score once, boss threshold transitions cancel pending shots, and cleanup on checkpoint/restart.
+
+## Phase B gameplay implementation
+
+Owned runtime files:
+
+- `game/src/entities/enemies/index.ts`: all six enemy factories and `boss:moosezilla`, debug snapshots, opt-in sandbox fixture.
+- `game/src/entities/enemies/Enemy.ts`: shared lifecycle and six scaled state machines; independent chute hurtbox, frontal shield guard, LOS/terrain movement, projectile attacks, panic, personality deaths and cleanup.
+- `game/src/entities/enemies/animations.ts`: repair this team's Aseprite animations using actual `texture#N` names and authored per-frame durations. Phaser 4.2.1's built-in helper assumes numeric frame names and otherwise creates empty animations. The repair touches no other team's animations.
+- `game/src/entities/bosses/Moosezilla.ts`: cached JSON rig assembly/socket transforms, all three phases, cannon HP/bonus, weak core, charge, stomp, flies, attached steam, detached parts/head/antler wobble and delayed defeat.
+- `game/src/config/tuning/enemies.ts`: HP/score/movement/range/windup/cooldown defaults and budgets.
+- This document. No engine, player, effects, map, pack, git state or dependency changes.
+
+All score enters through `enemy:killed`; no direct score writes. One composite boss hurtbox routes cannon/core hits by world location, avoiding overlapping part/hull double damage for explosions and piercing shots. Cannons each have 45 HP and award 500 only when player-destroyed, independently of shared boss HP. Threshold crossing loops emit phase 2 and phase 3 even on a single lethal hit. The final 5000 award and `boss:defeated` occur once after the 3000 **gameplay-ms** chain; hitstop/slowmo can make it longer in real time. Boss defeat clears enemy bullets and destroys its remaining flies. The level owns mission completion after `boss:defeated`.
+
+Factories accept `facing` (`left`/`right` or ±1), numeric `patrol` radius (false/0 disables it), and retain `wave` in the actor/debug snapshot. Boss optionally accepts `arenaX0`/`arenaX1`; defaults to a 384px camera arena. Foot-based ground actors use `groundBelow` and terrain/hazard queries, rather than creating redundant Arcade bodies. Ordinary actors suspend AI/clocks outside camera +32 and destroy themselves >96px behind it without scoring. All damage registrations, updater subscriptions, chute sprites and ally-death listeners are released on destruction. Enemy count is bounded at 24 (including corpses).
+
+### Tuning and behavior
+
+Reference HP/score: grunt 3/100, grenadier 4/150, shield 6/200, turret 12/300, drone 2/150, paratrooper 3/150. Infantry has a 360ms alert before its weapon anticipation. Rifle anticipation 420ms, grenade 400ms, turret 500ms glow plus 80ms release, drone bank 320ms. Rifle bullets are 110px/s, turret 130, cannon 105; bullets use engine pooling and `team:'enemy'`. A cone/8px LOS sampling prevents infantry spotting through terrain; committed shots also recheck visibility and LOS. Close rifle shots cancel inside 18px.
+
+Grenades use 105px/s horizontal launch, −230px/s vertical, gravity 650, 1650ms fuse, one .35 bounce then rest; explosion radius 26. Grenadiers approach beyond 140px and retreat below 80px (continue retreat to 112px during recovery). Shield blocks ordinary frontal bullets, consumes their live projectile, returns false to DamageService and emits a shield impact; rear/above/flame/explosion/rocket attacks bypass it. Shield opens for rifle release and recovery, and has 10 blocking HP.
+
+Turret aim locks to one of eight directions through its five-shot burst (120ms spacing). Drone flight has a 12px/1800ms sine, 125px/s committed dive, 700ms dive cap and 900ms recovery. A torn 1HP chute accelerates the 3HP soldier into freefall, then converts it to grunt animations after a 660ms landing/grace interval, retaining 150-point identity. Nearby ally deaths have seeded 30% panic chance, 72px/s flee for 900ms. Bullet/explosion deaths use authored launch/spin frames plus a ballistic arc; flame soot remains at ground level.
+
+Boss: 400 HP; thresholds 240 and 100; core takes 2× within 19px of its socket. Phase 1 cannon spreads alternate with a 360ms stomp/90px/s low shockwave and cosmetic vents; recovery movement reverses at arena margins. Phase 2 has a 400ms furnace windup, 900ms/88px flame sweep and groups of at most three flies, with no replacement group while flies survive. Phase 3 uses 500ms pawing then a fixed-direction 130px/s charge, alternating flame. Phase transitions provide 700ms safe roar and cancel pending releases; surviving flies are removed before phase 3. Death sends 17 positioned explosion events about 180ms apart, T4 shake, flash, hitstop and slowmo, flies parts, and lands a head with damped antler wobble.
+
+### Exact sandbox commands
+
+From repo root; `shot.mjs` starts an independent random-port server. All fixture behavior is opt-in and requires `enemytest`. Keep source edits paused during a run to avoid Vite reload invalidating the scene. `__KBE_ENEMYTEST` exists only in this fixture and is deleted on scene shutdown. `hitAt` routes through the actual damage service; `hit` is radial, `spawn` calls the real factory, and `bossHp` changes the real boss HP/phase state.
+
+```bash
+mkdir -p /tmp/kbe-enemies
+# Each of the six kinds: captures the opening and a full attack/recovery cycle.
+for kind in grunt grenadier shield turret drone paratrooper; do
+  node game/tools/shot.mjs --out "/tmp/kbe-enemies/${kind}-cycle.png" --query "scene=Game&fast=1&mute=1&god=1&enemytest=${kind}" --wait 800 --steps '[{"wait":1200},{"wait":1800},{"wait":2800}]'
+done
+
+# Grunt burst; shoot it or use hit() below to see the launched corpse.
+node game/tools/shot.mjs --out /tmp/kbe-enemies/grunt.png --query 'scene=Game&fast=1&mute=1&god=1&enemytest=grunt' --steps '[{"wait":800},{"shot":"/tmp/kbe-enemies/grunt-attack.png"},{"eval":"__KBE_ENEMYTEST.hit(\"grunt\",10,\"bullet\")"},{"wait":250}]'
+
+# Grenadier arc/fuse/explosion, then explosion death.
+node game/tools/shot.mjs --out /tmp/kbe-enemies/grenadier.png --query 'scene=Game&fast=1&mute=1&god=1&enemytest=grenadier' --steps '[{"wait":1000},{"shot":"/tmp/kbe-enemies/grenadier-arc.png"},{"wait":1800},{"shot":"/tmp/kbe-enemies/grenadier-blast.png"},{"eval":"__KBE_ENEMYTEST.hit(\"grenadier\",10,\"explosion\")"},{"wait":250}]'
+
+# Shield frontal fire, firing window, then soot death.
+node game/tools/shot.mjs --out /tmp/kbe-enemies/shield-soot.png --query 'scene=Game&fast=1&mute=1&god=1&enemytest=shield' --steps '[{"hold":"x","ms":700},{"shot":"/tmp/kbe-enemies/shield-block.png"},{"wait":900},{"shot":"/tmp/kbe-enemies/shield-open.png"},{"eval":"__KBE_ENEMYTEST.hit(\"shield\",10,\"flame\")"},{"wait":600}]'
+
+# Turret: wait for the actual glow state, then capture burst.
+node game/tools/shot.mjs --out /tmp/kbe-enemies/turret-cycle-end.png --query 'scene=Game&fast=1&mute=1&god=1&enemytest=turret' --steps '[{"eval":"(async()=>{for(let i=0;i<60;i++){if(__KBE.state().enemyAI[0].state===\"windup\")return;await new Promise(r=>setTimeout(r,50));}throw Error(\"no windup\");})()"},{"shot":"/tmp/kbe-enemies/turret-glow.png"},{"wait":650},{"shot":"/tmp/kbe-enemies/turret-burst.png"},{"wait":1200}]'
+
+# Drone sine/bank/dive/recovery, then shot-down death.
+node game/tools/shot.mjs --out /tmp/kbe-enemies/drone-death.png --query 'scene=Game&fast=1&mute=1&god=1&enemytest=drone' --wait 900 --steps '[{"shot":"/tmp/kbe-enemies/drone-bank.png"},{"wait":500},{"shot":"/tmp/kbe-enemies/drone-dive.png"},{"wait":1500},{"shot":"/tmp/kbe-enemies/drone-recover.png"},{"eval":"__KBE_ENEMYTEST.hit(\"drone\",10,\"bullet\")"},{"wait":250}]'
+
+# Chute destruction, freefall and grunt conversion; omit hitAt to see full descent.
+node game/tools/shot.mjs --out /tmp/kbe-enemies/chute-torn.png --query 'scene=Game&fast=1&mute=1&god=1&enemytest=paratrooper' --wait 850 --steps '[{"eval":"(()=>{const s=__KBE.state().enemyAI[0];__KBE_ENEMYTEST.hitAt(s.x,s.y-67);})()"},{"wait":180},{"shot":"/tmp/kbe-enemies/chute-tear.png"},{"wait":1400},{"shot":"/tmp/kbe-enemies/chute-freefall-land.png"},{"wait":1000}]'
+
+# All three boss phases and death. HP values 239 and 99 cross the real thresholds.
+node game/tools/shot.mjs --out /tmp/kbe-enemies/boss-final.png --query 'scene=Game&fast=1&mute=1&god=1&enemytest=boss' --steps '[{"shot":"/tmp/kbe-enemies/boss-cannon.png"},{"wait":4500},{"eval":"__KBE_ENEMYTEST.bossHp(239)"},{"wait":1500},{"shot":"/tmp/kbe-enemies/boss-flame.png"},{"wait":2300},{"shot":"/tmp/kbe-enemies/boss-flies-active.png"},{"eval":"__KBE_ENEMYTEST.bossHp(99)"},{"wait":1100},{"shot":"/tmp/kbe-enemies/boss-paw.png"},{"wait":500},{"shot":"/tmp/kbe-enemies/boss-charge.png"},{"eval":"__KBE_ENEMYTEST.bossHp(0)"},{"wait":1500},{"shot":"/tmp/kbe-enemies/boss-death.png"},{"wait":9000}]'
+
+# Precisely observe stomp anticipation and ground shockwave.
+node game/tools/shot.mjs --out /tmp/kbe-enemies/boss-stomp-end.png --query 'scene=Game&fast=1&mute=1&god=1&enemytest=boss' --steps '[{"eval":"(async()=>{for(let i=0;i<120;i++){if(__KBE.state().boss.state===\"stomp\")return;await new Promise(r=>setTimeout(r,100));}throw Error(\"no stomp\");})()"},{"shot":"/tmp/kbe-enemies/boss-stomp-windup.png"},{"wait":420},{"shot":"/tmp/kbe-enemies/boss-shockwave.png"}]'
+```
+
+### Audio keys
+
+`docs/teams/ui-audio.md` did not exist during implementation. Calls use safe no-op keys: `enemy_shout`, `enemy_shoot`, `enemy_die`, `enemy_panic`, `grenade_throw`, `shield_tink`, `turret_windup`, `drone_buzz`, `chute_tear`, `boss_roar`, `boss_cannon`, `boss_stomp`, `boss_flame`, `boss_explode`, `steam`.
+
+### Verification evidence and limitations
+
+Typecheck and Phaser 4 checker both passed after implementation (54 files, 0 checker errors/warnings). Visual inspection used the real sandbox, god mode and actual art, not a mock scene. Inspected rifle shots, grenade motion, turret glow/burst, shield exposure and soot, drone dive/spin death, chute descent/tear/landing/grunt conversion, all boss phases, stomp shockwave, flies, core, chain explosions and landed head/antlers. PNGs are in `/tmp/kbe-enemies/` with descriptive names matching the commands above.
+
+Focused browser assertions passed: shield front returns false without body HP loss, rear bullet damages; chute tear preserves all 3 body HP and lands; drone kill yields 150 once; cannon destruction subtracts shared HP and yields 500; core damage 3 subtracts 6; large HP threshold jump emits `[2,3]`; final boss defeat occurs once and total score is 5500 with that cannon bonus. Boss fly spawning was separately asserted. Failed early runs found and fixed the empty-animation crash, missing drone death target height, suppressed boss flies and falling soot corpses. Some simultaneous browser runs were invalidated by Vite reload or transient `ERR_NETWORK_CHANGED`; their incomplete captures are not acceptance evidence.
+
+Full QA initial run: **8 passed, 6 failed, 2 skipped** (2.8 min). Failures were Engine `SANDBOX_NAME is not defined` during concurrent hook edits, a hook disappearing on reload, and a `Preload`/Game readiness assertion. A final rerun is recorded below when complete. Tests do not include enemy combat acceptance; the focused fixture checks supply that coverage.
+
+Known integration limits: actual Stage 1 is not yet registered, so wave arenas/terrain routes and mission completion have not been accepted. Boss damage uses one broad silhouette rectangle with coordinate-routed parts, not per-pixel geometry. Flame uses bright orange engine projectiles for its sweep. Steam is cosmetic and guarded until FX registers a nonempty vent animation. Phase A's separate 16-corpse/12-grenade pools were replaced by a bounded actor count and Engine's shared projectile pool. Physical god-mode survival and jump timing are visually exercised with cheats, not a no-cheat balance/playthrough acceptance.
+
+### Requests for other teams — Phase B
+
+- **Levels:** spawn the registered factories when map objects activate; pass `facing`, numeric `patrol` and `wave`. Boss arena limits may be supplied as `arenaX0`/`arenaX1`. Listen for delayed `boss:defeated` to release stage-end/mission completion; this team does not emit `stage:clear` itself. Wave bookkeeping should track spawned actor lifecycle, since a chute contributes an additional enemy hurtbox. There is no typed wave/despawn event in the current contract.
+- **Engine/QA:** keep `__KBE.ready` false until Game factories, level and player are ready, and rerun after concurrent hook edits settle. Initial full-suite failures and paths are recorded above; do not count skips as accepted gameplay.
+- **UI/audio:** map the 15 safe SFX keys above to the final audio catalog. Render `boss:spawn`/`boss:hp`/`boss:phase`/`boss:defeated` and popup events. No audio or UI source was edited here.
+- **FX:** enemy emits its own machine/boss explosion positions and final boss event only after its death chain; avoid starting another positional chain on `boss:defeated`. Keep `fx_steam_vent` playable and registered; attached steam is locally reused.
+
+Full QA second default-config run: **9 passed, 4 failed, 3 skipped** (2.8 min). The run reported port 4310 already occupied, missing shared trace/artifact files (`ENOENT`), then canvas/network failures and `ERR_CONNECTION_REFUSED` when the shared server stopped. This is an invalid shared-runner acceptance result. A `/tmp/kbe-enemies/playwright.config.ts` wrapper imports the unchanged QA config and overrides only port/baseURL (4479) and artifact directory (`/tmp/kbe-enemies/qa-results`); it preserves test files, timeouts, assertions and browser settings. Run it with:
+
+```bash
+node game/node_modules/@playwright/test/cli.js test --config /tmp/kbe-enemies/playwright.config.ts --reporter=line
+```
+
+Final integration updates: Engine added `enemy:shoot` and optional boss event x/y while this work was in flight. Infantry/turret and cannon releases now emit the real muzzle socket through `enemy:shoot`; every boss lifecycle payload includes x/y, and stomp emits `fx:emit {effect:'shockwave'}`. Fixed behind-camera culling to run before the dormancy early-return. Drone recovery now moves back toward its original flight corridor and reverses toward the corridor at its boundaries; terrain collision causes a spin-fall death. Chute tearing stays visible for 350ms and descent has 4px cosmetic sway.
+
+Isolated unchanged **dev-server QA: 12 passed, 1 failed, 3 skipped** (2.9 min). Remaining failure: `gameplay.spec.ts:42` expected camera X to advance >5 after 2500ms right, received 0. Stage 1 registered during the run; Player remains at x104 in the camp by the initial cage/props. This needs Player/Levels/QA investigation; no camera/player/map edits were made by Enemies. Three skips are Title/Pause flow, Continue UI, and pause/resume scene capability gates, so these flows remain unaccepted.
+
+To finish visual verification despite concurrent HMR, built a frozen production bundle with `node game/node_modules/vite/bin/vite.js build game --outDir /tmp/kbe-enemies/frozen-build`. A scratch copy `/tmp/kbe-enemies/shot-snapshot.mjs` of the repository harness changes only module import paths/server root to serve that bundle; all steps and capture behavior are identical. Stage 1 had landed by this build. **Frozen boss run passed**, console clean, score 5000, exactly one delayed defeat and phase events `[2,3]`. Inspected `/tmp/kbe-enemies/frozen-boss-{flame,flies,charge,death,final}.png` against the actual map. This is supplementary integration smoke coverage; it does not establish full Stage 1 traversal/balance acceptance. Frozen panic/dormancy/culling assertions also passed (no behind-camera actor remained; offscreen grenadier stayed at x900).
+
+A final suite run against the frozen bundle uses the unchanged tests with `/tmp/kbe-enemies/playwright-frozen.config.ts` (port 4481, artifacts `/tmp/kbe-enemies/qa-frozen-results`). Last source checks passed: typecheck; Phaser checker **63 files, 0 errors/warnings**; production build succeeded.
+
+Frozen drone recovery assertion passed using the actual actor home x (214), rather than the player's later cage-adjusted x: recovery moved x129.75 → x144.83 toward home, then its shot-down death awarded 150. Inspected `/tmp/kbe-enemies/frozen-drone-recovery.png`. Earlier player-relative recovery assertion was a test-target error, not an AI failure.
+
+Remaining actionable request from the isolated QA run: **Player + Levels + QA** investigate `gameplay.spec.ts:42` at the actual camp start (player x104, camera x0). The old sandbox assumed a clear 2500ms run; the new camp has cage/prop collision and different traversal. Reproduce before deciding whether the test needs a clear camera-test corridor or the spawn/collision needs repair. Enemies did not change these owned systems. Existing Levels wave logic already accepts our public numeric HP/active lifecycle, so no new wave event is required for current integration.
+
+Final QA accounting: the extra frozen-production suite terminated with **exit 143 / SIGTERM**, without a test summary; it is interrupted and supplies no additional acceptance. The most recent **completed** full QA result remains **12 passed, 1 failed, 3 skipped** from the isolated dev-server run. The original required default-config command was run and reported separately above. No failing Player/Levels/Engine/UI files were edited. All enemy/boss runtime sources pass project typecheck and the Phaser checker; the frozen production build and focused enemy/boss browser checks completed successfully.

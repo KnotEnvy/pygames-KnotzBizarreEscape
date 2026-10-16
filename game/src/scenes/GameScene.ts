@@ -46,7 +46,9 @@ export class GameScene extends Phaser.Scene {
             try {
                 fn(ctx);
             } catch (e) {
-                console.error(`[game] register ${name} failed:`, e);
+                // One team's crash must not take the scene down: log it naming the team and keep going. Whatever it
+                // registered before throwing stays; anything missing falls back to the dev sandbox below.
+                console.error(`[game] register${name[0].toUpperCase()}${name.slice(1)}() from the '${name}' team threw; continuing without the rest of its registration:`, e);
             }
         }
 
@@ -79,8 +81,26 @@ export class GameScene extends Phaser.Scene {
         internals.flow.update(delta);
         const dt = ctx.time.dt(delta);
         const ups = internals.updaters;
-        for (let i = 0; i < ups.length; i++) ups[i](dt, delta);
+        for (let i = 0; i < ups.length; i++) {
+            const fn = ups[i];
+            try {
+                fn(dt, delta);
+            } catch (e) {
+                this.updaterFailed(fn, e);
+            }
+            // It unsubscribed itself (or an earlier one) while running: the next subscriber slid into slot i.
+            if (ups[i] !== fn) i--;
+        }
         internals.projectiles.update(dt);
+    }
+
+    private readonly failedUpdaters = new WeakSet<object>();
+
+    /** A ctx.onUpdate subscriber threw: log once per subscriber (with its error), keep the frame and the others running. */
+    private updaterFailed(fn: object, e: unknown): void {
+        if (this.failedUpdaters.has(fn)) return;
+        this.failedUpdaters.add(fn);
+        console.error('[game] a ctx.onUpdate subscriber threw (it keeps being called; further errors from it are muted):', e);
     }
 
     private postUpdate(_time: number, delta: number): void {

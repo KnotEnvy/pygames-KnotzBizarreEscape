@@ -88,6 +88,18 @@ export class LevelCollision implements LevelPhysics {
         return null;
     }
 
+    waterSurfaceAt(x: number): number | null {
+        const level = this.level;
+        if (!level) return null;
+        if (level.waterSurfaceAt) return level.waterSurfaceAt(x);
+        const tile = ENGINE.tile;
+        const b = level.bounds;
+        for (let y = Math.floor(b.y / tile) * tile; y < b.bottom; y += tile) {
+            if (this.hazardAt(x, y + tile / 2) === 'water') return y;
+        }
+        return null;
+    }
+
     private processOneWay(a: unknown, b: unknown): boolean {
         if (!(b instanceof Phaser.Tilemaps.Tile)) return true;
         if (!b.properties?.oneway) return true;
@@ -140,6 +152,8 @@ export interface TileLevelOptions {
     playerStart?: { x: number; y: number };
     stage?: number;
     name?: string;
+    /** Optional water surface lookup (otherwise the engine scans for hazard=water tiles). */
+    waterSurfaceAt?(x: number): number | null;
 }
 
 /**
@@ -158,6 +172,7 @@ export function createTileLevelQuery(opts: TileLevelOptions): LevelQuery {
         playerStart: opts.playerStart,
         stage: opts.stage,
         name: opts.name,
+        waterSurfaceAt: opts.waterSurfaceAt,
         colliders: () => colliders,
         solidAt(x, y) {
             const t = tileAt(x, y);

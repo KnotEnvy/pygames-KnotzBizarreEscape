@@ -1,0 +1,12 @@
+/** World pixels / seconds; anticipation and cooldowns are scaled milliseconds. */
+export const ENEMIES = {
+    grunt: { hp: 3, score: 100, speed: 28, sight: 160, windup: 420, cooldown: 1250 },
+    grenadier: { hp: 4, score: 150, speed: 24, sight: 180, windup: 400, cooldown: 2500 },
+    shield: { hp: 6, score: 200, speed: 18, sight: 160, windup: 420, cooldown: 1700 },
+    turret: { hp: 12, score: 300, speed: 0, sight: 192, windup: 580, cooldown: 1600 },
+    drone: { hp: 2, score: 150, speed: 44, sight: 144, windup: 320, cooldown: 1800 },
+    paratrooper: { hp: 3, score: 150, speed: 28, sight: 160, windup: 420, cooldown: 1250 },
+    boss: { hp: 400, score: 5000, antlerHp: 45, antlerScore: 500, recovery: 700, deathMs: 3000 },
+    bulletSpeed: 110, activationMargin: 32, corpseMs: 1400, maxEnemies: 24
+} as const;
+export type EnemyKind = Exclude<keyof typeof ENEMIES, 'boss' | 'bulletSpeed' | 'activationMargin' | 'corpseMs' | 'maxEnemies'>;

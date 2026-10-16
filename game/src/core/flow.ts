@@ -18,6 +18,8 @@ export class GameFlow implements FlowService {
     private countdownMs = 0;
     private internalPause = false;
     private cleared = false;
+    /** Player indexes whose death was counted and who haven't been sent game:respawn yet (dedupes player:died). */
+    private readonly dead = new Set<number>();
 
     constructor(private readonly ctx: GameContext, private readonly store: RunStateStore) {
         const ev = ctx.events;
@@ -27,10 +29,13 @@ export class GameFlow implements FlowService {
 
     get over(): boolean { return this.isOver; }
 
+    isDead(index = 0): boolean { return this.dead.has(index); }
+
     private get scene(): Phaser.Scene { return this.ctx.scene; }
 
     private onDied(x: number, y: number, index: number): void {
-        if (this.isOver) return;
+        if (this.isOver || this.dead.has(index)) return;
+        this.dead.add(index);
         this.lastDeath.x = x; this.lastDeath.y = y; this.lastDeath.index = index;
         this.store.stats.deaths++;
         this.store.lives -= 1;
@@ -44,6 +49,7 @@ export class GameFlow implements FlowService {
     /** Respawn near the death spot, on safe ground inside the camera. */
     respawn(): void {
         const { x, y } = this.safeSpot(this.lastDeath.x);
+        this.dead.delete(this.lastDeath.index);
         this.ctx.events.emit('game:respawn', { x, y, index: this.lastDeath.index });
     }
 

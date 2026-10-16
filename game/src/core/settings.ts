@@ -8,6 +8,8 @@ export interface Settings {
     mute: boolean;
     crt: boolean;
     shake: boolean;
+    /** Phase B: dim and shorten full-screen flashes (fx:flash) for photosensitive players. FX may read it too. */
+    reducedFlash: boolean;
     difficulty: Difficulty;
     /** Keyboard bindings: Phaser KeyCodes names (e.g. 'LEFT', 'Z', 'SPACE', 'SHIFT', 'ESC'). */
     keys: Record<Action, string[]>;
@@ -52,6 +54,7 @@ function defaults(): Settings {
         mute: false,
         crt: false,
         shake: true,
+        reducedFlash: false,
         difficulty: 'arcade',
         keys: structuredClone(DEFAULT_KEYS) as Record<Action, string[]>,
         pad: structuredClone(DEFAULT_PAD) as Record<Action, number[]>

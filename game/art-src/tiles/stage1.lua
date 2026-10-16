@@ -202,7 +202,7 @@ MAT.ground = {
 -- Rock: faceted boulders (wrapped voronoi so every variant tiles), snow cap
 local ROCK_SEEDS = { {3,3}, {12,4}, {7,10}, {15,12}, {1,14} }
 MAT.rock = {
-  material = "rock", dark = "ink1", light = "ink4",
+  material = "stone", dark = "ink1", light = "ink4",
   fill = function(t, v, deep)
     for y = 0, TS - 1 do for x = 0, TS - 1 do
       local d1, d2, best = 1e9, 1e9, nil
@@ -240,7 +240,7 @@ MAT.rock = {
 
 -- Concrete: cast panels, bolt holes, water stains; ledge cap with a dusting of snow
 MAT.concrete = {
-  material = "concrete", dark = "ink2", light = "ink5",
+  material = "stone", dark = "ink2", light = "ink5",
   fill = function(t, v, deep)
     local base = deep and "ink3" or "ink4"
     R(t, 0, 0, TS, TS, base)
@@ -338,16 +338,18 @@ end
 local TERRAIN_ROWS = { ground = 0, rock = 1, concrete = 2, steel = 3 }
 for mat, row in pairs(TERRAIN_ROWS) do
   local m = MAT[mat]
-  local fg = { collides = true, material = m.material }
-  local function both(col, name, t)
-    put(col, row, mat .. "_" .. name, t, fg)
+  local function both(col, name, t, mask)
+    -- snow-capped tops of earth/rock report "snow" so shots kick up snow puffs there
+    local material = m.material
+    if mask and (mask & N ~= 0) and (mat == "ground" or mat == "rock") then material = "snow" end
+    put(col, row, mat .. "_" .. name, t, { collides = true, material = material })
     put(col, row + 4, mat .. "_bg_" .. name, remap(t, BG_MAP), {})
   end
-  for mask = 0, 15 do both(mask, "m" .. mask, terrainTile(mat, mask, 0)) end
+  for mask = 0, 15 do both(mask, "m" .. mask, terrainTile(mat, mask, 0), mask) end
   for i, ic in ipairs({ "tl", "tr", "bl", "br" }) do both(15 + i, "ic_" .. ic, terrainTile(mat, 0, 0, { ic = ic })) end
   for v = 1, 3 do both(19 + v, "fill_v" .. v, terrainTile(mat, 0, v)) end
   for v = 0, 3 do both(23 + v, "deep_v" .. v, terrainTile(mat, 0, v, { deep = true, fillv = v })) end
-  for v = 1, 3 do both(26 + v, "top_v" .. v, terrainTile(mat, N, v, { fillv = v })) end
+  for v = 1, 3 do both(26 + v, "top_v" .. v, terrainTile(mat, N, v, { fillv = v }), N) end
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -615,7 +617,7 @@ local function waterBody(f, deep)
   if not deep then for x = 0, TS - 1 do if (x + f * 2) % 8 < 3 then P(t, x, 15, "sky1") end end end
   return t
 end
-local WATER = { hazard = "water" }
+local WATER = { hazard = "water", material = "water" }
 local wtop, wbody = {}, {}
 for f = 0, 3 do wtop[f] = put(f, ROW, "water_top_f" .. f, waterTop(f), WATER) end
 for f = 0, 3 do wbody[f] = put(4 + f, ROW, "water_body_f" .. f, waterBody(f, false), WATER) end
@@ -883,20 +885,51 @@ local function fan(img, cx, cy, w, h, seed)
     end
   end
 end
-local bough = Image(32, 32, ColorMode.RGB)
-fan(bough, 18, 27, 13, 6, 1)
-fan(bough, 14, 19, 11, 6, 2)
-fan(bough, 17, 11, 8, 6, 3)
-fan(bough, 15, 5, 4, 4, 4)
-for i, n in ipairs({ "tl", "tr", "bl", "br" }) do
-  local t = T()
-  t:drawImage(bough, Point(-((i - 1) % 2) * 16, -((i - 1) // 2) * 16))
-  put(15 + i, ROW, "bough_" .. n, t, {})
-end
 local clump = Image(16, 16, ColorMode.RGB)
 fan(clump, 8, 13, 7, 4, 5); fan(clump, 7, 8, 5, 4, 6)
 local ct = T(); ct:drawImage(clump, Point(0, 0))
-put(20, ROW, "bough_s", ct, {})
+put(16, ROW, "bough_s", ct, {})
+
+-- pine tiers: a drooping needle mass that wraps a branch, n tiles long x 3 rows. The branch platform
+-- (ground layer) sits on the top of the middle row. Drawn for the right side; left side = flipped.
+local function tierImage(n)
+  local w, h = n * 16, 48
+  local img = Image(w, h, ColorMode.RGB)
+  local function px(x, y, c) if x >= 0 and x < w and y >= 0 and y < h then img:drawPixel(x, y, K.color(c)) end end
+  for x = 0, w - 1 do
+    local t = x / (w - 1)
+    local top = math.floor(5 + (t ^ 1.6) * 15 + 0.5)
+    if x > w - 4 then top = top + (x - (w - 4)) end
+    local jag = (x % 4 == 0) and 3 or ((x % 4 == 2) and 1 or 0)
+    local bot = math.floor(31 + t * 8 + 0.5) + jag
+    for y = top, math.min(h - 1, bot) do
+      local d = y - top
+      local c
+      local snowT = (t < 0.85) and 3 or 1
+      if d < snowT then c = (d == 0) and "white" or ((d == snowT - 1) and ((x % 2 == 0) and "sky5" or "ink5") or "ink6")
+      else
+        local k = (y - top - snowT + math.floor(t * 3)) % 6
+        if k == 0 then c = "leaf4" elseif k == 1 then c = "leaf3" elseif k == 5 then c = ((x + y) % 3 == 0) and "leaf1" or "leaf2"
+        else c = (t > 0.7 or y > bot - 3) and "leaf2" or "leaf3" end
+        if y == bot then c = "leaf1" end
+        if x < 3 then c = (c == "leaf4") and "leaf3" or "leaf2" end
+      end
+      px(x, y, c)
+    end
+  end
+  return img
+end
+local function putTier(n, col, row)
+  local img = tierImage(n)
+  for r = 0, 2 do for c = 0, n - 1 do
+    local t = T(); t:drawImage(img, Point(-c * 16, -r * 16))
+    local cc, rr = col + c + r * n, row
+    while cc >= COLS do cc = cc - COLS; rr = rr + 1 end
+    put(cc, rr, "tier" .. n .. "_" .. r .. c, t, {})
+  end end
+end
+putTier(3, 17, 10) -- row 10 cols 17..25
+putTier(4, 14, 11) -- row 11 cols 14..25
 
 ---------------------------------------------------------------------------------------------------
 -- Row 11: nature decoration

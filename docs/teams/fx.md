@@ -1,3 +1,76 @@
+# Effects and game feel — Phase B runtime
+
+Phase B implements the runtime in `game/src/fx/{index,director,pool,filters,gallery}.ts` and `game/src/config/tuning/fx.ts`. The Phase A art plan is preserved below as historical design context; this section takes precedence where implementation or the live engine contract differs.
+
+## Integration and viewing
+
+`registerFx(ctx)` is synchronous and event-driven. Preload owns Aseprite loading/animation registration. FX caches atlas tag frame names and exact per-frame durations once, then advances prewarmed Images using engine-scaled `dt`; there are no independent animation clocks, gameplay timers, Arcade debris bodies, or damage calls. Delayed smoke/poofs occupy pool slots with a negative age, so there is no per-burst timer/closure allocation.
+
+Normal play: `?scene=Game&mute=1&seed=7`. Gallery: add `&fxtest=1` to emit S/M/L/XL at 1.2-second gameplay intervals, plus a splash on every fourth burst. Add `&debug=1` for engine FPS. `window.__KBE.state().fx` reports active/peak objects, dropped optional requests, cumulative impacts/explosions/splashes, filter mode, ambient fallback mode, pooled popups, FX CPU moving average and peak. CPU includes FX event handlers, update and post-update impact/feel flush; it excludes Phaser render/GPU work and text texture uploads.
+
+```sh
+node game/tools/shot.mjs --out /tmp/kbe-fx/b1.png \
+  --query 'scene=Game&mute=1&god=1&fxtest=1&seed=7' \
+  --steps '[{"down":"x"},{"wait":250},{"shot":"/tmp/kbe-fx/fire.png"},{"press":"c"},{"wait":700},{"shot":"/tmp/kbe-fx/grenade.png"},{"up":"x"}]'
+```
+
+UI popup handoff: set `ctx.scene.registry.set('fx.popups', false)` to disable the fallback. It also suppresses itself whenever another `ui:popup` listener exists. `FX.popup.enabled` is the compile-time default. Twelve Text objects are preallocated; changing popup text necessarily rasterizes a new string, but does not create/destroy Text objects. UI can own the richer implementation without duplicate text.
+
+## Runtime recipes and tuning
+
+| Effect | Shake request | Hitstop | Composition / gate |
+|---|---|---|---|
+| Pistol / HMG / spread | none / T1 every 160 ms / T1 | none | Authored cardinal/diagonal muzzle, 35 ms glint, bouncing casings; HMG casings ≤14/s |
+| Rocket / flame | T2 / none | none | Rear-facing exhaust + two smoke puffs / nozzle, 2 embers, local glow; flame ≤10/s per socket |
+| Flesh / melee / machine kill | none (machine explosion owns shake) | 40 / 60 / 80 ms | Delayed cartoon poof or metal debris |
+| Player death / boss phase | T2 / T3 | 90 / 90 ms | Death poof/splash; one phase request per distinct phase |
+| Explosion S | T1 | 0 ms | 1 smoke, 3 debris, 4 ember requests; no ground decal |
+| Explosion M | T2 | 60 ms | 2 smoke, 6 debris, 8 embers; ring .55, scorch .5 |
+| Explosion L | T3 | 100 ms | 3 smoke, 10 debris, 14 embers; ring 1, scorch .85 |
+| Explosion XL | T4 | 150 ms | 4 smoke, 16 debris, 24 ember requests (16 global live cap); ring 1.35, scorch 1.2 |
+| Boss defeated | existing final burst owns shake | .35× for 900 real ms after hitstop | Current boss emits defeated **after** destruction bursts; FX does not invent body coordinates/timing |
+
+Stops/shakes coalesce by maximum in `POST_UPDATE`, after projectile damage. Small shake retriggers gate at 75 ms. The engine owns actual camera tier amplitudes/durations and clamps hitstop at 250 ms. XL screen flash is warm white, 45 ms, ≤1/600 ms; `settings.reducedFlash` and OS reduced-motion suppress FX flash requests entirely. `settings.shake` gates shakes. Actual engine shake tiers are currently stronger/longer than the original targets below (see requests).
+
+Explosion art supplies the flash/fireball/smoke progression. Additional puffs begin 180–320 ms after ignition and stagger by 60 ms. Late fireball/smoke moves to `ENEMIES - 1` after 42% of its duration; alpha .65, separate smoke .52. Scorch requires a standable surface within 24 px, excludes water/one-way platforms, expires at 8 s or 64 px behind camera. Airbursts never create floating decals. More than two concurrent XL sprites degrade to L. Material impacts distinguish metal, shield, wood, dirt/stone/snow, water and flesh. Paired hurt/impact events within 4 px coalesce, capped at 16 per frame.
+
+Hard prewarmed budgets: 64 animated effects (12 explosion, 8 muzzle, 16 impact, 12 dust, 16 smoke), 160 combat motes (64 debris / 80 sparks / 16 embers), 64 ambient, 32 casings, 16 decals, 8 glow helpers = **344 FX Images**, plus **12 popup Texts**. Optional requests drop when full. Ambient subcaps: snow 32, embers 12, fireflies 12, steam 6. Existing muzzle sockets reuse their slot; casings and decals reclaim the oldest. No unbounded pool growth.
+
+Phaser 4 camera bloom uses verified `Phaser.Actions.AddEffectBloom` internal ParallelFilters, threshold .82, two low-quality blur steps, radius 1, strength .10. It runs only while hot explosion/glow slots exist. `?fxbloom=0` provides a profiling comparison. CRT uses **one** registered `BaseFilterShader` RenderNode with one texture sample, .06 logical scanlines, .16 vignette and .006 radial curvature. `settings.crt` toggles it via both `settings:changed` and the settings store; HUD is a separate Scene. Shutdown removes only retained FX filter handles; registration checks `renderNodes.hasNode` so scene restarts do not duplicate shader constructors.
+
+## Spatial and ambient contract
+
+- `enemy:shoot` now drives weapon muzzles and casings, without player launch shake.
+- `fx:emit` handles `dust_run`, `dust_skid`, `dust_land`, `splash`, `waterfall` (single splash), `vent_steam`, `debris`, `shield_spark`, `shockwave`, `muzzle_enemy`, `casing`, `scorch`. Unknown effect ids are ignored. Count/scale are bounded.
+- `fx:zone` keeps 32 fixed registry slots keyed by id, activates only visible intersection, supports snow/embers/fireflies/**steam**, and resets emission debt offscreen. Active visible zones take precedence over camera-wide fallback ambience.
+- `fx:ambience` controls camera-wide snow/embers/fireflies. Runtime also understands steam, but the current event type still needs that enum member. Steam is already available through zones and `vent_steam`.
+- Until every owner emits spatial events, conservative P1 movement/hazard observation supplies run/skid and water-entry effects. Explicit dust suppresses the inferred dust for 250 ms; nearby splash requests dedupe for 180 ms. Explicit waterline events remain preferable, especially for P2 and moving water.
+
+## Phase B verification
+
+Typecheck and Phaser 4 scanner pass. Focused browser checks in `/tmp/kbe-fx/verify.mjs` pass for paired-impact dedupe, all five weapons/eight directions, reduced flash/shake settings, CRT shader, pause, pool overflow/recovery, zones, steam/splash, real sandbox water entry, .35× slow-motion recovery, and scene restart. Restart retains exactly one FX impact listener and one CRT controller, with no console/page errors. These checks found and fixed camera shutdown ordering and duplicate RenderNode constructor registration.
+
+Visual frames inspected: `fire.png`, `grenade.png`, `tiers-sm.png`, `tier-l-hot.png`, `tier-xl-hot.png`, `tier-xl-tail.png`, `crt.png`, `weapon-{pistol,hmg,spread,rocket,flame}.png`, `water-steam.png`, `water-fall.png`, `water-fall-current.png` in `/tmp/kbe-fx/`. XL reads as a contained fireball; actors remain above its cooling smoke. Mid-action real shots killed a sandbox target (score 100); grenades used real Player/Engine events. The final river-bridge capture shows the actual water-entry splash at x=3000, with one splash event and a clean console. One earlier capture was interrupted by a concurrent shared-checkout hot reload and was rerun.
+
+QA's original suite completed **13 passed, 3 skipped (3.8 min)**. Skips are unregistered UI flows. The first attempt found port 4310 occupied; an isolated-port attempt was time-limited and interrupted during concurrent integration, then the original configuration was rerun successfully. Final log: `/tmp/kbe-fx/qa-final.log`.
+
+The 30-second stationary workload on the integrated **Pine Ridge Breakout** uses 14 HMG muzzle/impact events per gameplay second, three M/M/L explosions every 1.5 gameplay seconds, and snow zones. Bloom enabled: **60.22 average FPS, 58 minimum FPS, 16.666 ms mean frame, 16.7 ms p95, 16.8 ms p99/max, zero >50 ms frames**. FX peak **111 live Images**, **0 drops**, **0.9 ms peak FX CPU**, sampled moving-average CPU ≤0.125 ms. 399 impacts and 54 explosions were processed. The final run disabled hot reload, processed all 1799 measured frames continuously, and recorded no browser errors. An earlier complete run had two startup `net::ERR_NETWORK_CHANGED` errors and was superseded by this clean run. Report: `/tmp/kbe-fx/stress.json`. These are SwiftShader/Chromium relative measurements, not target hardware GPU timing.
+
+The earlier standard 20-second probe on the sandbox completed measurement but **failed** its gameplay assertion when the god-mode player fell into the pit at x=617, y=326 and lost a life. It measured **59.45 average FPS, 56 minimum, 16.722 ms mean frame, 16.8 ms p95/p99, 83.3 ms max, one >50 ms frame, zero >100 ms frames**, with no browser errors. Original report copied to `/tmp/kbe-fx/perf-probe.json`. This is a Player/probe traversal issue, not a passing baseline. The no-bloom comparison completed 30 seconds with hot reload disabled: **60.08 average FPS, 57 minimum, 16.666 ms mean frame, 16.7 ms p95, 16.8 ms p99/max, zero >50 ms frames**, 111 peak FX, zero drops, 2.1 ms peak FX CPU, and no browser errors. Both variants were refresh-rate limited in this software renderer; the comparison does not measure GPU time. Report: `/tmp/kbe-fx/stress-no-bloom.json`. An earlier no-bloom attempt was discarded because a concurrent hot reload reset the measurement (only 140 frame samples and zero FX events). The stable fixture now rejects incomplete workloads.
+
+The mandatory standard probe was rerun after the real level landed and **passed**: **60.11 average FPS, 59 minimum, 16.666 ms mean frame, 16.7 ms p95, 16.8 ms p99/max, zero >50 or >100 ms frames**, 1262 frame samples, 204 FPS samples. No gameplay assertions failed; the player travelled 1553 px. No browser errors, FX drops, or sample errors; FX peak 49 live Images and 0.8 ms CPU. Final report: `/tmp/kbe-fx/perf-current.json`; original artifact: `game/tests/artifacts/2026-10-16T18-31-40-741Z-perf-3469893/report.json`. This supersedes the earlier sandbox failure for current integration.
+
+## Requests for other teams (Phase B)
+
+- **Engine:** the added `fx:emit`, `fx:zone`, `enemy:shoot`, optional boss positions, and `reducedFlash` settings are consumed. Add `'steam'` to `fx:ambience.kind` for the full requested fallback catalog. Consider matching shake tiers to the Phase A target durations 65/110/170/260 ms and displacement .7/.4, 1.3/.8, 2.4/1.4, 4/2.5 px; current engine tiers are 90/160/260/480 ms at .004/.008/.014/.022 intensity. Other teams' direct `fx:flash` requests still use Engine's reduced-flash behavior (dim/shorten rather than suppress); our requests suppress completely.
+- **Player:** continue emitting one `player:shoot` per shot/burst. Rocket uses the supplied position as rear exhaust because the art is backblast; provide the rear socket rather than the projectile muzzle, or extend the event with named sockets. Explicit skid/run/splash emissions have now landed and are consumed. Keep waterline coordinates precise; FX's conservative fallback observes P1 only.
+- **Enemies/boss:** rifle/cannon `enemy:shoot` now lands and is consumed. Add `fx:emit` vent/head-landing events where appropriate, and keep `boss:defeated` terminal after the final explosion. FX uses that terminal event for delayed slow motion and never synthesizes damage.
+- **Levels:** zone publication has now landed and is consumed. Add steam zones/vent sockets and precise waterline events where authored; zones avoid emission outside the authored region.
+- **UI/audio:** disable fallback popups with registry `fx.popups=false` when claiming them. Use `crt`, `shake`, `reducedFlash` settings; no FX-owned sound duplication. Listen to the same impact/explosion events for material audio.
+- **QA/Lead:** the custom shader and bloom are visually verified under SwiftShader, not a target midrange hardware GPU. Confirm hardware GPU cost against the 2 ms budget before treating software-renderer FPS as hardware certification.
+
+---
+
 # Effects and game feel — Phase A
 
 Status: art library complete; integration and performance measurements belong to Phase B. No `game/src` files are changed. The intent is a brief, unmistakable impact followed by weight and aftermath: flash → hot expanding folds → staggered cooling → rolling smoke → isolated embers. Fire uses all six `fire` colors plus white; smoke uses the violet `ink` ramp. Every opaque pixel is in the master palette. No generated noise, gradients, fractional alpha, or external art is used.

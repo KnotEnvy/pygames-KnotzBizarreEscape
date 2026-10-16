@@ -1,4 +1,3 @@
-/// <reference types="vite/client" />
 // Builds the GameContext for one GameScene run. Every service hangs off it; teams receive it in register().
 import Phaser from 'phaser';
 import type { FxFacade, GameContext, LevelQuery, PlayerQuery, RegisterContext } from './contracts';
@@ -18,6 +17,7 @@ import { PARAMS } from './params';
 import { settings } from './settings';
 import { debugService, getActiveContext } from './debug/hooks';
 import { createAudioService } from '../audio';
+import { isSandboxLevel } from './dev/sandboxLevel';
 import { ENGINE } from '../config/tuning/engine';
 
 /** All tuning files, keyed by file name: ctx.tuning.engine, ctx.tuning.player, ... (module namespaces). */
@@ -42,6 +42,8 @@ export interface EngineInternals {
     updaters: Array<(dt: number, rawDt: number) => void>;
     levelSet: boolean;
 }
+
+const DEV_PLAYER_NAME = 'dev-player';
 
 function emptyLevel(): LevelQuery {
     const bounds = new Phaser.Geom.Rectangle(0, 0, ENGINE.width, ENGINE.height);
@@ -105,11 +107,19 @@ export function createGameContext(scene: Phaser.Scene): { ctx: RegisterContext; 
             physics.setLevel(q);
             camera.setBounds(q.bounds);
             scene.physics.world.setBounds(q.bounds.x, q.bounds.y, q.bounds.width, q.bounds.height + 64, true, true, false, false);
+            const b = q.bounds;
+            events.emit('level:ready', { x: b.x, y: b.y, width: b.width, height: b.height, stage: q.stage ?? PARAMS.stage, name: q.name, sandbox: isSandboxLevel(q) });
         },
         hasLevel: () => internals.levelSet,
         player: (i = 0) => players[i] ?? null,
         setPlayer(q: PlayerQuery | null, i = 0) {
+            const prev = players[i];
             players[i] = q;
+            // The dev placeholder steps aside when a real player registers in its slot.
+            if (q && prev && prev.sprite !== q.sprite && prev.sprite.name === DEV_PLAYER_NAME && prev.sprite.scene) {
+                prev.sprite.destroy();
+                console.info('[sandbox] a real player registered: dev placeholder player removed');
+            }
             if (i === 0) camera.follow(q ? q.sprite : null);
         },
         spawn(type: string, kind: string, props: Record<string, unknown>, x: number, y: number) {

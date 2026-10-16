@@ -4,6 +4,7 @@ import { PreloadScene } from './scenes/PreloadScene';
 import { GameScene } from './scenes/GameScene';
 import { uiScenes } from './scenes/ui';
 import { installKbe } from './core/debug/hooks';
+import { bindGlobalMute } from './core/audio';
 import { PARAMS } from './core/params';
 import { ENGINE } from './config/tuning/engine';
 
@@ -28,3 +29,13 @@ const game = new Phaser.Game({
 });
 
 installKbe(game, `${VERSION} (phaser ${Phaser.VERSION})`);
+const unbindMute = bindGlobalMute(game);
+
+// Dev: if Vite ever hot-swaps this module instead of reloading the page, tear the old game down first so
+// listeners, sounds and WebGL contexts are never duplicated.
+if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+        unbindMute();
+        game.destroy(true);
+    });
+}

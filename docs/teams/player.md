@@ -98,3 +98,54 @@ POW: 32×40, feet pivot `(16,40)`, origin `(0.5,1)`. Pickups: 20×20 canvas with
 - Exported all 21 4× GIFs and PNG contact strips; inspected combined hero poses, torso attack strips, death/respawn/salute, POW cycles, projectiles and pickup overview.
 - `npm run check:phaser4` could not run: `game/tools/check-phaser4.mjs` has not been created by the rules team yet.
 - `npm run typecheck` currently fails in Engine-owned `src/core/contracts.ts` because `./events` and `./projectiles` are not present yet. No player TypeScript was added in Phase A.
+
+## Phase B — implemented against the real engine (2026-10-16)
+
+Owned runtime files:
+- `src/entities/player/index.ts`: player factory, animation setup, pickup/POW registration.
+- `src/entities/player/controller.ts`: instance-based Knotz controller, one Arcade body and split display sprites, metadata sockets, input/action/locomotion states, damage/death/respawn/victory, camera clamp, debug queries and cheats.
+- `src/entities/player/animations.ts`: repairs only player-team Aseprite tags. Phaser 4.2.1's helper indexes numeric frame names, while these atlases use `texture#N`; empty helper-generated animations otherwise crash on first play. Explicit durations preserve authored timing; transitions play once and loops repeat.
+- `src/entities/weapons/index.ts`: shared ProjectileSystem pistol, HMG sweep, five-pellet spread, accelerating/seeking rocket, piercing flame bursts, arcing/bouncing grenade and radial explosions.
+- `src/entities/pickups/index.ts`: weapons, bombs, life, points/food, bob/shine and collection pop. Points support `props.subtype` or `props.item`, explicit `props.points`, food kinds and `points_<food>` aliases.
+- `src/entities/pow/index.ts`: touch/shot rescue, freed → salute → gift → run-left, ignoring explosion/flame damage. Emits one `pow:freed`; Engine alone awards rescue/score.
+- `src/config/tuning/player.ts`: movement, body sizes, timers, ammo, combat and food values.
+
+### Integration and controls
+
+Open `?scene=Game&mute=1&debug=1&god=1`. The player replaces Engine's placeholder automatically. Standard controls from GDD §11 apply; down+jump drops through a one-way platform. Shift/L holds aim-lock. `__KBE.cheats.give('hmg', 200)` equips weapons; `give('spread'|'rocket'|'flame'|'pistol')` also works. `kill()` is overridden to lose the current player life for QA, even during invulnerability; normal damage respects God mode and i-frames. `shotsFired` is monotonic within a player instance and counts weapon triggers, not spread pellets, flame ticks, knives, or grenades. `playerController` exposes action state, HP, crouch, angle, immunity and velocity.
+
+Spawn contracts: `player_start`; `pickup:<kind>` or `pickup` with `props.kind`; `pow:<item>` or `pow` with `props.item`. Feet coordinates use bottom-center origins. Published `PlayerQuery.teleport` resets the Arcade body and composite position. Scene cleanup removes damage/collision registrations, subscriptions and display layers.
+
+All weapon equips/fallbacks use `state.setWeapon`; ammo consumption uses the observable ammo setter to avoid replaying `weapon:changed` callouts on every round. One `player:shoot` carries the authored world muzzle socket and actual angle per trigger; five pellets and flame ticks do not multiply the event. Animation art supplies the pixel recoil. Heavy triggers request shake tier 1. Land emits the stored pre-collision vertical speed. Initial spawn and respawn blink for two seconds; Casual loses HP without a life event until its third damage point. Grenade impact callbacks ignore repeated contacts at the same projectile age, because Engine currently retains the old movement vector through a bounce's remaining substeps.
+
+### Tuning and sound
+
+Starting values: run 105, crouch 35, acceleration 1750, jump −318, release clamp −120, coyote/buffer 90/120 ms. Standing body 14×32; crouch 16×20. Pistol tap/hold intervals 143/333 ms. HMG 14/s with 90 ms aim sweep; spread 450 ms; rocket 600 ms, 90→260 px/s and ≤65°/s seeking; flame 400 ms bursts with 80 ms ticks / 480 ms cadence. Ammo H/S/R/F = 200/40/30/30. Knife anticipation 110 ms, damage 4. Grenade damage 6, radius 28, fuse fallback 1670 ms. All values are exported from the owned tuning file.
+
+Audio keys used: `pistol`, `hmg`, `spread`, `rocket`, `flame`, `grenade_throw`, `knife`, `jump`, `land`, `pickup`, `weapon_get`. The UI/audio team doc was absent when implementation started; missing sound keys safely no-op. Coordinate event-driven audio with these direct calls to avoid doubled playback.
+
+### Verification evidence
+
+- Player code passes strict typecheck; the full project typecheck and Phaser 4 checker both passed after the concurrent Engine/Enemy fixes landed (54 files, zero findings at the latest check).
+- Real Chromium screenshot runs used `game/tools/shot.mjs`. Inspected `/tmp/kbe-player/run.png`, `air.png`, `up.png`, `diagonal.png`, `crouch.png`, `hmg.png`, `hmg-up.png`, `spread.png`, `rocket.png`, `flame.png`, `throw.png`, `knife.png`, `victory.png`, `pow-gift.png`. Composite proportions and belt seam remain aligned; up/diagonal sockets and heavy bullet trajectories read correctly. No player runtime exceptions after animation repair.
+- Observed bomb consumption 10→9; one-round HMG fired once then reverted to infinite pistol; POW shot rescue yielded exactly +100/+1, gift collected as HMG/200; bomb pickup yielded 10→20.
+- Real DamageService Casual check: two immediate hits left HP 2 (second blocked), separated hits produced HP 1 then death/lives 3→2, Engine respawn restored HP 3 with 2 s blink.
+- One-way check: standing on sandbox plank `(736,176)` reported `onOneWay=true`; down+jump descended to y=219 then landed y=224, without jumping upward.
+- Camera reproduction: right for 2.5 s reached x=308, cameraX=164, then stopped naturally at the sandbox step. QA's failed camera run screenshot instead showed x≈48; concurrent Vite HMR resets were observed during other screenshot runs.
+- Required exact QA command completed: **11 passed, 4 skipped, 1 failed**, 2.9 min. Failure: camera advance assertion (cameraX=0). `/tmp/kbe-player/qa.log` contains the run, with interleaved local-port startup diagnostics. No full-suite acceptance claimed.
+- An extra unchanged-suite run with an ephemeral-port temporary config and Vite file watching disabled produced **2 passed, 1 skipped, 13 failed**: Engine snapshot referenced undefined `SANDBOX_NAME`, and Chromium reported `ERR_NETWORK_CHANGED` / a missing canvas. Engine subsequently removed that reference; final settled rerun below supersedes it. Scratch config/runner and logs stay in `/tmp/kbe-player/`.
+
+### Known issues / Requests for other teams
+
+- **Engine/QA:** rerun acceptance on a settled checkout. During this pass, HMR reset scenes mid-input, fixed port 4310 stalled its first availability probe, and concurrent Engine edits briefly broke debug snapshots (`SANDBOX_NAME`) and flow typing. Latest direct player checks passed; these observations are not attributed to player gameplay.
+- **Engine:** consider rebuilding remaining substep displacement after a projectile bounce. Player guards same-frame duplicate terrain contacts locally. The projectile pool currently stores only eight pierced hurtboxes, so extreme overlapping crowds can exceed flame's per-projectile hit memory.
+- **FX/Engine:** Engine added `fx:emit` during integration; player now emits run dust every 140 ms, reversal skid dust and fatal water splashes, with sampled surface material. Land/jump already have dedicated events. FX should use supplied muzzle coordinates. Rocket exhaust has no dedicated socket event; its sprite position and angle are available from pooled projectiles.
+- **UI/Audio:** supply the listed keys and choose one sound owner per existing event. Player already makes direct sound calls. Missing keys are safe.
+- **Levels:** weapon/POW/pickup integration was exercised through the real registry in the sandbox. Recheck headroom, hazards and body alignment on the finished map. No core, level, enemy, FX, UI, test source, assets or git state were edited by this team.
+- Art remains the Phase A stylized treatment; directional head acting and broader visual polish remain future work. No claim of Metal Slug animation fidelity or completed full-game acceptance.
+
+Final settled QA rerun: **13 passed, 3 skipped, 0 failed (30.2 s)**. Same 16 test sources; temporary config only selected an ephemeral already-started Vite server, disabled file watching to prevent other teams' HMR resets, and placed artifacts in `/tmp/kbe-player/test-results`. Log: `/tmp/kbe-player/qa-final.log`. The three skips remain UI/flow capability coverage, not passed acceptance. Both mandatory static checks passed again afterward.
+
+Final grenade telemetry: first bounce retained a live grenade at age 683 ms / y=222.65 / vy=−124.23 with zero explosions; subsequent contact left zero projectiles and exactly one explosion. Screenshot `/tmp/kbe-player/bounce.png`.
+
+Post-FX-wiring smoke: `/tmp/kbe-player/skid.png` and `final.png` inspected; reversal dust rendered, facing mirrored correctly, debug errors stayed empty, sampled FPS 60 and FX peak 3. Only warning was the intentional sandbox mystery-box placeholder. No further runtime edits followed this check.

@@ -4,6 +4,42 @@ import Phaser from 'phaser';
 import type { AudioService } from './contracts';
 import { settings } from './settings';
 
+/**
+ * Mute/unmute a Phaser sound manager so `sound.mute` reads back correctly at once. WebAudio's `mute` setter uses
+ * `gain.setValueAtTime`, which doesn't update `gain.value` while the AudioContext is still suspended (no user
+ * gesture yet), so the getter would keep reporting false. Writing `.value` as well updates it immediately.
+ */
+export function applyMute(sound: Phaser.Sound.BaseSoundManager, muted: boolean): void {
+    sound.mute = muted;
+    const node = (sound as unknown as { masterMuteNode?: GainNode }).masterMuteNode;
+    if (node) node.gain.value = muted ? 0 : 1;
+}
+
+let boundGame: Phaser.Game | null = null;
+
+/**
+ * Engine (main.ts): keep the game-wide sound manager's mute in sync with settings (`?mute=1` or the options
+ * toggle) from boot onwards, whatever scene is running and whichever AudioService the UI/audio team installs.
+ */
+export function bindGlobalMute(game: Phaser.Game): () => void {
+    if (boundGame === game) return () => {};
+    boundGame = game;
+    const apply = (): void => { if (game.sound) applyMute(game.sound, settings.muted); };
+    const start = (): void => {
+        apply();
+        // Unlocking the AudioContext (first gesture) must not undo the mute.
+        game.sound?.on(Phaser.Sound.Events.UNLOCKED, apply);
+    };
+    if (game.isBooted) start(); else game.events.once(Phaser.Core.Events.READY, start);
+    const off = settings.onChange(apply);
+    return () => {
+        off();
+        game.events.off(Phaser.Core.Events.READY, start);
+        game.sound?.off(Phaser.Sound.Events.UNLOCKED, apply);
+        if (boundGame === game) boundGame = null;
+    };
+}
+
 export class FallbackAudio implements AudioService {
     private current: Phaser.Sound.BaseSound | null = null;
     private currentKey: string | null = null;
@@ -15,7 +51,7 @@ export class FallbackAudio implements AudioService {
     }
 
     applySettings(): void {
-        this.scene.sound.mute = settings.muted;
+        applyMute(this.scene.sound, settings.muted);
         if (this.current && 'setVolume' in this.current) {
             (this.current as Phaser.Sound.WebAudioSound).setVolume(settings.get().musicVolume);
         }

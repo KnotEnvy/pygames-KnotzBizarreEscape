@@ -73,37 +73,35 @@ function branch(x, y, len, dir) {
     put('ground', x + i * dir, y, n, dir < 0);
   }
 }
-/** 2x2 bough cluster whose bottom-right tile is (x, y); flip mirrors it for left-pointing branches */
-function bough(x, y, flip = false) {
-  const [l, r] = flip ? ['tr', 'tl'] : ['tl', 'tr'];
-  const [bl, br] = flip ? ['br', 'bl'] : ['bl', 'br'];
-  putIfEmpty('back', x - 1, y - 1, `bough_${l}`, flip); putIfEmpty('back', x, y - 1, `bough_${r}`, flip);
-  putIfEmpty('back', x - 1, y, `bough_${bl}`, flip); putIfEmpty('back', x, y, `bough_${br}`, flip);
+/** needle tier around a branch row y. dir 1 = right of the trunk starting at column x; -1 = left, mirrored */
+function tier(x, y, n, dir) {
+  for (let r = 0; r < 3; r++) for (let c = 0; c < n; c++) put('back', x + c * dir, y - 1 + r, `tier${n}_${r}${c}`, dir < 0);
 }
 /** giant 2-wide pine trunk from the top of the map down to the ground (base on row groundTop-1) */
 function bigTree(x, groundTop, branches = [], seed = 0) {
   for (let y = 0; y < groundTop - 1; y++) { put('back', x, y, 'trunk_l'); put('back', x + 1, y, 'trunk_r'); }
   put('back', x, groundTop - 1, 'trunk_base_l'); put('back', x + 1, groundTop - 1, 'trunk_base_r');
   for (const b of branches) {
-    if (b.dir > 0) { branch(x + 2, b.y, b.len, 1); bough(x + 1 + b.len, b.y); }
-    else { branch(x - 1, b.y, b.len, -1); bough(x - b.len + 1, b.y, true); }
+    const n = Math.max(3, Math.min(4, b.len));
+    if (b.dir > 0) { branch(x + 2, b.y, b.len, 1); tier(x + 2, b.y, n, 1); }
+    else { branch(x - 1, b.y, b.len, -1); tier(x - 1, b.y, n, -1); }
   }
-  // small clumps sprouting along the trunk
-  for (let y = 2; y < groundTop - 4; y += 3) {
-    const h = hash(x, y, 40 + seed);
-    if (h < 0.35) putIfEmpty('back', x - 1, y, 'bough_s', true);
-    else if (h < 0.7) putIfEmpty('back', x + 2, y, 'bough_s');
-  }
+  // decorative crown tiers at the top of the map (out of jump reach), small clumps lower down
+  if (branches.length) { tier(x + 2, 2, 4, 1); tier(x - 1, 2, 4, -1); tier(x + 2, 5, 3, 1); tier(x - 1, 4, 3, -1); }
+  else { tier(x + 2, 3 + (seed % 2), 3, 1); tier(x - 1, 2 + ((seed + 1) % 2), 3, -1); }
 }
 /** background trunk without platforms (forest depth) */
 function trunk(x, groundTop) { bigTree(x, groundTop, [], x); }
 /** irregular background hill/cliff silhouette in the back layer */
 function hills(x0, x1, lo, hi, m, seed, bottom = G - 1) {
-  let h = Math.round((lo + hi) / 2);
+  let h = Math.round((lo + hi) / 2), run = 0;
   for (let x = x0; x <= x1; x++) {
-    const r = hash(x, 1, seed);
-    if (x > x0 && r < 0.45) h += r < 0.22 ? -1 : 1;
-    h = Math.max(lo, Math.min(hi, h));
+    if (run-- <= 0) { // plateaus 3-5 columns wide, stepping by one row
+      const r = hash(x, 1, seed);
+      h += r < 0.5 ? -1 : 1;
+      if (h < lo) h = lo + 1; if (h > hi) h = hi - 1;
+      run = 2 + Math.floor(hash(x, 2, seed) * 3);
+    }
     const edge = Math.min(x - x0, x1 - x);
     const top = Math.max(h, bottom - 1 - edge * 2);
     mat('back', x, x, top, bottom, m);
@@ -222,7 +220,7 @@ player();
 function player() { sp('player_start', 6, G - 1, {}, 'player_start'); }
 prop('prison_cell', 5, G - 1, { variant: 'broken', layer: 'back' });
 prop('flag', 9, G - 1, { layer: 'back' });
-prop('sign_shoot', 11, G);
+prop('sign_shoot', 10, G);                       // 2 tiles apart: signs are 32 px wide
 prop('sign_jump', 12, G);
 enemy('grunt', 20, G, { idle: 'sleep' });
 prop('watchtower', 27, G, { layer: 'back' });
@@ -231,7 +229,7 @@ enemy('grunt', 24, G, { patrol: 64 });
 pow('hmg', 31, G - 1);
 prop('crate', 35, G);
 prop('crate', 36, G);
-prop('crate', 36, G - 1);
+prop('crate', 36, G - 1, { stacked: true });
 enemy('grunt', 38, G, { patrol: 48 });
 prop('lamp_post', 40, G, { layer: 'back' });
 enemy('grunt', 42, G);
@@ -270,6 +268,7 @@ ground(116, 145, G);
 ground(140, 145, G - 1);
 ground(146, 149, H - 1);                          // ravine floor
 for (let x = 146; x <= 149; x++) put('ground', x, H - 2, 'spikes_wood');
+backMass(145, 150, G - 1, H - 1, 'ground'); // pit walls behind the ravine
 ground(150, 160, G - 1);
 ground(161, 169, G);
 platform('log', 84, 88, 16);
@@ -292,7 +291,7 @@ enemy('grunt', 74, G - 1);
 enemy('grunt', 77, G - 1, { idle: 'crouch' });
 enemy('grenadier', 85, 16);
 enemy('grunt', 84, G - 2);
-pickup('points', 86, 15);
+pickup('points', 86, 15, { float: true });
 enemy('drone', 92, 12);
 prop('crate', 90, G - 1, { contains: 'bombs' });
 prop('explosive_barrel', 97, G);
@@ -309,7 +308,7 @@ enemy('grunt', 130, G, { patrol: 64 });
 pow('spread', 138, 9, { pose: 'tree' });
 enemy('drone', 133, 7);
 enemy('grunt', 127, 11);
-pickup('points', 121, 7);
+pickup('points', 121, 7, { float: true });
 prop('barrel', 141, G - 1);
 enemy('grunt', 143, G - 1);
 enemy('drone', 147, 13);
@@ -393,13 +392,14 @@ platform('catwalk', 271, 283, 17);
 mat('ground', 284, 293, 14, G - 1, 'concrete');   // bunker B
 clear('ground', 298, 300, G, G + 1);              // spike pit
 for (let x = 298; x <= 300; x++) put('ground', x, G + 1, 'spikes');
+backMass(297, 301, G, H - 1, 'concrete');
 platform('catwalk', 302, 304, 18);
 platform('catwalk', 305, 307, 15);
 mat('ground', 308, 317, 12, 17, 'concrete');      // structure C (tunnel below)
 platform('catwalk', 318, 320, 9);
 platform('catwalk', 313, 315, 6);
-platform('catwalk', 325, 329, 17);
-platform('catwalk', 339, 343, 17);
+platform('catwalk', 325, 329, 18);
+platform('catwalk', 339, 343, 18);
 sandbags(333, 334, G - 1, G - 1);
 mat('ground', 346, 347, 17, G - 1, 'concrete');   // turret pillar
 mat('ground', 350, 359, G, G, 'steel');
@@ -435,7 +435,8 @@ prop('explosive_barrel', 273, G);
 prop('explosive_barrel', 274, G);
 enemy('grunt', 279, 17);
 enemy('grunt', 281, G);
-enemy('turret', 283, 19, { mount: 'wall', facing: 'left' });
+mat('ground', 282, 283, 19, G - 1, 'steel');       // turret pedestal under the catwalk
+enemy('turret', 283, 19, { mount: 'pedestal', facing: 'left' });
 enemy('grenadier', 290, 14);
 enemy('grunt', 287, 14, { patrol: 48 });
 prop('alarm_light', 292, 12, { layer: 'back', on: true });
@@ -453,11 +454,11 @@ prop('bunker_door', 327, G, { layer: 'back', lock: 'bunker' });
 prop('bunker_door', 341, G, { layer: 'back', lock: 'bunker' });
 enemy('grunt', 327, G, { ...A2, wave: 1, from: 'door' });
 enemy('grunt', 341, G, { ...A2, wave: 1, from: 'door', delay: 700 });
-enemy('grunt', 327, 17, { ...A2, wave: 1, delay: 1400 });
+enemy('grunt', 327, 18, { ...A2, wave: 1, delay: 1400 });
 enemy('turret', 347, 17, { mount: 'roof' });
 enemy('shield', 349, G, { ...A2, wave: 2 });
 enemy('shield', 320, G, { ...A2, wave: 2, facing: 'right', delay: 600 });
-enemy('grenadier', 341, 17, { ...A2, wave: 2, delay: 1000 });
+enemy('grenadier', 341, 18, { ...A2, wave: 2, delay: 1000 });
 enemy('grunt', 341, G, { ...A2, wave: 2, from: 'door', delay: 1600 });
 enemy('grunt', 327, G, { ...A2, wave: 2, from: 'door', delay: 2200 });
 prop('alarm_light', 337, 12, { layer: 'back', on: true, lock: 'bunker' });
@@ -479,11 +480,11 @@ ground(360, 389, G);
 ground(390, 417, G + 1, 'concrete');
 mat('ground', 390, 417, G, G, 'steel');
 mat('ground', 418, 419, 9, H - 1, 'concrete');
-platform('catwalk', 392, 395, 18);
+platform('plank', 392, 395, 18);
 fence(360, 389, G - 1, 5, 6);
-palisade(390, 410, G - 1, 5);
-palisade(417, 417, G - 1, 5);
-backMass(411, 416, 14, 14, 'concrete');           // gate lintel behind the gate prop
+palisade(390, 408, G - 1, 3);
+for (const x of [392, 395]) { put('back', x, 19, 'post_mid'); put('back', x, 20, 'post_base'); }
+facade(409, 417, 11, G - 1, [[410, 13, 'wall_warn'], [416, 13, 'wall_warn'], [411, 12, 'wall_vent'], [415, 12, 'wall_vent']]); // gatehouse the gate prop sits in
 
 prop('sign_danger', 362, G);
 prop('supply_crate', 368, G, { contains: 'hmg' });
@@ -494,9 +495,10 @@ enemy('grunt', 370, G, { idle: 'flee' });
 enemy('grunt', 378, G, { idle: 'flee' });
 pow('bombs', 382, G);
 prop('barrel', 386, G);
-prop('alarm_light', 389, 15, { layer: 'back', on: true });
-prop('flag', 391, G - 5, { layer: 'back' });
-prop('flag', 408, G - 5, { layer: 'back' });
+prop('alarm_light', 384, 16, { layer: 'back', on: true });
+prop('flag', 391, G - 3, { layer: 'back' });
+prop('watchtower', 400, G, { layer: 'back' });
+prop('lamp_post', 405, G, { layer: 'back' });
 prop('gate', 414, G, { layer: 'back', lock: 'boss' });
 sp('boss', 414, G, { kind: 'moosezilla', lock: 'boss', wave: 1 }, 'moosezilla');
 

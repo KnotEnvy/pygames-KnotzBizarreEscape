@@ -314,8 +314,8 @@ Other flow behavior:
   - **F2** toggles the overlay.
 - **`window.__KBE`:**
   - `ready`, `game`, `version`
-  - `state()` returns `{scene, scenes, fps, player:{x,y,alive,weapon,ammo,bombs,lives}, score, rescued, enemies, cameraX, bossHp, errors}`
-  - `cheats.god(on)`, `warp(x)`, `give(weapon, ammo?)`, `kill()`, `bombs(n)`, `boss()`
+  - `state()` returns `{scene, scenes, fps, player:{x,y,alive,weapon,ammo,bombs,lives}, score, rescued, enemies, cameraX, bossHp, boss, bossPhase, god, projectiles, enemyProjectiles, shotsFired, level:{stage,name,sandbox}, errors}` plus every `registerDebug` field (team fields win over engine defaults with the same key)
+  - `cheats.god(on)`, `warp(x)`, `give(weapon, ammo?)`, `kill()` (**kills the player**), `killEnemies()`, `hurt(dmg?)`, `bombs(n)`, `boss()`
   - `press(action, ms)` reaches every live input, menus included.
 - **Add state fields:** `registerDebug('grunts', () => count)`.
 - **Override cheats when the engine default is too generic:**
@@ -333,3 +333,107 @@ Other flow behavior:
 - **Settings:** `settings.get()` / `settings.update({...})` / `settings.onChange(fn)` (persisted to localStorage). Fields: `musicVolume`, `sfxVolume`, `mute`, `crt`, `shake`, `difficulty`, `keys`, `pad`. `?mute=1` / `?difficulty=` override without saving.
 - **Audio:** `src/audio/index.ts` (UI/audio team) exports `createAudioService(scene)`. The engine's `FallbackAudio` is exported from core if you want to wrap it.
 - **Dev sandbox source:** `src/core/dev/`. It's a compact working reference for player movement, a grenade, a turret shooting enemy projectiles, and an arena lock.
+
+
+---
+
+## Changelog (Phase B)
+
+All changes are **additive**: no existing name, signature or payload changed. Code written against the Phase A API
+still compiles and behaves the same, except the two deliberate fixes marked ⚠.
+
+### QA fixes
+- ⚠ **`__KBE.cheats.kill()` now kills the player** (QA's death and game-over flows depend on it). The default
+  implementation calls the player's own hurtbox `hit()` with a 9999-damage `contact` hit, **bypassing god mode and
+  i-frames**, and emits `entity:hurt`. The player team already overrides it with `ctx.debug.cheat('kill', ...)`, which
+  is the preferred path. The old "kill every enemy" behavior moved to **`cheats.killEnemies()`**.
+- New **`cheats.hurt(damage = 1)`**: a normal enemy hit on the player through `damage.deal`, so it respects god mode and
+  i-frames. QA can use it to automate the god-immunity test.
+- **`?mute=1` now mutes the global Phaser sound manager from boot**, in every scene (Title included), whichever
+  AudioService is installed. `bindGlobalMute(game)` (core/audio.ts, called from main.ts) applies `settings.muted` on
+  READY, on every settings change and after the AudioContext unlocks. New helper **`applyMute(sound, muted)`**: WebAudio's
+  `mute` setter uses `setValueAtTime`, which doesn't update `gain.value` while the context is suspended (no user gesture
+  yet), so `sound.mute` kept reading `false`. The helper also writes `gain.value` directly. UI/audio: use it if your
+  service sets mute itself.
+- **Observable god flag:** `state().god`, and `game.registry.get('god')` is kept in sync (URL `?god=1`, `cheats.god()`).
+- **Readiness race fixed:** `PreloadScene` set `__KBE.ready` one frame before the routed scene started, so `state().scene`
+  could still read `'Preload'`. Now Game sets ready at the end of its `create()`, and any other target (Title...) flips it
+  on its scene `CREATE` event.
+- **`state().player` always comes from `ctx.player()`**, the registered PlayerQuery (whichever team provides it).
+  `alive` is `PlayerQuery.alive()`, so it is false for exactly as long as the player reports itself dead.
+- **Deaths are deduplicated:** a second `player:died` for the same player index before the engine's `game:respawn`
+  is ignored. So exactly one life is lost per death even if a death path fires twice. New `ctx.flow.isDead(index?)`.
+- Engine default state fields (team `registerDebug` keys with the same name override them): `shotsFired` (monotonic count
+  of `player:shoot`), `projectiles` / `enemyProjectiles` (live counts), `boss {name,hp,maxHp,phase}` and `bossPhase`
+  (tracked from the `boss:*` events), `level {stage,name,sandbox}`.
+
+### New events (`events.ts`)
+| Event | Payload | Who |
+|---|---|---|
+| `fx:emit` | `{ effect, x, y, angle?, count?, scale?, material?, team? }` | anyone → FX. Generic spatial one-shot. Suggested ids: `dust_run dust_skid dust_land splash waterfall vent_steam debris shield_spark shockwave muzzle_enemy casing scorch`. FX ignores unknown ids |
+| `fx:zone` | `{ id, kind, x, y, width, height, active }` | Levels → FX. Ambient zone registry: `active:true` adds/updates the zone `id`, `false` removes it |
+| `enemy:shoot` | `{ kind, weapon?, x, y, angle }` | Enemies → FX (enemy muzzle flash), Audio. x/y = muzzle socket |
+| `level:ready` | `{ x, y, width, height, stage, name?, sandbox }` | Engine, on every `ctx.setLevel` |
+- `boss:spawn/hp/phase/defeated` payloads gained optional **`x?, y?`** (boss body position for FX).
+
+### Contracts (`contracts.ts`), all optional or engine-implemented
+- `ProjectileSpec.rehitMs?`: with `pierce`, the same hurtbox can be hit again after N ms of projectile age. This gives
+  flame tick damage per target: `pierce: Infinity, rehitMs: 120`.
+- `ProjectileSpec.onHit?(p, impact)`: called on **every** connected hurtbox hit, including pierced ones. `onImpact` still
+  only sees the hit that stops or bounces the projectile.
+- `ctx.projectiles.countTeam(team)`.
+- Pierce memory went from 8 to 32 hurtboxes. When full, the oldest entry is dropped. Before, the 9th pierced target was
+  re-hit on every sub-step.
+- `ctx.physics.waterSurfaceAt(x)`: water surface y or null. Uses the optional new `LevelQuery.waterSurfaceAt?(x)` when the
+  level provides it (also accepted by `createTileLevelQuery({ waterSurfaceAt })`), otherwise scans `hazard=water` tiles.
+- `ctx.flow.safeSpot(nearX)`: the engine's safe respawn query (ground, no hazard, inside the camera).
+  `ctx.flow.isDead(index?)`.
+- `Settings.reducedFlash` (default false): `fx:flash` is dimmed to 35% and halved in duration. The UI options screen can
+  expose it, and FX may read it for its own flashes.
+
+### Robustness
+- **Event bus:** a listener that throws is logged as `[events] a '<event>' listener threw` and the other listeners
+  (and the emitter's code) keep running. The bus is now a small copy-on-write emitter: `emit` doesn't allocate, and
+  handlers may subscribe/unsubscribe while an event is being emitted. Public API unchanged.
+- **Registration:** a throwing `register*()` logs `[game] registerX() from the '<team>' team threw...` and the scene
+  continues. Whatever is missing falls back to the sandbox.
+- **Spawns:** a factory that throws logs one `console.error` per key and places the magenta placeholder. Unknown keys
+  still log one warning.
+- **Per-frame:** a throwing `ctx.onUpdate` subscriber is logged once and doesn't stop the others. Subscribers may
+  unsubscribe themselves mid-frame without the next one being skipped. A throwing projectile callback removes only that
+  projectile (logged once per team:weapon).
+- **Hot reload:** `main.ts` disposes the old Phaser.Game on Vite HMR. The `__KBE` window/console error taps are installed
+  once per page, so a reload never doubles them.
+- Created `src/vite-env.d.ts`. Removed the triple-slash reference from `core/context.ts`.
+
+### Dev sandbox steps aside
+- When a real player calls `ctx.setPlayer(q)` while the dev box soldier holds that slot, the box soldier is destroyed.
+- When a real level calls `ctx.setLevel` after the sandbox was built, every sandbox display object (tiles, backdrop,
+  dummies) is destroyed and the dev arena trigger disarms. `state().level.sandbox` tells QA which one is running.
+- Unchanged: the sandbox is only built when nobody calls `setLevel` during registration. The box soldier is only the
+  default `player_start` factory, which the player team already replaces.
+
+### Answers to Phase A questions from other teams
+- **Player:** `ctx.player()` is filled by **`ctx.setPlayer(query, index)`**, called by your code. That's what you
+  already do. Rocket/seek: `onUpdate`. Flame: `pierce: Infinity, rehitMs`. Grenade bounces: `data` + `onImpact`
+  returning true. Melee/POW interception: `damage.queryRect / queryCircle / deal`. Safe respawn: `flow.safeSpot`.
+  Aseprite pack entries are auto-registered with `createFromAseprite` in Preload (tags = global anim keys).
+- **FX:** **Preload owns `createFromAseprite`** for every `aseprite` pack entry, so FX doesn't call it again. Hitstop:
+  overlapping requests take the max (clamped 250 ms) and freeze physics, anims, tweens and timers. Use `rawDt` for
+  anything that should keep moving. Shake has tiers 1–4 and respects `settings.shake`. Everything is torn down on Game
+  SHUTDOWN (event bus cleared, updaters cleared).
+- **Enemies:** atlas per-frame durations are preserved (Phaser's aseprite loader). Scaled time: `ctx.onUpdate` dt /
+  `ctx.time.dt(delta)` / scene timers all freeze during hitstop. Wave-clear counting belongs to the Levels trigger
+  logic, not the engine.
+
+## Requests for other teams (Phase B)
+- **Player:** keep `alive()` false from the lethal hit until `game:respawn` (your current `state==='dead'` does this).
+  Your `kill` cheat override calls `die()`. That's good. Consider `rehitMs`/`onHit` for the flame.
+- **Enemies:** emit `enemy:shoot` at the muzzle socket. Add `x, y` to `boss:*` payloads. Your `boss`/`bossPhase` debug
+  fields override the engine defaults, which is intended.
+- **FX:** listen to `fx:emit`, `fx:zone`, `enemy:shoot`, `level:ready`. Optionally honor `settings.get().reducedFlash`.
+- **Levels:** call `ctx.setLevel` synchronously in `registerLevel` if you can (late calls work but rebuild colliders).
+  Emit `fx:zone` for ambience rects. Supply `waterSurfaceAt` if water isn't tile-based.
+- **UI/audio:** expose `reducedFlash` in Options. If your AudioService sets mute, use `applyMute` from core.
+- **QA:** `kill()` = player death, `killEnemies()` = old behavior, `hurt(n)` = immunity test, `state().god`,
+  `state().level.sandbox`.

@@ -1,7 +1,7 @@
 // Dev sandbox arena, built from an in-code tile array when no level team registered a level.
 // Exercises: ground, steps, a bottomless gap, one-way planks, a water pit, spikes, a wall, and an arena lock.
 import Phaser from 'phaser';
-import type { GameContext } from '../contracts';
+import type { GameContext, LevelQuery } from '../contracts';
 import { createTileLevelQuery } from '../physics';
 import { DEPTH } from '../depth';
 import { PAL, TEX } from '../textures';
@@ -21,6 +21,10 @@ const PROPS: Record<number, Record<string, unknown>> = {
     [STEEL]: { collides: true, material: 'metal' },
     [SPIKES]: { hazard: 'spikes', material: 'metal' }
 };
+
+const sandboxLevels = new WeakSet<LevelQuery>();
+/** True for the LevelQuery the dev sandbox built (state().level.sandbox, step-aside logic). */
+export function isSandboxLevel(q: LevelQuery): boolean { return sandboxLevels.has(q); }
 
 export const SANDBOX_ARENA = { x0: 112 * 16, x1: 112 * 16 + 384 };
 
@@ -84,6 +88,7 @@ function drawBackdrop(scene: Phaser.Scene, width: number, height: number): void 
 /** Builds the sandbox tilemap and hands it to ctx.setLevel. Returns the player start. */
 export function buildSandboxLevel(ctx: GameContext): { x: number; y: number } {
     const scene = ctx.scene;
+    const before = new Set(scene.children.list);
     const map = scene.make.tilemap({ data: buildGrid(), tileWidth: 16, tileHeight: 16 });
     const tiles = map.addTilesetImage(TEX.devTiles, TEX.devTiles, 16, 16, 0, 0);
     if (!tiles) throw new Error('sandbox tileset failed');
@@ -97,13 +102,15 @@ export function buildSandboxLevel(ctx: GameContext): { x: number; y: number } {
     drawBackdrop(scene, map.widthInPixels, map.heightInPixels);
 
     const start = { x: 48, y: GROUND * 16 };
-    ctx.setLevel(createTileLevelQuery({
+    const query = createTileLevelQuery({
         ground: layer,
         bounds: new Phaser.Geom.Rectangle(0, 0, map.widthInPixels, map.heightInPixels),
         playerStart: start,
         stage: 0,
         name: 'Dev Sandbox'
-    }));
+    });
+    sandboxLevels.add(query);
+    ctx.setLevel(query);
 
     // Targets: some static dummies plus an enemy turret inside the lock arena.
     const ground = GROUND * 16;
@@ -113,5 +120,16 @@ export function buildSandboxLevel(ctx: GameContext): { x: number; y: number } {
     ctx.spawn('dev', 'target', {}, 86 * 16, ground);
     ctx.spawn('dev', 'arena', { x0: SANDBOX_ARENA.x0, x1: SANDBOX_ARENA.x1 }, SANDBOX_ARENA.x0 + 120, ground);
     if (ctx.params.debug) ctx.spawn('prop', 'mystery_box', {}, 10 * 16, ground);
+
+    // Step aside if a real level calls setLevel later (e.g. a level team that builds its map asynchronously):
+    // everything the sandbox added to the display list (tiles, backdrop, dummies) is destroyed.
+    const created = scene.children.list.filter(o => !before.has(o));
+    const offReady = ctx.events.on('level:ready', e => {
+        if (e.sandbox) return;
+        offReady();
+        for (const o of created) if (o.scene) o.destroy();
+        map.destroy();
+        console.info('[sandbox] a real level registered: dev sandbox removed');
+    });
     return start;
 }

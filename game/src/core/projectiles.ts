@@ -41,6 +41,11 @@ export interface ProjectileSpec {
     lifetime?: number;
     /** How many extra hurtboxes it passes through (flame/rail). Default 0. Infinity = never stops on hurtboxes. */
     pierce?: number;
+    /**
+     * Phase B: with pierce, the same hurtbox may be hit again after this many ms of projectile age (flame tick
+     * damage per target). Default: each hurtbox is hit once per projectile.
+     */
+    rehitMs?: number;
     /** Hit radius in px. Default 2. */
     radius?: number;
     weapon?: string;
@@ -60,6 +65,11 @@ export interface ProjectileSpec {
      * you may change p.vx/p.vy inside. The `impact` object is reused: don't keep it.
      */
     onImpact?(p: Projectile, impact: ImpactInfo): boolean | void;
+    /**
+     * Phase B: called on every hurtbox hit that connected, including pierced ones (onImpact only sees the hit
+     * that stops the projectile). Use it for per-target effects (flame ignite, rocket bypass bookkeeping).
+     */
+    onHit?(p: Projectile, impact: ImpactInfo): void;
     /** Called every frame before moving with scaled dt in seconds (seeking, acceleration). Return false to kill. */
     onUpdate?(p: Projectile, dt: number): boolean | void;
     /** Called when the lifetime runs out (e.g. a grenade fuse or rocket fizzle). */
@@ -68,7 +78,7 @@ export interface ProjectileSpec {
     data?: Record<string, unknown>;
 }
 
-const MAX_PIERCE_MEMORY = 8;
+const MAX_PIERCE_MEMORY = 32;
 
 export class Projectile {
     readonly sprite: Phaser.GameObjects.Sprite;
@@ -80,6 +90,7 @@ export class Projectile {
     age = 0;
     lifetime = 0;
     pierce = 0;
+    rehitMs = 0;
     radius = 2;
     weapon: string | undefined;
     kind: HitInfo['kind'] = 'bullet';
@@ -89,9 +100,19 @@ export class Projectile {
     onImpact: ProjectileSpec['onImpact'];
     onUpdate: ProjectileSpec['onUpdate'];
     onExpire: ProjectileSpec['onExpire'];
+    onHit: ProjectileSpec['onHit'];
     data: Record<string, unknown> | undefined;
     /** Hurtboxes already hit (pierce), so one box is hit once per projectile. */
     readonly hitList: Hurtbox[] = [];
+    /** Projectile age (ms) when each hitList entry was hit (parallel array, for rehitMs). */
+    readonly hitAge: number[] = [];
+
+    /** Remember a hurtbox so it isn't hit again (until rehitMs). Oldest entry is dropped when full. */
+    remember(h: Hurtbox): void {
+        if (this.hitList.length >= MAX_PIERCE_MEMORY) { this.hitList.shift(); this.hitAge.shift(); }
+        this.hitList.push(h);
+        this.hitAge.push(this.age);
+    }
 
     constructor(scene: Phaser.Scene) {
         this.sprite = scene.add.sprite(0, 0, TEX.bullet).setActive(false).setVisible(false);
@@ -133,6 +154,7 @@ export class ProjectileSystem {
         p.age = 0;
         p.lifetime = s.lifetime ?? ENGINE.projectiles.defaultLifetimeMs;
         p.pierce = s.pierce ?? 0;
+        p.rehitMs = s.rehitMs ?? 0;
         p.radius = s.radius ?? ENGINE.projectiles.defaultRadius;
         p.weapon = s.weapon;
         p.kind = s.kind ?? 'bullet';
@@ -142,8 +164,10 @@ export class ProjectileSystem {
         p.onImpact = s.onImpact;
         p.onUpdate = s.onUpdate;
         p.onExpire = s.onExpire;
+        p.onHit = s.onHit;
         p.data = s.data;
         p.hitList.length = 0;
+        p.hitAge.length = 0;
 
         const spr = p.sprite;
         const tex = s.texture && this.scene.textures.exists(s.texture) ? s.texture : s.team === 'enemy' ? TEX.enemyBullet : TEX.bullet;
@@ -167,7 +191,15 @@ export class ProjectileSystem {
         const left = view.x - m, right = view.right + m, top = view.y - m * 3, bottom = view.bottom + m;
         for (let i = this.live.length - 1; i >= 0; i--) {
             const p = this.live[i];
-            if (p.active) this.step(p, dt, dtMs);
+            if (p.active) {
+                try {
+                    this.step(p, dt, dtMs);
+                } catch (e) {
+                    // A team callback (onUpdate/onImpact/onHit/onExpire) threw: drop this projectile, keep the rest.
+                    p.active = false;
+                    this.reportError(p, e);
+                }
+            }
             if (p.active && (p.x < left || p.x > right || p.y < top || p.y > bottom)) p.active = false;
             if (!p.active) {
                 this.recycle(p);
@@ -181,6 +213,11 @@ export class ProjectileSystem {
         if (p.onUpdate && p.onUpdate(p, dt) === false) { p.active = false; return; }
         if (!p.active) return;
         p.age += dtMs;
+        if (p.rehitMs > 0) {
+            for (let i = p.hitAge.length - 1; i >= 0; i--) {
+                if (p.age - p.hitAge[i] >= p.rehitMs) { p.hitList.splice(i, 1); p.hitAge.splice(i, 1); }
+            }
+        }
         if (p.age >= p.lifetime) {
             p.onExpire?.(p);
             p.active = false;
@@ -228,15 +265,16 @@ export class ProjectileSystem {
         info.x = p.x; info.y = p.y; info.dirX = p.vx / speed; info.dirY = p.vy / speed;
         if (!this.damage.deal(h, info)) {
             // Didn't connect (e.g. dying enemy): remember it and fly on.
-            if (p.hitList.length < MAX_PIERCE_MEMORY) p.hitList.push(h);
+            p.remember(h);
             return;
         }
         const imp = this.impact;
         imp.x = p.x; imp.y = p.y; imp.material = h.material ?? 'flesh'; imp.hurtbox = h;
         imp.normalX = 0; imp.normalY = 0;
+        p.onHit?.(p, imp);
         if (p.pierce > 0) {
             p.pierce--;
-            if (p.hitList.length < MAX_PIERCE_MEMORY) p.hitList.push(h);
+            p.remember(h);
             this.emitImpact(p);
             return;
         }
@@ -257,9 +295,10 @@ export class ProjectileSystem {
 
     private recycle(p: Projectile): void {
         p.active = false;
-        p.onImpact = p.onUpdate = p.onExpire = undefined;
+        p.onImpact = p.onUpdate = p.onExpire = p.onHit = undefined;
         p.data = undefined;
         p.hitList.length = 0;
+        p.hitAge.length = 0;
         p.sprite.stop();
         p.sprite.setActive(false).setVisible(false);
         this.pool.push(p);
@@ -277,6 +316,22 @@ export class ProjectileSystem {
     }
 
     get count(): number { return this.live.length; }
+
+    /** Phase B: live projectiles of one team. */
+    countTeam(team: Team): number {
+        let n = 0;
+        for (let i = 0; i < this.live.length; i++) if (this.live[i].active && this.live[i].team === team) n++;
+        return n;
+    }
+
+    private readonly reported = new Set<string>();
+
+    private reportError(p: Projectile, e: unknown): void {
+        const key = `${p.team}:${p.weapon ?? '?'}`;
+        if (this.reported.has(key)) return;
+        this.reported.add(key);
+        console.error(`[projectiles] callback of a '${key}' projectile threw (projectile removed; further errors for it muted):`, e);
+    }
 
     /** Iterate live projectiles (e.g. a shield that deflects enemy shots). */
     forEach(fn: (p: Projectile) => void): void {

@@ -75,7 +75,9 @@ export function spawnDevArena(ctx: GameContext, x: number, y: number, props: Rec
     const x0 = props.x0 as number, x1 = props.x1 as number;
     let state: 'idle' | 'locked' | 'done' = 'idle';
     let remaining = 0;
+    const level = ctx.level;
     const off = ctx.onUpdate(() => {
+        if (ctx.level !== level) { off(); return; } // sandbox replaced by a real level
         const p = ctx.player();
         if (state !== 'idle' || !p || p.x < x) return;
         state = 'locked';

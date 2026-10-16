@@ -87,7 +87,9 @@ export class CameraController implements CameraService {
     }
 
     flash(color: number, ms: number): void {
-        this.cam.flash(ms, (color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff, true);
+        const k = settings.get().reducedFlash ? 0.35 : 1;
+        if (k < 1) ms *= 0.5;
+        this.cam.flash(ms, ((color >> 16) & 0xff) * k, ((color >> 8) & 0xff) * k, (color & 0xff) * k, true);
     }
 
     leftEdge(): number { return this.locked ? Math.max(this.x, this.lockX0) : this.x; }
