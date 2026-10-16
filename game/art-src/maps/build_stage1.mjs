@@ -245,7 +245,7 @@ prop('alarm_light', 54, 15, { layer: 'back', on: false });
 prop('flag', 59, G - 4, { layer: 'back' });
 
 tr('checkpoint', 2, 3, 0, H - 1, { id: 'cp_camp' });
-tr('music', 0, 1, 0, H - 1, { key: 'stage1' });
+tr('music', 0, 1, 0, H - 1, { key: 'music_stage1' });
 tr('ambience', 0, 59, 0, H - 1, { fx: 'snow' });
 tr('prompt', 10, 13, 12, G - 1, { text: 'SHOOT: X   JUMP: Z' });
 tr('prompt', 45, 48, 12, G - 1, { text: 'BOMB: C' });
@@ -504,7 +504,7 @@ sp('boss', 414, G, { kind: 'moosezilla', lock: 'boss', wave: 1 }, 'moosezilla');
 
 tr('checkpoint', 360, 361, 0, H - 1, { id: 'cp_pen' });
 tr('checkpoint', 388, 389, 0, H - 1, { id: 'cp_boss' });
-tr('music', 389, 389, 0, H - 1, { key: 'boss1' });
+tr('music', 389, 389, 0, H - 1, { key: 'music_boss' });
 tr('camera_lock', 390, 419, 0, H - 1, { id: 'boss', release: 'clear', waves: 1 });
 tr('stage_end', 404, 417, 0, H - 1, { requires: 'boss' });
 tr('ambience', 360, 419, 0, H - 1, { fx: 'snow' });
@@ -609,7 +609,7 @@ function gid(cell) { if (!cell) return 0; return ((TILE[cell.name].id + 1) | (ce
 let out = '';
 out += '<?xml version="1.0" encoding="UTF-8"?>\n';
 out += `<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="${W}" height="${H}" tilewidth="${TS}" tileheight="${TS}" infinite="0" backgroundcolor="#6aa2dc" nextlayerid="7" nextobjectid="${spawns.length + triggers.length + 1}">\n`;
-out += propXml({ name: 'Pine Ridge Breakout', music: 'stage1', parallax: 'stage1',
+out += propXml({ name: 'Pine Ridge Breakout', music: 'music_stage1', parallax: 'stage1',
   sections: SECTIONS.map((s) => `${s.id}:${s.x0}-${s.x1}`).join(',') }, ' ');
 const tilecount = man.columns * man.rows;
 out += ` <tileset firstgid="1" name="stage1" tilewidth="${TS}" tileheight="${TS}" tilecount="${tilecount}" columns="${man.columns}">\n`;

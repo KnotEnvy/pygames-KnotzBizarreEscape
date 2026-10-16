@@ -1,6 +1,7 @@
 # Levels and content: Mission 1 "Pine Ridge Breakout"
 
-Phase A delivers art and data only: the tileset, props, the Mission 1 map, parallax assets and the asset pack. No `src/` code yet.
+Phase A delivered the art and data (tileset, props, the Mission 1 map, parallax assets, the asset pack). Phase B made the level run in the
+game: `src/level/**` and `src/config/tuning/level.ts` (see "Phase B: runtime" below).
 
 ## Build and preview
 
@@ -67,7 +68,7 @@ one-way and hazards), `front` (icicles, roots under overhangs, barbed wire, a fe
 
 ### Map properties
 - `name` = "Pine Ridge Breakout"
-- `music` = `stage1`
+- `music` = `music_stage1` (the audio catalog key; the boss music trigger uses `music_boss`)
 - `parallax` = `stage1`
 - `sections` = `prison_camp:0-60,pine_forest:60-170,river_bridge:170-250,regime_outpost:250-360,moose_pen:360-420` (in tiles)
 
@@ -155,49 +156,40 @@ Verified in `/tmp/kbe-level/plx_*.png`.
 Below the map's own sky (rows 0–10) the stack above shows. The camera background colour should be `#6aa2dc` (`sky4`) in case a
 strip is ever uncovered.
 
-## Phase B plan (`src/level/**`)
+## Phase B: runtime (`src/level/**`, `src/config/tuning/level.ts`)
 
-1. **`index.ts` → `registerLevel(ctx)`**
-   - Load the tilemap: `make.tilemap({ key: 'map_stage1' })`, `addTilesetImage('stage1', 'tiles_stage1')`. Create the 4 layers with the depths above.
-   - Pass `ground` to `createTileLevelQuery` with the bounds and the player start, plus a static group for solid props. Call `ctx.setLevel`.
-   - Register the `prop:*` factories. Then iterate `spawns` and route each object.
-   - Register debug: `level.section`, `level.lock`, `level.wave`, `level.pending`. Register a `boss` cheat that warps to `cp_boss`.
-   - Check that Tiled tile animations run on the normal `TilemapLayer` in 4.2.1 (the layer timer exists). If not, fall back to swapping
-     indices on a 140 ms timer for the 2 animated water tiles.
-2. **`spawner.ts`: camera activation**
-   - Proximity enemies, POWs and pickups are stored as **pending** and spawned once `camera.view()` (+32 px, +64 px for drones and
-     paratroopers) reaches them. Each spawns once per run.
-   - On respawn from a checkpoint (`game:continue`), pending objects behind the checkpoint stay consumed.
-   - Wave enemies (`lock` + `wave`) are held back for the lock controller.
-   - Props are spawned eagerly (they're cheap and static). Decor props (`layer`) are plain sprites at BG_NEAR or TILES_FRONT depth.
-3. **`props.ts`**
-   - Destructibles register a `Hurtbox` with material `wood` or `metal` and the manifest hp. They show their `damaged` frames.
-   - On death they emit an explosion (`s` for crates, `m` for explosive barrels with `damage.applyRadial`), spawn their `contains` pickup through
-     `ctx.spawn('pickup', kind, …)`, and play debris through FX events.
-   - Sandbag props are solid static bodies. Explosive barrels chain-react.
-   - Ambient behaviour: searchlight sweep, alarm blink on `camera:lock`, flag wave, bunker-door trickle spawns (capped, only while on screen),
-     and the gate smash on `boss:spawn` (the enemies team emits it).
-4. **`triggers.ts`**
-   - Each frame, test the player's feet point against the trigger rects (one-shot unless noted).
-   - `checkpoint` emits `checkpoint`. `music` calls `audio.music(key)`.
-   - `prompt` emits `ui:prompt` (once per run). `ambience` emits `fx:ambience` on enter and exit.
-   - `stage_end` (with `requires=boss`, armed after `boss:defeated`) emits `stage:clear`.
-5. **`locks.ts`: camera locks and waves**
-   - On entering a `camera_lock`, call `ctx.camera.lock(x0, x1)` and run wave 1. Spawn its enemies honouring `delay`; walk-ins come from offscreen
-     edges or bunker doors.
-   - When every enemy of a wave is dead, start the next wave. After the last wave (`release=clear`) or `time` seconds, call `unlock()`.
-   - The boss lock waits for `boss:defeated`.
-   - Track kills through `enemy:killed` plus a per-spawn id (factories return the GameObject; use its `destroy` event as a fallback).
-6. **`hazards.ts`**: the player and physics teams use `ctx.physics.hazardAt`. The level adds water splash and ripple FX events when bodies enter water
-   tiles, and a kill on spikes for non-player actors if needed.
-7. **`parallax.ts`**: builds the TileSprites, updates them in `ctx.onUpdate` from the camera, and crossfades forest to outpost. Snow and embers come
-   from FX through `fx:ambience`.
-8. **`tuning/level.ts`**: activation margins, the crossfade span, parallax factors and the prompt duration.
+| File | Job |
+|---|---|
+| `index.ts` | `registerLevel(ctx)`: builds the map and parallax, `ctx.setLevel(query)` (the engine sandbox then steps aside), registers prop anims and factories, spawns the player and every prop, runs spawner/arenas/triggers each frame, debug fields and the `warp`/`boss` cheats |
+| `map.ts` | Tilemap + the 4 layers (`bg_far_deco` TILES_BACK−2, `back` TILES_BACK, `ground` TILES_BACK+2, `front` TILES_FRONT), `createTileLevelQuery` (with `waterSurfaceAt`), Tiled object parsing, `sections` |
+| `parallax.ts` | Camera-fixed TileSprites per the plan above, crossfade forest → outpost. Updated at the scene's `PRE_RENDER` (after the engine camera moves at `POST_UPDATE`) with rounded offsets, so layers never lag the tiles or shimmer |
+| `animations.ts` | Rebuilds every `prop_*` animation from the cached Aseprite JSON (see Known gaps: Preload's `createFromAseprite` makes zero-frame anims for our `key#N` frame names) |
+| `props.ts` | `prop:<kind>` factories. Destructibles (crate, supply_crate, barrel, explosive_barrel, sandbag): neutral hurtbox from the manifest body, solid static body (players stand on them; stacked props fall when their support breaks), damaged frames, white hit flash, `fx:emit debris`, `crate_break`, `contains` → `ctx.spawn('pickup', kind, ...)`. Explosive barrels: `fx.explosion(m)` + `damage.applyRadial` (44 px, 6 dmg, neutral), chain reactions staggered 140 ms. Decor: `layer=back` at TILES_BACK+1 (behind the ground layer), `layer=front` above actors, else PROPS. Searchlight beam sweeps (ADD). Alarm lights (`on`, or lit while their `lock` arena runs). Bunker doors (`from=door` wave members, `spawns/count/interval` trickle while on screen). Gate (solid while closed, rumble, smash) |
+| `spawner.ts` | Proximity spawning, once per run: ground objects at view.right + 32 (enemies don't think beyond 32 px), drones + 64, paratroopers once their x is 64 px inside the view (they appear above the top edge and drift in). Objects > 96 px behind the view are skipped (warps). A factory that returns nothing (enemy cap) is retried |
+| `arenas.ts` | `camera_lock` arenas. Wave arena: locks when the camera is 48 px from its left edge → waves in order, members honour `delay` and `from=door`; members placed outside the walls spawn 12 px inside with ≤ 20 px patrol (enemies freeze > 32 px off-view and don't walk in); every member dead → next wave after 700 ms; last wave → unlock after 600 ms (`camera:unlock`, the UI's "GO!"). `release=time` (+ `time` s) supported. Boss arena: starts when the gate is on screen → 1.3 s gate rumble → smash → `ctx.spawn('boss', 'moosezilla', {arenaX0, arenaX1, facing})`; Moosezilla locks the camera itself and unlocks on `boss:defeated`. A foreign unlock (warp) relocks while the player is inside, otherwise abandons a wave arena (a live boss arena waits) |
+| `triggers.ts` | `checkpoint` and `music` fire on crossing the strip's left edge; `prompt` once when the feet are inside (`ui:prompt`, 3.5 s); `ambience` rects are published as `fx:zone` at load and `fx:ambience` follows the innermost zone; `stage_end` → `stage:clear` (`requires=boss` armed by `boss:defeated`) |
+
+Hazards need no level code: water and spike tiles are non-colliding `hazard` tiles, so the player falls in and its
+`hazardAt(x, feet − 2)` check kills it (verified for both); FX places the splash with `waterSurfaceAt`. Water tiles animate natively:
+Phaser 4's `TilemapLayer.preUpdate` advances `timeElapsed` and the WebGL renderer draws `getAnimatedTileId` (verified in game: 289→292 cycle).
+
+**Debug / QA:** `__KBE.state()` gains `section`, `arena` (`{active, state, wave, waves, alive, pending, x0, x1, arenas: "bridge:done bunker:idle boss:idle"}`)
+and `level` (`{name, section, checkpoint, pending, spawned, skipped, gate}`). Cheats: `warp(x)` lands on the standable, hazard-free surface nearest
+the player's current height (± 64 px sideways off walls; the engine default took the first surface from the top, e.g. the end pillar at x 6719,
+which froze the boss off-view); `boss()` warps to `cp_boss` (walk right: the gate rumbles and MOOSEZILLA bursts out).
+
+**See it** (from the repo root, `node game/tools/shot.mjs --out /tmp/kbe-level/<name>.png --query "scene=Game&mute=1&god=1&x=<X>"`):
+`x=400` camp + watchtower, `x=900` turret emplacement, `x=1900` giant pines, `x=2800` rope bridge + paratroopers, `x=3080` then
+`--steps '[{"hold":"ArrowRight","ms":2000}]'` bridge arena lock, `x=4200` outpost (outpost backdrop), `x=5000` + hold right 2800 ms bunker arena
+(doors open), `x=5900` moose pen, `x=6200` + hold right 1200 ms boss gate rumble/smash.
 
 ## Known gaps
-- Animated tiles still need checking in the running game (Phase B).
-- The props haven't been seen in the game yet, only in previews. The gate's `smashed` frame is a breach rather than doors peeled outward.
+- Enemy props the level passes but the Enemies team doesn't handle yet: `idle` (`sleep`/`crouch`/`flee`), `mount` (turret base), `from=door`
+  (the level opens the door and spawns at it; the enemy just patrols). Enemies never walk toward the player, so wave members that start far
+  away only engage when the player approaches.
+- Stacked crates (and the lower crate row) sit below the standing shot line: crouch-shoot or grenade them.
+- The giant pines' needle tiers are at rows 2–4, above the resting camera, so in the forest they mostly read as tall trunks unless the camera climbs.
+- Water tiles animate on real time (the layer timer isn't hitstop-scaled); invisible in practice.
 - Turret mounts (`sandbag`, `roof`, `pedestal`) assume the enemies team draws the turret standing on its base. The `wall` style isn't used.
-- The giant trees' needle tiers are back-layer art. Only the brown branch tiles are platforms, so this needs a playtest for readability.
 - The bridge rope sag is a fixed 7-segment curve resampled per span. Handrails are back layer only (there's no front rope).
 - The hand-made haze is very subtle and could be dropped if it reads as noise at 5× scale.

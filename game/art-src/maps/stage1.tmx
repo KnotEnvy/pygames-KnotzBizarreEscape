@@ -2,7 +2,7 @@
 <map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="420" height="24" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#6aa2dc" nextlayerid="7" nextobjectid="171">
  <properties>
   <property name="name" value="Pine Ridge Breakout"/>
-  <property name="music" value="stage1"/>
+  <property name="music" value="music_stage1"/>
   <property name="parallax" value="stage1"/>
   <property name="sections" value="prison_camp:0-60,pine_forest:60-170,river_bridge:170-250,regime_outpost:250-360,moose_pen:360-420"/>
  </properties>
@@ -2172,7 +2172,7 @@
   </object>
   <object id="147" type="music" x="0" y="0" width="32" height="384">
    <properties>
-    <property name="key" value="stage1"/>
+    <property name="key" value="music_stage1"/>
    </properties>
   </object>
   <object id="148" type="ambience" x="0" y="0" width="960" height="384">
@@ -2276,7 +2276,7 @@
   </object>
   <object id="167" type="music" x="6224" y="0" width="16" height="384">
    <properties>
-    <property name="key" value="boss1"/>
+    <property name="key" value="music_boss"/>
    </properties>
   </object>
   <object id="168" type="camera_lock" x="6240" y="0" width="480" height="384">

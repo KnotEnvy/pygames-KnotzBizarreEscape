@@ -26,7 +26,7 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, arr) =>
 const [w, h] = (args.size || '1152x648').split('x').map(Number);
 const out = args.out || '/tmp/kbe-shot.png';
 
-const server = await createServer({ root, configFile: path.join(root, 'vite.config.ts'), server: { port: 0, host: '127.0.0.1', strictPort: false }, logLevel: 'error' });
+const server = await createServer({ root, configFile: path.join(root, 'vite.config.ts'), server: { port: 0, host: '127.0.0.1', strictPort: false, hmr: false, watch: null }, logLevel: 'error' });
 await server.listen();
 const addr = server.httpServer.address();
 const url = `http://127.0.0.1:${addr.port}/?${args.query || ''}`;

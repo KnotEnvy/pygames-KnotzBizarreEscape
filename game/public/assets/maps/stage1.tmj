@@ -4015,7 +4015,7 @@
                         {
                          "name":"key",
                          "type":"string",
-                         "value":"stage1"
+                         "value":"music_stage1"
                         }],
                  "rotation":0,
                  "type":"music",
@@ -4395,7 +4395,7 @@
                         {
                          "name":"key",
                          "type":"string",
-                         "value":"boss1"
+                         "value":"music_boss"
                         }],
                  "rotation":0,
                  "type":"music",
@@ -4481,7 +4481,7 @@
         {
          "name":"music",
          "type":"string",
-         "value":"stage1"
+         "value":"music_stage1"
         }, 
         {
          "name":"name",
