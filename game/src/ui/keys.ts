@@ -8,14 +8,19 @@ const NAMES = new Map<number, string>();
 for (const [name, code] of Object.entries(CODES)) if (typeof code === 'number' && !NAMES.has(code)) NAMES.set(code, name);
 
 const held = new Set<number>();
+/** keyCode → performance.now() of the press that started the current hold (auto-repeat doesn't refresh it). */
+const downAt = new Map<number, number>();
 let installed = false;
 
 function install(): void {
     if (installed || typeof window === 'undefined') return;
     installed = true;
-    window.addEventListener('keydown', e => { held.add(e.keyCode); }, true);
-    window.addEventListener('keyup', e => { held.delete(e.keyCode); }, true);
-    window.addEventListener('blur', () => held.clear());
+    window.addEventListener('keydown', e => {
+        if (!held.has(e.keyCode)) downAt.set(e.keyCode, performance.now());
+        held.add(e.keyCode);
+    }, true);
+    window.addEventListener('keyup', e => { held.delete(e.keyCode); downAt.delete(e.keyCode); }, true);
+    window.addEventListener('blur', () => { held.clear(); downAt.clear(); });
 }
 
 /** Is any keyboard key bound to one of these actions physically held right now? */
@@ -32,6 +37,28 @@ export function anyBoundKeyHeld(actions: readonly Action[]): boolean {
 
 export function keyCodeOf(name: string): number | undefined {
     return CODES[name];
+}
+
+/** Physically held DOM keyCodes right now (page-wide tracker). */
+export function heldKeyCodes(): ReadonlySet<number> {
+    install();
+    return held;
+}
+
+/** When the key's current hold started (performance.now()), or undefined if it isn't held. */
+export function keyDownTime(code: number): number | undefined {
+    install();
+    return downAt.get(code);
+}
+
+/** DOM keyCodes bound to an action (settings.keys), resolved through Phaser's KeyCodes. */
+export function boundKeyCodes(action: Action): number[] {
+    const out: number[] = [];
+    for (const name of settings.get().keys[action] ?? []) {
+        const code = CODES[name];
+        if (code !== undefined) out.push(code);
+    }
+    return out;
 }
 
 /** Phaser KeyCodes name for a DOM keyCode (e.g. 27 → 'ESC'), or null if Phaser has no name for it. */

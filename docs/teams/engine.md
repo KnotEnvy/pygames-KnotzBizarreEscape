@@ -250,7 +250,15 @@ You can also implement `LevelQuery` yourself. `solidAt` must return **false** fo
 ## 8. Camera: `ctx.camera`
 
 The camera has Metal Slug behavior: it **never scrolls back left**, follows smoothly with a deadzone and look-ahead, and
-follows vertically inside the level bounds. It follows `ctx.player()` automatically, so you don't call `follow`.
+follows vertically by **platform height** inside the level bounds (it holds through jumps and follows on landing or once a
+fall drops below the window). It follows `ctx.player()` automatically, so you don't call `follow`. Grounded detection
+reads the player sprite's Arcade body (`blocked.down || touching.down`).
+
+**Shake** is a scroll-space offset the engine applies at POST_UPDATE (not Phaser's `cam.shake`). It never shows anything
+outside the world bounds: an offset that would cross an edge is mirrored back inside, so shakes against the level
+edges keep their full amplitude. `view()`, `leftEdge()`/`rightEdge()` and `clampX()` stay on the steady camera, so
+gameplay never jitters with the shake. Camera-fixed layers (`scrollFactor 0`) don't shake, and parallax layers shake by
+their scroll factor. **Levels:** no overscan is needed.
 
 ```ts
 ctx.camera.lock(x0, x1);   // arena: eased transition there, emits camera:lock. Levels call this from camera_lock triggers
@@ -309,6 +317,12 @@ Other flow behavior:
 
 - **URL params:** `?scene=Game&stage=1&x=2400&god=1&debug=1&mute=1&seed=42&difficulty=casual&fast=1`.
   - `x` warps the player on start.
+  - **Production gating:** cheats (`?god`, `?x` and every `__KBE.cheats.*`) are live in dev mode (`npm run dev`, QA's
+    Playwright server) or with `?debug=1`. A production build (`npm run build`) without `?debug=1` ignores `?god`/`?x`,
+    and each cheat becomes a no-op that warns once. Check with `__KBE.cheatsEnabled` (page) or `ctx.debug.cheatsEnabled`
+    (game code). Gate your own QA-only fixtures on `ctx.debug.cheatsEnabled`. The read-only hooks (`ready`, `state()`,
+    `press()`) and the dev sandbox fallback stay in production, which is harmless: the sandbox only builds when no
+    level registered.
   - `fast` is read by the UI team to skip intros (`ctx.params.fast` / `PARAMS.fast`).
 - **`?debug=1` overlay:**
   - FPS, time scale, camera/lock, player position, projectile count and hurtbox counts.
@@ -355,6 +369,49 @@ Other flow behavior:
 
 
 ---
+
+## Changelog (Phase D)
+
+- **KBE-QA-E02 fixed (camera shake strips).** The engine owns the shake now (see §8): a scroll-space offset mirrored
+  inside the world bounds, using the same tiers and amplitudes (`intensity × view size`, tier 4 = ±8.4 × ±4.75 px) and a
+  √ ease-out envelope that holds near full for the first frames. A weaker shake never cuts a stronger one short. It runs
+  on real time, so it keeps shaking through hitstop. Evidence: `fx.shake(4)` at `x=32` (camera 0,168, the world's
+  bottom-left corner) and after `warp(6680)` (camera 6336,168, bottom-right corner). Six captures each show no strips.
+  Sampled offsets were `+1..+7 x / −4..0 y` on the left and `−8..0 x / −4..0 y` on the right: full amplitude, folded
+  inward. Probe: `/tmp/kbe-engine/shake.mjs`.
+- **Camera feel pass (tuning `ENGINE.camera`).** Measured with the real player on the keyboard (hold right plus hops or
+  held jumps, a turn-around, 8 s per section; probe `/tmp/kbe-engine/camfeel.mjs`):
+
+  | Section (start x) | Camera y movement during same-level hops, before → after | Max cam y step/frame, before → after |
+  |---|---|---|
+  | Camp (420) | 0 (clamped at the bottom) → ≤6.7 px (landing on a higher deck) | 0 → 0.95 |
+  | Forest (1000) | 16.4 → 4.0 px | 0.93 → 0.49 |
+  | Pines climb (1900) | 14.5 → 0 px | 0.84 → 0 |
+  | Bridge (2760) | 37.4 → only the real fall through the x≈3000 gap | 1.98 → 6.5 (that fall) |
+  | Outpost catwalks (4250) | 46.2 → only real roof drops | 5.1 → 8.7 (a 110 px roof drop, tracked at fall speed) |
+
+  The cause was that vertical follow tracked the airborne player through an 18 px deadzone, so every jump bobbed the
+  view. The camera now follows the standing center (feet − 16, so crouching doesn't move it) only while grounded
+  (`deadzoneY` 6). In the air it holds unless the player rises more than `airUp` 72 (a full jump is about 56) or drops
+  more than `airDown` 24 below. Falls catch up at `followRateFall` 9 and other moves at `followRateY` 3.5. Hard margins
+  (`marginBottom` 28, `marginTop` 24) keep the player on screen in long drops. Horizontal tuning is unchanged: it was
+  already steady. Caught up, the player sits at 37% of the view width (p10–p90 33–39%), with max horizontal scroll
+  2.3 px/frame and no backward drift when turning to shoot behind.
+- **Production build verified.** `npm --prefix game run build` produces `game/dist` (index 211 kB, phaser 1.37 MB).
+  `vite preview` (Title, and Game at `?scene=Game`) and a plain static server under the sub-path `/games/kbe/` both
+  load every asset with the `./` base. There are no failed requests and no console errors.
+- **Missing `engine` asset pack added** (`public/assets/packs/engine.json`, empty). Boot always fetched it. Vite's
+  dev/preview SPA fallback hid this, but a real static host answered with a 404 console error.
+- **Cheats gated in production** (see §11): `CHEATS_ENABLED` in `params.ts`, `__KBE.cheatsEnabled`, and
+  `ctx.debug.cheatsEnabled` (new, additive in `DebugService`).
+
+## Requests for other teams (Phase D)
+
+- **Lead:** `package.json` already has `"selftest": "node tools/engine-selftest.mjs"`. Please keep it, and consider
+  adding `npm run selftest` to `check` or CI. It boots its own Vite server and takes about 15 s.
+- **Enemies:** `?enemytest=` (and `window.__KBE_ENEMYTEST`, which can set the boss HP) is live in production builds.
+  Gate it with `if (test && ctx.debug.cheatsEnabled && ...)` in `src/entities/enemies/index.ts`.
+- **Levels:** no shake overscan is needed (E02 is fixed in the engine).
 
 ## Changelog (Phase C: rules review fixes, `docs/teams/rules-review.md`)
 

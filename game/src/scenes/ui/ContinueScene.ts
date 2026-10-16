@@ -9,9 +9,9 @@ import { C, F, W, dimmer, frameOf, pad, text } from '../../ui/widgets';
 import { Callout } from '../../ui/callout';
 import { MenuInput } from '../../ui/input';
 import { wipeOut } from '../../ui/transitions';
-import { uiDebug, uiLog } from '../../ui';
+import { uiLog } from '../../ui';
 
-type State = 'count' | 'over' | 'leaving';
+type State = 'count' | 'over' | 'continuing' | 'leaving';
 
 export class ContinueScene extends Phaser.Scene {
     private ctx!: GameContext;
@@ -23,6 +23,7 @@ export class ContinueScene extends Phaser.Scene {
     private acc = 0;
     private blink = 0;
     private overT = 0;
+    private waitT = 0;
     private state: State = 'count';
 
     constructor() { super('Continue'); }
@@ -61,13 +62,14 @@ export class ContinueScene extends Phaser.Scene {
 
     private continueGame(): void {
         if (this.state !== 'count') return;
-        this.state = 'leaving';
+        this.state = 'continuing';
+        this.waitT = 0;
         uiLog('continue:continue');
-        uiDebug.traceInput = 8;
         const audio = getAudio(this);
         audio.sfx('ui_start');
         audio.music(null, { fade: 150 });
-        this.ctx.flow.continueGame();
+        this.number.setVisible(false);
+        this.press.setVisible(false);
     }
 
     private gameOver(): void {
@@ -102,6 +104,14 @@ export class ContinueScene extends Phaser.Scene {
         } else if (this.state === 'over') {
             this.overT += dt;
             if (this.overT > UI.continue.gameOverHoldMs || (this.overT > 800 && this.menuInput.any)) this.leave();
+        } else if (this.state === 'continuing') {
+            // Hand off only once the confirm key is up, so the Game doesn't read this press as a pause.
+            this.waitT += dt;
+            if (!this.menuInput.anyHeld || this.waitT > 1500) {
+                this.state = 'leaving';
+                uiLog('continue:handoff');
+                this.ctx.flow.continueGame();
+            }
         }
     }
 }

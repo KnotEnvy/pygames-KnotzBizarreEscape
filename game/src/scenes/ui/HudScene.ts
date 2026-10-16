@@ -8,7 +8,7 @@ import { UI } from '../../config/tuning/ui';
 import { C, F, W, WEAPON_NAMES, frameOf, hasAnim, icon, pad, panel, text } from '../../ui/widgets';
 import { Callout } from '../../ui/callout';
 import { fadeOut, wipeIn } from '../../ui/transitions';
-import { uiDebug, uiLog } from '../../ui';
+import { uiDebug } from '../../ui';
 
 interface Popup { t: Phaser.GameObjects.BitmapText; wx: number; wy: number; age: number }
 
@@ -297,11 +297,6 @@ export class HudScene extends Phaser.Scene {
         if (!this.ctx) return;
         const dt = Math.min(100, delta);
         this.clock += dt;
-        if (uiDebug.traceInput > 0) {
-            uiDebug.traceInput--;
-            const i = this.ctx.input;
-            uiLog(`trace pause=${i.isDown('pause')}/${i.justDown('pause')} confirm=${i.isDown('confirm')}/${i.justDown('confirm')} over=${this.ctx.flow.over} paused=${this.scene.isPaused('Game')}`);
-        }
         // score tally
         if (this.shownScore !== this.score) {
             const diff = this.score - this.shownScore;

@@ -70,6 +70,11 @@ local BG_MAP = {
   sand5 = "sand3", sand4 = "sand2", sand3 = "sand2", sand2 = "sand1", sand1 = "outline",
   fire4 = "sand2", fire5 = "sand3", fire3 = "sand2", red3 = "red2", red4 = "red2",
 }
+-- background rock: same remap with the cobble shading and mortar squeezed together, so the back cliffs read as one
+-- quiet mass behind the combat lanes instead of a busy high-contrast stone pattern
+local BG_ROCK_MAP = {}
+for k, v in pairs(BG_MAP) do BG_ROCK_MAP[k] = v end
+BG_ROCK_MAP.ink6 = "ink3"; BG_ROCK_MAP.ink5 = "ink3"; BG_ROCK_MAP.ink4 = "ink2"; BG_ROCK_MAP.ink3 = "ink2"; BG_ROCK_MAP.outline = "ink1"
 local REV = {}
 for n, c in pairs(K.PAL) do REV[app.pixelColor.rgba(c[1], c[2], c[3], 255)] = n end
 local function remap(t, map)
@@ -343,7 +348,7 @@ for mat, row in pairs(TERRAIN_ROWS) do
     local material = m.material
     if mask and (mask & N ~= 0) and (mat == "ground" or mat == "rock") then material = "snow" end
     put(col, row, mat .. "_" .. name, t, { collides = true, material = material })
-    put(col, row + 4, mat .. "_bg_" .. name, remap(t, BG_MAP), {})
+    put(col, row + 4, mat .. "_bg_" .. name, remap(t, mat == "rock" and BG_ROCK_MAP or BG_MAP), {})
   end
   for mask = 0, 15 do both(mask, "m" .. mask, terrainTile(mat, mask, 0), mask) end
   for i, ic in ipairs({ "tl", "tr", "bl", "br" }) do both(15 + i, "ic_" .. ic, terrainTile(mat, 0, 0, { ic = ic })) end

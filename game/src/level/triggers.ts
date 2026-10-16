@@ -5,6 +5,10 @@
 //   ambience:           every rect is published to FX as an fx:zone at load; entering/leaving also emits
 //                       fx:ambience with the innermost zone's kind (FX prefers zones when one is on camera).
 //   stage_end:          inside the rect → stage:clear (requires=boss: armed only after boss:defeated).
+//   boss clear:         boss:defeated (emitted after the death chain) → stage:clear by itself after a short beat,
+//                       wherever the player stands, so the climax never ends in an invisible-trigger hunt. It waits
+//                       while the player is dead/respawning, and briefly for them to land so the victory pose is grounded.
+import type Phaser from 'phaser';
 import type { GameContext } from '../core';
 import { LEVEL } from '../config/tuning/level';
 import { str, type LevelObject } from './types';
@@ -17,13 +21,20 @@ export class TriggerSystem {
     private readonly ambience: LevelObject[];
     private currentAmbience: Ambience | null | undefined = undefined;
     private bossDown = false;
+    /** ms left before the automatic boss clear (-1 = not armed). */
+    private clearTimer = -1;
+    /** ms spent waiting for the player to land after the clear beat. */
+    private landWait = 0;
     private cleared = false;
     lastCheckpoint = '';
 
     constructor(private readonly ctx: GameContext, private readonly triggers: LevelObject[]) {
         this.ambience = triggers.filter(t => t.type === 'ambience' && AMBIENCES.has(str(t.props.fx)))
             .sort((a, b) => a.width * a.height - b.width * b.height);
-        ctx.events.on('boss:defeated', () => { this.bossDown = true; });
+        ctx.events.on('boss:defeated', () => {
+            this.bossDown = true;
+            if (this.clearTimer < 0) this.clearTimer = LEVEL.boss.clearDelayMs;
+        });
     }
 
     /** Publish ambient zones to FX (call once the level is ready). */
@@ -33,9 +44,10 @@ export class TriggerSystem {
         }
     }
 
-    update(): void {
+    update(dt: number): void {
         const p = this.ctx.player();
         if (!p) return;
+        if (this.clearTimer >= 0 && !this.cleared) this.tickBossClear(p, dt);
         const x = p.x, y = p.y - 1;
         for (const t of this.triggers) {
             if (this.fired.has(t)) continue;
@@ -58,9 +70,8 @@ export class TriggerSystem {
                 case 'stage_end':
                     if (this.cleared || !inside(t, x, y)) break;
                     if (str(t.props.requires) === 'boss' && !this.bossDown) break;
-                    this.cleared = true;
                     this.fired.add(t);
-                    this.ctx.events.emit('stage:clear', { stage: this.ctx.level.stage ?? LEVEL.map.stage });
+                    this.clear();
                     break;
             }
         }
@@ -71,6 +82,22 @@ export class TriggerSystem {
             this.currentAmbience = kind;
             this.ctx.events.emit('fx:ambience', { kind });
         }
+    }
+
+    private tickBossClear(p: NonNullable<ReturnType<GameContext['player']>>, dt: number): void {
+        if (this.ctx.flow.over || this.ctx.flow.isDead() || !p.alive()) return; // resumes after the respawn
+        if (this.clearTimer > 0) { this.clearTimer = Math.max(0, this.clearTimer - dt); return; }
+        const body = (p.sprite as Phaser.GameObjects.Sprite).body as Phaser.Physics.Arcade.Body | null;
+        const grounded = !body || body.blocked.down || body.touching.down;
+        if (!grounded && (this.landWait += dt) < LEVEL.boss.clearLandWaitMs) return;
+        this.clear();
+    }
+
+    private clear(): void {
+        if (this.cleared) return;
+        this.cleared = true;
+        this.clearTimer = -1;
+        this.ctx.events.emit('stage:clear', { stage: this.ctx.level.stage ?? LEVEL.map.stage });
     }
 
     private checkpoint(t: LevelObject, px: number, py: number): void {

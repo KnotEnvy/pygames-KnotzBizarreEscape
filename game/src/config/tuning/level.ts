@@ -34,7 +34,9 @@ export const LEVEL = {
         /** Default for `release=time` when the trigger has no `time` (seconds) property. */
         defaultReleaseSec: 20,
         /** Door enemies step out this long after the door starts opening. */
-        doorDelayMs: 260
+        doorDelayMs: 260,
+        /** "WAVE n/N" / "FINAL WAVE!" prompt time at each wave start. */
+        waveCallMs: 1600
     },
 
     boss: {
@@ -42,7 +44,11 @@ export const LEVEL = {
         rumbleMs: 1300,
         /** The intro starts when the view's right edge is this far past the gate's centre. */
         gateOnScreen: 16,
-        smashExplosion: 'l' as const
+        smashExplosion: 'l' as const,
+        /** boss:defeated (end of the death chain) → automatic stage:clear after this beat (covers FX's 0.9 s slow-mo). */
+        clearDelayMs: 1400,
+        /** Then wait at most this long for an airborne player to land, so the victory pose plays on the ground. */
+        clearLandWaitMs: 1500
     },
 
     /** Parallax stack (see docs/teams/level.md). y = offset + (restScrollY - camY) * sfY; tilePositionX = camX * sfX. */

@@ -28,8 +28,9 @@ F.build('fx_foliage',12,12,{
 })
 local embers={}
 for i=1,4 do embers[#embers+1]=F.anim('fx_embers_v'..i,1,100,function(im)
- F.line(im,3,5,4,2,'fire2',i<3 and 1 or 2)
- F.line(im,3,4,4,2,'fire4'); F.px(im,4,2,i%2==0 and 'fire6' or 'fire5')
+ -- Thin ochre slivers, no red core/round bullet silhouette or additive white bloom.
+ F.line(im,2,5,5,2,'sand3')
+ F.line(im,3,4,5,2,i%2==0 and 'sand4' or 'dirt4')
 end) end
 F.build('fx_embers',8,8,embers)
 F.build('fx_firefly',12,12,{F.anim('fx_firefly_pulse',4,{180,140,180,220},function(im,f)

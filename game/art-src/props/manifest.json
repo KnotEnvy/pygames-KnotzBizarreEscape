@@ -260,6 +260,25 @@
     "notes": "Tutorial sign: bomb + BOMB."
   },
   {
+    "key": "prop_sign_crouch",
+    "kind": "sign_crouch",
+    "png": "assets/sprites/props/prop_sign_crouch.png",
+    "json": "assets/sprites/props/prop_sign_crouch.json",
+    "w": 32,
+    "h": 32,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_sign_crouch_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Tutorial sign: down triangle + plus, FIRE (crouch shot)."
+  },
+  {
     "key": "prop_sign_shoot",
     "kind": "sign_shoot",
     "png": "assets/sprites/props/prop_sign_shoot.png",

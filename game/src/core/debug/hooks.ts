@@ -2,11 +2,13 @@
 //   __KBE.ready, __KBE.game, __KBE.version, __KBE.state(), __KBE.press(action, ms)
 //   __KBE.cheats.{god,warp,give,kill,killEnemies,hurt,bombs,boss}
 // kill() kills the PLAYER (QA's death/game-over flow); killEnemies() clears every live enemy hurtbox.
+// Cheats are gated by CHEATS_ENABLED (dev mode or ?debug=1): in a production build without ?debug=1 every cheat
+// is a no-op that warns once. state(), press() and ready stay available everywhere (they can't change the run).
 import Phaser from 'phaser';
 import type { Action, DebugService, GameContext, HitInfo, Hurtbox } from '../contracts';
 import { ACTIONS } from '../contracts';
 import { liveInputs } from '../input';
-import { PARAMS } from '../params';
+import { CHEATS_ENABLED, PARAMS } from '../params';
 import { isSandboxLevel } from '../dev/sandboxLevel';
 
 type CheatFn = (...args: never[]) => void;
@@ -41,7 +43,8 @@ export function registerDebug(key: string, fn: () => unknown): void {
 export const debugService: DebugService = {
     register(key, fn) { extras.set(key, fn); runKeys.add(key); },
     cheat(name, fn) { cheatOverrides.set(name, fn); },
-    get enabled() { return PARAMS.debug; }
+    get enabled() { return PARAMS.debug; },
+    get cheatsEnabled() { return CHEATS_ENABLED; }
 };
 
 /** Engine: the GameScene's context (null when Game isn't running). */
@@ -162,8 +165,14 @@ const defaultCheats = {
     }
 };
 
+let cheatWarned = false;
+
 function cheat<K extends keyof typeof defaultCheats>(name: K): (typeof defaultCheats)[K] {
     return ((...args: unknown[]) => {
+        if (!CHEATS_ENABLED) {
+            if (!cheatWarned) { cheatWarned = true; console.warn('[__KBE.cheats] disabled in this build; add ?debug=1 to the URL'); }
+            return;
+        }
         const o = cheatOverrides.get(name);
         if (o) (o as (...a: unknown[]) => void)(...args);
         else (defaultCheats[name] as (...a: unknown[]) => void)(...args);
@@ -217,6 +226,8 @@ export interface KbeHandle {
     game: Phaser.Game | null;
     version: string;
     state(): Record<string, unknown>;
+    /** False in a production build without ?debug=1: every cheat is then a no-op. */
+    cheatsEnabled: boolean;
     cheats: {
         god(on?: boolean): void; warp(x: number): void; give(weapon: string, ammo?: number): void; kill(): void;
         killEnemies(): void; hurt(damage?: number): void; bombs(n?: number): void; boss(): void;
@@ -237,6 +248,7 @@ export function installKbe(game: Phaser.Game, version: string): KbeHandle {
         game,
         version,
         state: snapshot,
+        cheatsEnabled: CHEATS_ENABLED,
         cheats: {
             god: cheat('god'), warp: cheat('warp'), give: cheat('give'), kill: cheat('kill'), killEnemies: cheat('killEnemies'),
             hurt: cheat('hurt'), bombs: cheat('bombs'), boss: cheat('boss')

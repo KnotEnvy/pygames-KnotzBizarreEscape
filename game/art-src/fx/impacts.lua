@@ -81,3 +81,22 @@ F.build('fx_death_poof',48,48,{F.anim('fx_death_poof_burst',8,{40,50,60,70,80,90
  end
  if f<4 then F.star(im,24,24,8-f,11-f,'ink6',.1) end
 end)})
+
+-- Pale, cool powder: snow gets its own painted puff, never brown chips.
+F.build('fx_impact_snow',32,24,{F.anim('fx_impact_snow_burst',6,45,function(im,f)
+ local t=(f-1)/5
+ for j=1,5 do local a=pi+pi*j/6
+  local d=3+t*10; local r=(3.5+sin(j))*(1-t*.82)
+  F.roll(im,16+cos(a)*d,20+sin(a)*d-t*3,r,r*.72,{'steel3','sky3','sky4','sky5','ink6'},j+t,1)
+ end
+ for j=1,4 do F.px(im,16+(j-2.5)*(2+t*5),18-t*16+5*t*t,'ink6') end
+end)},'16,20')
+-- Broken vertical heat ribbons, distinct from cannon glow and the low charge dust.
+F.build('fx_heat',16,24,{F.anim('fx_heat_reach',6,65,function(im,f)
+ for j=1,2 do
+  local x=4+j*4; local y=22-f*2-j
+  F.line(im,x,y,x-2,y-3,'sand3')
+  F.line(im,x-2,y-3,x,y-6,'fire4')
+  F.px(im,x+2,y-8,'sand4')
+ end
+end)})

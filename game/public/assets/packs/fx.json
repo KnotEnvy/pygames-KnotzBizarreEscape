@@ -17,6 +17,8 @@
     {"type":"aseprite","key":"fx_debris_metal","textureURL":"assets/sprites/fx/fx_debris_metal.png","atlasURL":"assets/sprites/fx/fx_debris_metal.json"},
     {"type":"aseprite","key":"fx_debris_wood","textureURL":"assets/sprites/fx/fx_debris_wood.png","atlasURL":"assets/sprites/fx/fx_debris_wood.json"},
     {"type":"aseprite","key":"fx_debris_rock","textureURL":"assets/sprites/fx/fx_debris_rock.png","atlasURL":"assets/sprites/fx/fx_debris_rock.json"},
+    {"type":"aseprite","key":"fx_impact_snow","textureURL":"assets/sprites/fx/fx_impact_snow.png","atlasURL":"assets/sprites/fx/fx_impact_snow.json"},
+    {"type":"aseprite","key":"fx_heat","textureURL":"assets/sprites/fx/fx_heat.png","atlasURL":"assets/sprites/fx/fx_heat.json"},
     {"type":"aseprite","key":"fx_impact_dirt","textureURL":"assets/sprites/fx/fx_impact_dirt.png","atlasURL":"assets/sprites/fx/fx_impact_dirt.json"},
     {"type":"aseprite","key":"fx_impact_metal","textureURL":"assets/sprites/fx/fx_impact_metal.png","atlasURL":"assets/sprites/fx/fx_impact_metal.json"},
     {"type":"aseprite","key":"fx_impact_wood","textureURL":"assets/sprites/fx/fx_impact_wood.png","atlasURL":"assets/sprites/fx/fx_impact_wood.json"},

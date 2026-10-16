@@ -168,60 +168,171 @@ Loop points are the file boundaries (bar-exact renders; the reverb/delay tail of
 - **Music is sequenced from a tiny DSL** (`"e5:2 g5:2 a5:2 b5:4 …"`, chord symbols for bass/stab generators, drum grids), rendered with
   cached per-note instruments, per-track reverb/delay/pan, drum-bus compression and a lookahead limiter. Piano rolls in `/tmp/kbe-ui/audio/roll_*.png`.
 
-## 5. Phase B plan (code under `src/scenes/ui/**`, `src/ui/**`, `src/audio/**`, `src/config/tuning/ui.ts`)
+## 5. Phase B implementation (code)
 
-### AudioService (`src/audio/AudioService.ts`, registered on `ctx.audio`)
-- `sfx(key, { volume, detune, x })`: looks up the key in the loaded pack; unknown key → one console warning, no-op.
-  *Voice limiting*: per-key max instances (default 4; `hmg` 3, impacts 4) and min retrigger interval (hmg 40 ms, impacts 25 ms).
-  *Variance*: keys flagged "vary" get `detune ±60` cents and ±10% volume unless `detune` is passed.
-  *Positional*: when `x` is given, pan = clamp((x − cameraCenterX)/192, −1, 1) × 0.6 and volume falls off to 0.3 beyond one screen width
-  (uses `WebAudioSound.pan`; verify in `phaser.d.ts` first). Loops (`flame_loop`, `drone_buzz`, …) return a handle to stop/fade.
-- `music(key | null, { fade })`: crossfade (tween volumes over `fade` ms, default 600) between at most two music instances; jingles
-  (`loop:false` in the manifest) stop the current track and fire `audio:musicEnded` when done so the scene can continue.
-  *Ducking*: `duck(db, ms)` used by player death, boss roar and callouts. *Buses*: master/music/sfx volumes persisted in `localStorage`
-  (`kbe.options`), `?mute=1` honoured.
-- *Web Audio unlock*: Title shows "PRESS START" and plays nothing until `Phaser.Sound.Events.UNLOCKED` (or the first `confirm` input);
-  queued music starts then. Sounds requested before unlock are dropped, not queued (except music).
-- Event wiring (`src/audio/AudioEvents.ts`): subscribes to the event bus for every event-driven key in the catalog above so gameplay teams
-  don't need to call `sfx` for shots, impacts, explosions, pickups, deaths, boss events, stage start/clear.
+Everything below is live in the tree and verified with `shot.mjs` screenshots and QA's suite (see §8).
+
+| Path | What |
+|---|---|
+| `src/config/tuning/ui.ts` | layout, timings, duck amounts, pan/falloff, rank thresholds, POW totals per stage |
+| `src/audio/catalog.ts` | per-key playback rules (`SFX_META`), the alias table (`SFX_ALIASES`), music metadata and aliases |
+| `src/audio/engine.ts` | `AudioEngine` (one per `Phaser.Game`): sfx voices, loops, music crossfades/jingles, ducking, unlock queue, debug |
+| `src/audio/events.ts` | `wireAudioEvents(ctx, engine)`: event-driven sound + hints for teams' direct calls |
+| `src/audio/index.ts` | `createAudioService(scene)` (installed on `ctx.audio`), `getAudio(scene)` for UI scenes |
+| `src/ui/index.ts` | `registerUi(ctx)`: FX popup fallback off, audio wiring, Intro launch, `__KBE.state().ui` |
+| `src/ui/{widgets,menu,input,keys,controls,callout,transitions,rank,prefs}.ts` | shared UI building blocks (see below) |
+| `src/scenes/ui/*.ts` | `Title Intro HUD Pause Continue Results Options Credits`, exported as `uiScenes` from `src/scenes/ui/index.ts` |
+| `public/assets/packs/ui.json` | + `ui_keyart_title` (`assets/ui/keyart/title_bg.png`, from the image-gen team); `make_pack.py` now scans `ui/keyart/` |
+
+See it:
+```sh
+node game/tools/shot.mjs --out /tmp/kbe-ui/title.png --query "scene=Title&mute=1" --wait 2600
+node game/tools/shot.mjs --out /tmp/kbe-ui/hud.png --query "scene=Game&fast=1&god=1&mute=1&seed=7" --steps '[{"hold":"ArrowRight","ms":1400},{"press":"KeyX"}]'
+node game/tools/shot.mjs --out /tmp/kbe-ui/pause.png --query "scene=Game&fast=1&god=1&mute=1" --steps '[{"press":"Escape"},{"wait":400}]'
+node game/tools/shot.mjs --out /tmp/kbe-ui/intro.png --query "scene=Game&god=1&mute=1" --wait 900 --steps '[{"wait":600}]'
+# Results with sample data (the real path is stage:clear → engine → Results):
+node game/tools/shot.mjs --out /tmp/kbe-ui/results.png --query "scene=Title&mute=1" --wait 1500 --steps '[{"eval":"window.__KBE.game.scene.getScene(\"Title\").scene.start(\"Results\",{stage:1,score:12340,rescued:4,kills:31,deaths:1,accuracy:0.63,timeMs:201400,difficulty:\"arcade\"})"},{"wait":5000}]'
+```
+`__KBE.state().audio` = `{ recent, unknown, voices, loops, music, musicVol, locked, context, played, dropped, stolen, lockedDrops, duck, master, musicBus, sfxBus, muted }`;
+`__KBE.state().hud` = the HUD's displayed values (score/lives/ammo/bombs/weapon/rescued/go/boss/callout/prompt/popups);
+`__KBE.state().ui` = `{ intro, lastPrompt, lastCallout, hud, log }` (`log` traces title:start / pause:open / continue:* with ms timestamps).
+
+### AudioEngine
+- **Buses:** `game.sound.volume` = master (UI pref, `localStorage kbe.ui.v1`), × `settings.musicVolume` / `settings.sfxVolume`. Mute stays with the
+  engine's `bindGlobalMute`; `applySettings()` also calls `applyMute` so toggling MUTE in Options is immediate.
+- **sfx(key, {volume, detune, x, rate}):** alias → catalog key → cache check (unknown keys are reported once in dev and listed in
+  `audio.unknown`) → min-retrigger gate (`minMs`) → voice cap (`max`, oldest voice stolen) → variance (`vary` cents, ±10 % volume) →
+  position (pan = clamp(dx/192) × 0.6; full gain within 160 px, 0.3 at 576 px, silent past 700 px of the Game camera centre).
+- **loop(key, {x, durationMs, fadeMs})** → handle `{stop(fade), setX, setVolume, active}`. Used for `flame_loop` (kept alive by
+  `player:shoot weapon=flame`, released 450 ms after the last tick), `rocket_whoosh` (stops on the player's explosion or after 1.4 s),
+  `boss_steam` (alias `steam` → 1.8 s loop) and the boss flame.
+- **music(key|null, {fade, volume}):** crossfade (default 600 ms) between at most one incoming and N outgoing tracks; jingles (`loop:false`)
+  cut the music in ≤250 ms, start at full volume and emit `engine.events 'music:ended'`. `lastGameplayMusic` is restored on `game:continue`.
+- **duck(gain, holdMs, recoverMs)**, **pauseGameplay()/resumeGameplay()** (voices paused, music ×0.4), **hint(key, {replace, x, volume, detune}, ms)**
+  (pre-arranges the next direct call), **stopRecent(key, ms)**, **after(ms, fn)** on the engine clock (survives scene pauses/hitstop).
+- **Unlock:** before the first gesture, sfx are dropped (`lockedDrops`), the last music request is queued and starts on `UNLOCKED`.
+- Fades/ducks/timers run on `Phaser.Core.Events.STEP`, so they keep moving while the Game scene is paused.
+
+### Alias table (`SFX_ALIASES`): keys other teams call → what plays
+| Called | Plays | Notes |
+|---|---|---|
+| `rocket` / `flame` (weapons `sfx(w)`) | `rocket_launch` / `flame_start` | flame loop and rocket whoosh come from `player:shoot` |
+| `knife`, `melee` | `melee_slash` | `melee_hit` is event-driven (`entity:hurt kind=melee`) |
+| `sfx_pistol`, `shoot` | `pistol` | dev sandbox |
+| `enemy_shout` | `enemy_alert` | `enemy:shoot` hints the position of the following `enemy_shoot` |
+| `enemy_die`, `enemy_death` | random `enemy_death_1..3` | |
+| `chute_tear` | `chute_open` −500 cents, ×0.8 | no tear asset; detuned chute pop |
+| `drone_buzz` (direct one-shot call at dive wind-up) | `drone_dive` | the loop asset needs a per-drone handle nobody has |
+| `turret_shoot` | `turret_fire` | plus `enemy:shoot kind=turret` replaces the generic `enemy_shoot` call with `turret_fire` |
+| `steam` | `boss_steam` as a 1.8 s loop | |
+| `boss_explode` | `boss_death` + `explo_xl` | |
+| `boss_flame` | `flame_start` −400 cents + `flame_loop` 1.3 s −300 cents | |
+| `boss_hit` / `boss_phase` | `boss_hurt` / `boss_roar` | `boss:hp` decreases also play `boss_hurt` (voice-limit 2) |
+| `door_open` | `steam_hiss` ×0.7 −200 cents | bunker door hydraulics |
+| `crate`, `barrel_break`, `gate`, `explosion`, `hit`, `grenade`, `bounce`, `death`/`die`/`player_die`, `1up`/`life`, `powerup`, `pow` | the obvious catalog keys | synonyms, cheap insurance |
+| `select move back pause unpause start tick` | `ui_*`, `continue_tick` | |
+| music: `stage1`, `music_stage`, `boss1`, `boss`, `music_boss1`, `title`, `continue`, `gameover`, `complete`… | `music_stage1`, `music_boss`, `music_title`, `music_continue`, `jingle_gameover`, `jingle_complete` | the map already uses the catalog keys |
+
+Keys verified against every `sfx(`/`music(` call in `game/src` (player, weapons, pickups, enemies, boss, props, triggers, dev sandbox):
+after a full run (start → bridge arena → boss → clear, and the game-over path) `audio.unknown` is `[]`.
+
+### Event-driven sound (`src/audio/events.ts`)
+| Event | Sound |
+|---|---|
+| `projectile:impact` | `impact_body/metal/wood/dirt` by material (`shield` → `shield_tink`, `water` → low `impact_dirt`), positional, enemy shots ×0.6 |
+| `explosion` | `explo_<size>`, positional; a player explosion stops the rocket whoosh |
+| `entity:hurt kind=melee` (non-player) | `melee_hit` |
+| `enemy:shoot` | hint: positions `enemy_shoot` / `boss_cannon`; turret → `turret_fire` |
+| `fx:emit vent_steam` | `steam_hiss` |
+| `player:shoot` flame / rocket | `flame_loop` keep-alive / `rocket_whoosh` loop |
+| `player:land` | hint: `land` volume by `vy` |
+| `player:died` / `player:respawn` | `player_death` + duck 0.5 for 1 s / `respawn` |
+| `lives:changed` up | `one_up` (the `pickup` chirp from the pickup is cancelled) |
+| `pickup:collected bombs` | `pickup` cancelled → `pickup_bombs` |
+| `pow:freed`, `checkpoint` | `pow_freed`, `checkpoint` |
+| `boss:spawn` / `boss:phase` / `boss:hp` / `boss:defeated` | `music_boss` (dedupes with the Levels trigger) + duck / duck / `boss_hurt` / music fades out over 2.5 s |
+| `stage:clear` | music out, `jingle_complete` 1.1 s later (after the HUD's `mission_complete` ta-da) |
+| `game:over` / `game:continue` / `game:pause` | music out + `game_over` / last stage music back / pause ducking |
+Not doubled (teams call them directly): weapons, jump/land, knife, pickup, weapon_get, grenade_throw, enemy shoot/alert/panic/die, shield_tink,
+turret_windup, boss roar/cannon/stomp/steam/flame/explode, crate_break, gate_smash.
 
 ### Scenes
-- **TitleScene**: keyart backdrop (`public/assets/ui/keyart/`, parallax drift 2 px), `ui_logo` dropping in with a bounce, `logo_glitch`
-  every 4–7 s, snow particles, "PRESS START" blinking (`font_callout_white`), then the menu (Start / Difficulty / Options / Credits) with
-  `ui_cursor` and `font_hud` tinted `fire5` on the selected row. `music_title`. Transitions: 300 ms wipe (a `Rectangle` sweep).
-- **IntroScene** (overlay on Game, pauses input for 1.6 s unless `fast=1`): "MISSION 1" (`font_callout_steel`) slides from the left,
-  "START!" (`font_callout_fire`) slams from the right with `mission_start`, both flash and fly out; `music_stage1` starts on the slam.
-- **HudScene** (launched in parallel with Game, depth HUD): listens to `score:changed`, `lives:changed`, `ammo:changed`, `bombs:changed`,
-  `weapon:changed` (callout "HEAVY MACHINE GUN!" + `callout`/`weapon_get`), `rescued:changed` (POW tally), `camera:unlock` (`hud_go` for 2 s),
-  `boss:spawn/hp/phase` (boss bar slides up; the fill drains with a 200 ms lag "ghost" bar), `ui:popup` (floating "+100" with `font_hud_gold`),
-  `enemy:killed` multi-kill counter. Score counts up with `score_tally`. Pools the popup texts.
-- **PauseScene**: `ui_panel` with RESUME / OPTIONS / QUIT, `ui_pause`/`ui_unpause`, dims the game (black rect alpha 0.5), music volume ×0.4.
-- **ContinueScene**: `countdown_9…0` numerals (each tick scales *position* not sprite: drop 2 px + `continue_tick`), `music_continue`,
-  confirm → `game:continue` (score reset, respawn at checkpoint); 0 → `continue_final` + `jingle_gameover` → GameOver → Title.
-- **ResultsScene**: tally rows (score, POWs × 1000, accuracy, time) typed in with `score_tally`, then the rank stamp (`ui_rank`, `rank_stamp`),
-  `jingle_complete` before, `music_title` after. Rank = S ≥ 90% kills & all POWs, A ≥ 70%, B ≥ 50%, else C.
-- **OptionsScene**: volumes (master/music/sfx), CRT filter on/off, screen shake on/off, difficulty, controls preview with `ui_prompts`
-  (keyboard row + gamepad row, auto-swapped when a pad connects). Saved to `localStorage`.
-- **CreditsScene**: scrolling `font_hud_plain` over keyart with `music_title`.
-- `registerUi(ctx)` (`src/ui/index.ts`): launches HudScene, wires AudioEvents, exposes `ui.callout(text, style)` and `ui.popup(x, y, text)`.
-- Tuning in `src/config/tuning/ui.ts` (callout timings, duck amounts, voice limits, rank thresholds).
+- **Title** – key art, snow particles, logo drop-in (`Back.easeOut`) and `logo_glitch` every 4–7 s, `music_title`. Attract mode blinks
+  PRESS START: **confirm starts the game at once** (arcade style, and what QA's flow test expects), any other input opens the menu
+  (START / DIFFICULTY ARCADE|CASUAL / OPTIONS / CREDITS), 12 s idle returns to attract. Start = `ui_start` → wipe → `Game`
+  (the handoff waits for the key to be released, see "Design decisions").
+- **Intro** – launched by `registerUi` on `stage:start` unless `?fast=1`: "MISSION n" slides in, "START!" slams with `mission_start`
+  and a tier-1 shake, the stage name fades in, out at 1.5 s; music ducked to 0.4 meanwhile. Gameplay runs underneath.
+- **HUD** – per GDD §9 / the mock: 1UP badge + 8-digit score (tallies up) + life icon ×N (flashes red on loss); weapon icon + ARMS
+  ammo/∞ (blinks red ≤ 10) + BOMB count; rescue faces (≤ 6) + RESCUED n; weapon callouts (`HEAVY MACHINE GUN!` …, with `callout` +
+  a short duck); GO! (`hud_go`, bouncing) for 2.2 s on `camera:unlock` after a lock; boss bar (frame + fill crop + lagging ghost
+  drain + name in red, slides in on `boss:spawn`, flashes on phase, slides out after defeat); score popups (`ui:popup` + `+score` on
+  `enemy:killed`, world → screen each frame) and a multi-kill chain (`×n +bonus`, +50 per extra kill within 700 ms, added to
+  `ctx.state.score`); level prompts (`ui:prompt`) in a thin panel at the bottom; "MISSION COMPLETE!" + fade to black timed for
+  the engine's 3.5 s cut to Results. FX's fallback popups and the engine's dev prompt are off (`fx.popups=false`, early `ui:prompt` listener).
+- **Pause** – `ui_pause`, dim, PAUSE panel (RESUME / OPTIONS / QUIT) + CONTROLS help (key-caps + pad glyphs). Esc/Start or RESUME →
+  `ui_unpause` + `flow.resume()`; QUIT → wipe → `flow.quit()`. Enter (bound to both confirm and pause) is consumed by the menu first.
+- **Continue** – `CONTINUE?` slam, `countdown_9…0` numerals (bounce + `continue_tick`, rising detune), `music_continue` 0.9 s after the
+  `game_over` sting, PRESS START blink. Confirm/Start → `ui_start` → `flow.continueGame()` once the key is released. 0 → `continue_final`,
+  GAME OVER (white callout tinted red), `jingle_gameover`, then wipe → `flow.quit()` (any key after 0.8 s skips the wait).
+- **Results** – header slam, RESULTS panel: SCORE / POW RESCUED n × 1000 / ACCURACY / TIME / DEATHS / TOTAL tally in (`score_tally`
+  every 30 ms while counting; confirm skips), rank stamp (`rank_stamp` + camera shake), `music_title` after the clear jingle ends,
+  PRESS START → wipe → Title (auto after 22 s). Rank = accuracy (40 pts) + rescues/stage total (40) + 20 − 7·deaths: S ≥ 84, A ≥ 64, B ≥ 42.
+- **Options** – overlay from Title or Pause: MASTER / MUSIC / SFX volume bars (10 steps), DIFFICULTY, CRT FILTER, SCREEN SHAKE,
+  REDUCED FLASH, MUTE, CONTROLS, BACK. Writes `settings.update` (+ UI prefs for master), emits `settings:changed {difficulty}` on the
+  Game bus and updates `ctx.state.difficulty` when a run is active. CONTROLS page lists every action with key / alt / pad glyphs and
+  **rebinds keyboard keys** (confirm a row, press a key; ESC cancels; RESET DEFAULTS).
+- **Credits** – scrolling roll (teams, the original pygame game, tools) over the Title; any key or the end closes it.
+- Transitions: wipes (`wipeOut`/`wipeIn`, 320 ms sweep with a half-alpha trailing band) between Title ⇄ Game, Results → Title,
+  Pause/Continue quit → Title; dim fades for overlays; HUD fade-to-black before the Results cut.
 
-## 6. Known gaps / follow-ups
-- Nothing has been *heard* yet: levels, seams and spectra were verified numerically and visually only. First Phase B task is a listening
-  pass in the browser; the generators make re-tuning a one-line change.
-- The callout font lacks `\ ^ ` { | } ~`; lowercase renders as uppercase by design.
-- `logo_glitch` is a band-displacement effect; a colour-cycling "shine" sweep is planned in-engine (mask filter) rather than baked.
-- Keycap labels use the 5×7 font at 1×; `RB` is tight. Pad prompts assume Xbox colours (A green, B red, X blue, Y yellow).
-- No Preload progress-bar art yet (Engine owns PreloadScene; see requests).
+### Building blocks (`src/ui/`)
+`MenuInput` wraps `createInput(this)` (keyboard + pad) and **arms itself only once every menu action is released** (keyboard state is
+also read from a page-level keydown/keyup tracker in `keys.ts`), adds held-direction auto-repeat and `anyHeld` for handoffs. `Menu` =
+rows with label/value, bouncing `ui_cursor`, blips. `Callout` = the drop/overshoot/flash/hold/fly-out slam used by the HUD, Intro,
+Continue and Results. `ControlsPanel` = bindings → `ui_prompts` glyphs (text key-caps for keys without art). `transitions.ts`,
+`widgets.ts` (bitmap text at native size, 9-slice panels, `frameOf(tag)`/`hasAnim`), `rank.ts`, `prefs.ts`.
 
-## 7. Requests for other teams
-- **Engine**: load `packs/ui.json` (it's in `PACKS`); please expose `scene.sound` unlock state and camera center on `CameraService`
-  (`centerX()`), or we'll read `scene.cameras.main` directly. Confirm `AudioService.music` may return a handle/promise for jingles.
-  If you want a styled preload bar, use `ui_panel_thin` + `ui_bossbar_fill` (or ask for a dedicated strip).
-- **Player**: emit `player:land` with `vy` (land volume scales with it) and `weapon:changed` with the weapon id (`pistol|hmg|spread|rocket|flame`)
-  so the callout picks the right name/icon; call `ctx.audio.sfx('grenade_bounce')` on the first bounce (no event exists for it).
-- **Enemies/boss**: emit `boss:phase` on phase changes (roar), and call `sfx('turret_windup')`/`sfx('boss_charge')` at telegraph start so the
-  audio lands with the visual wind-up; `drone_buzz` wants a per-drone start/stop (we'll expose `ctx.audio.loop(key, x)` → handle).
-- **Levels**: map `music` property = `music_stage1`; put a `music` trigger with `music_boss` at the boss gate if you don't fire `boss:spawn` early enough.
-- **FX**: the `callout` SFX is timed for a 220 ms slam; `fx:shake` tier 1 on callout impact looks great if you want to add it.
-- **Lead**: optional AI key art for the Title is expected in `public/assets/ui/keyart/`; the logo is sized 240×112 to sit over it.
+## 6. Design decisions
+- **Scene stepping order matters.** Phaser steps active scenes top-most first and renders bottom-up. A menu therefore acts on a key
+  edge *before* the Game samples the same key, so handing control to the Game on the frame of the press makes the engine read it as
+  a fresh `pause` (Enter is bound to confirm *and* pause). Continue and Title now hand off only once the confirm key is up
+  (`MenuInput.anyHeld`, 1–1.5 s cap). Menus also wait for all keys to be released before accepting input (the Escape that opened the
+  Pause menu can't close it on the same press).
+- **One AudioEngine per game, not per run.** Music must survive scene changes (Title → Game crossfade, stage music under the Pause scene,
+  jingles into Results). The per-run `ctx.audio` only adds the camera listener and stops the run's voices/loops on shutdown.
+- **Direct calls stay, events add information.** Removing other teams' `sfx()` calls isn't ours to do; instead `hint()` lets an event
+  that carries position/intent (enemy:shoot, player:land) shape the direct call that follows it, and `stopRecent()` swaps a generic
+  pickup chirp for the specific one. Unknown keys are reported, never thrown.
+- **Attract mode starts on confirm.** Metal Slug style and QA-friendly: one Enter on the Title boots the run; the menu is one key away.
+- **Fonts are generated** (Phase A); callouts animate by position + font swap only, never scale. Panels are opaque 9-slices, dimming is
+  done with alpha rectangles.
+- Multi-kill bonus is the only score the UI adds (GDD §9 asks for it); everything else comes from the engine's state events.
+
+## 7. Known gaps / follow-ups
+- The listen pass is instrumented, not heard: `audio.context === 'running'`, voices/loops/music `isPlaying` with advancing `seek`,
+  `unknown: []`. Mix balance (duck depths, the −6 dB death duck, impact spam at 4 voices) needs a human ear.
+- Rank uses a per-stage POW total from tuning (`UI.results.powTotal`, stage 1 = 5) because the engine doesn't report it.
+- `drone_buzz` isn't used as a loop (no per-drone start/stop hook); the direct call plays the dive whoosh.
+- Pad rebinding isn't offered (keyboard only). Pad glyphs assume the standard mapping.
+- Holding Enter for longer than the handoff cap (1–1.5 s) when starting/continuing still reaches the Game as a `pause` press.
+- The key art is static (no drift) to keep the 384×216 pixels crisp; the Title's motion is the logo glitch, snow and cursor.
+- No Preload progress-bar art (Engine owns Preload).
+
+## 8. QA (Phase B)
+See the final report for the run; the three UI-gated tests (Title → Game → Pause → resume, kill/respawn, game-over → continue) are
+drivable: `Title` reacts to a single Enter, `Pause` toggles with Escape and leaves Game's Phaser pause state intact, `Continue` answers
+Enter with a fresh run (lives reset, score 0).
+
+## 9. Requests for other teams
+- **Engine**: `flow.update` pauses on `input.justDown('pause')` the very frame after a UI scene hands control back; a one-frame
+  `rebaseline()` of the Game's input in `continueGame()` and on `Game` CREATE (like the one on RESUME) would remove the UI-side
+  release-wait. Consider exposing the level's POW total on `LevelQuery` (`powTotal?`) for the Results rank. `boss:*` payloads already
+  carry x/y, thanks. `scene.sound` unlock state and camera centre are read directly (fine as is).
+- **Enemies**: a per-drone `ctx.audio`-free hook isn't possible; if you want the buzz loop, call `getAudio(scene).loop('drone_buzz', {x})`
+  from the drone and `stop()` it on death/offscreen (or emit a typed `enemy:spawn/despawn` event we can listen to).
+- **Levels**: `music_stage1`/`music_boss` keys are perfect. The `prompt` texts are plain; if you want key-cap art inside prompts, use
+  `{key:Z}` tokens and we'll render `ui_prompts` glyphs.
+- **FX**: the popup fallback stays off via `fx.popups=false`; thanks for the listener-count guard too. `reducedFlash`/`crt`/`shake` are
+  exposed in Options and emit `settings:changed`.
+- **QA**: the UI-gated tests should now pass; `__KBE.state().ui.log` and `.audio` are there for flow/audio assertions.

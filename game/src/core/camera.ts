@@ -1,13 +1,23 @@
 // Metal Slug camera: forward-only horizontal scrolling with deadzone + look-ahead, vertical follow inside the
 // level bounds, arena lock/unlock with an eased transition, and shake tiers that respect the options flag.
 // Scroll is computed manually at POST_UPDATE (after physics), so there's no Phaser startFollow.
+// Shake is our own scroll-space offset, not Phaser's cam.shake (which offsets the render past the world bounds
+// and exposed flat background strips at the level edges, KBE-QA-E02). An offset that would leave the world bounds
+// is reflected back inside, so the shake keeps its full amplitude even when the camera sits against an edge.
 import Phaser from 'phaser';
 import type { CameraService, PlayerQuery, ShakeTier } from './contracts';
 import type { EventBus } from './events';
 import { settings } from './settings';
 import { ENGINE } from '../config/tuning/engine';
 
-interface FollowTarget { x: number; y: number; facing?: number; centerY?: number }
+interface FollowTarget { x: number; y: number; facing?: number; sprite?: { body?: unknown }; body?: unknown }
+
+/** On the ground? null when the target has no Arcade body to ask. */
+function isGrounded(t: FollowTarget): boolean | null {
+    const b = (t.sprite?.body ?? t.body) as Phaser.Physics.Arcade.Body | undefined;
+    if (!b || !b.blocked) return null;
+    return b.blocked.down || b.touching.down;
+}
 
 const T = ENGINE.camera;
 
@@ -28,6 +38,11 @@ export class CameraController implements CameraService {
     private readonly viewRect = new Phaser.Geom.Rectangle();
     private x = 0;
     private y = 0;
+    private falling = false;
+    private shakeLeft = 0;
+    private shakeDur = 0;
+    private shakeAmpX = 0;
+    private shakeAmpY = 0;
 
     constructor(scene: Phaser.Scene, private readonly events: EventBus, private readonly playerQuery: () => PlayerQuery | null) {
         this.cam = scene.cameras.main;
@@ -83,7 +98,17 @@ export class CameraController implements CameraService {
     shake(tier: ShakeTier): void {
         if (!settings.get().shake) return;
         const s = ENGINE.shake[tier] ?? ENGINE.shake[1];
-        this.cam.shake(s.ms, s.intensity, true);
+        const ax = s.intensity * this.cam.width, ay = s.intensity * this.cam.height;
+        // A weaker shake never cuts a stronger one short; a stronger one takes over at full amplitude.
+        if (this.shakeLeft > 0 && ax * s.ms <= this.shakeAmpX * this.envelope() * this.shakeLeft) return;
+        this.shakeAmpX = ax;
+        this.shakeAmpY = ay;
+        this.shakeDur = this.shakeLeft = s.ms;
+    }
+
+    /** Remaining shake strength 0..1: holds near full for the first frames, then eases out. */
+    private envelope(): number {
+        return this.shakeDur > 0 ? Math.sqrt(Math.max(0, this.shakeLeft) / this.shakeDur) : 0;
     }
 
     flash(color: number, ms: number): void {
@@ -111,12 +136,19 @@ export class CameraController implements CameraService {
         const w = this.cam.width, h = this.cam.height;
 
         if (t) {
-            const ty = t.centerY ?? t.y;
-            // Deadzone: the focus only moves when the target leaves the window around it.
+            // Vertical: Metal Slug platform snap. Track the standing center from the feet (crouching doesn't move
+            // it), follow it while grounded, and hold through jumps so hops never bob the view.
+            const ty = t.y - T.centerAboveFeet;
+            const grounded = isGrounded(t);
+            this.falling = grounded === false && ty > this.focusY;
+            if (grounded !== false) {
+                if (ty > this.focusY + T.deadzoneY) this.focusY = ty - T.deadzoneY;
+                else if (ty < this.focusY - T.deadzoneY) this.focusY = ty + T.deadzoneY;
+            } else if (ty < this.focusY - T.airUp) this.focusY = ty + T.airUp;
+            else if (ty > this.focusY + T.airDown) this.focusY = ty - T.airDown;
+            // Horizontal deadzone: the focus only moves when the target leaves the window around it.
             if (t.x > this.focusX + T.deadzoneX) this.focusX = t.x - T.deadzoneX;
             else if (t.x < this.focusX - T.deadzoneX) this.focusX = t.x + T.deadzoneX;
-            if (ty > this.focusY + T.deadzoneY) this.focusY = ty - T.deadzoneY;
-            else if (ty < this.focusY - T.deadzoneY) this.focusY = ty + T.deadzoneY;
             const facing = t.facing ?? 1;
             this.look += (facing * T.lookAhead - this.look) * (1 - Math.exp(-T.lookAheadRate * dt));
         }
@@ -139,10 +171,28 @@ export class CameraController implements CameraService {
             if (Math.abs(desiredX - this.x) < 0.01) this.x = desiredX;
         }
         if (T.forwardOnly && !this.locked && this.blend >= 1) this.x = Math.max(this.x, this.minScroll);
-        this.y += (desiredY - this.y) * (1 - Math.exp(-T.followRateY * dt));
+        // Falls catch up faster than climbs/landings so a drop leads the view instead of dragging the margin.
+        const rateY = this.falling && desiredY > this.y ? T.followRateFall : T.followRateY;
+        this.y += (desiredY - this.y) * (1 - Math.exp(-rateY * dt));
+        if (t) {
+            // Hard margins: a long fall or a tall climb never outruns the smoothing off the screen.
+            this.y = this.clampScrollY(Phaser.Math.Clamp(this.y, t.y - h + T.marginBottom, t.y - T.centerAboveFeet * 2 - T.marginTop));
+        }
 
         if (!this.locked && this.x > this.minScroll) this.minScroll = this.x;
-        this.cam.setScroll(this.x, this.y);
+        let sx = this.x, sy = this.y;
+        if (this.shakeLeft > 0) {
+            if (!settings.get().shake) this.shakeLeft = 0;
+            else {
+                const k = this.envelope();
+                const b = this.bounds;
+                sx = reflect(this.x + (Math.random() * 2 - 1) * this.shakeAmpX * k, b.x, b.right - w);
+                sy = reflect(this.y + (Math.random() * 2 - 1) * this.shakeAmpY * k, b.y, b.bottom - h);
+                this.shakeLeft -= dt * 1000;
+            }
+        }
+        // The shake only moves the rendered scroll: view(), edges and clamps stay on the steady camera.
+        this.cam.setScroll(sx, sy);
         this.updateView();
     }
 
@@ -164,4 +214,12 @@ export class CameraController implements CameraService {
     debugInfo(): { x: number; minScroll: number; locked: boolean; x0: number; x1: number } {
         return { x: this.x, minScroll: this.minScroll, locked: this.locked, x0: this.lockX0, x1: this.lockX1 };
     }
+}
+
+/** Fold v back into [lo, hi] (mirror at the edges); a range narrower than zero pins to lo. */
+function reflect(v: number, lo: number, hi: number): number {
+    if (hi <= lo) return lo;
+    if (v < lo) v = 2 * lo - v;
+    if (v > hi) v = 2 * hi - v;
+    return v < lo ? lo : v;
 }

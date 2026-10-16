@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DEPTH, type GameContext, type HitInfo } from '../../core';
+import { DEPTH, type GameContext, type HitInfo, type Hurtbox } from '../../core';
 import { ENEMIES } from '../../config/tuning/enemies';
 import { animate, visible } from '../enemies/Enemy';
 
@@ -18,7 +18,11 @@ export class Moosezilla extends Phaser.GameObjects.Container {
     private fired = 0;
     private flash = 0;
     private tickDamage = 0;
-    private vent: Phaser.GameObjects.Sprite | null = null;
+    private readonly cue: Phaser.GameObjects.Graphics;
+    private readonly boxes: Hurtbox[] = [];
+    private areaInfo: HitInfo | null = null;
+    private areaFrame = -1;
+    private readonly areaParts = new Set<number>();
     private direction: 1 | -1 = -1;
     private walkDirection = -1;
     private readonly facing: 1 | -1;
@@ -30,7 +34,6 @@ export class Moosezilla extends Phaser.GameObjects.Container {
     private readonly debris: FlyingPart[] = [];
     private readonly flies = new Set<Phaser.GameObjects.GameObject>();
     private readonly headAntlers: Phaser.GameObjects.Sprite[] = [];
-    private readonly rect = new Phaser.Geom.Rectangle();
     private readonly offs: Array<() => void> = [];
     constructor(private readonly ctx: GameContext, x: number, y: number, props: Record<string, unknown>) {
         super(ctx.scene, x, y);
@@ -45,14 +48,39 @@ export class Moosezilla extends Phaser.GameObjects.Container {
             this.add(s); this.parts.set(p.id, s); animate(s, p.id.startsWith('legs') ? `${p.key}_walk` : p.idleTag, true);
         }
         this.setScale(this.facing, 1);
-        // A single silhouette hurtbox routes hits by location: radial/piercing attacks cannot
-        // double-damage overlapping hull, core and cannon shapes.
-        this.offs.push(ctx.damage.register({ team: 'enemy', body: () => this.rect.setTo(this.x - 76, this.y - 116, 152, 116), material: 'metal', kind: 'moosezilla', owner: this, alive: () => this.active && this.hp > 0, hit: h => this.hit(h) }), ctx.onUpdate(dt => this.updateBoss(dt)));
-        this.once('destroy', () => { for (const off of this.offs) off(); for (const d of this.debris) d.sprite.destroy(); for (const s of this.headAntlers) s.destroy(); this.vent?.destroy(); });
+        this.cue = ctx.scene.add.graphics().setDepth(DEPTH.ENEMIES - .1);
+        // Source-space rectangles follow the attached rig pieces, including moving feet.
+        // Register core last so it wins a direct query where it overlaps the hull.
+        const shapes: Array<[string, number, number, number, number]> = [
+            ['body', 6, 27, 102, 31], ['body', 12, 7, 42, 22],
+            ['head', 16, 7, 27, 25], ['head', 28, 22, 33, 25],
+            ['legs_back', 12, 7, 18, 38], ['legs_back', 69, 7, 18, 38],
+            ['legs_front', 12, 7, 18, 40], ['legs_front', 69, 7, 18, 40],
+            ['antler_l', 59, 29, 17, 16], ['antler_l', 10, 12, 57, 17],
+            ['antler_r', 59, 29, 17, 16], ['antler_r', 10, 12, 57, 17],
+            ['core', 5, 5, 22, 22]
+        ];
+        for (const [id, sx, sy, w, h] of shapes) {
+            const r = new Phaser.Geom.Rectangle();
+            const part = this.rig.parts.find(p => p.id === id)!;
+            const shape = this.boxes.length;
+            const box: Hurtbox = { team: 'enemy', material: 'metal', kind: 'moosezilla', owner: this,
+                body: () => {
+                    const sprite = this.parts.get(id);
+                    const lx = (sprite?.x ?? part.attach[0]) + sx - part.pivot[0];
+                    return r.setTo(this.x + (this.facing > 0 ? lx : -lx - w), this.y + (sprite?.y ?? part.attach[1]) + sy - part.pivot[1], w, h);
+                },
+                alive: () => this.active && this.hp > 0 && this.parts.has(id) && (id !== 'core' || this.phase === 3) && (!id.startsWith('antler') || sy > 28 || this.antlers[id] > 0),
+                hit: info => this.hit(info, id, shape)
+            };
+            this.boxes.push(box); this.offs.push(ctx.damage.register(box));
+        }
+        this.offs.push(ctx.onUpdate(dt => this.updateBoss(dt)));
+        this.once('destroy', () => { for (const off of this.offs) off(); for (const d of this.debris) d.sprite.destroy(); for (const s of this.headAntlers) s.destroy(); this.cue.destroy(); });
         ctx.events.emit('boss:spawn', this.info()); ctx.audio.sfx('boss_roar');
     }
     private info(): { name: string; hp: number; maxHp: number; phase: number; x: number; y: number } { return { name: 'MOOSEZILLA', hp: this.hp, maxHp: ENEMIES.boss.hp, phase: this.phase, x: this.x, y: this.y }; }
-    private pose(id: string, tag: string, loop = false): void { const s = this.parts.get(id); if (s) animate(s, `${s.texture.key}_${tag}`, loop); }
+    private pose(id: string, tag: string, loop = false): void { if (id.startsWith('antler') && this.antlers[id] <= 0 && tag !== 'broken') return; const s = this.parts.get(id); if (s) animate(s, `${s.texture.key}_${tag}`, loop); }
     private socket(key: string): { x: number; y: number } {
         const s = this.rig.sockets[key];
         if (s.rootPoint) return { x: this.x + s.rootPoint[0] * this.facing, y: this.y + s.rootPoint[1] };
@@ -65,17 +93,30 @@ export class Moosezilla extends Phaser.GameObjects.Container {
         this.debris.push({ sprite: s, vx: this.ctx.rng.range(-90, 90), vy: this.ctx.rng.range(-220, -130), spin: this.ctx.rng.range(-3, 3), head: id === 'head', age: 0 });
         this.parts.delete(id);
     }
-    private hit(h: HitInfo): boolean {
+    private hit(h: HitInfo, part: string, shape: number): boolean {
         if (this.hp <= 0) return false;
-        let multiplier = 1;
-        if (this.phase === 3) { const c = this.socket('core'); if (Math.hypot(h.x - c.x, h.y - c.y) <= 19) multiplier = 2; }
-        for (const id of ['antler_l', 'antler_r']) {
-            const p = this.rig.parts.find(p => p.id === id)!;
-            const px = this.x + (p.attach[0] + 18) * this.facing;
-            if (this.phase === 1 && this.antlers[id] > 0 && Math.abs(h.x - px) < 30 && h.y < this.y - 80) {
-                this.antlers[id] -= h.damage;
-                if (this.antlers[id] <= 0) { this.pose(id, 'broken'); this.ctx.events.emit('enemy:killed', { x: px, y: this.y - 90, kind: 'moosezilla_antler', score: ENEMIES.boss.antlerScore, cause: h.kind }); this.ctx.events.emit('explosion', { x: px, y: this.y - 90, size: 'm', team: 'enemy' }); }
-                break;
+        // Projectile memory covers the entire assembly, so piercing shots hit the pool once.
+        // Radial queries share one HitInfo and visit multiple parts synchronously.
+        if (h.kind === 'explosion' || h.kind === 'melee') {
+            const frame = this.ctx.scene.game.loop.frame;
+            const sameSwing = h.kind === 'melee' && this.areaInfo?.kind === 'melee' && this.areaInfo.x === h.x && this.areaInfo.y === h.y && this.areaInfo.weapon === h.weapon && this.areaInfo.damage === h.damage;
+            if (this.areaFrame !== frame || (this.areaInfo !== h && !sameSwing) || this.areaParts.has(shape)) {
+                this.areaFrame = frame; this.areaInfo = h; this.areaParts.clear();
+            } else if (this.areaParts.size) { this.areaParts.add(shape); return false; }
+            this.areaParts.add(shape);
+        }
+        this.ctx.projectiles.forEach(p => {
+            if (p.team === h.source && Math.abs(p.x - h.x) < .01 && Math.abs(p.y - h.y) < .01)
+                for (const box of this.boxes) if (!p.hitList.includes(box)) p.remember(box);
+        });
+        let multiplier = part === 'core' && this.phase === 3 ? 2 : 1;
+        if (this.phase === 3) { const c = this.socket('core'); if (Math.hypot(h.x - c.x, h.y - c.y) <= 15) multiplier = 2; }
+        if (part.startsWith('antler') && this.phase === 1 && this.antlers[part] > 0) {
+            this.antlers[part] -= h.damage;
+            if (this.antlers[part] <= 0) {
+                this.pose(part, 'broken');
+                this.ctx.events.emit('enemy:killed', { x: h.x, y: h.y, kind: 'moosezilla_antler', score: ENEMIES.boss.antlerScore, cause: h.kind });
+                this.ctx.events.emit('explosion', { x: h.x, y: h.y, size: 'm', team: 'enemy' });
             }
         }
         this.setHp(this.hp - h.damage * multiplier);
@@ -92,15 +133,16 @@ export class Moosezilla extends Phaser.GameObjects.Container {
             this.phase++; this.ctx.events.emit('boss:phase', this.info());
             this.enter('roar', 700); this.cycle = 0; this.pose('head', 'roar'); this.ctx.audio.sfx('boss_roar');
             if (this.phase === 2) { this.detach('antler_l'); this.detach('antler_r'); this.pose('body', 'damaged', true); }
-            else { this.detach('armor'); this.pose('body', 'critical', true); for (const fly of this.flies) fly.destroy(); }
+            else { this.detach('armor'); this.parts.get('core')?.setDepth(9); this.bringToTop(this.parts.get('core')!); this.pose('body', 'critical', true); for (const fly of this.flies) fly.destroy(); }
         }
         if (this.hp <= 0) {
             this.enter('death', ENEMIES.boss.deathMs); this.ctx.projectiles.clear('enemy');
             for (const fly of this.flies) fly.destroy();
             this.ctx.events.emit('fx:slowmo', { scale: .45, ms: 1000 }); this.ctx.events.emit('fx:flash', { color: 0xffffff, ms: 160 }); this.ctx.events.emit('fx:shake', { tier: 4 }); this.ctx.events.emit('fx:hitstop', { ms: 150 });
-            this.ctx.audio.sfx('boss_explode'); this.detach('armor'); this.detach('jaw'); this.detach('head'); this.detach('antler_l'); this.detach('antler_r');
+            this.ctx.audio.sfx('boss_death'); this.detach('armor'); this.detach('jaw'); this.detach('head'); this.detach('antler_l'); this.detach('antler_r');
             for (const key of ['moosezilla_antler_l', 'moosezilla_antler_r']) {
-                const s = this.ctx.scene.add.sprite(this.x, this.y, key).setOrigin(8 / 56, 44 / 48).setScale(this.facing, 1).setDepth(DEPTH.ENEMIES + .6);
+                const part = this.rig.parts.find(p => p.key === key)!;
+                const s = this.ctx.scene.add.sprite(this.x, this.y, key).setOrigin(part.pivot[0] / part.sourceSize[0], part.pivot[1] / part.sourceSize[1]).setScale(this.facing, 1).setDepth(DEPTH.ENEMIES + .6);
                 animate(s, `${key}_broken`); this.headAntlers.push(s);
             }
         }
@@ -108,14 +150,7 @@ export class Moosezilla extends Phaser.GameObjects.Container {
     private enter(state: string, ms: number): void { this.state = state; this.clock = ms; this.elapsed = 0; this.fired = 0; }
     private steam(): void {
         const at = this.socket('steam');
-        if (this.ctx.scene.anims.exists('fx_steam_vent') && this.ctx.scene.anims.get('fx_steam_vent')?.frames.length) {
-            if (!this.vent) {
-                this.vent = this.ctx.scene.add.sprite(at.x, at.y, 'fx_steam').setOrigin(.5, 44 / 48).setDepth(DEPTH.ENEMIES - 1);
-                this.vent.on('animationcomplete', () => this.vent?.setVisible(false));
-            }
-            this.vent.setPosition(at.x, at.y).setVisible(true); animate(this.vent, 'fx_steam_vent');
-        }
-        this.ctx.audio.sfx('steam');
+        this.ctx.events.emit('fx:emit', { effect: 'vent_steam', x: at.x, y: at.y });
     }
     private volley(side: number): void {
         const id = side ? 'antler_r' : 'antler_l'; if (this.antlers[id] <= 0) return;
@@ -147,17 +182,18 @@ export class Moosezilla extends Phaser.GameObjects.Container {
     }
     private updateBoss(dt: number): void {
         if (!dt || !this.active) return;
-        this.updateDebris(dt); this.flash -= dt;
-        if (this.flash <= 0) for (const s of this.parts.values()) s.clearTint();
+        this.updateDebris(dt);
+        if (this.flash > 0 && (this.flash -= dt) <= 0) for (const s of this.parts.values()) s.clearTint();
         if (this.state === 'defeated') return;
         if (this.state !== 'death' && (!visible(this.ctx, this.x, this.y, 32) || !this.ctx.player()?.alive())) return;
+        this.drawCue();
         this.clock -= dt; this.elapsed += dt; this.tickDamage -= dt;
         if (this.state === 'death') {
             while (this.fired < 17 && this.elapsed >= this.fired * 180) { const part = this.rig.parts[this.fired % this.rig.parts.length]; this.ctx.events.emit('explosion', { x: this.x + part.attach[0] * this.facing, y: this.y + part.attach[1], size: this.fired % 4 === 0 ? 'xl' : 'm', team: 'enemy' }); this.fired++; }
             if (this.clock <= 0) { this.state = 'defeated'; for (const s of this.parts.values()) s.setVisible(false); this.ctx.events.emit('enemy:killed', { x: this.x, y: this.y, kind: 'moosezilla', score: ENEMIES.boss.score, cause: 'explosion' }); this.ctx.events.emit('boss:defeated', this.info()); this.ctx.camera.unlock(); }
             return;
         }
-        if (this.state === 'cannon') { if (this.elapsed >= 320 && this.fired === 0) { this.volley(0); this.fired++; } if (this.elapsed >= 570 && this.fired === 1) { this.volley(1); this.fired++; } }
+        if (this.state === 'cannon') { if (this.elapsed >= 250 && this.elapsed - dt < 250) { this.pose('antler_r', 'fire'); if (this.antlers.antler_r > 0) this.ctx.events.emit('fx:emit', { effect: 'boss_cannon_charge', ...this.socket('cannon_r'), angle: this.facing > 0 ? 0 : Math.PI }); } if (this.elapsed >= 320 && this.fired === 0) { this.volley(0); this.fired++; } if (this.elapsed >= 570 && this.fired === 1) { this.volley(1); this.fired++; } }
         if (this.state === 'stomp' && this.elapsed >= 360 && !this.fired) { this.stomp(); this.fired++; }
         if (this.state === 'flame' && this.elapsed >= 400 && this.tickDamage <= 0) { this.flame(); this.tickDamage = 150; }
         if (this.state === 'flies' && this.elapsed >= 500 + this.fired * 450 && this.fired < 3) { if (this.flies.size < 3) { const at = this.socket('steam'); const fly = this.ctx.spawn('enemy', 'drone', { facing: this.facing, patrol: 64 }, at.x, at.y); if (fly instanceof Phaser.GameObjects.GameObject) { this.flies.add(fly); fly.once('destroy', () => this.flies.delete(fly)); } } this.fired++; }
@@ -176,11 +212,32 @@ export class Moosezilla extends Phaser.GameObjects.Container {
         const p = this.ctx.player()!; this.direction = p.x < this.x ? -1 : 1;
         let attack = this.phase === 1 ? (this.cycle++ % 3 === 2 ? 'stomp' : 'cannon') : this.phase === 2 ? ['flame', 'flies', 'stomp'][this.cycle++ % 3] : this.cycle++ % 2 === 0 ? 'charge' : 'flame';
         if (attack === 'flies' && this.flies.size > 0) attack = 'stomp';
-        if (attack === 'cannon') { this.enter('cannon', 1300); this.pose('antler_l', 'fire'); this.pose('antler_r', 'fire'); }
+        if (attack === 'cannon') { this.enter('cannon', 1300); this.pose('head', 'jaw'); this.ctx.audio.sfx('turret_windup'); this.pose('antler_l', 'fire'); this.pose('antler_r', 'idle'); if (this.antlers.antler_l > 0) this.ctx.events.emit('fx:emit', { effect: 'boss_cannon_charge', ...this.socket('cannon_l'), angle: this.facing > 0 ? 0 : Math.PI }); }
         if (attack === 'stomp') { this.enter('stomp', 850); this.pose('legs_front', 'stomp'); this.pose('legs_back', 'stomp'); }
-        if (attack === 'flame') { this.enter('flame', 1300); this.pose('head', 'flame'); this.pose('jaw', 'open'); this.ctx.audio.sfx('boss_flame'); }
+        if (attack === 'flame') { this.enter('flame', 1300); this.pose('head', 'flame'); this.pose('jaw', 'open'); this.ctx.audio.sfx('flame_start'); this.ctx.events.emit('fx:emit', { effect: 'boss_flame_reach', ...this.socket('mouth'), angle: this.facing > 0 ? 0 : Math.PI, scale: 88 / 84 }); }
         if (attack === 'flies') { this.enter('flies', 1500); this.pose('body', 'vent'); this.steam(); }
-        if (attack === 'charge') { this.enter('charge', 1700); this.pose('legs_front', 'paw'); this.pose('legs_back', 'paw'); this.ctx.events.emit('ui:popup', { x: this.x, y: this.y - 120, text: '!!', color: 0xffe478 }); }
+        if (attack === 'charge') { this.enter('charge', 1700); this.pose('head', 'roar'); this.ctx.audio.sfx('boss_charge'); this.ctx.events.emit('fx:emit', { effect: 'boss_charge_lane', x: this.x + this.direction * 55, y: this.y, angle: this.direction > 0 ? 0 : Math.PI }); this.pose('legs_front', 'paw'); this.pose('legs_back', 'paw'); this.ctx.events.emit('ui:popup', { x: this.x, y: this.y - 120, text: '!!', color: 0xffe478 }); }
     }
-    snapshot(): unknown { return { hp: this.hp, phase: this.phase, state: this.state, x: this.x, y: this.y, antlers: this.antlers }; }
+    private drawCue(): void {
+        const g = this.cue; g.clear();
+        const anticipating = (this.state === 'cannon' && this.elapsed < 570) || (this.state === 'flame' && this.elapsed < 400) || (this.state === 'charge' && this.elapsed < 500) || (this.state === 'stomp' && this.elapsed < 360);
+        if (!anticipating || this.hp <= 0) return;
+        const color = this.state === 'charge' ? 0xf07a5a : this.state === 'flame' ? 0xffae22 : 0xffe478;
+        let x = this.x - 12, width = 24;
+        if (this.state === 'charge') { x = this.arena0 + 8; width = this.arena1 - this.arena0 - 16; }
+        if (this.state === 'flame') { const mouth = this.socket('mouth'); x = this.facing < 0 ? mouth.x - 88 : mouth.x; width = 88; }
+        if (this.state === 'cannon') { x = (this.ctx.player()?.x ?? this.x) - 12; width = 24; }
+        if (this.state === 'stomp') x = this.socket('stomp').x - 12;
+        g.fillStyle(0x1a1220, .95).fillRect(x - 1, this.y - 4, width + 2, 5);
+        g.fillStyle(color, .8);
+        for (let at = x; at < x + width; at += 8) g.fillRect(at, this.y - 3, Math.min(5, x + width - at), 2);
+        if (this.state === 'cannon') {
+            g.lineStyle(1, color).strokeRect(x, this.y - 10, width, 7);
+            g.fillRect(x + width / 2 - 1, this.y - 14, 2, 5);
+        }
+        if (this.state === 'charge') for (let at = x + 10; at < x + width; at += 26) {
+            g.lineStyle(1, color).beginPath().moveTo(at - this.direction * 3, this.y - 10).lineTo(at + this.direction * 3, this.y - 7).lineTo(at - this.direction * 3, this.y - 4).strokePath();
+        }
+    }
+    snapshot(): unknown { return { hp: this.hp, phase: this.phase, state: this.state, x: this.x, y: this.y, antlers: this.antlers, hurtboxes: this.boxes.filter(b => b.alive()).map(b => { const r = typeof b.body === 'function' ? b.body() : b.body; return { x: r.x, y: r.y, width: r.width, height: r.height }; }) }; }
 }

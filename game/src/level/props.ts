@@ -2,16 +2,16 @@
 // hurtboxes and solid static bodies, plus decor and the ambient behaviours (searchlight sweep, alarm lights,
 // bunker doors with trickle spawns, the boss gate). Every prop sprite is anchored bottom-centre at (x, feet).
 import Phaser from 'phaser';
-import { DEPTH, type GameContext, type HitInfo, type Hurtbox, type RegisterContext } from '../core';
+import { DEPTH, hasAnim, type GameContext, type HitInfo, type Hurtbox, type RegisterContext } from '../core';
 import { LEVEL } from '../config/tuning/level';
 import { DECOR_BACK_DEPTH } from './map';
 import { bool, num, str, type LevelRuntime } from './types';
 
 type Sprite = Phaser.GameObjects.Sprite;
 
-/** Play an animation if it exists (missing art never crashes the level). */
+/** Play an animation if it exists with frames (missing art never crashes the level). Preload builds every prop tag. */
 export function playIf(s: Sprite, key: string, loop: boolean): boolean {
-    if (!s.scene?.anims.get(key)?.frames.length) return false;
+    if (!s.scene || !hasAnim(s.scene, key)) return false;
     s.play({ key, repeat: loop ? -1 : 0 }, true);
     return true;
 }
@@ -30,7 +30,7 @@ function makeSprite(ctx: GameContext, kind: string, x: number, y: number, props:
 }
 
 /** Solid props that something can rest on (stacked crates fall when their support breaks). */
-interface SolidProp { sprite: Sprite; zone: Phaser.GameObjects.Zone; body: [number, number, number, number] }
+interface SolidProp { sprite: Sprite; zone: Phaser.GameObjects.Zone; body: [number, number, number, number]; fall?: Phaser.Tweens.Tween }
 
 export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
     const solidProps: SolidProp[] = [];
@@ -56,9 +56,17 @@ export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
                 if (Math.abs(q.sprite.x - p.sprite.x) < (q.body[2] + p.body[2]) / 2 && qTop >= p.sprite.y - 1 && qTop < target) target = qTop;
             }
             if (target <= p.sprite.y + 0.5) continue;
-            ctx.scene.tweens.add({
+            p.fall?.stop();
+            // Tweens don't watch their targets: breakProp stops this one, and the callbacks also bail on a dead prop.
+            p.fall = ctx.scene.tweens.add({
                 targets: p.sprite, y: target, duration: LEVEL.propFallMs, ease: 'Quad.easeIn',
-                onUpdate: () => moveZone(p), onComplete: () => { moveZone(p); ctx.events.emit('fx:emit', { effect: 'dust_land', x: p.sprite.x, y: target, scale: 0.6 }); }
+                onUpdate: () => { if (p.sprite.active) moveZone(p); },
+                onComplete: () => {
+                    p.fall = undefined;
+                    if (!p.sprite.active) return;
+                    moveZone(p);
+                    ctx.events.emit('fx:emit', { effect: 'dust_land', x: p.sprite.x, y: target, scale: 0.6 });
+                }
             });
         }
     };
@@ -103,6 +111,8 @@ export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
             const cx = s.x, cy = s.y - s.height / 2, feet = s.y;
             unregister();
             offUpdate();
+            solid.fall?.stop();
+            solid.fall = undefined;
             const i = solidProps.indexOf(solid);
             if (i >= 0) solidProps.splice(i, 1);
             zone.destroy();
@@ -122,7 +132,7 @@ export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
                 else boom();
             }
         };
-        s.once(Phaser.GameObjects.Events.DESTROY, () => { unregister(); offUpdate(); if (zone.active) zone.destroy(); });
+        s.once(Phaser.GameObjects.Events.DESTROY, () => { unregister(); offUpdate(); solid.fall?.stop(); if (zone.active) zone.destroy(); });
         return s;
     };
 

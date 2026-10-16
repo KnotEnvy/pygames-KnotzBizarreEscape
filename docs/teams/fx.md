@@ -1,3 +1,13 @@
+# Phase D integration contract (in progress)
+
+FX now consumes `fx:emit` anticipation effects **`boss_cannon_charge`**, **`boss_flame_reach`**, **`boss_charge_lane`**. Emit once at windup start: cannon at each cannon socket (320 ms); flame at mouth with committed `angle` (400 ms, reach 84 px); charge at leading foot / ground y with fixed `angle` (500 ms, lane ~160 px). `scale` multiplies reach (.25–2). Pooled visuals stay below enemies/core/player/projectiles. Enemies owns timing, damage, poses and sounds. Missing events remain silent; FX does not poll boss internals.
+
+Boss death: keep existing positioned chain events. FX suppresses its extra stops and XL flashes while boss HP is zero, then adds **one final XL at `boss:defeated` x,y−48**, 120 ms stop, white 45 ms flash (settings-gated), followed by .35×/900 ms after the stop. Please avoid adding a duplicate final burst or slow-mo at `boss:defeated`; Enemies still owns the initial death flash/slow-mo and body parts. Omit duplicate initial steam audio if moving to `vent_steam` (Audio already handles it).
+
+Readability: all pooled burst/particle/glow art defaults below enemies (39), preserving player/projectile/core silhouettes from the first frame. Smoke max alpha .28; total alpha-weighted screen rectangle area ≤16%, clouds ≤8%, enforced after emissions before render. These are conservative coverage bounds, counting transparent texture pixels. Embers use small ochre slivers rather than red/white round cores. Snow now has `fx_impact_snow_burst` and pale flakes for `material=snow`.
+
+This section supersedes Phase B tuning below; final verification pending.
+
 # Effects and game feel — Phase B runtime
 
 Phase B implements the runtime in `game/src/fx/{index,director,pool,filters,gallery}.ts` and `game/src/config/tuning/fx.ts`. The Phase A art plan is preserved below as historical design context; this section takes precedence where implementation or the live engine contract differs.

@@ -35,16 +35,16 @@
       "key": "moosezilla_antler_l",
       "parent": "root",
       "sourceSize": [
-        56,
+        80,
         48
       ],
       "pivot": [
-        8,
+        72,
         44
       ],
       "attach": [
-        29,
-        -77
+        24,
+        -81
       ],
       "z": 1,
       "idleTag": "moosezilla_antler_l_idle"
@@ -168,11 +168,11 @@
       "key": "moosezilla_antler_r",
       "parent": "root",
       "sourceSize": [
-        56,
+        80,
         48
       ],
       "pivot": [
-        8,
+        72,
         44
       ],
       "attach": [
@@ -194,15 +194,15 @@
     "cannon_l": {
       "part": "antler_l",
       "point": [
-        53,
-        21
+        70,
+        28
       ]
     },
     "cannon_r": {
       "part": "antler_r",
       "point": [
-        53,
-        21
+        70,
+        28
       ]
     },
     "steam": {

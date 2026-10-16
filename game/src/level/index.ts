@@ -5,7 +5,6 @@
 import Phaser from 'phaser';
 import type { RegisterContext } from '../core';
 import { LEVEL } from '../config/tuning/level';
-import { registerPropAnimations } from './animations';
 import { ArenaController, ArenaHookSet } from './arenas';
 import { buildMap, parseSections } from './map';
 import { createParallax } from './parallax';
@@ -29,7 +28,6 @@ export function registerLevel(ctx: RegisterContext): void {
     createParallax(ctx);
     ctx.setLevel(built.query);
 
-    registerPropAnimations(scene, scene.textures.getTextureKeys().filter(k => k.startsWith('prop_')));
     registerProps(ctx, rt);
 
     // Player first (the engine's ?x= warp runs a frame later), then every prop (cheap, static, eager).
@@ -50,7 +48,7 @@ export function registerLevel(ctx: RegisterContext): void {
     ctx.onUpdate(dt => {
         spawner.update();
         arenas.update(dt);
-        triggers.update();
+        triggers.update(dt);
     });
 
     // ---------------------------------------------------------------- debug / QA

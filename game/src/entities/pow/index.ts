@@ -7,6 +7,7 @@ function spawnPow(ctx: GameContext, x: number, y: number, item: string) {
     const body = spr.body as Phaser.Physics.Arcade.Body;
     body.setSize(14, 28).setOffset(9, 12);
     const offCollision = ctx.physics.collideLevel(spr);
+    let given = false;
     let state: 'tied' | 'freed' | 'salute' | 'gift' | 'run' = 'tied', age = 0;
     spr.play('pow_tied_idle');
     const free = (): void => {
@@ -23,11 +24,11 @@ function spawnPow(ctx: GameContext, x: number, y: number, item: string) {
         if (state === 'tied') {
             const p = ctx.player();
             if (p?.alive() && Math.abs(p.x - spr.x) < 19 && Math.abs(p.y - spr.y) < 30) free();
-        } else if (state === 'freed' && age >= 320) { state = 'salute'; age = 0; spr.play('pow_salute'); }
-        else if (state === 'salute' && age >= 440) { state = 'gift'; age = 0; spr.play('pow_give_item'); }
-        else if (state === 'gift' && age >= 320) {
-            spawnPickup(ctx, spr.x + 15, spr.y, item);
-            state = 'run'; age = 0; spr.play('pow_run_away'); spr.setFlipX(true); body.setVelocityX(-80);
+        } else if (state === 'freed' && age >= 400) { state = 'salute'; age = 0; spr.play('pow_salute'); }
+        else if (state === 'salute' && age >= 500) { state = 'gift'; age = 0; spr.play('pow_give_item'); }
+        else if (state === 'gift') {
+            if (!given && age >= 360) { given = true; spawnPickup(ctx, spr.x + 15, spr.y, item); }
+            if (age >= 560) { state = 'run'; age = 0; spr.play('pow_run_away'); spr.setFlipX(true); body.setVelocityX(-80); }
         } else if (state === 'run' && (spr.x < ctx.camera.leftEdge() - 40 || age > 8000)) spr.destroy();
     });
     spr.once('destroy', () => { off(); offCollision(); offDamage(); });

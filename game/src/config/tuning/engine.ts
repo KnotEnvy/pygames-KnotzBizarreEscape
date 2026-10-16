@@ -8,19 +8,32 @@ export const ENGINE = {
     maxDeltaMs: 50,
 
     camera: {
-        /** Where the player sits horizontally (0..1 of the view width) when the camera is caught up. */
+        // Phase D feel pass (real player, every section; see docs/teams/engine.md "Camera feel"). Metal Slug: steady
+        // horizontal scroll with a forward bias, vertical follow by platform height only.
+        /** Where the player sits horizontally (0..1 of the view width) when the camera is caught up (before look-ahead). */
         anchorX: 0.4,
-        /** Where the player's center sits vertically (0..1 of the view height). */
+        /** Where the player's standing center sits vertically (0..1 of the view height). */
         anchorY: 0.62,
+        /** Standing center above the feet (px). The camera tracks feet − this, so crouching never moves it. */
+        centerAboveFeet: 16,
         /** Half-width of the horizontal deadzone around the follow focus (px). */
         deadzoneX: 12,
-        /** Half-height of the vertical deadzone (px). */
-        deadzoneY: 18,
+        /** Grounded vertical deadzone (px): ignores slope/one-tile-curb noise; real ledges move the camera. */
+        deadzoneY: 6,
+        /** Airborne window (px above / below the last grounded focus). A full jump (~56 px) stays inside it, so hops
+         *  never move the camera; big climbs follow on landing, falls follow once past airDown. */
+        airUp: 72,
+        airDown: 24,
+        /** Hard screen margins (px) for the feet / head: fast falls and climbs never leave the view. */
+        marginBottom: 28,
+        marginTop: 24,
         /** Look-ahead distance in the facing direction (px). */
         lookAhead: 36,
         /** Exponential follow rates (1/s). Higher = snappier. */
         followRateX: 7,
-        followRateY: 4,
+        followRateY: 3.5,
+        /** Vertical rate while the player falls below the held focus (drops lead instead of dragging the margin). */
+        followRateFall: 9,
         lookAheadRate: 2.5,
         /** Arena lock / unlock transition duration. */
         lockTweenMs: 700,

@@ -78,7 +78,7 @@ function tier(x, y, n, dir) {
   for (let r = 0; r < 3; r++) for (let c = 0; c < n; c++) put('back', x + c * dir, y - 1 + r, `tier${n}_${r}${c}`, dir < 0);
 }
 /** giant 2-wide pine trunk from the top of the map down to the ground (base on row groundTop-1) */
-function bigTree(x, groundTop, branches = [], seed = 0) {
+function bigTree(x, groundTop, branches = [], seed = 0, boughs = []) {
   for (let y = 0; y < groundTop - 1; y++) { put('back', x, y, 'trunk_l'); put('back', x + 1, y, 'trunk_r'); }
   put('back', x, groundTop - 1, 'trunk_base_l'); put('back', x + 1, groundTop - 1, 'trunk_base_r');
   for (const b of branches) {
@@ -88,7 +88,16 @@ function bigTree(x, groundTop, branches = [], seed = 0) {
   }
   // decorative crown tiers at the top of the map (out of jump reach), small clumps lower down
   if (branches.length) { tier(x + 2, 2, 4, 1); tier(x - 1, 2, 4, -1); tier(x + 2, 5, 3, 1); tier(x - 1, 4, 3, -1); }
-  else { tier(x + 2, 3 + (seed % 2), 3, 1); tier(x - 1, 2 + ((seed + 1) % 2), 3, -1); }
+  else {
+    tier(x + 2, 3 + (seed % 2), 3, 1); tier(x - 1, 2 + ((seed + 1) % 2), 3, -1);
+    // Lower boughs, alternating sides and widening downwards, so the trunk reads as a pine from the resting camera
+    // (rows 10.5-24). The lowest stays 6 rows above the ground: the combat lane in front of the trunk stays clear.
+    const s = seed % 2 ? 1 : -1;
+    const at = (d) => (d > 0 ? x + 2 : x - 1);
+    tier(at(s), 8, 3, s); tier(at(-s), 11, 4, -s); tier(at(s), Math.min(14, groundTop - 6), 4, s);
+  }
+  // Non-platform boughs on a climbable tree (needles only, no branch tile): fill its silhouette into the ground view.
+  for (const b of boughs) tier(b.dir > 0 ? x + 2 : x - 1, b.y, b.n, b.dir);
 }
 /** background trunk without platforms (forest depth) */
 function trunk(x, groundTop) { bigTree(x, groundTop, [], x); }
@@ -222,22 +231,22 @@ prop('prison_cell', 5, G - 1, { variant: 'broken', layer: 'back' });
 prop('flag', 9, G - 1, { layer: 'back' });
 prop('sign_shoot', 10, G);                       // 2 tiles apart: signs are 32 px wide
 prop('sign_jump', 12, G);
-enemy('grunt', 20, G, { idle: 'sleep' });
+enemy('grunt', 20, G, { idle: 'sleep', facing: 'right' }); // back to the player: a free sneak-up beat (wakes on sight/noise)
 prop('watchtower', 27, G, { layer: 'back' });
 enemy('grunt', 27, 16, { facing: 'left' });
 enemy('grunt', 24, G, { patrol: 64 });
 pow('hmg', 31, G - 1);
-prop('crate', 35, G);
-prop('crate', 36, G);
-prop('crate', 36, G - 1, { stacked: true });
-enemy('grunt', 38, G, { patrol: 48 });
+// crouch lesson: painted DOWN + FIRE sign, then one low crate holding the first reward. Standing fire sails over
+// it, the crouch shot breaks it. The first crouching (low-cover) grunt follows right after.
+prop('sign_crouch', 34, G);
+prop('crate', 37, G, { contains: 'points' });
+enemy('grunt', 39, G, { patrol: 32 });
 prop('lamp_post', 40, G, { layer: 'back' });
-enemy('grunt', 42, G);
+enemy('grunt', 42, G, { idle: 'crouch' });
 prop('supply_crate', 44, 18, { contains: 'bombs' });
 prop('sign_bomb', 47, G);
 prop('explosive_barrel', 49, G);
 enemy('turret', 51, G - 2, { mount: 'sandbag' });
-enemy('grunt', 53, G, { idle: 'crouch' });
 prop('watchtower', 56, G, { layer: 'back' });
 prop('searchlight', 56, 16, { layer: 'back', sweep: 1 });
 enemy('grunt', 57, 16);
@@ -250,6 +259,7 @@ tr('ambience', 0, 59, 0, H - 1, { fx: 'snow' });
 tr('prompt', 10, 13, 12, G - 1, { text: 'SHOOT: X   JUMP: Z' });
 tr('prompt', 45, 48, 12, G - 1, { text: 'BOMB: C' });
 tr('prompt', 29, 32, 12, G - 1, { text: 'FREE THE POW!' });
+tr('prompt', 34, 36, 12, G - 1, { text: 'CROUCH SHOT: HOLD \u2193 + X' });
 
 // ================================================================================================
 // 2. PINE FOREST (60-170): stepped terrain, rock outcrop with an upper route, two climbable giant
@@ -275,13 +285,15 @@ platform('log', 84, 88, 16);
 platform('log', 96, 100, 18);
 platform('log', 118, 121, 14);                    // outcrop -> tree 1
 platform('log', 145, 150, G - 1);                 // log across the ravine
-bigTree(123, G, [{ y: 17, len: 3, dir: 1 }, { y: 11, len: 4, dir: 1 }, { y: 8, len: 3, dir: -1 }]);
-bigTree(134, G, [{ y: 12, len: 3, dir: -1 }, { y: 15, len: 3, dir: 1 }, { y: 9, len: 4, dir: 1 }]);
+bigTree(123, G, [{ y: 17, len: 3, dir: 1 }, { y: 11, len: 4, dir: 1 }, { y: 8, len: 3, dir: -1 }], 0,
+  [{ y: 13, n: 4, dir: -1 }]);                     // behind the outcrop log: that route enters the canopy
+bigTree(134, G, [{ y: 12, len: 3, dir: -1 }, { y: 15, len: 3, dir: 1 }, { y: 9, len: 4, dir: 1 }], 0,
+  [{ y: 12, n: 3, dir: 1 }, { y: 16, n: 3, dir: -1 }]); // right cone R15/R12/R9 climbs to the tree POW
 for (const x of [66, 91, 143, 158]) {
   const gt = (x >= 72 && x <= 79) ? G - 1 : (x >= 80 && x <= 87) ? G - 2 : (x >= 140 && x <= 145) || (x >= 150 && x <= 160) ? G - 1 : G;
   trunk(x, gt);
 }
-hills(94, 122, 12, 15, 'rock', 2);
+hills(94, 122, 14, 16, 'rock', 2);              // kept low: less stone behind the outcrop combat lane
 hills(58, 70, 16, 18, 'ground', 3);
 hills(146, 168, 15, 18, 'ground', 4);
 
@@ -297,13 +309,12 @@ prop('crate', 90, G - 1, { contains: 'bombs' });
 prop('explosive_barrel', 97, G);
 enemy('grunt', 98, G);
 enemy('grunt', 100, G, { patrol: 32 });
-enemy('drone', 101, 10);
-enemy('grenadier', 108, 17);
-enemy('grunt', 112, 17, { idle: 'crouch' });
+enemy('grenadier', 110, 17);                      // 5 tiles of safe landing on the outcrop's left end
+enemy('grunt', 115, 17, { idle: 'crouch' });
 prop('pine_dead', 106, 17, { layer: 'back' });
 enemy('grunt', 117, G);
 enemy('grenadier', 126, 17, { facing: 'left' });
-enemy('drone', 120, 9);
+enemy('drone', 120, 12);                          // drones stay inside the resting view: no off-screen dives
 enemy('grunt', 130, G, { patrol: 64 });
 pow('spread', 138, 9, { pose: 'tree' });
 enemy('drone', 133, 7);
@@ -349,7 +360,7 @@ enemy('paratrooper', 179, 1);
 enemy('paratrooper', 184, 0);
 enemy('grunt', 183, 18);
 enemy('paratrooper', 194, 1);
-enemy('drone', 199, 11);
+enemy('drone', 199, 12);
 prop('flag', 210, 18, { layer: 'back' });
 prop('lamp_post', 218, 18, { layer: 'back' });
 prop('supply_crate', 209, 18, { contains: 'bombs' });
@@ -360,17 +371,16 @@ enemy('grunt', 227, 18, { ...A1, wave: 1, delay: 600 });
 enemy('paratrooper', 209, 0, { ...A1, wave: 1, delay: 1200 });
 enemy('paratrooper', 217, 0, { ...A1, wave: 1, delay: 1800 });
 enemy('shield', 226, 18, { ...A1, wave: 2 });
-enemy('grunt', 198, 18, { ...A1, wave: 2, facing: 'right', delay: 800 });
-enemy('grunt', 227, 18, { ...A1, wave: 2, delay: 1400 });
-enemy('grenadier', 228, 18, { ...A1, wave: 2, delay: 2000 });
+// wave 2/3 threats arrive one side at a time (staggered), never a simultaneous two-sided crossfire
+enemy('grunt', 198, 18, { ...A1, wave: 2, facing: 'right', delay: 1600 });
+enemy('grenadier', 228, 18, { ...A1, wave: 2, delay: 3400 });
 enemy('shield', 198, 18, { ...A1, wave: 3, facing: 'right' });
-enemy('drone', 226, 9, { ...A1, wave: 3, delay: 400 });
-enemy('drone', 199, 7, { ...A1, wave: 3, delay: 900 });
-enemy('paratrooper', 213, 0, { ...A1, wave: 3, delay: 1500 });
-pow('rocket', 225, 18);
-enemy('grunt', 231, 18);
+enemy('drone', 226, 12, { ...A1, wave: 3, delay: 1400 });
+enemy('drone', 199, 12, { ...A1, wave: 3, delay: 3200 });
+enemy('paratrooper', 213, 0, { ...A1, wave: 3, delay: 4600 });
+pow('rocket', 225, 18);                           // recovery beat: the POW right after the arena, no enemy on top of it
 enemy('paratrooper', 240, 0);
-enemy('drone', 243, 10);
+enemy('drone', 243, 12);
 enemy('grunt', 249, 18, { idle: 'crouch' });
 
 tr('checkpoint', 170, 171, 0, H - 1, { id: 'cp_bridge' });
@@ -386,7 +396,7 @@ tr('prompt', 172, 175, 10, 17, { text: 'DON\'T FALL IN!' });
 ground(253, 359, G, 'concrete');
 ground(253, 253, G - 1, 'rock');
 mat('ground', 256, 259, G, G, 'steel');
-sandbags(257, 258, G - 2, G - 1);
+sandbags(257, 260, G - 2, G - 1);                 // wide landing step up to bunker A's roof (no trough)
 mat('ground', 261, 270, 17, G - 1, 'concrete');   // bunker A
 platform('catwalk', 271, 283, 17);
 mat('ground', 284, 293, 14, G - 1, 'concrete');   // bunker B
@@ -425,8 +435,8 @@ for (let x = 322; x <= 349; x++) put('back', x, 11, x % 7 === 0 ? 'railing_post'
 palisade(351, 359, G - 1, 4);
 
 prop('sign_danger', 254, G);
-enemy('grunt', 260, G, { idle: 'crouch' });
-enemy('shield', 263, 17);
+enemy('grunt', 255, G, { idle: 'crouch' });
+enemy('shield', 266, 17);                         // the roof edge (x261-264) is a clear landing
 enemy('turret', 268, 17, { mount: 'roof' });
 prop('alarm_light', 265, 12, { layer: 'back', on: true });
 prop('banner', 278, 16, { layer: 'back' });
@@ -464,7 +474,7 @@ enemy('grunt', 327, G, { ...A2, wave: 2, from: 'door', delay: 2200 });
 prop('alarm_light', 337, 12, { layer: 'back', on: true, lock: 'bunker' });
 prop('flag', 352, G - 4, { layer: 'back' });
 prop('flag', 357, G - 4, { layer: 'back' });
-enemy('grunt', 353, G);
+prop('supply_crate', 349, G, { contains: 'bombs' }); // recovery beat after the bunker arena
 enemy('grunt', 356, G, { idle: 'crouch' });
 
 tr('checkpoint', 252, 253, 0, H - 1, { id: 'cp_outpost' });
@@ -506,7 +516,7 @@ tr('checkpoint', 360, 361, 0, H - 1, { id: 'cp_pen' });
 tr('checkpoint', 388, 389, 0, H - 1, { id: 'cp_boss' });
 tr('music', 389, 389, 0, H - 1, { key: 'music_boss' });
 tr('camera_lock', 390, 419, 0, H - 1, { id: 'boss', release: 'clear', waves: 1 });
-tr('stage_end', 404, 417, 0, H - 1, { requires: 'boss' });
+tr('stage_end', 390, 417, 0, H - 1, { requires: 'boss' }); // fallback; boss:defeated also clears by itself
 tr('ambience', 360, 419, 0, H - 1, { fx: 'snow' });
 
 // far silhouettes along the whole stage (deepest tile layer)
@@ -544,7 +554,7 @@ function autotile(layer, bg) {
         let depth = 0; while (y - depth - 1 >= 0 && L[layer].mat[idx(x, y - depth - 1)]) depth++;
         const h = hash(x, y, 11);
         const earthy = m === 'ground' || m === 'rock';
-        const plain = earthy ? 0.25 : 0.6; // man-made surfaces are mostly clean panels
+        const plain = earthy ? (bg ? 0.6 : 0.25) : 0.6; // man-made panels and background earth stay mostly plain (quiet behind lanes)
         if (earthy && (y === H - 1 || depth >= 4)) n = `deep_v${Math.floor(h * 4)}`;
         else n = h < plain ? 'm0' : `fill_v${1 + Math.floor((h - plain) / (1 - plain) * 3)}`;
       }

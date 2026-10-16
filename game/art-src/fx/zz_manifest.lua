@@ -5,7 +5,7 @@ local names={
  'explosion_s','explosion_m','explosion_l','explosion_xl','smoke','shockwave','scorch',
  'muzzle_pistol','muzzle_hmg','muzzle_spread','muzzle_rocket','muzzle_flame',
  'casing','sparks','debris_metal','debris_wood','debris_rock',
- 'impact_dirt','impact_metal','impact_wood','impact_shield','water_splash','water_ripple',
+ 'impact_snow','heat','impact_dirt','impact_metal','impact_wood','impact_shield','water_splash','water_ripple',
  'dust','hit_pop','death_poof','snow','foliage','embers','firefly','steam',
  'glow_8','glow_16','glow_32','flare'
 }
@@ -21,7 +21,7 @@ for _,short in ipairs(names) do
  local px,py=spr.width/2,spr.height/2
  if short:match('^muzzle_') then px,py=8,24
  elseif short=='water_splash' then px,py=40,47
- elseif short=='impact_dirt' or short=='impact_wood' then px,py=16,20
+ elseif short=='impact_snow' or short=='impact_dirt' or short=='impact_wood' then px,py=16,20
  elseif short=='dust' then px,py=16,16
  elseif short=='steam' then px,py=24,44 end
  local tags={}

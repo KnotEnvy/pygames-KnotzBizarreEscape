@@ -30,12 +30,13 @@ export class FxDirector {
     private explicitDustUntil = 0;
     private lastSplash = -1000; private splashX = 0; private splashY = 0;
     private readonly popups: { text: Phaser.GameObjects.Text; age: number; y: number }[] = [];
-    private readonly stats = { active: 0, peak: 0, dropped: 0, cpuMs: 0, cpuPeakMs: 0, filters: 'plain', ambience: null as Ambience, popups: 0, impacts: 0, explosions: 0, splashes: 0 };
+    private readonly stats = { active: 0, peak: 0, dropped: 0, cpuMs: 0, cpuPeakMs: 0, filters: 'plain', ambience: null as Ambience, popups: 0, impacts: 0, explosions: 0, splashes: 0, combat: null as FxPool['combatLive'] | null, coverage: 0, cloudCoverage: 0, cues: 0 };
     private readonly offUpdate: () => void;
     private ambience: Ambience = null;
     private ambientDebt = 0;
     private shake = 0; private stop = 0;
     private realClock = 0; private lastShake = -1000; private lastTier = 0; private lastFlash = -1000;
+    private lastStop = -1000; private criticalStop = false;
     private lastCasing = -1000; private lastHmg = -1000; private lastFlameHurt = -1000;
     private bossDying = false; private bossPhase = -1; private slowPending = false;
     private lastX = NaN; private lastY = NaN; private lastVx = 0; private lastDust = 0; private wasWater = false;
@@ -43,6 +44,7 @@ export class FxDirector {
 
     constructor(readonly ctx: GameContext) {
         this.pool = new FxPool(ctx);
+        this.stats.combat = this.pool.combatLive;
         this.filters = new FxFilters(ctx);
         for (let i = 0; i < FX.popup.cap; i++) {
             this.popups.push({ text: ctx.scene.add.text(0, 0, '', {
@@ -91,16 +93,20 @@ export class FxDirector {
         on('player:died', e => {
             if (ctx.physics.hazardAt(e.x, e.y) === 'water') { if (!this.wasWater) this.splash(e.x, this.waterline(e.x, e.y)); this.wasWater = true; }
             else { this.pool.spawn('impact', 'fx_hit_pop_burst', e.x, e.y - 16); this.pool.spawn('dust', 'fx_death_poof_burst', e.x, e.y - 12, 160); }
-            this.feel(2, FX.feel.death);
+            this.criticalStop = true; this.feel(2, FX.feel.death);
         });
         on('pickup:collected', e => this.celebrate(e.x, e.y, e.kind === 'life' ? 10 : 6));
         on('pow:freed', e => this.celebrate(e.x, e.y - 16, 6));
         on('checkpoint', e => this.celebrate(e.x, e.y - 8, 4));
         on('boss:spawn', e => { this.bossPhase = e.phase; this.bossDying = false; this.feel(3, 0); });
-        on('boss:phase', e => { if (this.bossPhase !== e.phase) { this.bossPhase = e.phase; this.feel(3, FX.feel.phase); } });
-        on('boss:hp', e => { if (e.hp <= 0) this.bossDying = true; });
+        on('boss:phase', e => { if (this.bossPhase !== e.phase) { this.bossPhase = e.phase; this.clearCues(); this.feel(3, FX.feel.phase); } });
+        on('boss:hp', e => { if (e.hp <= 0) { this.bossDying = true; this.clearCues(); } });
         // Current boss emits defeated AFTER its destruction bursts. Start slow motion after the final stop.
-        on('boss:defeated', () => { this.bossDying = false; this.slowPending = true; });
+        on('boss:defeated', e => {
+            // Body choreography remains boss-owned. One final core burst follows its chain.
+            if (e.x !== undefined && e.y !== undefined) this.explosion(e.x, e.y - 48, 'xl', true);
+            this.bossDying = false; this.slowPending = true;
+        });
         on('fx:ambience', e => this.setAmbience(e.kind));
         on('ui:popup', e => this.popup(e));
         on('settings:changed', () => this.filters.applySettings());
@@ -130,7 +136,12 @@ export class FxDirector {
         const start = performance.now();
         for (let i = 0; i < this.impactCount; i++) { const r = this.impacts[i]; this.impact(r.x, r.y, r.material); }
         this.impactCount = 0;
-        if (this.stop > 0) this.ctx.fx.hitstop(this.stop);
+        if (this.stop > 0 && (this.criticalStop || this.realClock - this.lastStop >= FX.feel.stopGate)) {
+            this.ctx.fx.hitstop(this.stop); this.lastStop = this.realClock;
+        }
+        this.criticalStop = false;
+        this.pool.present();
+        this.stats.coverage = this.pool.coverage; this.stats.cloudCoverage = this.pool.cloudCoverage;
         if (this.shake > 0 && (this.shake > this.lastTier || this.realClock - this.lastShake >= FX.feel.shakeGate)) {
             if (settings.get().shake) this.ctx.fx.shake(this.shake as ShakeTier);
             this.lastShake = this.realClock; this.lastTier = this.shake;
@@ -144,9 +155,15 @@ export class FxDirector {
     private impact(x: number, y: number, material: ImpactMaterial): void {
         this.stats.impacts++;
         if (material === 'water') { this.pool.spawn('impact', 'fx_water_ripple_expand', x, y); return; }
+        if (material === 'snow') {
+            const puff = this.pool.spawn('impact', 'fx_impact_snow_burst', x, y, 0, 1, true);
+            if (puff) { puff.image.setOrigin(0.5, 20 / 24); puff.alpha = 0.7; }
+            this.scatter(x, y, SNOW, 4, 35, 110, 300, false);
+            return;
+        }
         const metal = material === 'metal' || material === 'shield';
         const wood = material === 'wood';
-        const dirt = material === 'dirt' || material === 'stone' || material === 'snow';
+        const dirt = material === 'dirt' || material === 'stone';
         const s = this.pool.spawn('impact', metal ? material === 'shield' ? 'fx_impact_shield_tink' : 'fx_impact_metal_burst' : wood ? 'fx_impact_wood_burst' : dirt ? 'fx_impact_dirt_burst' : 'fx_hit_pop_burst', x, y, 0, 1, true);
         if (s && (wood || dirt)) s.image.setOrigin(0.5, 20 / 24);
         if (metal || wood || dirt) this.scatter(x, y, metal ? SPARKS : wood ? WOOD : ROCK, metal ? material === 'shield' ? 2 : 4 : wood ? 3 : 2, metal ? 95 : 45, 250, metal ? 240 : 340, !metal);
@@ -181,11 +198,15 @@ export class FxDirector {
         if (weapon === 'flame') { this.scatter(e.x, e.y, EMBERS, 2, 45, 35, 220, false); this.glow(e.x, e.y, 0.6, 0.15); }
     }
 
-    explosion(x: number, y: number, size: ExplosionSize): void {
-        if (size === 'xl') {
-            let count = 0;
-            for (const s of this.pool.slots) if (s.live && s.clip?.texture === 'fx_explosion_xl') count++;
-            if (count >= 2) size = 'l';
+    explosion(x: number, y: number, size: ExplosionSize, finale = false): void {
+        if (size === 'xl' && this.pool.countTexture('fx_explosion_xl') >= 2) {
+            if (!finale) size = 'l';
+            else {
+                // Reserve the cinematic XL without exceeding the two-hero-burst cap.
+                let oldest;
+                for (const s of this.pool.slots) if (s.live && s.clip?.texture === 'fx_explosion_xl' && (!oldest || s.age > oldest.age)) oldest = s;
+                if (oldest) this.pool.release(oldest);
+            }
         }
         const recipe = FX.explosion[size];
         const burst = this.pool.spawn('explosion', EXPLOSIONS[size], x, y, 0, 1, true);
@@ -203,11 +224,12 @@ export class FxDirector {
             const decal = this.pool.spawn('decal', 'fx_scorch_round', x, ground, 0, recipe.scorch, true);
             if (decal) { decal.life = FX.decalMs; decal.alpha = 0.65; decal.fade = 1500; decal.image.setDepth(DEPTH.DECALS); }
         }
-        this.feel(recipe.shake, recipe.stop);
-        if (size === 'xl') {
+        this.feel(recipe.shake, finale ? 120 : this.bossDying ? 0 : recipe.stop);
+        if (finale) { this.criticalStop = true; this.ctx.audio.sfx('explo_xl', { x }); }
+        if (size === 'xl' && (!this.bossDying || finale)) {
             // Engine also gates its camera flash; honor reduced motion for our own requests.
             if (!settings.get().reducedFlash && !this.reducedMotion.matches && this.realClock - this.lastFlash >= FX.feel.flashGate) {
-                this.ctx.fx.flash(0xfff1cf, 45); this.lastFlash = this.realClock;
+                this.ctx.fx.flash(finale ? 0xffffff : 0xfff1cf, 45); this.lastFlash = this.realClock;
             }
         }
     }
@@ -217,22 +239,21 @@ export class FxDirector {
     }
     private smoke(x: number, y: number, delay: number, scale: number): void {
         const s = this.pool.spawn('smoke', 'fx_smoke_drift', x, y, delay, scale);
-        if (s) { s.image.setDepth(DEPTH.ENEMIES - 1); s.alpha = 0.52; s.vy = this.ctx.rng.range(-24, -12); s.vx = this.ctx.rng.range(-8, 8); s.fade = 180; }
+        if (s) { s.image.setDepth(DEPTH.ENEMIES - 1); s.alpha = FX.readability.smokeAlpha; s.vy = this.ctx.rng.range(-24, -12); s.vx = this.ctx.rng.range(-8, 8); s.fade = 180; }
     }
     private scatter(x: number, y: number, tags: readonly string[], count: number, speed: number, gravity: number, life: number, bounce: boolean): void {
         // Sub-budgets keep loose embers sparse even during stacked XL bursts.
-        const cap = tags === EMBERS ? 16 : tags === SPARKS ? 80 : 64;
-        let live = 0;
-        for (const s of this.pool.slots) if (s.live && s.category === 'combat' && (tags === EMBERS ? s.clip?.texture === 'fx_embers' : tags === SPARKS ? s.clip?.texture === 'fx_sparks' : s.bounce > 0 || s.clip?.texture.startsWith('fx_debris'))) live++;
-        count = Math.min(count, cap - live);
+        const kind = tags === EMBERS ? 'embers' : tags === SPARKS ? 'sparks' : tags === SNOW ? 'snow' : 'debris';
+        const cap = kind === 'embers' ? 16 : kind === 'sparks' ? 80 : kind === 'snow' ? 16 : 64;
+        count = Math.min(count, cap - this.pool.combatLive[kind]);
         for (let i = 0; i < count; i++) {
             const s = this.pool.spawn('combat', this.ctx.rng.pick(tags), x, y);
             if (!s) break;
             const angle = this.ctx.rng.range(-Math.PI, 0), velocity = this.ctx.rng.range(speed * 0.4, speed * 1.3);
             s.vx = Math.cos(angle) * velocity; s.vy = Math.sin(angle) * velocity - 15;
             s.gravity = gravity; s.life = life * this.ctx.rng.range(0.65, 1.15); s.fade = 140; s.bounce = bounce ? 2 : 0;
-            s.image.setDepth(DEPTH.FX_TOP);
-            if (tags === EMBERS) { s.alpha = 0.8; s.image.setBlendMode(Phaser.BlendModes.ADD); }
+            s.image.setDepth(DEPTH.ENEMIES - 1);
+            if (tags === EMBERS) { s.alpha = 0.55; s.image.setScale(0.75); }
         }
     }
     private dust(x: number, y: number, kind: 'land' | 'run' | 'skid', scale: number): void {
@@ -272,7 +293,8 @@ export class FxDirector {
         s.loop = kind === 'fireflies';
         s.image.setDepth(DEPTH.PROPS - 1);
         if (kind === 'steam') s.image.setOrigin(0.5, 44 / 48);
-        if (kind === 'fireflies' || kind === 'embers') s.image.setBlendMode(Phaser.BlendModes.ADD);
+        if (kind === 'embers') { s.alpha = 0.45; s.image.setScale(0.75); }
+        if (kind === 'fireflies') s.image.setBlendMode(Phaser.BlendModes.ADD);
     }
     private zone(e: GameEvents['fx:zone']): void {
         let slot;
@@ -286,6 +308,8 @@ export class FxDirector {
     private spatial(e: GameEvents['fx:emit']): void {
         const scale = Math.max(0.25, Math.min(2, e.scale ?? 1));
         switch (e.effect) {
+            case 'boss_cannon_charge': case 'boss_flame_reach': case 'boss_charge_lane':
+                this.anticipate(e); break;
             case 'dust_run': case 'dust_skid': case 'dust_land':
                 this.explicitDustUntil = this.ctx.time.now + 250;
                 this.dust(e.x, e.y, e.effect === 'dust_run' ? 'run' : e.effect === 'dust_skid' ? 'skid' : 'land', scale); break;
@@ -320,6 +344,37 @@ export class FxDirector {
             }
         }
     }
+    private clearCues(): void { for (const s of this.pool.slots) if (s.live && s.cue) this.pool.release(s); }
+
+    /** One event at windup start. angle = committed attack direction; scale = reach multiplier.
+     * Separate pooled silhouettes: converging cannon sparks, rising heat streaks, low dust lane. */
+    private anticipate(e: GameEvents['fx:emit']): void {
+        const angle = e.angle ?? Math.PI;
+        const dx = Math.cos(angle), dy = Math.sin(angle);
+        const scale = Math.max(0.25, Math.min(2, e.scale ?? 1));
+        this.stats.cues++;
+        if (e.effect === 'boss_cannon_charge') {
+            const s = this.pool.spawn('glow', 'fx_glow_32_still', e.x, e.y, 0, 0.7, true);
+            if (s) { s.cue = true; s.life = 320; s.fade = 70; s.alpha = 0.4; s.image.setDepth(DEPTH.ENEMIES + 1).setBlendMode(Phaser.BlendModes.ADD); }
+            for (let i = 0; i < 4; i++) {
+                const a = i * Math.PI / 2;
+                const spark = this.pool.spawn('impact', SPARKS[i], e.x + Math.cos(a) * 12, e.y + Math.sin(a) * 12, 0, 0.7, true);
+                if (spark) { spark.cue = true; spark.image.setDepth(DEPTH.ENEMIES + 1); spark.life = 300; spark.vx = -Math.cos(a) * 36; spark.vy = -Math.sin(a) * 36; spark.alpha = 0.65; }
+            }
+        } else if (e.effect === 'boss_flame_reach') {
+            for (let i = 0; i < 5; i++) {
+                const s = this.pool.spawn('dust', 'fx_heat_reach', e.x + dx * (12 + i * 18) * scale,
+                    e.y + dy * (12 + i * 18) * scale, i * 18, 1, true);
+                if (s) { s.cue = true; s.alpha = 0.65; s.vy = -8; s.image.setBlendMode(Phaser.BlendModes.ADD); s.life = 400 - i * 18; s.fade = 100; }
+            }
+        } else {
+            for (let i = 0; i < 7; i++) {
+                const s = this.pool.spawn('dust', 'fx_dust_skid', e.x + dx * (16 + i * 24) * scale,
+                    e.y, i * 30, 0.65, true);
+                if (s) { s.cue = true; s.image.setOrigin(0.5, 0.8).setFlipX(dx > 0); s.alpha = 0.55; s.life = 500 - i * 30; s.fade = 100; }
+            }
+        }
+    }
     private observeMovement(dt: number): void {
         const player = this.ctx.player();
         if (!player || dt === 0) return;
@@ -342,13 +397,13 @@ export class FxDirector {
         if (!FX.popup.enabled || this.ctx.scene.registry.get('fx.popups') === false || this.ctx.events.listenerCount('ui:popup') > 1) return;
         for (const p of this.popups) if (p.age >= FX.popup.life) {
             p.age = 0; p.y = e.y;
-            p.text.setText(e.text).setPosition(e.x, e.y).setTint(e.color ?? 0xffe066).setAlpha(1).setVisible(true); return;
+            p.text.setText(e.text).setPosition(e.x, e.y).setColor(`#${(e.color ?? 0xffe066).toString(16).padStart(6, '0')}`).setAlpha(1).setVisible(true); return;
         }
     }
     private update(dt: number, rawDt: number): void {
         const start = performance.now();
         if (!this.ctx.time.paused) this.realClock += rawDt;
-        if (this.slowPending && !this.ctx.time.frozen) { this.ctx.fx.slowmo(0.35, 900); this.slowPending = false; }
+        if (this.slowPending && this.stop === 0 && !this.ctx.time.frozen) { this.ctx.fx.slowmo(0.35, 900); this.slowPending = false; }
         this.pool.update(dt);
         this.observeMovement(dt);
         const view = this.ctx.camera.view();
@@ -378,7 +433,7 @@ export class FxDirector {
         this.frameCpu += elapsed;
     }
     private reset(): void {
-        this.pool.clear(); this.impactCount = 0; this.shake = this.stop = 0; this.bossDying = this.slowPending = false;
+        this.pool.clear(); this.impactCount = 0; this.shake = this.stop = 0; this.bossDying = this.slowPending = this.criticalStop = false; this.lastStop = -1000;
         this.lastX = this.lastY = NaN; this.wasWater = false; this.ambientEnabled = true;
         for (const p of this.popups) { p.age = FX.popup.life; p.text.setVisible(false); }
     }

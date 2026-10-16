@@ -14,6 +14,7 @@
     {"type":"aseprite","key":"prop_pine_dead","textureURL":"assets/sprites/props/prop_pine_dead.png","atlasURL":"assets/sprites/props/prop_pine_dead.json"},
     {"type":"aseprite","key":"prop_sign_jump","textureURL":"assets/sprites/props/prop_sign_jump.png","atlasURL":"assets/sprites/props/prop_sign_jump.json"},
     {"type":"aseprite","key":"prop_sign_bomb","textureURL":"assets/sprites/props/prop_sign_bomb.png","atlasURL":"assets/sprites/props/prop_sign_bomb.json"},
+    {"type":"aseprite","key":"prop_sign_crouch","textureURL":"assets/sprites/props/prop_sign_crouch.png","atlasURL":"assets/sprites/props/prop_sign_crouch.json"},
     {"type":"aseprite","key":"prop_sign_shoot","textureURL":"assets/sprites/props/prop_sign_shoot.png","atlasURL":"assets/sprites/props/prop_sign_shoot.json"},
     {"type":"aseprite","key":"prop_sign_arrow","textureURL":"assets/sprites/props/prop_sign_arrow.png","atlasURL":"assets/sprites/props/prop_sign_arrow.json"},
     {"type":"aseprite","key":"prop_sign_danger","textureURL":"assets/sprites/props/prop_sign_danger.png","atlasURL":"assets/sprites/props/prop_sign_danger.json"},

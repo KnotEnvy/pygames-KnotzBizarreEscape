@@ -1,7 +1,8 @@
 // Camera-lock arenas and their waves, plus the boss arena sequence.
 //   wave arena: camera reaches the arena → ctx.camera.lock → wave 1 (members honour `delay`, `from=door`)
 //               → every member dead → next wave → after the last wave (release=clear) unlock (camera:unlock → "GO!").
-//               release=time unlocks after `time` seconds instead.
+//               release=time unlocks after `time` seconds instead. Each wave start of a multi-wave arena shows a
+//               short ui:prompt ("WAVE 1/3", "FINAL WAVE!").
 //   boss arena: camera reaches it → the gate rumbles → gate bursts → ctx.spawn('boss', ...) with arenaX0/X1.
 //               Moosezilla locks the camera itself and unlocks on boss:defeated.
 // If something else unlocks the camera mid-arena (warp cheat), the arena relocks while the player is still
@@ -76,7 +77,13 @@ export class ArenaController {
         this.arenas.sort((a, b) => a.x0 - b.x0);
         ctx.events.on('boss:spawn', () => { if (this.rt.gate && !this.rt.gate.smashed) this.rt.gate.smash(); });
         ctx.events.on('boss:defeated', () => {
-            for (const a of this.arenas) if (a.boss && (a.state === 'boss' || a.state === 'intro')) this.finish(a, false);
+            for (const a of this.arenas) {
+                if (!a.boss) continue;
+                if (a.state === 'boss' || a.state === 'intro') this.finish(a, false);
+                // A boss spawned outside the arena flow (?enemytest=boss) must not leave the arena to re-run its intro
+                // and spawn a second MOOSEZILLA after the clear.
+                else if (a.state === 'idle') { a.state = 'done'; if (this.rt.gate && !this.rt.gate.smashed) this.rt.gate.smash(); }
+            }
         });
     }
 
@@ -143,7 +150,10 @@ export class ArenaController {
     private startWave(a: Arena, i: number): void {
         a.wave = i;
         a.members = (a.waves[i] ?? []).map(obj => ({ obj, delay: num(obj.props.delay, 0), doorOpened: false, go: null, spawned: false }));
-        if (a.members.length === 0) this.waveCleared(a);
+        if (a.members.length === 0) { this.waveCleared(a); return; }
+        // Wave progress for the player: "WAVE 1/3" ... "FINAL WAVE!" (the unlock then shows the UI's GO!).
+        const n = a.waves.length;
+        if (n > 1) this.ctx.events.emit('ui:prompt', { text: i === n - 1 ? 'FINAL WAVE!' : `WAVE ${i + 1}/${n}`, ms: LEVEL.arena.waveCallMs });
     }
 
     private tickWave(a: Arena, dt: number): void {

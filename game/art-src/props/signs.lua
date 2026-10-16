@@ -49,6 +49,17 @@ local function signJump(img)
   paintText(img, "JUMP", 15, rnd)
   finish(img)
 end
+-- CROUCH + FIRE: down triangle, a plus, then FIRE (teaches the crouch shot at the first low crate)
+local function signCrouch(img)
+  woodSign(img)
+  local rnd = P.rng(15)
+  for k = 0, 5 do for x = 11 - k, 12 + k do paintAt(img, x, 12 - k, rnd) end end   -- tip at the bottom
+  P.set(img, 7, 7, "white"); P.set(img, 8, 7, "white")
+  for i = -2, 2 do P.set(img, 22 + i, 9, PAINT); P.set(img, 22 + i, 10, PAINT_SH); P.set(img, 22, 9 + i, PAINT) end
+  P.set(img, 23, 7, PAINT_SH); P.set(img, 23, 11, PAINT_SH)
+  paintText(img, "FIRE", 15, rnd)
+  finish(img)
+end
 -- BOMB: round bomb with fuse and painted spark
 local function signBomb(img)
   woodSign(img)
@@ -127,6 +138,7 @@ end
 
 for _, s in ipairs({
   { "prop_sign_jump", signJump }, { "prop_sign_bomb", signBomb }, { "prop_sign_shoot", signFire }, { "prop_sign_danger", signDanger },
+  { "prop_sign_crouch", signCrouch },
 }) do
   K.build(P.spec(s[1], 32, 32, { { tag = s[1] .. "_idle", ms = 100, frames = { { grid = s[2] } } } }))
 end

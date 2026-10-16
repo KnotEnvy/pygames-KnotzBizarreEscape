@@ -149,3 +149,42 @@ Final settled QA rerun: **13 passed, 3 skipped, 0 failed (30.2 s)**. Same 16 tes
 Final grenade telemetry: first bounce retained a live grenade at age 683 ms / y=222.65 / vy=−124.23 with zero explosions; subsequent contact left zero projectiles and exactly one explosion. Screenshot `/tmp/kbe-player/bounce.png`.
 
 Post-FX-wiring smoke: `/tmp/kbe-player/skid.png` and `final.png` inspected; reversal dust rendered, facing mirrored correctly, debug errors stayed empty, sampled FPS 60 and FX peak 3. Only warning was the intentional sandbox mystery-box placeholder. No further runtime edits followed this check.
+
+## Phase D — player polish (2026-10-16)
+
+### Art and composition
+
+Rebuilt the 21 player atlases through `npm --prefix game run art -- art-src/player/build.lua` (sources stay editable Aseprite). The eight-frame run now has contact/down/passing/up poses with independently bent knees and lifted recovery feet, at **65 ms/frame** (was 75). Rise tucks the rear leg; fall reaches toward the landing. Landing is a two-frame, **130 ms** compression (was a 90 ms controller window), with a 3 px torso dip on its first frame. Runtime samples the leg animation's local frame for run bob `[1,0,-1,0,1,0,-1,0]` and facing-scaled sway `[0,1,1,0,0,-1,-1,0]`; the same translation applies to the muzzle. POST_UPDATE composition still follows Arcade's final sprite correction. Removed independent torso idle bob so shooting/idle tags cannot drift out of phase with the legs. Pistol recoil is **1 art pixel**, heavy recoil remains 2/1/0. Lua now exports the matching muzzle coordinates, rather than requiring a separate metadata edit.
+
+POWs raise their hand into a held, eyebrow-raised salute (90/140/180/90 ms), then extend a visible supply packet over three frames and release it. Freed lasts 400 ms; salute 500 ms; gift appears at 360 ms into hand-off; escape starts at 560 ms, after the complete gesture. One-time reward and explosion immunity are preserved. Grenades gained a bright cap/core highlight to read against terrain during the existing spin/ballistic arc.
+
+### Feel and tuning diffs
+
+- Standing body/hurtbox: **14×32 → 12×30**, centered and feet-aligned; crouch: **16×20 → 12×18**. The crouch silhouette now gains protection rather than a wider collider. This is also the Arcade level-collision body; headroom samples are at -5/0/+5.
+- Coyote: **90 → 100 ms**; jump buffer stays **120 ms**, jump 318, jump-cut 120, run 105 and acceleration 1750 unchanged. Respawn immunity stays **2000 ms**; low blink phase **0.4 → 0.25 alpha**, alternating every 80 ms, returning to full alpha on expiry. Casual remains 3 HP.
+- Knife connections request **55 ms hitstop via `ctx.fx.hitstop`**, only when `damage.deal` accepts at least one hit; the existing authored two-frame slash smear is retained.
+- HMG retains the 90 ms shortest-angle sweep while firing, but the first shot after >180 ms idle starts at the requested aim instead of sweeping from a stale heading. Spread/rocket/flame damage and ammo are unchanged.
+- Pistol tap/hold stays 143/333 ms. `state.setWeapon` remains the single observable `weapon:changed` path; the UI owns the weapon-get callout. Bombs decrement immediately on throw acceptance through the observable setter, so HUD count changes before release.
+- Camera review: current Engine look-ahead is 36 px with exponential rate 2.5/s, follow 7/s and forward-only scroll; observed mid-run screenshots preserve useful space ahead. No core edits or Engine API change required.
+
+### Rules review P1–P3
+
+P1: reuse the muzzle scratch point and headroom array; cache leg/torso animation keys by pose/weapon/shoot-state change. Rocket seeking uses the shared `damage.queryRect` array and a reused 240×240 search rectangle instead of an allocating `forEach` callback/snapshot each rocket tick. P2: delete player atlas reconstruction; shared Preload builder owns exact durations/directions. Registration only applies loop policy; playback checks `hasAnim`. P3: uncollected pickups beyond 320 px from the camera center skip bob/query updates; collected pickups finish their short exit normally.
+
+### Evidence
+
+Scratch and screenshots live under `/tmp/kbe-player/`, all Phase D files use `phase-d-` prefixes. Inspected 4× leg/POW frame strips and the assembled eight-frame run strip (`phase-d-run-composite.png`, companion animated GIF). Also exported 4× GIFs for legs, pistol/heavy torso, POW and grenade. Inspected real in-game `phase-d-run1.png`, `phase-d-run2.png`, `phase-d-run-fire.png`, knife contact and respawn blink captures. Contact/passing poses and the belt seam read correctly.
+
+`phase-d-probe.json`: all **61 player/POW/pickup/projectile animation tags actually play** through the shared builder, zero failures; a real knife kill records 55 ms player hitstop (plus 48 ms FX hitstop); respawn starts near 1983 ms at 0.25 alpha and ends at 0 ms/alpha 1; no browser/runtime errors. Typecheck and strict Phaser checks pass for all six owned entity TypeScript files.
+
+Follow-up from the QA run: the crouch transition exposed Arcade counting an offset change as movement in `Body.postUpdate`. Resizing now shifts body position plus `prev`/`prevFrame` by the offset delta, preserving the pending simulation movement and feet pivot. Focused repro at a real forest one-way: standing sprite/feet Y=128, crouched Y=128 with 18 px body, down+jump then falls to Y=203. Before this correction the sprite shifted to Y=140 and jumped instead. Evidence: `phase-d-feel.json`.
+
+Inspected `phase-d-weapon-get.png` and `phase-d-grenade-arc.png`: real pickup emits `{weapon:'hmg',ammo:200}`, HUD displays **HEAVY MACHINE GUN!**, and bomb count visibly changes **10→9** while the highlighted grenade travels above Knotz. Inspected `phase-d-jump-rise.png` and `phase-d-jump-fall.png`: tucked rise and extended fall remain distinct with the heavy torso. No errors in this focused run.
+
+Accepted rounds explicitly restart the torso shoot animation, so a held pistol/HMG trigger continues showing recoil on each shot instead of freezing on the last frame after the first burst.
+
+Final validation: **70/70 systems checks passed**, all five weapons × eight directions, finite ammo fallback, grenade, knife, crouch, POW/rewards, difficulty damage, hazards, one-way drop-through and animation validity. Zero console/runtime errors. Report: `/tmp/kbe-player/phase-d-systems/2026-10-16T19-29-31-463Z-phase-c-systems-3531055/report.json`. This is QA’s unchanged systems logic in a scratch copy except its hard-coded crouch-height expectation is 18 instead of the obsolete 20; repository QA sources were untouched. Initial unadjusted run was 68/70 (old height assertion plus the now-fixed resize/drop-through defect).
+
+Full QA E2E final run: **18/19 passed** (`/tmp/kbe-player/phase-d-qa-final.log`). Remaining failure is `flow.spec.ts:3`, Title → Game → Pause → resume: Escape leaves native Pause active (expected paused false, got true). Player movement/jump/fire/camera/damage/death/Continue/hooks checks passed. Earlier runs also caught transient FX asset availability and browser startup/network failures during concurrent work; they are retained in `phase-d-qa.log` and `phase-d-qa-stable.log`, not counted as a clean acceptance run. No core/UI/FX files were changed.
+
+Final visual probe (`phase-d-final-visual.json`) confirms four held pistol rounds each restart recoil at animation frame 1, with zero browser/runtime errors. Captured and inspected `phase-d-pow-salute.png`, `phase-d-pow-handoff.png`, and `phase-d-pow-runoff.png`; the extended packet and hand release precede escape. No npm installs, commits, index changes or branch operations were performed by this implementation agent.

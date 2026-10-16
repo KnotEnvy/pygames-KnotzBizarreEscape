@@ -69,13 +69,23 @@ local function head(im,f,pose)
   D.limb(im,12,38,20,18,'steel2','steel4',10)
   for j=0,2 do D.line(im,6+j*4,28,19+j*4,34,'sand3',2) end
   D.disc(im,30,18+yy,14,'outline'); D.disc(im,30,18+yy,12,'red3'); D.disc(im,27,15+yy,8,'red4')
-  D.box(im,29,19+yy,30,22,'steel2','steel5','steel1'); D.box(im,38,31+yy,23,15,'sand2','sand4','sand1')
+  -- Long nasal bridge ends in an overhanging, rounded, heavy upper lip.
+  D.limb(im,32,23+yy,51,31+yy,'steel2','steel5',7)
+  D.box(im,38,29+yy,24,18,'sand2','sand4','sand1')
+  D.disc(im,56,39+yy,7,'outline'); D.disc(im,56,39+yy,6,'sand3')
+  D.disc(im,57,45+yy,5,'outline'); D.disc(im,57,45+yy,4,'sand3'); D.rect(im,55,43+yy,5,2,'sand1'); D.rect(im,57,44+yy,2,1,'outline'); D.rect(im,49,44+yy,7,4,'sand2'); D.line(im,40,45+yy,60,45+yy,'sand1')
   D.rect(im,40,33+yy,17,4,'sand3'); D.rect(im,55,35+yy,5,6,'sand1'); D.rect(im,56,36+yy,3,2,'outline')
   D.box(im,23,18+yy,14,9,'steel1','sand4','outline'); D.rect(im,26,20+yy,9,4,'red4'); D.rect(im,28,20+yy,5,2,'fire5'); K.px(im,29,20+yy,'white')
   D.line(im,22,17+yy,36,20+yy,'outline',2); D.line(im,22,16+yy,35,18+yy,'sand5')
-  D.limb(im,19,9+yy,11,5+yy,'red3','red5',4); D.line(im,10,5+yy,17,10+yy,'sand3')
+  -- Large leaf-shaped ears project out from both sides of the crown.
+  D.limb(im,22,11+yy,9,4+yy,'sand2','sand4',5)
+  D.line(im,8,4+yy,19,10+yy,'red2',2)
+  D.limb(im,34,9+yy,45,3+yy,'sand2','sand5',4)
+  D.line(im,36,9+yy,44,4+yy,'red2',2)
   -- Hanging copper beard and plate seams.
-  for j=0,3 do D.line(im,28+j*3,38+yy,26+j*3,50-(j%2)*3+yy,'sand2',2); K.px(im,27+j*3,40+yy,'sand4') end
+  D.limb(im,27,38+yy,28,49+yy,'sand2','sand4',4)
+  D.disc(im,28,50+yy,5,'outline'); D.disc(im,28,50+yy,4,'sand3')
+  D.line(im,26,43+yy,26,51+yy,'sand5'); D.rivet(im,28,48+yy)
   D.line(im,39,22+yy,39,30+yy,'steel1'); D.line(im,40,29+yy,55,29+yy,'steel1')
   for _,p in ipairs({{21,30},{38,23},{53,23},{43,39}}) do D.rivet(im,p[1],p[2]+yy) end
   if pose=='flame' then
@@ -92,31 +102,71 @@ D.build('moosezilla_head',64,56,{
  D.anim('moosezilla_head_roar',4,{180,180,120,120},function(im,f) head(im,f,'roar') end),
  D.anim('moosezilla_head_flame',4,{200,200,100,100},function(im,f) head(im,f,'flame') end)})
 D.build('moosezilla_jaw',40,24,{
- D.anim('moosezilla_jaw_closed',1,160,function(im) D.box(im,2,1,35,10,'steel2','sand4','steel1'); D.line(im,10,4,32,4,'steel4'); D.rivet(im,6,6) end),
+ D.anim('moosezilla_jaw_closed',1,160,function(im) D.box(im,2,7,30,5,'sand2','sand4','sand1'); D.line(im,10,7,31,7,'outline'); D.rivet(im,6,9) end),
  D.anim('moosezilla_jaw_open',4,100,function(im,f)
   local drop=({2,6,10,5})[f]; D.limb(im,4,4,27,6+drop,'steel2','steel4',3); D.box(im,21,4+drop,16,7,'sand2','sand4','sand1'); D.rivet(im,4,4)
  end)})
+-- Scan-filled plates keep the broad palm continuous between the short rim tines.
+local function plate(im,points,c)
+ for y=0,47 do
+  local xs={}
+  for i,p in ipairs(points) do
+   local q=points[i%#points+1]
+   if (p[2]<=y and q[2]>y) or (q[2]<=y and p[2]>y) then
+    xs[#xs+1]=p[1]+(y-p[2])*(q[1]-p[1])/(q[2]-p[2])
+   end
+  end
+  table.sort(xs)
+  for i=1,#xs-1,2 do D.line(im,math.ceil(xs[i]),y,math.floor(xs[i+1]),y,c) end
+ end
+end
 local function cannon(im,f,side,broken)
-  local shift=side=='l' and -3 or 0
-  D.limb(im,10,43,18,23,'sand2','sand5',3); D.limb(im,18,23,38,12,'sand3','sand5',3)
-  local branches={{18,23,9,11},{25,19,22,4},{31,16,34,3},{38,12,46,5}}
-  for j,b in ipairs(branches) do
-    if not broken or j<2 then D.limb(im,b[1],b[2],b[3],b[4]+shift,'sand3','sand5',2) end
-  end
-  D.disc(im,11,40,5,'outline'); D.disc(im,11,40,3,'red3'); D.rivet(im,10,39)
-  if broken then
-    D.box(im,24,16,12,8,'steel1','steel3'); D.line(im,28,17,33,22,'fire2'); K.px(im,31,18,'fire4')
-  else
-    local recoil=f==3 and -3 or 0
-    D.box(im,28+recoil,17,22,9,'steel2','steel5','steel1'); D.box(im,26+recoil,18,8,7,'red3','red5','red1')
-    for j=0,2 do D.line(im,36+j*4+recoil,19,36+j*4+recoil,23,'steel1') end
-    D.box(im,48+recoil,18,5,7,'sand3','sand5','sand1')
-    if f==2 then D.rect(im,30,19,3,3,'fire5') end
-    if f==3 then D.flash(im,52,21,0) end
-  end
+ local far=side=='l'
+ local brass=far and 'sand2' or 'sand3'
+ local light=far and 'sand3' or 'sand5'
+ local steel=far and 'steel2' or 'steel4'
+ -- Pedicle grows OUT and back from the skull, into the cupped palm.
+ D.limb(im,72,43,62,33,brass,light,4)
+ D.limb(im,62,33,46,29,brass,light,4)
+ D.disc(im,72,41,5,'outline'); D.disc(im,72,41,3,far and 'red2' or 'red3'); D.rivet(im,71,40)
+ if broken then
+  plate(im,{{44,21},{52,24},{49,27},{56,28},{52,32},{62,35},{66,31},{64,24},{56,20},{50,17},{50,22}},'outline')
+  plate(im,{{47,22},{53,25},{51,27},{58,29},{55,32},{62,33},{64,30},{62,25},{55,22},{51,20},{51,24}},brass)
+  D.line(im,48,22,53,25,light); D.line(im,53,25,51,27,light); D.line(im,51,27,57,29,light)
+  -- Torn steel lip, exposed wire loop and alternating electrical sparks.
+  D.line(im,55,32,62,33,steel,2)
+  D.line(im,50,27,45,34,'outline',2); D.line(im,45,34,46,40,'outline',2); D.line(im,46,40,51,39,'outline',2)
+  D.line(im,50,27,46,34,'red3'); D.line(im,46,34,47,39,'sand2')
+  local x=f==1 and 43 or 49; local y=f==1 and 27 or 34
+  D.line(im,x-3,y-2,x+2,y+2,'fire4'); D.line(im,x,y-3,x-1,y+3,'fire5'); K.px(im,x,y,'white')
+  return
+ end
+ -- A wide, shallow open hand; lower rim curls up toward its rear tip.
+ plate(im,{{7,15},{15,10},{29,10},{43,14},{57,20},{68,28},{64,35},{52,36},{38,33},{24,29},{14,24}},'outline')
+ plate(im,{{9,16},{16,12},{29,12},{43,16},{56,22},{65,28},{62,33},{52,34},{39,31},{25,27},{16,23}},steel)
+ plate(im,{{12,17},{19,14},{29,14},{42,18},{55,24},{61,28},{59,31},{51,32},{39,29},{26,25},{18,22}},brass)
+ D.line(im,15,17,27,15,light); D.line(im,28,15,42,19,light)
+ D.line(im,24,26,40,31,'sand1'); D.line(im,40,31,54,34,'sand1')
+ -- Six blunt, splayed tines (short barrels), following the top/back rim.
+ for _,t in ipairs({{15,21,5,18},{17,16,8,9},{25,13,20,5},{35,15,34,7},{46,19,49,11},{57,24,63,18}}) do
+  local x,y,xx,yy=table.unpack(t)
+  D.limb(im,x,y,xx,yy,brass,light,3)
+  D.disc(im,xx,yy,3,'outline'); D.disc(im,xx,yy,2,steel); D.disc(im,xx,yy,1,'outline')
+  K.px(im,xx-1,yy-1,far and 'steel3' or 'steel5')
+ end
+ -- Recessed palm cannon: fixed muzzle, internal breech absorbs recoil.
+ local recoil=f==3 and -2 or 0
+ D.box(im,51+recoil,25,15,6,far and 'steel1' or 'steel2',steel,'outline')
+ D.box(im,64,25,6,7,brass,light,'sand1'); D.rect(im,68,27,2,3,'outline')
+ for _,p in ipairs({{23,20},{33,23},{43,26},{54,29}}) do
+  if far then K.px(im,p[1],p[2],'sand3'); K.px(im,p[1]+1,p[2]+1,'sand1') else D.rivet(im,p[1],p[2]) end
+ end
+ D.line(im,29,17,31,22,'sand1'); D.line(im,42,21,43,26,'sand1')
+ if f==2 then D.rect(im,57,27,3,2,'fire4') end
+ if f==3 then D.flash(im,70,28,0) end
 end
 for _,side in ipairs({'l','r'}) do local name='moosezilla_antler_'..side
- D.build(name,56,48,{
+ D.build(name,80,48,{
   D.anim(name..'_idle',1,140,function(im) cannon(im,1,side,false) end),
   D.anim(name..'_fire',4,{160,160,60,100},function(im,f) cannon(im,f,side,false) end),
   D.anim(name..'_broken',2,140,function(im,f) cannon(im,f,side,true) end)})

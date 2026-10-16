@@ -17,7 +17,7 @@ const ENEMY_KINDS = ['grunt', 'grenadier', 'shield', 'turret', 'drone', 'paratro
 const ITEMS = ['hmg', 'spread', 'rocket', 'flame', 'bombs'];
 const PICKUPS = [...ITEMS, 'points', 'life'];
 const PROP_KINDS = ['crate', 'supply_crate', 'barrel', 'explosive_barrel', 'sandbag', 'watchtower', 'prison_cell', 'pine_fg',
-  'pine_mid', 'pine_dead', 'sign_jump', 'sign_bomb', 'sign_shoot', 'sign_arrow', 'sign_danger', 'gate', 'alarm_light',
+  'pine_mid', 'pine_dead', 'sign_jump', 'sign_bomb', 'sign_shoot', 'sign_arrow', 'sign_danger', 'sign_crouch', 'gate', 'alarm_light',
   'searchlight', 'searchlight_beam', 'flag', 'banner', 'bunker_door', 'lamp_post', 'wire_coil'];
 const AIR_KINDS = ['drone', 'paratrooper'];
 const FACING = ['left', 'right'];

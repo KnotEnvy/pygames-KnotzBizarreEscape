@@ -9,13 +9,15 @@ end
 function P.legs(im,pose)
  local K=P.K; pose=pose or {}; local y=(pose.crouch and 37 or 32)+(pose.bob or 0); local s=pose.stride or 0; local lift=pose.lift or 0
  K.rect(im,18,y,12,5,'olive2'); K.rect(im,18,y,11,2,'sand2'); K.rect(im,20,y,3,2,'sand4')
- P.limb(im,{20,y+3},{20-s,y+7},{20-s,45-lift},3,'olive2','olive3')
- K.rect(im,18-s,44-lift,8,3,'steel1'); K.rect(im,18-s,44-lift,5,1,'steel3'); K.rect(im,18-s,47-lift,9,1,'outline')
- P.limb(im,{25,y+3},{26+s,y+7},{26+s,45},4,'olive3','olive4')
- K.rect(im,25+s,44,8,3,'steel1'); K.rect(im,25+s,44,5,1,'steel3'); K.rect(im,25+s,47,9,1,'outline')
- K.line(im,26+s,40,28+s,41,'olive2');
- K.rect(im,26+s,39,3,2,'olive4'); K.px(im,26+s,39,'olive5')
- K.line(im,19-s,38,21-s,39,'olive1'); K.line(im,26+s,46,31+s,46,'steel2'); K.px(im,26+s,44,'steel4')
+ local back=pose.back or {{20-s,y+7},{20-s,45-lift}}
+ local front=pose.front or {{26+s,y+7},{26+s,45}}
+ P.limb(im,{20,y+3},back[1],back[2],3,'olive2','olive3')
+ K.rect(im,back[2][1]-2,back[2][2]-1,8,3,'steel1'); K.rect(im,back[2][1]-2,back[2][2]-1,5,1,'steel3'); K.rect(im,back[2][1]-2,back[2][2]+2,9,1,'outline')
+ P.limb(im,{25,y+3},front[1],front[2],4,'olive3','olive4')
+ K.rect(im,front[2][1]-1,front[2][2]-1,8,3,'steel1'); K.rect(im,front[2][1]-1,front[2][2]-1,5,1,'steel3'); K.rect(im,front[2][1]-1,front[2][2]+2,9,1,'outline')
+ K.line(im,front[1][1],front[1][2],front[1][1]+2,front[1][2]+1,'olive2')
+ K.rect(im,front[1][1],front[1][2]-1,3,2,'olive4'); K.px(im,front[1][1],front[1][2]-1,'olive5')
+ K.px(im,front[2][1],front[2][2]-1,'steel4')
  K.outline(im,'outline')
 end
 local head={

@@ -280,7 +280,10 @@ export interface DebugService {
      * on the player, respects god/i-frames), bombs, boss.
      */
     cheat(name: string, fn: (...args: never[]) => void): void;
+    /** ?debug=1 is on (debug overlay, physics debug). */
     readonly enabled: boolean;
+    /** Dev mode or ?debug=1: cheats and ?god/?x are live. Gate QA-only fixtures (e.g. ?enemytest) on this. */
+    readonly cheatsEnabled: boolean;
 }
 
 export interface UrlParams {

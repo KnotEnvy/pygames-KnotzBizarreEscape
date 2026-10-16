@@ -1,27 +1,57 @@
 import Phaser from 'phaser';
-import { DEPTH, TEX, type GameContext, type Pool } from '../core';
+import { DEPTH, TEX, hasAnim, type GameContext, type Pool } from '../core';
 import { FX } from '../config/tuning/fx';
 
 export type Category = keyof typeof FX.caps;
-export interface Clip { texture: string; frames: string[]; ends: number[]; duration: number }
+interface Bounds { x: number; y: number; width: number; height: number }
+export interface Clip { texture: string; frames: string[]; bounds: Bounds[]; ends: number[]; duration: number; kind: CombatKind }
+type CombatKind = 'debris' | 'sparks' | 'embers' | 'snow';
 interface Atlas { frames: Record<string, { duration: number }>; meta: { frameTags: { name: string; from: number; to: number }[] } }
 
 /** Resolve exported Aseprite durations once. Images are advanced by scaled dt, never twice by Phaser anims. */
 export class Art {
     private readonly clips = new Map<string, Clip>();
     constructor(ctx: GameContext) {
+        // One startup-only readback per atlas. Tight painted bounds avoid charging transparent
+        // padding against the opacity budget (an XL ignition occupies very little of its 128px canvas).
+        const canvas = document.createElement('canvas');
+        const paint = canvas.getContext('2d', { willReadFrequently: true })!;
         for (const texture of ctx.scene.textures.getTextureKeys()) {
             if (!texture.startsWith('fx_')) continue;
             const atlas = ctx.scene.cache.json.get(texture) as Atlas | undefined;
             if (!atlas?.frames || !atlas.meta?.frameTags) continue;
-            const names = Object.keys(atlas.frames);
+            const tex = ctx.scene.textures.get(texture);
+            const source = tex.getSourceImage() as HTMLImageElement;
+            canvas.width = source.width; canvas.height = source.height;
+            paint.drawImage(source, 0, 0);
+            const pixels = paint.getImageData(0, 0, canvas.width, canvas.height).data;
+            const painted = new Map<string, Bounds>();
+            for (const name of tex.getFrameNames()) {
+                const frame = tex.get(name);
+                let left = frame.cutWidth, top = frame.cutHeight, right = -1, bottom = -1;
+                for (let y = 0; y < frame.cutHeight; y++) for (let x = 0; x < frame.cutWidth; x++) {
+                    if (!pixels[((frame.cutY + y) * canvas.width + frame.cutX + x) * 4 + 3]) continue;
+                    left = Math.min(left, x); right = Math.max(right, x);
+                    top = Math.min(top, y); bottom = Math.max(bottom, y);
+                }
+                painted.set(name, { x: frame.x + left, y: frame.y + top,
+                    width: Math.max(0, right - left + 1), height: Math.max(0, bottom - top + 1) });
+            }
             for (const tag of atlas.meta.frameTags) {
+                // Preload owns frame order/direction/duration repair; share its validated animation data.
+                if (!hasAnim(ctx.scene, tag.name)) continue;
+                const anim = ctx.scene.anims.get(tag.name)!;
                 const frames: string[] = [], ends: number[] = [];
                 let duration = 0;
-                for (let i = tag.from; i <= tag.to; i++) {
-                    frames.push(names[i]); duration += atlas.frames[names[i]].duration; ends.push(duration);
+                for (const f of anim.frames) {
+                    frames.push(String(f.textureFrame)); duration += f.duration || anim.msPerFrame; ends.push(duration);
                 }
-                this.clips.set(tag.name, { texture, frames, ends, duration });
+                if (anim.yoyo) for (let i = anim.frames.length - 2; i > 0; i--) {
+                    const f = anim.frames[i];
+                    frames.push(String(f.textureFrame)); duration += f.duration || anim.msPerFrame; ends.push(duration);
+                }
+                const kind = texture === 'fx_embers' ? 'embers' : texture === 'fx_sparks' ? 'sparks' : texture === 'fx_snow' ? 'snow' : 'debris';
+                this.clips.set(tag.name, { texture, frames, bounds: frames.map(name => painted.get(name)!), ends, duration, kind });
             }
         }
     }
@@ -32,7 +62,7 @@ export class Slot {
     live = false;
     clip: Clip | undefined;
     age = 0; life = 1; vx = 0; vy = 0; gravity = 0; alpha = 1; fade = 120;
-    bounce = 0; spin = false; loop = false; hot = false; frame = -1;
+    bounce = 0; spin = false; loop = false; hot = false; cue = false; frame = -1;
     constructor(readonly image: Phaser.GameObjects.Image, readonly category: Category) {}
 }
 
@@ -41,9 +71,13 @@ export class FxPool {
     readonly slots: Slot[] = [];
     readonly art: Art;
     private readonly pools = {} as Record<Category, Pool<Slot>>;
+    readonly combatLive: Record<CombatKind, number> = { debris: 0, sparks: 0, embers: 0, snow: 0 };
+    private readonly textureCounts = new Map<string, number>();
+    coverage = 0; cloudCoverage = 0;
     dropped = 0; peak = 0; active = 0; hot = 0;
     constructor(private readonly ctx: GameContext) {
         this.art = new Art(ctx);
+        for (const key of ctx.scene.textures.getTextureKeys()) if (key.startsWith('fx_')) this.textureCounts.set(key, 0);
         for (const category of Object.keys(FX.caps) as Category[]) {
             this.pools[category] = ctx.pools.create(`fx:${category}`, () => {
                 const slot = new Slot(ctx.scene.add.image(0, 0, TEX.px).setVisible(false).setActive(false), category);
@@ -67,16 +101,21 @@ export class FxPool {
         const s = pool.get();
         s.live = true; s.clip = clip; s.age = -delay; s.life = clip.duration;
         s.vx = s.vy = s.gravity = 0; s.alpha = 1; s.fade = 90;
-        s.bounce = 0; s.spin = s.loop = s.hot = false; s.frame = 0;
+        s.bounce = 0; s.spin = s.loop = s.hot = s.cue = false; s.frame = 0;
         s.image.setTexture(clip.texture, clip.frames[0]).setPosition(x, y).setOrigin(0.5).setRotation(0)
             .setScale(scale).setAlpha(1).clearTint().setFlip(false, false).setBlendMode(Phaser.BlendModes.NORMAL)
-            .setDepth(DEPTH.FX).setVisible(delay === 0);
+            .setDepth(DEPTH.ENEMIES - 1).setVisible(false);
+        // Presentation is committed in POST_UPDATE, after callers configure alpha/lifetime.
+        this.textureCounts.set(clip.texture, this.countTexture(clip.texture) + 1);
+        if (category === 'combat') this.combatLive[clip.kind]++;
         this.active++; this.peak = Math.max(this.active, this.peak);
         return s;
     }
 
     release(s: Slot): void {
         if (!s.live) return;
+        this.textureCounts.set(s.clip!.texture, this.countTexture(s.clip!.texture) - 1);
+        if (s.category === 'combat') this.combatLive[s.clip!.kind]--;
         s.live = false; s.image.setVisible(false); this.active--;
         this.pools[s.category].release(s);
     }
@@ -90,7 +129,6 @@ export class FxPool {
             s.age += dt;
             if (s.age < 0) continue;
             if (s.age >= s.life || s.image.x < view.left - FX.cullMargin || s.image.x > view.right + FX.cullMargin || s.image.y > view.bottom + FX.cullMargin) { this.release(s); continue; }
-            s.image.setVisible(true);
             // Only advance the part of this step after a delayed emission becomes live.
             const seconds = Math.min(dt, s.age - Math.max(0, oldAge)) / 1000;
             const oldY = s.image.y;
@@ -108,14 +146,51 @@ export class FxPool {
             let frame = 0;
             while (frame < clip.ends.length - 1 && t >= clip.ends[frame]) frame++;
             if (s.frame !== frame) { s.image.setFrame(clip.frames[frame]); s.frame = frame; }
-            s.image.alpha = s.alpha * Math.min(1, (s.life - s.age) / Math.max(1, s.fade));
-            // Smoke sits behind actor and projectile silhouettes, including the authored fireball tail.
-            if (s.category === 'explosion' && s.age > clip.duration * 0.42) {
-                s.image.setDepth(DEPTH.ENEMIES - 1); s.image.alpha *= 0.65;
-            }
             if (s.hot && s.age < FX.bloom.hotMs) this.hot++;
             if (s.category === 'decal' && s.image.x < view.left - 64) this.release(s);
         }
+    }
+    countTexture(texture: string): number { return this.textureCounts.get(texture) ?? 0; }
+
+    private cloud(s: Slot): boolean {
+        return s.category === 'smoke' || s.clip?.texture === 'fx_steam' ||
+            (s.category === 'explosion' && s.age >= s.clip!.duration * 0.42);
+    }
+
+    /** Conservative alpha-weighted painted screen bounds (holes within each shape count too).
+     * Two fixed passes, no allocation; run after emissions so the first rendered frame obeys the budget.
+     * Even a full chain stays behind actor/core/bullet silhouettes at every animation frame. */
+    present(): void {
+        const view = this.ctx.camera.view();
+        let area = 0, clouds = 0;
+        for (const s of this.slots) {
+            if (!s.live || s.age < 0) continue;
+            s.image.setVisible(true);
+            const cloud = this.cloud(s);
+            s.image.alpha = Math.min(s.alpha, cloud ? FX.readability.smokeAlpha : 1) *
+                Math.max(0, Math.min(1, (s.life - s.age) / Math.max(1, s.fade)));
+            const im = s.image;
+            const box = s.clip!.bounds[s.frame];
+            const localX = (im.flipX ? im.width - box.x - box.width / 2 : box.x + box.width / 2) - im.width * im.originX;
+            const localY = (im.flipY ? im.height - box.y - box.height / 2 : box.y + box.height / 2) - im.height * im.originY;
+            const cos = Math.cos(im.rotation), sin = Math.sin(im.rotation);
+            const cx = im.x + localX * im.scaleX * cos - localY * im.scaleY * sin;
+            const cy = im.y + localX * im.scaleX * sin + localY * im.scaleY * cos;
+            const w = Math.abs(box.width * im.scaleX * cos) + Math.abs(box.height * im.scaleY * sin);
+            const h = Math.abs(box.width * im.scaleX * sin) + Math.abs(box.height * im.scaleY * cos);
+            const left = cx - w / 2, top = cy - h / 2, right = cx + w / 2, bottom = cy + h / 2;
+            const weighted = Math.max(0, Math.min(view.right, right) - Math.max(view.left, left)) *
+                Math.max(0, Math.min(view.bottom, bottom) - Math.max(view.top, top)) * im.alpha;
+            area += weighted;
+            if (cloud) clouds += weighted;
+        }
+        const screen = Math.max(1, view.width * view.height);
+        const cloudScale = Math.min(1, screen * FX.readability.cloudCoverage / Math.max(1, clouds));
+        const adjusted = area - clouds + clouds * cloudScale;
+        const scale = Math.min(1, screen * FX.readability.coverage / Math.max(1, adjusted));
+        for (const s of this.slots) if (s.live && s.age >= 0) s.image.alpha *= scale * (this.cloud(s) ? cloudScale : 1);
+        this.coverage = adjusted * scale / screen;
+        this.cloudCoverage = clouds * cloudScale * scale / screen;
     }
     clear(): void { for (const s of this.slots) this.release(s); }
     destroy(): void { this.clear(); for (const s of this.slots) s.image.destroy(); }

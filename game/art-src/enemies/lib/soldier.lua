@@ -2,7 +2,7 @@ local D = dofile(app.params.root..'/art-src/enemies/lib/draw.lua')
 local K=D.K
 -- Art faces right. Feet terminate at y=47. Gun muzzle is (43,26).
 function D.soldier(im,kind,pose,f,n)
-  local crouch=pose=='crouch_shoot'; local run=pose=='walk' or pose=='panic' or pose=='retreat'
+  local crouch=(pose=='crouch_shoot' or pose=='crouch_idle'); local run=pose=='walk' or pose=='panic' or pose=='retreat'
   local panic=pose=='panic' or pose=='flame'; local throw=pose=='throw'
   local landing=pose=='landing'; local air=pose=='descent' or pose=='chute_torn'
   local bob=((run or pose=='idle') and (f%4==2 or f%4==3)) and 1 or 0
@@ -36,6 +36,7 @@ function D.soldier(im,kind,pose,f,n)
   -- Red helmet with raised crown and khaki spiral badge.
   R(20,9,12,7,'outline'); R(22,8,8,1,'outline'); R(21,10,10,5,'red3'); R(22,9,7,2,'red5'); R(21,11,3,3,'red4')
   R(19,14,16,2,'outline'); R(20,14,14,1,'red4'); R(26,10,5,4,'sand4'); R(27,11,3,2,'red1'); R(28,11,1,1,'sand5')
+  if pose=='sleep' then R(26,16,7,2,'skin3'); R(26,17,6,1,'outline'); R(29,21,2,2,'skin1') end
   if kind=='grenadier' then
     B(14,22,5,11,'sand2','sand4','sand1'); R(15,24,2,2,'olive4'); R(15,28,2,2,'olive4'); R(22,27,2,3,'olive2'); R(25,28,2,3,'olive3')
   end
@@ -61,7 +62,7 @@ function D.soldier(im,kind,pose,f,n)
     if (pose=='shoot' or pose=='crouch_shoot') and f==(crouch and 3 or 4) then D.flash(im,44+recoil,26+y,0) end
   end
   if kind=='shield' and pose~='shield_break' and pose~='launched' and pose~='flame' and pose~='explosion' and pose~='hurt' then
-    local low=pose=='shoot' and f>=3; local sx=low and 13 or 31; local sy=low and 31 or 19
+    local low=pose=='recover' or (pose=='shoot' and f>=3); local sx=low and 13 or 31; local sy=low and 31 or 19
     D.box(im,sx,sy+y,12,27-(low and 8 or 0),'steel2','steel5','steel1')
     D.rect(im,sx+2,sy+3+y,8,5,'steel1'); D.line(im,sx+3,sy+4+y,sx+8,sy+4+y,'sky4')
     D.rect(im,sx+2,sy+11+y,8,9,'red2'); D.eye(im,sx+3,sy+14+y,'sand4')
@@ -96,9 +97,9 @@ function D.infantry(kind)
   add('idle',4,140); add('walk',kind=='shield' and 6 or 8,80)
   add('alert',3,120)
   if kind=='grenadier' then add('throw',6,{140,120,140,70,80,120}); add('retreat',6,75)
-  elseif kind=='shield' then add('block',3,{100,100,60}); add('shoot',4,{160,160,100,80}); add('shield_break',4,100)
+  elseif kind=='shield' then add('block',3,{100,100,60}); add('shoot',4,{160,160,100,80}); add('shield_break',4,100); add('recover',2,180)
   elseif kind=='paratrooper' then add('descent',4,140); add('chute_torn',3,100); add('landing',3,100)
-  else add('shoot',4,{160,160,100,80}); add('crouch_shoot',3,{160,160,100},'crouch_shoot'); add('panic',6,75) end
+  else add('sleep',4,240); add('crouch_idle',4,160); add('shoot',4,{160,160,100,80}); add('crouch_shoot',3,{160,160,100},'crouch_shoot'); add('panic',6,75) end
   add('hurt',1,70)
   for _,pair in ipairs({{'launched',6,85},{'flame',6,90},{'explosion',4,90}}) do
     A[#A+1]=D.anim(kind..'_death_'..pair[1],pair[2],pair[3],function(im,f,n) D.death(im,kind,pair[1],f,n) end)

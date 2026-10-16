@@ -10,12 +10,23 @@ end
 local legs={}
 local function leg(tag,n,ms,fn) legs[#legs+1]=anim('knotz_legs_'..tag,n,ms,function(im,i) P.legs(im,fn(i)) end) end
 leg('idle',4,140,function(i)return{bob=({0,0,1,0})[i]}end)
-local strides={0,3,5,3,0,-3,-5,-3}
-leg('run',8,75,function(i)return{stride=strides[i],lift=({0,1,3,1,0,1,3,1})[i]}end)
+-- Contact, down/recoil, passing, up; then exchange support legs.
+-- Runtime attachment bob/sway uses these exact eight indices.
+local run={
+ {bob=1,back={{17,39},{14,45}},front={{29,39},{32,45}}},
+ {bob=0,back={{17,38},{18,42}},front={{27,40},{29,45}}},
+ {bob=-1,back={{22,36},{26,40}},front={{25,39},{24,45}}},
+ {bob=0,back={{28,37},{30,42}},front={{21,40},{18,44}}},
+ {bob=1,back={{29,39},{32,45}},front={{17,39},{14,45}}},
+ {bob=0,back={{27,40},{29,45}},front={{17,38},{18,42}}},
+ {bob=-1,back={{25,39},{24,45}},front={{22,36},{26,40}}},
+ {bob=0,back={{21,40},{18,44}},front={{28,37},{30,42}}},
+}
+leg('run',8,65,function(i)return run[i] end)
 leg('skid',2,80,function(i)return{stride=6-i}end)
-leg('jump_rise',1,100,function()return{stride=-3,lift=5}end)
-leg('jump_fall',1,100,function()return{stride=2,lift=2}end)
-leg('land',2,65,function(i)return{crouch=i==1,stride=2}end)
+leg('jump_rise',1,100,function()return{bob=-1,back={{18,36},{14,40}},front={{28,37},{29,43}}}end)
+leg('jump_fall',1,100,function()return{back={{18,39},{18,44}},front={{28,40},{31,45}}}end)
+leg('land',2,65,function(i)return i==1 and {bob=3,back={{16,42},{15,45}},front={{30,42},{32,45}}} or {bob=0,stride=2} end)
 leg('crouch_enter',2,65,function(i)return{crouch=i==2,stride=1}end)
 leg('crouch_idle',1,150,function()return{crouch=true,stride=1}end)
 leg('crouch_walk',6,100,function(i)return{crouch=true,stride=({0,2,3,0,-2,-3})[i],lift=i%2}end)
@@ -26,7 +37,7 @@ for _,variant in ipairs({'pistol','heavy'}) do
   for _,shoot in ipairs({false,true}) do
    local name='knotz_'..variant..'_'..d[1]..(shoot and '_shoot' or '')
    a[#a+1]=anim(name,shoot and 3 or 4,shoot and 45 or 140,function(im,i)
-    P.torso(im,{angle=d[2],heavy=variant=='heavy',crouch=d[1]=='crouch_fwd',bob=not shoot and ({0,0,1,0})[i] or 0,recoil=shoot and ({2,1,0})[i] or 0})
+    P.torso(im,{angle=d[2],heavy=variant=='heavy',crouch=d[1]=='crouch_fwd',bob=0,recoil=shoot and (variant=='pistol' and ({1,1,0})[i] or ({2,1,0})[i]) or 0})
    end)
   end
  end
@@ -84,7 +95,7 @@ build('flame',48,32,{anim('flame_flow',8,55,function(im,i)
  K.line(im,1,16,15,15,'fire6'); for j=1,3 do K.px(im,33+j*3,8+(i*j)%15,'fire4') end
 end)})
 build('grenade',12,12,{anim('grenade_spin',4,85,function(im,i)
- K.disc(im,6,6,3,'olive2'); K.disc(im,5,5,2,'olive4'); K.line(im,4,6,8,6,'olive1'); K.line(im,6,4,6,8,'olive2'); local a=(i-1)*math.pi/2; K.line(im,6,6,6+math.floor(math.cos(a)*4),6+math.floor(math.sin(a)*4),'steel4'); K.outline(im,'outline')
+ K.disc(im,6,6,3,'olive2'); K.disc(im,5,5,2,'olive4'); K.line(im,4,6,8,6,'olive1'); K.line(im,6,4,6,8,'olive2'); local a=(i-1)*math.pi/2; K.line(im,6,6,6+math.floor(math.cos(a)*4),6+math.floor(math.sin(a)*4),'steel4'); K.outline(im,'outline'); K.px(im,5,4,'sand5'); K.px(im,6,3,'white')
 end)})
 -- Diegetic stencil glyphs on supply crates, not interface typography.
 local glyphs={H={'10001','10001','10001','11111','10001','10001','10001'},S={'01111','10000','10000','01110','00001','00001','11110'},R={'11110','10001','10001','11110','10100','10010','10001'},F={'11111','10000','10000','11110','10000','10000','10000'},B={'11110','10001','10001','11110','10001','10001','11110'}}
@@ -126,12 +137,32 @@ local function pow(im,i,state)
   P.limb(im,{11,y+7},{9,y+12},{15,y+13},2,'skin3','skin5'); P.limb(im,{21,y+7},{23,y+12},{17,y+13},2,'skin2','skin4');
   for j=0,2 do K.line(im,10,y+10+j*2,22,y+10+j*2,'sand4') end; K.disc(im,16,y+12,2,'sand1'); K.px(im,15,y+11,'sand5')
  else
-  local hx=state=='salute' and 21 or state=='give_item' and 27 or run and 24+s or 24
-  local hy=state=='salute' and y-3 or state=='give_item' and y+7 or y+12
+  local hx=state=='salute' and ({25,21,21,24})[i] or state=='give_item' and ({21,24,27,27})[i] or run and 24+s or 24
+  local hy=state=='salute' and y+({2,-3,-3,0})[i] or state=='give_item' and y+({11,9,7,7})[i] or y+12
   P.limb(im,{21,y+7},{25,y+10},{hx,hy+(i%2)},2,'skin3','skin5'); P.limb(im,{11,y+7},{8,y+12},{run and 7-s or 9,y+16},2,'skin2','skin4')
-  if state=='give_item' and i<4 then K.disc(im,27,y+5,2,'sand4'); K.px(im,26,y+4,'white') end
+  if state=='salute' and (i==2 or i==3) then K.line(im,12,y-3,15,y-4,'sand1'); K.line(im,18,y-4,21,y-3,'sand1'); K.px(im,23,y-5,'white') end
+  if state=='give_item' and i<4 then K.rect(im,hx-3,hy-5,6,5,'olive2'); K.rect(im,hx-2,hy-4,4,3,'sand4'); K.px(im,hx-1,hy-3,'white') end
  end
  K.outline(im,'outline')
 end
-local pa={}; for _,v in ipairs({{'tied_idle',4,160},{'freed',4,100},{'salute',4,110},{'give_item',4,120},{'run_away',8,80}}) do local state=v[1]; pa[#pa+1]=anim('pow_'..state,v[2],v[3],function(im,i)pow(im,i,state)end) end
+local pa={}; for _,v in ipairs({{'tied_idle',4,160},{'freed',4,100},{'salute',4,{90,140,180,90}},{'give_item',4,120},{'run_away',8,80}}) do local state=v[1]; pa[#pa+1]=anim('pow_'..state,v[2],v[3],function(im,i)pow(im,i,state)end) end
 build('pow',32,40,pa)
+
+-- The same authored grip/rounding drives exported sockets, including 1px pistol recoil.
+local metaPath=R..'/public/assets/sprites/player/knotz_meta.json'
+local file=io.open(metaPath,'r')
+if file then
+ local meta=json.decode(file:read('*a')); file:close()
+ for _,variant in ipairs({'pistol','heavy'}) do for _,d in ipairs(dirs) do for _,shoot in ipairs({false,true}) do
+  local tag='knotz_'..variant..'_'..d[1]..(shoot and '_shoot' or '')
+  local frames=meta.muzzles[tag].frames
+  for i,f in ipairs(frames) do
+   local rx=shoot and (variant=='pistol' and ({1,1,0})[i] or ({2,1,0})[i]) or 0
+   local len=variant=='heavy' and 15 or 12
+   local x=math.floor(27-rx+math.cos(d[2])*len+.5)
+   local y=math.floor(27+(d[1]=='crouch_fwd' and 6 or 0)+math.sin(d[2])*len+.5)
+   f.framePx={x,y}; f.offsetFromFeet={x-24,y-48}
+  end
+ end end end
+ local out=assert(io.open(metaPath,'w')); out:write(json.encode(meta)); out:close()
+end

@@ -11,7 +11,7 @@ import { Menu } from '../../ui/menu';
 import { ControlsPanel } from '../../ui/controls';
 import { dimmer } from '../../ui/widgets';
 import { wipeOut } from '../../ui/transitions';
-import { uiLog } from '../../ui';
+import { flowStamps, uiLog } from '../../ui';
 
 export class PauseScene extends Phaser.Scene {
     private ctx!: GameContext;
@@ -52,7 +52,8 @@ export class PauseScene extends Phaser.Scene {
         this.root.add(this.controls.container);
         const foot = text(this, 192, 166, 'ESC  RESUME', F.plain, [0.5, 0]).setAlpha(0.6).setTint(C.ink5);
         this.root.add(foot);
-        this.menuInput = new MenuInput(this);
+        // Presses that started before the engine asked for the pause (the Escape that opened us) are ignored.
+        this.menuInput = new MenuInput(this, flowStamps.pauseRequestedAt || undefined);
     }
 
     private resume(): void {

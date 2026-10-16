@@ -9,7 +9,10 @@ import { sceneExists } from '../core/flow';
 import { registerDebug } from '../core/debug/hooks';
 import { AudioEngine, wireAudioEvents } from '../audio';
 
-export const uiDebug = { intro: false, hud: null as unknown, lastPrompt: '', lastCallout: '', log: [] as string[], traceInput: 0 };
+/** Flow timestamps (performance.now()) the menus use to tell the opening press from new ones. */
+export const flowStamps = { pauseRequestedAt: 0 };
+
+export const uiDebug = { intro: false, hud: null as unknown, lastPrompt: '', lastCallout: '', log: [] as string[] };
 
 /** Dev trace of UI flow moments (`__KBE.state().ui.log`): scene opens/closes with a ms timestamp. */
 export function uiLog(msg: string): void {
@@ -25,6 +28,7 @@ export function registerUi(ctx: RegisterContext): void {
     const bus = ctx.events.scoped(ctx.scene);
     // Subscribe now (the HUD scene only exists a frame later) so the engine's dev fallback prompt stays off.
     bus.on('ui:prompt', e => { uiDebug.lastPrompt = e.text; });
+    bus.on('game:pause', e => { if (e.paused) flowStamps.pauseRequestedAt = performance.now(); });
     uiDebug.intro = false;
     bus.once('stage:start', e => {
         if (PARAMS.fast || !sceneExists(ctx.scene, 'Intro')) return;

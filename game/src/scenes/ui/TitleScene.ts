@@ -23,12 +23,14 @@ export class TitleScene extends Phaser.Scene {
     private glitchIn = 0;
     private logoReady = false;
     private starting = false;
+    private pendingStart = false;
+    private pendingT = 0;
     private overlay: 'none' | 'options' | 'credits' = 'none';
 
     constructor() { super('Title'); }
 
     create(): void {
-        this.attract = true; this.idle = 0; this.blink = 0; this.starting = false; this.overlay = 'none'; this.logoReady = false;
+        this.attract = true; this.idle = 0; this.blink = 0; this.starting = false; this.pendingStart = false; this.overlay = 'none'; this.logoReady = false;
         this.cameras.main.setBackgroundColor(C.dim);
         if (this.textures.exists('ui_keyart_title')) this.add.image(0, 0, 'ui_keyart_title').setOrigin(0, 0);
         else this.add.rectangle(0, 0, W, H, 0x1f3f7a, 1).setOrigin(0, 0);
@@ -90,7 +92,7 @@ export class TitleScene extends Phaser.Scene {
         this.hint.setVisible(false);
         this.menu.setVisible(false);
         this.blink = 0;
-        wipeOut(this, () => this.scene.start('Game'));
+        wipeOut(this, () => { this.pendingStart = true; this.pendingT = 0; });
     }
 
     private openOverlay(which: 'options' | 'credits'): void {
@@ -109,6 +111,12 @@ export class TitleScene extends Phaser.Scene {
     update(_time: number, delta: number): void {
         const dt = Math.min(100, delta);
         this.menuInput.update(dt);
+        if (this.pendingStart) {
+            // Covered by the wipe: hand off once the confirm key is up (a held Enter would pause the Game at once).
+            this.pendingT += dt;
+            if (!this.menuInput.anyHeld || this.pendingT > 1000) { this.pendingStart = false; this.scene.start('Game'); }
+            return;
+        }
         // logo glitch
         if (this.logoReady && hasAnim(this, 'logo_glitch')) {
             this.glitchIn -= dt;

@@ -39,6 +39,9 @@ export class Knotz {
     private muzzlePoint = { x: 0, y: 0 };
     private lastLegs = '';
     private lastPose = '';
+    private lastRenderedAim = '';
+    private lastAction: ActionState | '' = '';
+    private lastShooting = false;
     private lastVariant = '';
     private knifeRect = new Phaser.Geom.Rectangle();
     constructor(private ctx: GameContext, x: number, y: number, private index = 0) {
@@ -142,8 +145,15 @@ export class Knotz {
             this.crouch = crouch;
             this.crouchEnter = crouch ? 110 : 0;
             const shape = crouch ? T.crouching : T.standing;
-            this.body.setSize(shape.width, shape.height).setOffset((48 - shape.width) / 2, 48 - shape.height);
-            this.body.updateFromGameObject();
+            const ox = this.body.offset.x, oy = this.body.offset.y;
+            this.body.setSize(shape.width, shape.height, false).setOffset((48 - shape.width) / 2, 48 - shape.height);
+            const dx = this.body.offset.x - ox, dy = this.body.offset.y - oy;
+            // Resize around the feet without counting the offset change as Arcade movement.
+            // Keep the actual physics displacement pending for POST_UPDATE intact.
+            this.body.position.x += dx; this.body.position.y += dy;
+            this.body.prev.x += dx; this.body.prev.y += dy;
+            this.body.prevFrame.x += dx; this.body.prevFrame.y += dy;
+            this.body.updateCenter();
         }
         const target = (input.isDown('aimlock') ? 0 : aim.x) * (this.crouch ? T.crouchRun : T.run);
         if (target * this.body.velocity.x < 0) {
@@ -187,9 +197,14 @@ export class Knotz {
             else if (input.justDown('shoot') && this.knifeTargets().some(h => h.team === 'enemy')) {
                 this.change('knife'); ctx.events.emit('player:melee', { x: this.sprite.x, y: this.sprite.y - 18, facing: this.facing }); ctx.audio.sfx('knife');
             } else if (input.isDown('shoot')) {
-                this.render(true);
+                this.render();
                 const muzzle = this.muzzle();
-                if (this.weapons.fire(muzzle.x, muzzle.y, this.aimAngle, input.justDown('shoot'))) this.recoil = 100;
+                if (this.weapons.fire(muzzle.x, muzzle.y, this.aimAngle, input.justDown('shoot'))) {
+                    this.recoil = 100;
+                    this.render(true);
+                    // Each accepted round kicks again, including when FIRE stays held.
+                    if (this.torso.anims.currentAnim?.key.endsWith('_shoot')) this.torso.anims.restart();
+                }
             }
         }
         this.sync(); this.weapons.update(dt, this.muzzle());
@@ -223,10 +238,14 @@ export class Knotz {
         const variant = this.ctx.state.weapon === 'pistol' ? 'pistol' : 'heavy';
         if (variant !== this.lastVariant) { this.torso.stop(); this.torso.setTexture(`knotz_torso_${variant}`); this.lastVariant = variant; this.lastPose = ''; }
         let renderedAim = this.aimTag;
-        
+
         if (this.crouchEnter > 55) renderedAim = 'aim_fwd';
-        const pose = this.state === 'knife' ? 'knife' : this.state === 'throw' ? 'grenade_throw' : shooting || this.recoil > 0 ? renderedAim + '_shoot' : renderedAim;
-        if (pose !== this.lastPose) { this.lastPose = pose; this.play(this.torso, `knotz_${variant}_${pose}`); }
+        const firing = shooting || this.recoil > 0;
+        if (!this.lastPose || renderedAim !== this.lastRenderedAim || this.state !== this.lastAction || firing !== this.lastShooting) {
+            const pose = this.state === 'knife' ? 'knife' : this.state === 'throw' ? 'grenade_throw' : firing ? renderedAim + '_shoot' : renderedAim;
+            this.lastPose = pose; this.lastRenderedAim = renderedAim; this.lastAction = this.state; this.lastShooting = firing;
+            this.play(this.torso, `knotz_${variant}_${pose}`);
+        }
         this.sync();
     }
 }
