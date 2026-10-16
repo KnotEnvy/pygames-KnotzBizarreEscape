@@ -1,0 +1,136 @@
+{
+  "enemies": {
+    "files": [
+      {
+        "type": "aseprite",
+        "key": "drone",
+        "textureURL": "assets/sprites/enemies/drone.png",
+        "atlasURL": "assets/sprites/enemies/drone.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "enemy_bullet",
+        "textureURL": "assets/sprites/enemies/enemy_bullet.png",
+        "atlasURL": "assets/sprites/enemies/enemy_bullet.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "enemy_grenade",
+        "textureURL": "assets/sprites/enemies/enemy_grenade.png",
+        "atlasURL": "assets/sprites/enemies/enemy_grenade.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "grenadier",
+        "textureURL": "assets/sprites/enemies/grenadier.png",
+        "atlasURL": "assets/sprites/enemies/grenadier.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "grunt",
+        "textureURL": "assets/sprites/enemies/grunt.png",
+        "atlasURL": "assets/sprites/enemies/grunt.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "moosezilla_antler_l",
+        "textureURL": "assets/sprites/enemies/moosezilla_antler_l.png",
+        "atlasURL": "assets/sprites/enemies/moosezilla_antler_l.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "moosezilla_antler_r",
+        "textureURL": "assets/sprites/enemies/moosezilla_antler_r.png",
+        "atlasURL": "assets/sprites/enemies/moosezilla_antler_r.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "moosezilla_armor",
+        "textureURL": "assets/sprites/enemies/moosezilla_armor.png",
+        "atlasURL": "assets/sprites/enemies/moosezilla_armor.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "moosezilla_body",
+        "textureURL": "assets/sprites/enemies/moosezilla_body.png",
+        "atlasURL": "assets/sprites/enemies/moosezilla_body.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "moosezilla_core",
+        "textureURL": "assets/sprites/enemies/moosezilla_core.png",
+        "atlasURL": "assets/sprites/enemies/moosezilla_core.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "moosezilla_debris",
+        "textureURL": "assets/sprites/enemies/moosezilla_debris.png",
+        "atlasURL": "assets/sprites/enemies/moosezilla_debris.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "moosezilla_head",
+        "textureURL": "assets/sprites/enemies/moosezilla_head.png",
+        "atlasURL": "assets/sprites/enemies/moosezilla_head.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "moosezilla_jaw",
+        "textureURL": "assets/sprites/enemies/moosezilla_jaw.png",
+        "atlasURL": "assets/sprites/enemies/moosezilla_jaw.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "moosezilla_legs_back",
+        "textureURL": "assets/sprites/enemies/moosezilla_legs_back.png",
+        "atlasURL": "assets/sprites/enemies/moosezilla_legs_back.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "moosezilla_legs_front",
+        "textureURL": "assets/sprites/enemies/moosezilla_legs_front.png",
+        "atlasURL": "assets/sprites/enemies/moosezilla_legs_front.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "parachute",
+        "textureURL": "assets/sprites/enemies/parachute.png",
+        "atlasURL": "assets/sprites/enemies/parachute.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "paratrooper",
+        "textureURL": "assets/sprites/enemies/paratrooper.png",
+        "atlasURL": "assets/sprites/enemies/paratrooper.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "shield",
+        "textureURL": "assets/sprites/enemies/shield.png",
+        "atlasURL": "assets/sprites/enemies/shield.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "turret",
+        "textureURL": "assets/sprites/enemies/turret.png",
+        "atlasURL": "assets/sprites/enemies/turret.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "turret_bullet",
+        "textureURL": "assets/sprites/enemies/turret_bullet.png",
+        "atlasURL": "assets/sprites/enemies/turret_bullet.json"
+      },
+      {
+        "type": "json",
+        "key": "moosezilla_rig",
+        "url": "assets/sprites/enemies/moosezilla_rig.json"
+      },
+      {
+        "type": "json",
+        "key": "enemy_data",
+        "url": "assets/sprites/enemies/enemy_data.json"
+      }
+    ]
+  }
+}

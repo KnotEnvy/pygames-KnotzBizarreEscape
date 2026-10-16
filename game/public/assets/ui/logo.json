@@ -1,0 +1,60 @@
+{ "frames": {
+   "logo#0": {
+    "frame": { "x": 0, "y": 0, "w": 240, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 240, "h": 112 },
+    "sourceSize": { "w": 240, "h": 112 },
+    "duration": 100
+   },
+   "logo#1": {
+    "frame": { "x": 241, "y": 0, "w": 240, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 240, "h": 112 },
+    "sourceSize": { "w": 240, "h": 112 },
+    "duration": 70
+   },
+   "logo#2": {
+    "frame": { "x": 0, "y": 0, "w": 240, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 240, "h": 112 },
+    "sourceSize": { "w": 240, "h": 112 },
+    "duration": 70
+   },
+   "logo#3": {
+    "frame": { "x": 0, "y": 113, "w": 240, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 240, "h": 112 },
+    "sourceSize": { "w": 240, "h": 112 },
+    "duration": 70
+   },
+   "logo#4": {
+    "frame": { "x": 241, "y": 113, "w": 240, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 240, "h": 112 },
+    "sourceSize": { "w": 240, "h": 112 },
+    "duration": 70
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "logo.png",
+  "format": "RGBA8888",
+  "size": { "w": 481, "h": 225 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "logo_idle", "from": 0, "to": 0, "direction": "forward", "color": "#000000ff" },
+   { "name": "logo_glitch", "from": 1, "to": 4, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

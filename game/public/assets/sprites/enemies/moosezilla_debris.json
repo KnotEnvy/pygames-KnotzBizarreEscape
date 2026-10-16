@@ -1,0 +1,54 @@
+{ "frames": {
+   "moosezilla_debris#0": {
+    "frame": { "x": 0, "y": 0, "w": 24, "h": 24 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 24, "h": 24 },
+    "sourceSize": { "w": 24, "h": 24 },
+    "duration": 120
+   },
+   "moosezilla_debris#1": {
+    "frame": { "x": 25, "y": 0, "w": 24, "h": 24 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 24, "h": 24 },
+    "sourceSize": { "w": 24, "h": 24 },
+    "duration": 120
+   },
+   "moosezilla_debris#2": {
+    "frame": { "x": 0, "y": 25, "w": 24, "h": 24 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 24, "h": 24 },
+    "sourceSize": { "w": 24, "h": 24 },
+    "duration": 120
+   },
+   "moosezilla_debris#3": {
+    "frame": { "x": 25, "y": 25, "w": 24, "h": 24 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 24, "h": 24 },
+    "sourceSize": { "w": 24, "h": 24 },
+    "duration": 120
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "moosezilla_debris.png",
+  "format": "RGBA8888",
+  "size": { "w": 49, "h": 49 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "moosezilla_debris_bolt", "from": 0, "to": 0, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_debris_plate", "from": 1, "to": 1, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_debris_gear", "from": 2, "to": 2, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_debris_pipe", "from": 3, "to": 3, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

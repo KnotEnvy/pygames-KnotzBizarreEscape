@@ -22,6 +22,9 @@ Shared contract files (marked 🔒) are owned by the Engine team; others propose
 | `public/assets/sprites/enemies/**`, `art-src/enemies/**` | Enemies |
 | `public/assets/sprites/fx/**`, `art-src/fx/**` | Effects |
 | `public/assets/packs/<team>.json` | Each team owns its Phaser asset-pack file |
+| `public/assets/sprites/props/**` | Levels and content (props such as watchtowers, crates, barrels, gates, signs) |
+| `public/assets/backgrounds/stage1/gen_*`, `art-src/backgrounds/gen/**`, `public/assets/ui/keyart/**` | Image generation |
+| `docs/teams/<team>.md` | Each team's notes and design decisions (player, enemies, level, fx, ui-audio, qa, rules, engine, imagegen) |
 | `tests/**`, `playwright.config.ts` | QA |
 | `tools/check-phaser4.mjs`, `docs/PHASER4-RULES.md` (additions) | Phaser 4 rules checker |
 | `tools/shot.mjs`, `tools/build-art.sh`, `tools/aseprite/kbe.lua`, `docs/*.md` | Lead |
@@ -116,7 +119,9 @@ export interface RunState { score: number; lives: number; bombs: number; weapon:
 
 ### Hitstop and time
 Engine owns a global `TimeService`: hitstop pauses physics and anims for N ms (stacking takes the max).
-Slow-mo scales `physics.world.timeScale`, `anims.globalTimeScale` and `tweens.timeScale`. Gameplay code
+Slow-mo scales `anims.globalTimeScale`, `tweens.timeScale` and `time.timeScale` by `s` (<1 = slower), and
+sets `physics.world.timeScale = 1 / s`. **Arcade's timeScale is inverted: 2 = half speed.**
+Aseprite tag names are **global animation keys**, so every tag must be unique across all sheets (prefix it with the sprite key). Gameplay code
 uses `delta` from `update(time, delta)` and Phaser timers, so it respects time scaling.
 
 ### Depth (z-order) bands: use these constants from `src/core/depth.ts`

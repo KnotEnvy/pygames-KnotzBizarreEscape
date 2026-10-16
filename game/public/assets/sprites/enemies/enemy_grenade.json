@@ -1,0 +1,51 @@
+{ "frames": {
+   "enemy_grenade#0": {
+    "frame": { "x": 0, "y": 0, "w": 12, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 12, "h": 12 },
+    "sourceSize": { "w": 12, "h": 12 },
+    "duration": 120
+   },
+   "enemy_grenade#1": {
+    "frame": { "x": 13, "y": 0, "w": 12, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 12, "h": 12 },
+    "sourceSize": { "w": 12, "h": 12 },
+    "duration": 120
+   },
+   "enemy_grenade#2": {
+    "frame": { "x": 0, "y": 0, "w": 12, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 12, "h": 12 },
+    "sourceSize": { "w": 12, "h": 12 },
+    "duration": 120
+   },
+   "enemy_grenade#3": {
+    "frame": { "x": 13, "y": 0, "w": 12, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 12, "h": 12 },
+    "sourceSize": { "w": 12, "h": 12 },
+    "duration": 120
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "enemy_grenade.png",
+  "format": "RGBA8888",
+  "size": { "w": 25, "h": 12 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "enemy_grenade_fuse", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

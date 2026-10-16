@@ -1,0 +1,210 @@
+# Effects and game feel — Phase A
+
+Status: art library complete; integration and performance measurements belong to Phase B. No `game/src` files are changed. The intent is a brief, unmistakable impact followed by weight and aftermath: flash → hot expanding folds → staggered cooling → rolling smoke → isolated embers. Fire uses all six `fire` colors plus white; smoke uses the violet `ink` ramp. Every opaque pixel is in the master palette. No generated noise, gradients, fractional alpha, or external art is used.
+
+## Deliverables and rebuilding
+
+From `game/`:
+
+```sh
+bash tools/build-art.sh art-src/fx/explosions.lua art-src/fx/weapons.lua art-src/fx/impacts.lua art-src/fx/ambient.lua art-src/fx/zz_manifest.lua
+```
+
+`lib/draw.lua` contains bounded drawing, polygon rasterization, stars, rings, and scalloped/shaded cloud rolls. The four authoring scripts call `K.build`; each writes an editable `.aseprite` alongside its Lua and a packed `.png`/`.json` pair to `public/assets/sprites/fx/`. `zz_manifest.lua` runs last and writes the Phaser pack plus `art-src/fx/catalog.json`. It checks that every asset exists. The normal all-art build sorts it after the authoring scripts and excludes `lib/`.
+
+All **35 pack entries use `type: "aseprite"`**, including static variants. Load `assets/packs/fx.json`, then call `scene.anims.createFromAseprite(key)` once per loaded texture. There are **212 frames and 64 globally unique tags**. Keep Aseprite's per-frame durations. Animated effects play once and return to their pool on completion; no transparent terminal frame is required. Casings, foliage, and fireflies loop only when explicitly requested. Static particle variants select a frame directly, never play the entire sheet as an animation.
+
+`catalog.json` records dimensions, pixel pivots, recommended blend mode, animation tags, exact atlas frame keys, and durations. A frame key is, for example, `fx_debris_metal#0`, independent of its packed position. Variant tag `fx_debris_metal_v1` identifies that frame; `_v2` identifies `#1`, etc. `#` indices are zero-based, unlike source frame numbers in Aseprite's UI. Engine can build a tag-to-frame lookup from this catalog or the Aseprite JSON. The catalog is authoring metadata, not an additional asset-pack entry.
+
+| Texture key(s) | Canvas; frames | Tags / intended use |
+|---|---|---|
+| `fx_explosion_s`, `_m`, `_l`, `_xl` | 32² / 48² / 80² / 128²; 8 / 10 / 14 / 16 | `<key>_burst`; 510 / 640 / 900 / 1030 ms |
+| `fx_smoke` | 32²; 8 | `_drift`, 840 ms lingering billows |
+| `fx_shockwave` | 80×48; 6 | `_expand`, 270 ms ground-plane ellipse |
+| `fx_scorch` | 48×24; 2 static variants | `_round`, `_scatter` |
+| `fx_muzzle_pistol`, `_hmg`, `_spread`, `_rocket`, `_flame` | 48² each; 3 + 3 | `<key>_right`, `<key>_diag`; 105 ms each |
+| `fx_casing` | 10²; 4 | `_spin`, 70 ms per rotation pose |
+| `fx_sparks` | 8²; 6 static variants | `_v1`…`_v6`; star, slash, streak, vertical, chip, dot |
+| `fx_debris_metal`, `_wood`, `_rock` | 12² each; 4 static variants each | `<key>_v1`…`_v4` |
+| `fx_impact_dirt`, `_wood` | 32×24; 6 each | `_burst`; 300 / 330 ms |
+| `fx_impact_metal` | 32²; 5 | `_burst`, 230 ms |
+| `fx_impact_shield` | 24²; 5 | `_tink`, 250 ms |
+| `fx_water_splash` | 80×56; 9 | `_fall`, 660 ms; large fall splash |
+| `fx_water_ripple` | 32×16; 6 | `_expand`, 390 ms; bullet splash |
+| `fx_dust` | 32×20; 6 + 4 + 4 | `_land`, `_skid`, `_run` |
+| `fx_hit_pop` | 24²; 5 | `_burst`, 235 ms; blood-free flesh hit |
+| `fx_death_poof` | 48²; 8 | `_burst`, 600 ms; cartoon death aftermath |
+| `fx_snow` | 9²; 4 static variants | `_v1`…`_v4`; 1 px speck through 7 px flake |
+| `fx_foliage` | 12²; 4 + 4 | `_leaf`, `_needle`; tumbling poses |
+| `fx_embers` | 8²; 4 static variants | `_v1`…`_v4` |
+| `fx_firefly` | 12²; 4 | `_pulse`, 720 ms; additive glow dot |
+| `fx_steam` | 48²; 8 | `_vent`, 770 ms; MOOSEZILLA vents |
+| `fx_glow_8`, `_16`, `_32` | 8² / 16² / 32²; 1 each | `<key>_still`; six discrete fire bands, ADD at alpha 0.12–0.3 |
+| `fx_flare` | 32×8; 1 | `_still`; additive bullet glint, alpha 0.35, 35 ms |
+
+### Placement and readability
+
+Default origin is `(0.5, 0.5)`. Explicit pixel pivots: all muzzle assets `(8,24)`; dirt/wood impact `(16,20)`; splash `(40,47)` at waterline; steam `(24,44)` at vent; land dust `(16,16)`; skid/run dust `(26,16)` with plume trailing left. Normalize those by canvas width/height for `setOrigin`. Mirror trailing dust when moving left. Explosions retain the centered pivot even as smoke rises inside the canvas. Decals are centered on a detected ground contact and never float at an airburst.
+
+Muzzle `_right` points right; `_diag` is separately rasterized at **−45°**. Use `_right` for cardinal directions and rotate by exact 90° steps; use `_diag` for diagonal directions and rotate by `aimAngle + π/4`. Both retain the same pivot. This avoids 45° resampling of tiny pixels. Rocket art is the **backblast**: place it at the rear exhaust socket and orient it at `aimAngle + π`. The current shoot payload supplies only a generic x/y; Player must define it as the exhaust socket for rocket, or extend the event with named sockets. Flame art is the nozzle flash, not the damaging flame projectile.
+
+Normally use `NORMAL` blending for fire sprites so their dark rolls remain readable. Glow helpers/fireflies/flare use ADD; do not add filters per particle. Put scorch at `DECALS`; dense smoke behind actors (proposed `ENEMIES - 1`); small hit glints/muzzles at `FX`; sparse finishing sparks at `FX_TOP`. An explosion can briefly cover the player for its first 40 ms. Late smoke should never obscure player/enemy-bullet silhouettes. Recheck actor contrast in Phase B before changing established depth constants.
+
+## Event → effect mapping
+
+All values are initial tuning at 384×216, in world pixels and milliseconds. `0` means deliberately no response. Entity fill tint, recoil, corpse motion, and sound belong to their owning teams. FX only renders and requests Engine services; explosions never deal damage here. The flash column means **camera flash**, not the white pixels already in an animation. Shake `T1`…`T4` and explosion recipes are defined below.
+
+| Catalog event | Visual / particle response | Shake | Hitstop / slow motion | Camera flash |
+|---|---|---|---|---|
+| `stage:start` | Clear old pools/decals; seed ambient zones; start weather ramp over 600 ms | 0 | 0 | 0 |
+| `stage:clear` | Fade ambient emission over 300 ms; let live particles finish | 0 | 0; don't duplicate boss slow motion | 0 |
+| `checkpoint` | 4 upward firefly motes, 20 px/s, life 350 ms at x/y | 0 | 0 | 0 |
+| `camera:lock` | Stop ambient spawning outside arena bounds; no celebratory particles | 0 | 0 | 0 |
+| `camera:unlock` | Resume ambient bounds following camera; GO arrow belongs to UI | 0 | 0 | 0 |
+| `player:spawn` | One land puff; 6 pale spark motes, radius 10, life 240 ms | 0 | 0 | 0 |
+| `player:died` | One hit pop immediately; death poof at +160 ms; 4 dust motes. Water splash only with explicit water location signal | T2 | 90 ms | 0; avoids hiding death pose |
+| `player:respawn` | One land puff, 8 upward pale sparks, life 300 ms; blinking belongs to Player | 0 | 0 | 0 |
+| `player:shoot` | One weapon muzzle, casing for pistol/HMG/spread only, 35 ms flare for hitscan-looking shots; details below | weapon recipe | 0 | 0 |
+| `player:jump` | One run-dust puff at feet; scale 0.75 | 0 | 0 | 0 |
+| `player:land` | One land puff; `abs(vy)` <120: scale .7; 120–260: 1; >260: 1.2 + 3 dirt motes | T1 only if >260 px/s | 0 | 0 |
+| `player:melee` | One hit-pop star, offset 8 px along facing; target's actual damage creates impact | T1 only on confirmed hit, not swing | 0 on swing; kill handles stop | 0 |
+| `player:grenade` | 2 small dust motes, life 120 ms at throw socket | 0 | 0 | 0 |
+| `weapon:changed` | No world effect: lacks position; pickup handles celebration | 0 | 0 | 0 |
+| `ammo:changed` | No FX; UI updates count | 0 | 0 | 0 |
+| `bombs:changed` | No FX; UI updates count | 0 | 0 | 0 |
+| `score:changed` | No FX; UI owns digits | 0 | 0 | 0 |
+| `lives:changed` | No FX; do not duplicate player death/respawn | 0 | 0 | 0 |
+| `rescued:changed` | No FX; `pow:freed` owns celebration | 0 | 0 | 0 |
+| `projectile:impact` | dirt: puff + 2 rock chips; metal: burst + 4 sparks; wood: burst + 3 wood chips; shield: tink + 2 sparks; water: small ripple; flesh: hit pop. Unknown material: small hit pop | 0 | 0 | 0 |
+| `entity:hurt` | Flesh/contact hit pop or material effect when no impact was received nearby this tick; flame adds 2 embers max / 100 ms. Entity applies 50 ms white FILL tint and restores MULTIPLY | 0 | 0 | 0 |
+| `enemy:killed` | Flesh enemy: poof at +120 ms, 4 dust motes, allow owner corpse launch first; turret/drone: 6 metal debris, explosion supplied by enemy once | 0 for flesh; machine explosion owns shake | 40 ms ordinary; 60 ms melee; 80 ms turret. Coalesce same-tick kills by max | 0 |
+| `explosion` | Tier recipe; one authored burst, smoke/embers/debris, ground-only ring/decal | T1 / T2 / T3 / T4 | 0 / 60 / 100 / 150 ms | S/M/L: 0; XL: warm white 45 ms, max once / 600 ms |
+| `pickup:collected` | 6 small stars rising 20–35 px/s, life 300 ms; life pickup: 10 stars, life 450 ms | 0 | 0 | 0 |
+| `pow:freed` | 6 fireflies/white spark stars, 18–30 px/s upward, life 500 ms; leave room for salute | 0 | 0 | 0 |
+| `boss:spawn` | Register boss-sequence state; one entry T3. Vents/dust need spatial events from boss | T3 | 0 | 0 |
+| `boss:hp` | No burst every HP update; record phase-independent health for ambient intensity only | 0 | 0 | 0 |
+| `boss:phase` | Once per distinct phase: increase steam/ember emission targets when socket events arrive; break debris must be placed by boss | T3 | 90 ms | 0 |
+| `boss:defeated` | Arm 3 s death choreography, suppress ordinary kill feedback; boss supplies explosion positions/head landing | final explosion owns T4 | Request .35× for 900 ms on final burst, not initial event | final XL only |
+| `fx:shake` | Engine CameraService consumes tier; FX must not re-emit this event | exact requested tier | 0 | 0 |
+| `fx:hitstop` | Engine TimeService pauses/resumes; FX must not maintain a second pause timer | 0 | requested ms, max stacking | 0 |
+| `fx:flash` | Engine consumes; accessibility/rate limit gate before camera call | 0 | 0 | requested color/ms |
+| `fx:slowmo` | Engine TimeService owns all clocks; no independent FX world-time multiplier | 0 | requested scale/ms | 0 |
+| `ui:popup` | UI owns text at x/y; FX does not create a duplicate popup or particles | 0 | 0 | 0 |
+| `game:over` | Stop ambient emission; clear transient pools after scene exit | 0 | Cancel pending FX time requests | 0 |
+| `game:continue` | Reset quotas/dedupe and release old decals; spawn event supplies respawn puff | 0 | Restore normal time through Engine | 0 |
+
+Do not emit FX consumer events recursively. For paired `projectile:impact` + `entity:hurt`, collect one tick of requests and coalesce the same material within 4 px; prefer the impact. Preserve genuinely separate spread impacts farther apart. Clamp at 16 impacts per rendered frame; this is visual coalescing only. Request stop/shake after processing all same-tick events so simultaneous explosions/kills take the maximum, never sum. Same-tier small explosions have a 75 ms shake retrigger gate; do not queue an avalanche of stops.
+
+### Weapon recipes
+
+| Weapon | Muzzle cadence | Casings | Additional feedback |
+|---|---|---|---|
+| pistol | Every shot, 105 ms | 1; vx opposite aim 35–55, vy −70…−100, gravity 350, life 650 ms | No camera shake; Player recoil 1 px for 35 ms |
+| hmg | Every shot, restart/reuse muzzle slot; at most 1 muzzle per firing socket | 1 per shot, cap 14/s; same ballistics | T1 at most every 160 ms; Player recoil 1 px for 25 ms |
+| spread | Every shot, 105 ms | 1; heavier shell, spin every 90 ms | T1; Player recoil 2 px for 45 ms; one muzzle for all five pellets |
+| rocket | Rear exhaust, 105 ms | 0 | T2 on launch; 2 smoke puffs separated by 45 ms; no explosion until actual detonation |
+| flame | Nozzle pulse at most 10/s, 105 ms | 0 | 2 embers per pulse, life 220 ms; glow alpha .15; no continuous shake |
+
+Casings collide at most twice using cheap ground samples (restitution .3, horizontal damping .55); sleep after impact below 18 px/s, fade over last 120 ms. They are cosmetic, with no Arcade bodies and no ability to block projectiles. Use the supplied four rotation frames rather than arbitrary image rotation.
+
+### Explosion and camera recipes
+
+| Tier | Additional smoke | Debris / ember counts | Ground ring / scorch | Shake duration; peak x/y displacement |
+|---|---|---|---|---|
+| S | 1 puff, start +180 ms | 3 / 4 | no ring; no decal | T1: 65 ms; .7/.4 px |
+| M | 2 puffs, +220/+280 ms | 6 / 8 | ring scale .55; scorch scale .5 | T2: 110 ms; 1.3/.8 px |
+| L | 3 puffs, +260/+320/+380 ms | 10 / 14 | ring scale 1; scorch scale .85 | T3: 170 ms; 2.4/1.4 px |
+| XL | 4 puffs, +320…+500 ms | 16 / 24 | ring scale 1.35; scorch scale 1.2 | T4: 260 ms; 4/2.5 px |
+
+Debris: speed 45–135 px/s, gravity 320, life 450–900 ms, two cosmetic bounces maximum. Embers: 30–100 px/s, upward bias, gravity 35, life 250–650 ms. Smoke: drift −12…−24 px/s vertically, horizontal ±8, alpha .65 declining to 0 over the final 180 ms. Choose rock debris by default; the current explosion payload lacks surface material. Owners should request metal/wood debris explicitly until the event is extended. Ground detection scans down no more than 24 px through `ctx.level.solidAt`; no ground means omit ring/decal. Keep at most 16 decals, remove the oldest, and expire after 8 s or 64 px behind the camera.
+
+CameraService should use these displacement targets normalized by the 384×216 viewport, with decay and fixed-step random offsets. Screen shake OFF must suppress all tiers, including boss entry. Reduced-flash mode retains local fire art and disables camera flashes. Proposed flash rate limiter permits no more than one XL screen flash per 600 ms, regardless of overlapping events. Entity fill flashes remain short and local.
+
+Boss sequence proposal: 0–2400 ms, eight M/L bursts at irregular 220–380 ms intervals across actual body bounds, max 3 bursts simultaneously; at 2400 ms, one XL at core with 150 ms hitstop; after stop, .35× slow motion for 900 real ms; head landing supplies dust + ground ring. The boss owns destruction timing, body parts, and completion. FX must not schedule approximate offscreen positions from `boss:defeated`, whose payload has no x/y. Explosion timings are choreography inputs, not new damage calls.
+
+## Phaser 4 filter plan — verified against installed 4.2.1
+
+Verified in `game/node_modules/phaser/types/phaser.d.ts` and `src/actions/AddEffectBloom.js`. These are design snippets, not installed gameplay code:
+
+```ts
+// Camera already has filters; GameObjects need enableFilters().
+const glow = camera.filters.internal.addGlow(
+  0xffae22, 0.35, 0, 0.3, false, 4, 4
+);
+// Signature: color, outerStrength, innerStrength, scale, knockout, quality, distance.
+// This camera glow is a diagnostic alternative, OFF in the default preset.
+
+const [bloom] = Phaser.Actions.AddEffectBloom(camera, {
+  threshold: 0.82, blurRadius: 1, blurSteps: 2, blurQuality: 0,
+  blendAmount: 0.10, blendMode: Phaser.BlendModes.ADD, useInternal: true
+});
+const vignette = camera.filters.external.addVignette(
+  0.5, 0.5, 0.78, 0.16, 0x1a1220, Phaser.BlendModes.NORMAL
+);
+const grade = camera.filters.external.addColorMatrix();
+grade.colorMatrix.contrast(0.04);
+const barrel = camera.filters.external.addBarrel(1.01);
+// 1 is identity, NOT 0. Curvature is optional and defaults to identity/off.
+```
+
+Default quality preset: camera bloom only while hot effects are present, threshold .82, strength .10; pooled palette-step additive dots provide inexpensive local glow. Camera bloom also catches bright snow/white art, so judge snow scenes and cap intensity at .12. Whole-camera glow lights every edge and is unsuitable as the normal fire-only treatment. If bloom is too broad, use `enableFilters()` plus `sprite.filters.internal.addGlow(...)` on at most **two** large hero bursts, with 4 px padding and the controller disabled during the smoke phase. Do not stack hero glow and camera bloom by default. The AddEffectBloom result is an **array**, and each entry contains `parallelFilters`, `threshold`, and `blur`; disable using `bloom.parallelFilters.active = false`. The action defaults to external filters unless `useInternal` is set explicitly. There is no `FilterList.addBloom` method.
+
+CRT toggle OFF by default. ON enables one custom scanline filter plus subtle vignette; grade and barrel are optional quality extras. There is no built-in `addCRT`/`addScanline` API in the installed types. Implement `ScanlineFilter` as a `Phaser.Filters.Controller(camera, 'KbeScanline')` subclass and its node as `Phaser.Renderer.WebGL.RenderNodes.BaseFilterShader`. Verified constructor is `(name, manager, fragmentShaderKey?, fragmentShaderSource?, shaderAdditions?)`; override `setupUniforms(controller, drawingContext)`. Register once through `renderer.renderNodes.addNode(name, node)` or `addNodeConstructor(name, constructor)`, then attach with `camera.filters.external.add(controller)`.
+
+The scanline shader samples the camera texture once and multiplies every second **logical** row by .94, using quantized input UVs and a logical-height uniform of 216. No moving bands, flicker, chromatic fringing, or subpixel shimmer. Phaser 4 textures are Y-up; verify coordinate orientation at noninteger FIT scales. Keep controller handles: toggle `.active`, and remove only FX-owned controllers with `filterList.remove(controller)` on shutdown. `FilterList.clear()` destroys every controller and could remove another team's effects. HUD is a separate Scene and stays unfiltered. Final order: internal bloom, optional external grade/barrel, external scanlines, external vignette. Profile and drop optional grade/barrel first; fuse scanline/vignette into one custom pass only if necessary.
+
+## Performance and lifecycle budget
+
+At 60 FPS, target FX CPU ≤1.5 ms and incremental GPU ≤2 ms on the agreed midrange test device; these are budgets, **not measured claims**. Art sheets total about **2.44 MiB RGBA** before driver overhead, with roughly 72 KiB of PNG downloads. Pack contains 35 texture pages; Phaser may batch several, but blend/order changes still cost draws.
+
+| Resource | Hard cap | Policy |
+|---|---|---|
+| Animated effect sprites | 64 total | 12 explosion (XL ≤2), 8 muzzle, 16 impact, 12 dust/poof, 16 smoke/steam; preallocate and reuse |
+| Combat particles | 160 | up to 64 debris, 80 sparks, 16 loose embers; built-in embers in explosion frames cost no extra particles |
+| Ambient particles | 64 | snow 32, foliage 8, fireflies 12, ambient embers 12; combined ceiling always 64 |
+| Casings | 32 | oldest sleeping casing reclaimed first |
+| Decals | 16 | 8 s expiry and offscreen eviction |
+| Glow helper sprites | 8 | ADD, no per-dot filter |
+| Total visible FX objects/particles | 344 maximum | 64 + 160 + 64 + 32 + 16 + 8; typical target <140 |
+| Emitters | ≤12 resident | one per shared category/texture as practical; no new emitter per bullet |
+| Expensive filters | One bloom chain OR ≤2 hero glows | CRT/grade extras only within GPU budget |
+
+Use `ctx.pools` and seeded `ctx.rng`; never allocate new Sprite, TimerEvent, array, or closure per particle in steady state. A fixed-capacity scheduler handles delayed puffs/boss bursts. Prioritize muzzle/impact/primary explosion; reclaim ambient first, then oldest smoke, then optional debris. Reuse an active muzzle at the same socket instead of allowing HMG flashes to accumulate. Cull effect centers >64 px outside camera bounds; retain at most 128 px margin for XL/existing tails. Never cull gameplay or a damaging projectile from this visual budget.
+
+Ambient default tuning: snow 6/s (vx −8…−16, vy 12…22), foliage .7/s (vx −8, vy 10, tumble 140 ms/pose), fireflies 1/s per zone (wander ≤8 px/s; pulse 720 ms), outpost embers 3/s (vy −15…−28), steam one vent animation per socket every 650–1100 ms, capped at 6 live vents. Snow and foliage live behind actors. Ambience needs world-zone bounds supplied by Levels; FX cannot infer the Tiled rectangles from the current event catalog.
+
+Scene shutdown unsubscribes every listener, stops emitters, returns sprites, drops delayed requests, removes owned filter controllers, and cancels owned time requests through Engine. Resume after pause must not dump queued ambient particles. Engine hitstop uses a real-time deadline: scene time paused by hitstop cannot schedule its own unpause. Newly spawned explosion art should remain at its flash frame during stop; do not independently scale it twice under slow motion.
+
+## Phase B implementation plan
+
+1. Read final `src/core/contracts.ts`, events, pool/time/camera services. Replace only FX's no-op `registerFx(ctx)` stub. Create `src/config/tuning/fx.ts` then; Phase A intentionally has no runtime code.
+2. Build `FxDirector`, atlas/tag lookup, fixed pools, and shutdown cleanup. Add material impact coalescing, frame-key particle selection, and deterministic randomization. Wire every catalog event with the no-op decisions above.
+3. Add weapon socket placement, authored diagonal selection, shell bounce, movement dust, material impacts, explosion recipes, decals, and boss choreography consumers. Entity owners keep tint, hitbox, recoil, corpse physics, and damage.
+4. Implement `CameraFeel` as requests to Engine-owned services, with max aggregation and accessibility options. Add `FilterController` and the Phaser 4 scanline RenderNode. Avoid legacy pipelines entirely.
+5. Add ambient-zone consumption and budget diagnostics (`fx.active`, particles, dropped requests, peak sprites, CPU time, filter mode) through the Engine debug registry.
+6. Validate one shot per weapon in all eight directions, paired hit/impact dedupe, grounded vs airborne explosions, water falls, pause/stop/slowmo recovery, full boss chain, scene restart, reduced-flash/shake-off, and smoke/player contrast. Stress 14 HMG shots/s + 3 explosions + snow for 30 s; verify stable allocations, caps, and 60 FPS. QA owns e2e tests/screenshots; provide stable event-driven scenarios and `seed` values.
+
+## Inspection and known gaps
+
+All 35 assets exported as 4× GIFs under `/tmp/kbe-fx/fx_*.gif`. Inspected PNG strips: `explosions-review.png`, `explosion-xl-review.png`, `weapons-review.png`, `impacts-review.png`, `particles-review.png`. Source review corrected overly radial smoke, staggered the fire-to-smoke transition, and fixed needle/chip edge clipping. Exact-duration exports retain slow smoke tails. Runtime smoke fades, blending, camera filters, full-rate combat overlap, and socket placement need Phase B game verification; the art review does not establish in-game performance or finished Metal Slug-level choreography.
+
+Independent validation in `/tmp/kbe-fx/validate.py` checks all pack paths, atlas dimensions, frame bounds, nonempty frames, frame/tag/catalog agreement, global tag uniqueness, exact palette RGB, and binary alpha. It outputs `/tmp/kbe-fx/validation.json`. Small spark tips, glow textures, and the final ripple intentionally reach their canvas edge; explosion/cloud frames have transparent margins. Deterministic runtime outputs are checked by rebuilding and comparing hashes.
+
+Final checks: the 72 runtime/catalog files were byte-identical after rebuilding all FX scripts. `npm run check:phaser4` passed (29 source files, zero findings). Shared `npm run typecheck` currently fails in Engine-owned `src/core/context.ts:23`: `Property 'glob' does not exist on type 'ImportMeta'`. No FX TypeScript exists in Phase A; route that Vite typing fix to Engine/Lead.
+
+Preview regeneration example (from repo root):
+
+```sh
+/home/knotz2/.local/bin/aseprite --batch game/art-src/fx/fx_explosion_xl.aseprite --scale 4 --save-as /tmp/kbe-fx/fx_explosion_xl.gif
+```
+
+Game screenshot command after Phase B integration: `cd game && node tools/shot.mjs --out /tmp/kbe-fx/game.png --query 'scene=Game&fast=1&mute=1&seed=7'`. Phase A does not instantiate FX in the game, so this is not presently a visual acceptance test for the new library.
+
+## Requests for other teams
+
+- **Engine:** load the FX pack and confirm animation registration is owned by FX or Preload (one owner). Preserve all existing catalog events. Provide a small typed spatial effect event, proposed `fx:emit { effect, x, y, angle?, count?, material? }`, or specific equivalents for skid/run dust, water falls, boss vents, debris, and enemy muzzle flashes; none currently has adequate source data. Provide ambient zone add/remove events or a registry with rectangles. Confirm hitstop clocks, max stacking, filter/scene teardown, and camera shake options.
+- **Player:** shoot x/y must be the muzzle socket; rocket needs rear exhaust coordinates (or explicit sockets). Keep one shoot event per trigger/burst, not per spread pellet. Emit land impact velocity before zeroing the body. Supply skid/run intervals and waterline fall position through the agreed event, and restore entity tint mode after hurt.
+- **Enemies/bosses:** emit one actual `explosion` for machine deaths (FX does not synthesize damage), material impacts for shield hits, and enemy shooting socket events. Boss event payload lacks position: supply body explosion positions, vent sockets, debris materials, and final head landing. Own the three-second death timeline and send final XL once; coordinate slow motion start after the final stop.
+- **Levels:** supply ambient zone bounds, water surface y, and surface/debris material where known. `solidAt` alone cannot distinguish water, dirt, metal, and wood. Keep scorch off water and moving platforms unless local-space attachment is provided.
+- **UI/audio:** expose independent CRT, screen-shake, and reduced-flash toggles to FX/Engine. Own popups and sound; bind shield tink, casing bounce, explosion tiers, and impact surfaces to the same event recipes without duplicate effects.
+- **QA/Lead:** review the scaled GIFs and strips, then route API requests before Phase B. Confirm the reference midrange device and GPU quality preset. No additional dependencies or generated image assets are requested.

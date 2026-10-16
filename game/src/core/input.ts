@@ -1,0 +1,130 @@
+// Action-mapped input: keyboard (two keys per action) + gamepad (standard mapping), per player index.
+// Sampled once per frame at PRE_UPDATE, so isDown/justDown/justUp are stable for the whole frame.
+// Usable from any scene: `const input = createInput(this)` (UI scenes do this for menus).
+import Phaser from 'phaser';
+import { ACTIONS, type Action, type Aim, type InputState } from './contracts';
+import { settings } from './settings';
+import { ENGINE } from '../config/tuning/engine';
+
+const N = ACTIONS.length;
+const IDX: Record<Action, number> = Object.fromEntries(ACTIONS.map((a, i) => [a, i])) as Record<Action, number>;
+const A_LEFT = IDX.left, A_RIGHT = IDX.right, A_UP = IDX.up, A_DOWN = IDX.down;
+
+/** Every live InputService (so __KBE.press reaches menus and gameplay alike). */
+export const liveInputs = new Set<InputService>();
+
+export class InputService implements InputState {
+    private readonly cur = new Uint8Array(N);
+    private readonly prev = new Uint8Array(N);
+    private readonly held = new Float32Array(N);
+    /** Remaining ms of programmatic presses. */
+    private readonly virtual = new Float32Array(N);
+    private keys: Phaser.Input.Keyboard.Key[][] = [];
+    private padButtons: number[][] = [];
+    private readonly aimOut = { x: 0 as -1 | 0 | 1, y: 0 as -1 | 0 | 1 };
+    private readonly offSettings: () => void;
+    private lastTime = -1;
+
+    /**
+     * @param index player index (0 = P1). P1 gets keyboard + pad 0; P2+ get pad `index` only.
+     * @param autoSample sample at the scene's PRE_UPDATE (default). Pass false and call `sample()` yourself if needed.
+     */
+    constructor(private readonly scene: Phaser.Scene, readonly index = 0, autoSample = true) {
+        this.bind();
+        liveInputs.add(this);
+        this.offSettings = settings.onChange(() => this.bind());
+        if (autoSample) scene.events.on(Phaser.Scenes.Events.PRE_UPDATE, this.onPreUpdate, this);
+        // After a pause, re-baseline so the key that resumed the game doesn't count as a fresh press.
+        scene.events.on(Phaser.Scenes.Events.RESUME, this.rebaseline, this);
+        scene.events.on(Phaser.Scenes.Events.WAKE, this.rebaseline, this);
+        scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroy, this);
+    }
+
+    /** (Re)build key objects from settings. Called automatically when settings change. */
+    bind(): void {
+        const s = settings.get();
+        const kb = this.scene.input.keyboard;
+        const codes = Phaser.Input.Keyboard.KeyCodes as unknown as Record<string, number>;
+        this.keys = ACTIONS.map(a => {
+            if (!kb || this.index !== 0) return [];
+            return (s.keys[a] ?? []).filter(n => codes[n] !== undefined).map(n => kb.addKey(codes[n], true, false));
+        });
+        this.padButtons = ACTIONS.map(a => s.pad[a] ?? []);
+    }
+
+    private onPreUpdate(time: number, delta: number): void {
+        if (time === this.lastTime) return;
+        this.lastTime = time;
+        this.sample(delta);
+    }
+
+    /** Read hardware state for this frame. `delta` = real ms since last sample. */
+    sample(delta: number): void {
+        this.prev.set(this.cur);
+        const pad = this.pad();
+        const dz = ENGINE.input.stickDeadzone;
+        const sx = pad ? pad.leftStick.x : 0;
+        const sy = pad ? pad.leftStick.y : 0;
+        for (let i = 0; i < N; i++) {
+            let down = false;
+            const ks = this.keys[i];
+            for (let k = 0; k < ks.length && !down; k++) down = ks[k].isDown;
+            if (!down && pad) {
+                const bs = this.padButtons[i];
+                for (let b = 0; b < bs.length && !down; b++) down = pad.buttons[bs[b]]?.pressed === true;
+                if (!down) {
+                    if (i === A_LEFT) down = sx < -dz;
+                    else if (i === A_RIGHT) down = sx > dz;
+                    else if (i === A_UP) down = sy < -dz;
+                    else if (i === A_DOWN) down = sy > dz;
+                }
+            }
+            if (this.virtual[i] > 0) {
+                down = true;
+                this.virtual[i] -= delta;
+            }
+            this.cur[i] = down ? 1 : 0;
+            this.held[i] = down ? this.held[i] + delta : 0;
+        }
+    }
+
+    private pad(): Phaser.Input.Gamepad.Gamepad | undefined {
+        const gp = this.scene.input.gamepad;
+        if (!gp || gp.total === 0) return undefined;
+        return gp.getPad(this.index) ?? undefined;
+    }
+
+    private rebaseline(): void {
+        this.sample(0);
+        this.prev.set(this.cur);
+    }
+
+    isDown(a: Action): boolean { return this.cur[IDX[a]] === 1; }
+    justDown(a: Action): boolean { const i = IDX[a]; return this.cur[i] === 1 && this.prev[i] === 0; }
+    justUp(a: Action): boolean { const i = IDX[a]; return this.cur[i] === 0 && this.prev[i] === 1; }
+    heldMs(a: Action): number { return this.held[IDX[a]]; }
+
+    aim(): Aim {
+        this.aimOut.x = (this.cur[A_RIGHT] - this.cur[A_LEFT]) as -1 | 0 | 1;
+        this.aimOut.y = (this.cur[A_DOWN] - this.cur[A_UP]) as -1 | 0 | 1;
+        return this.aimOut;
+    }
+
+    press(a: Action, ms: number = ENGINE.input.pressMs): void {
+        const i = IDX[a];
+        this.virtual[i] = Math.max(this.virtual[i], ms);
+    }
+
+    destroy(): void {
+        liveInputs.delete(this);
+        this.offSettings();
+        this.scene.events.off(Phaser.Scenes.Events.PRE_UPDATE, this.onPreUpdate, this);
+        this.scene.events.off(Phaser.Scenes.Events.RESUME, this.rebaseline, this);
+        this.scene.events.off(Phaser.Scenes.Events.WAKE, this.rebaseline, this);
+    }
+}
+
+/** Convenience for any scene (menus, HUD, pause): an InputState sampled every frame. */
+export function createInput(scene: Phaser.Scene, index = 0): InputService {
+    return new InputService(scene, index);
+}

@@ -1,0 +1,69 @@
+{ "frames": {
+   "prop_explosive_barrel#0": {
+    "frame": { "x": 0, "y": 0, "w": 16, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 20 },
+    "sourceSize": { "w": 16, "h": 20 },
+    "duration": 300
+   },
+   "prop_explosive_barrel#1": {
+    "frame": { "x": 17, "y": 0, "w": 16, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 20 },
+    "sourceSize": { "w": 16, "h": 20 },
+    "duration": 300
+   },
+   "prop_explosive_barrel#2": {
+    "frame": { "x": 34, "y": 0, "w": 16, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 20 },
+    "sourceSize": { "w": 16, "h": 20 },
+    "duration": 120
+   },
+   "prop_explosive_barrel#3": {
+    "frame": { "x": 0, "y": 21, "w": 16, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 20 },
+    "sourceSize": { "w": 16, "h": 20 },
+    "duration": 120
+   },
+   "prop_explosive_barrel#4": {
+    "frame": { "x": 17, "y": 21, "w": 16, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 20 },
+    "sourceSize": { "w": 16, "h": 20 },
+    "duration": 80
+   },
+   "prop_explosive_barrel#5": {
+    "frame": { "x": 34, "y": 21, "w": 16, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 20 },
+    "sourceSize": { "w": 16, "h": 20 },
+    "duration": 80
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "prop_explosive_barrel.png",
+  "format": "RGBA8888",
+  "size": { "w": 50, "h": 41 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "prop_explosive_barrel_idle", "from": 0, "to": 1, "direction": "forward", "color": "#000000ff" },
+   { "name": "prop_explosive_barrel_damaged1", "from": 2, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "prop_explosive_barrel_damaged2", "from": 4, "to": 5, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}
