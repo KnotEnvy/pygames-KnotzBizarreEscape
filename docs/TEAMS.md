@@ -16,7 +16,8 @@
 ## Phases
 - **Phase 0 (Lead):** archive the pygame game, scaffold Phaser 4.2.1 + Vite + TS, docs, art pipeline, screenshot tool. ✅
 - **Phase A (parallel):** Engine builds the core framework. Content teams build **art and data only** (no `src/` code yet,
-  except Engine). The rules checker writes the linter. QA builds the test harness. Image gen paints backgrounds and key art.
-- **Phase B (parallel):** gameplay teams implement code in their owned `src/` dirs against the Engine's real API.
-- **Phase C:** QA playtest and the rules review, then fix rounds routed to the owning teams.
-- **Phase D:** polish pass, then hand-off to the owner for player testing.
+  except Engine). The rules checker writes the linter. QA builds the test harness. Image gen paints backgrounds and key art. ✅
+- **Phase B (parallel):** gameplay teams implement code in their owned `src/` dirs against the Engine's real API. ✅
+- **Phase C:** QA playtest and the rules review, then fix rounds routed to the owning teams. ✅
+- **Phase D:** polish pass, then hand-off to the owner for player testing. ✅ (final QA verification in `docs/teams/qa-bugs.md`)
+- **Next:** owner playtest → feedback rounds routed to teams.

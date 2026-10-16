@@ -21,10 +21,14 @@ declare global {
 export const test = base.extend<{ browserErrors: string[] }>({
   browserErrors: [async ({ page }, use, testInfo) => {
     const errors: string[] = [];
+    const failedRequests: unknown[] = [];
+    page.on('requestfailed', request => failedRequests.push({ at: new Date().toISOString(),
+      url: request.url(), resourceType: request.resourceType(), failure: request.failure() }));
     page.on('console', message => { if (message.type() === 'error') errors.push(`console: ${message.text()}`); });
     page.on('pageerror', error => errors.push(`pageerror: ${error.stack ?? error.message}`));
     await use(errors);
     await testInfo.attach('browser-errors', { body: JSON.stringify(errors, null, 2), contentType: 'application/json' });
+    await testInfo.attach('failed-requests', { body: JSON.stringify(failedRequests, null, 2), contentType: 'application/json' });
     expect(errors, 'browser console/page errors during the test').toEqual([]);
   }, { auto: true }],
 });

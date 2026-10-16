@@ -123,25 +123,25 @@ try {
       }, {}, { timeout: 12_000 });
       bossDefeated = true;
       await capture('boss-defeated', await observe());
-      // The far-right end pillar is beyond stage_end. Walk back into its strip.
-      if ((await observe()).player?.x > 6660) {
-        await session.page.keyboard.down('ArrowLeft');
-        await session.page.waitForTimeout(1200);
-        await session.page.keyboard.up('ArrowLeft');
-      }
+      // Phase D must complete from this position without recovery movement.
       await session.page.waitForFunction(() => {
         const s = window.__KBE.state();
         return s.playerController?.state === 'victory' || s.scene === 'Results';
       }, {}, { timeout: 8_000 });
       stageClear = true;
-      await session.page.waitForTimeout(4000);
+      // The finale uses scaled time. A fixed four-second delay can capture the
+      // black wipe while Game is still active; wait for the actual Results reveal.
+      await session.page.waitForFunction(() => window.__KBE.state().scene === 'Results', {}, { timeout: 15_000 });
+      await session.page.waitForFunction(() => window.__KBE.game.scene.getScene('Results').done, {}, { timeout: 15_000 });
+      await session.page.waitForTimeout(400);
     } catch (error) { report.notes.push(`Post-defeat flow did not finish: ${error.message}`); }
   }
   await capture('final', await observe());
   report.coveredRequestedRange = report.lastWarpX === configuration.end;
   report.bossPhases = [...seenPhases];
   report.coverage = { requestedRange: report.coveredRequestedRange, bossObserved: sawBoss,
-    bossPhasesObservable: sawExplicitPhase, allBossPhases: [1, 2, 3].every(phase => seenPhases.has(phase)), bossDefeated, stageClear };
+    bossPhasesObservable: sawExplicitPhase, allBossPhases: [1, 2, 3].every(phase => seenPhases.has(phase)), bossDefeated, stageClear,
+    results: (await session.page.evaluate(() => window.__KBE.state().scene)) === 'Results' };
   if (!sawBoss) report.notes.push('No live boss was observed. Boss coverage remains unverified.');
   if (!sawExplicitPhase) report.notes.push('No bossPhase or boss.phase debug value: automatic phase capture is blocked (Engine/Enemies request).');
   else if (![1, 2, 3].every(phase => seenPhases.has(phase))) report.notes.push('Not all three boss phases were reached; increase --boss-ms or use a weapon in a follow-up run.');

@@ -105,7 +105,7 @@ async function systems() {
   await boot('grenade-knife-crouch', 'god=1&x=5800'); await clearActors(); await wait(500);
   await press('ArrowDown', 180);
   await session.page.keyboard.down('ArrowDown'); await wait(120);
-  await check('crouch lowers hitbox', (await state()).playerController.crouch && await session.page.evaluate(() => window.__QACTX.player().sprite.body.height === 20), await state());
+  await check('crouch lowers hitbox', (await state()).playerController.crouch && await session.page.evaluate(() => window.__QACTX.player().sprite.body.height === 18), await state());
   await shot('crouch'); await session.page.keyboard.up('ArrowDown');
   const bombs = (await state()).player.bombs;
   await press('c', 70); await wait(300); await shot('grenade-flight'); await wait(2300);

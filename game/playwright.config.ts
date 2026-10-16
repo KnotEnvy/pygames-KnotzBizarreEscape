@@ -36,7 +36,8 @@ export default defineConfig({
     trace: 'retain-on-failure',
     launchOptions: {
       env: { ...process.env, LD_LIBRARY_PATH: [libs, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') },
-      args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+      args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
+        ...(process.env.KBE_QA_NETLOG ? [`--log-net-log=${process.env.KBE_QA_NETLOG}`] : [])],
     },
   },
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],

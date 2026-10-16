@@ -227,3 +227,22 @@ Testing used keyboard and SwiftShader in a changing shared checkout. Warp covera
 
 
 Final native-HUD performance rerun: **passed**, average **60.43 FPS**, min **59**, rAF p95 **16.7 ms**, max **16.8 ms**, **0** frames over 50 ms. Average FPS change versus the same-machine pre-UI baseline: **-0.01%**. [Final performance report](../../game/tests/artifacts/2026-10-16T19-18-08-384Z-perf-3505986/report.md). The relative result does not establish real-GPU 60 FPS acceptance. The [summary](../../game/tests/artifacts/phase-c-2026-10-16-summary/acceptance-summary.json) now includes final native UI, visual defects, 18/1 E2E status, current bug counts and refreshed source hashes.
+
+
+## Phase D final verification
+
+The current release verdict, per-bug statuses, fresh screenshots and run accounting are in [qa-bugs.md](qa-bugs.md). Phase A/C results above are historical and are superseded by that final verification.
+
+Final-pass harness changes stay in QA ownership: the systems probe expects the authored 18 px crouch body; the HMG playthrough no longer walks left after defeating the boss; failed-request URLs/times are attached to E2E results without filtering console errors. `KBE_QA_NETLOG=/tmp/kbe-qa/<name>.json` optionally enables Chromium NetLog. No E2E retries, E2E timeout increases, network-error suppression, or game-code fix were added. The playthrough ending now waits for the actual Results reveal instead of a fixed sleep.
+
+Additional focused launchers:
+
+```bash
+node game/tests/bot/final-verification.mjs
+npm --prefix game run build
+node game/tests/bot/production-smoke.mjs
+```
+
+`final-verification.mjs` repeats the original Phase C fixtures, checks the boss corner against the **old silhouette rectangle** (the new core rectangle is intentionally damageable), samples the 88 px off-view descent band, and monitors HUD GO visibility through the real boss defeat/stage-clear events. `production-smoke.mjs` uses installed Vite preview to serve dist, starts through Title with real keyboard input, attempts production URL/API cheats without debug, and observes 20 seconds of gameplay with WebAudio running. Neither launcher changes gameplay files.
+
+Final recorded outcomes: consecutive E2E **17/19, 18/19, 17/19**; flow ×5 **14/15**. These are failed runs with retained traces. Host network churn is timestamp-correlated; a required-asset failure also exposes the new conditional S1 E04. All eight original findings are resolved. The detailed verdict and evidence in qa-bugs.md remain authoritative.
