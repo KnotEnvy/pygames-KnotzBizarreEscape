@@ -25,6 +25,7 @@ export const test = base.extend<{ browserErrors: string[] }>({
     page.on('pageerror', error => errors.push(`pageerror: ${error.stack ?? error.message}`));
     await use(errors);
     await testInfo.attach('browser-errors', { body: JSON.stringify(errors, null, 2), contentType: 'application/json' });
+    expect(errors, 'browser console/page errors during the test').toEqual([]);
   }, { auto: true }],
 });
 export { expect };

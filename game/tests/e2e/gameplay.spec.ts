@@ -58,12 +58,12 @@ test('camera advances then never scrolls back left', async ({ page }) => {
 
 test('pause freezes movement and resume restores it', async ({ page }) => {
   await requirePause(page);
-  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape', { delay: 80 });
   await expect.poll(() => paused(page)).toBe(true);
   const before = (await snapshot(page)).player!.x;
   await hold(page, 'ArrowRight', 400);
   expect((await snapshot(page)).player!.x).toBeCloseTo(before, 1);
-  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape', { delay: 80 });
   await expect.poll(() => paused(page)).toBe(false);
   await hold(page, 'ArrowRight', 300);
   expect((await snapshot(page)).player!.x).toBeGreaterThan(before + 5);

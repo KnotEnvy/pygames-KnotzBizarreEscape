@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import type { GameContext, Projectile } from '../../core';
 import { PLAYER as T, isWeapon, type Weapon } from '../../config/tuning/player';
 
@@ -8,6 +9,7 @@ export class Weapons {
     private flameLeft = 0;
     private flameTick = 0;
     private flameAngle = 0;
+    private seekRect = new Phaser.Geom.Rectangle();
     constructor(private ctx: GameContext) {}
     equip(name: string, ammo?: number): void {
         if (!isWeapon(name)) return;
@@ -33,7 +35,7 @@ export class Weapons {
         let shotAngle = angle;
         if (w === 'hmg') {
             const diff = Math.atan2(Math.sin(angle - this.lastAngle), Math.cos(angle - this.lastAngle));
-            shotAngle = this.lastAngle + diff * Math.min(1, this.sinceShot / T.sweepMs);
+            shotAngle = this.sinceShot > T.sweepMs * 2 ? angle : this.lastAngle + diff * Math.min(1, this.sinceShot / T.sweepMs);
             shotAngle += ctx.rng.range(-2, 2) * Math.PI / 180;
         }
         this.lastAngle = shotAngle;
@@ -67,12 +69,13 @@ export class Weapons {
             team: 'player', damage: 0, weapon: 'rocket', texture: 'rocket', anim: 'rocket_fly', radius: 3, silent: true,
             onUpdate: (p, dt) => {
                 let heading = Math.atan2(p.vy, p.vx), best = 120 * 120, targetAngle = heading;
-                this.ctx.damage.forEach(h => {
-                    if (h.team !== 'enemy' || !h.alive()) return;
+                this.seekRect.setTo(p.x - 120, p.y - 120, 240, 240);
+                for (const h of this.ctx.damage.queryRect(this.seekRect, 'player')) {
+                    if (h.team !== 'enemy' || !h.alive()) continue;
                     const r = this.ctx.damage.rectOf(h), dx = r.centerX - p.x, dy = r.centerY - p.y;
                     const delta = Math.atan2(Math.sin(Math.atan2(dy, dx) - heading), Math.cos(Math.atan2(dy, dx) - heading));
                     if (dx * dx + dy * dy < best && Math.abs(delta) < Math.PI / 3) { best = dx * dx + dy * dy; targetAngle = heading + delta; }
-                });
+                }
                 heading += Math.max(-T.rocketSeek * dt, Math.min(T.rocketSeek * dt, targetAngle - heading));
                 const speed = Math.min(T.rocketMax, Math.hypot(p.vx, p.vy) + T.rocketAcceleration * dt);
                 p.vx = Math.cos(heading) * speed; p.vy = Math.sin(heading) * speed;

@@ -11,6 +11,7 @@ export function spawnPickup(ctx: GameContext, x: number, y: number, kind: string
     let age = 0, collected = false;
     const off = ctx.onUpdate(dt => {
         if (!spr.active || dt <= 0) return;
+        if (!collected && Math.abs(x - ctx.camera.view().centerX) > 320) return;
         age += dt;
         if (collected) { spr.y -= dt * 0.04; spr.setAlpha(Math.max(0, 1 - age / 220)).setScale(1 + age / 450); if (age >= 220) spr.destroy(); return; }
         spr.y = y - 2 - Math.sin(age / 180) * 2;

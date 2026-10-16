@@ -7,11 +7,12 @@ test('Title → Game → Pause → resume', async ({ page }) => {
   test.fixme(!keys.includes('Title') || !keys.includes('Game'), 'Title/Game scenes have not landed yet.');
   await requirePause(page);
   expect((await snapshot(page)).scene).toBe('Title');
-  await page.keyboard.press('Enter');
+  await page.waitForTimeout(100); // MenuInput arms after the opening gesture is released.
+  await page.keyboard.press('Enter', { delay: 80 });
   await expect.poll(async () => (await snapshot(page)).scene).toBe('Game');
-  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape', { delay: 80 });
   await expect.poll(() => paused(page)).toBe(true);
-  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape', { delay: 80 });
   await expect.poll(() => paused(page)).toBe(false);
   expect((await snapshot(page)).scene).toBe('Game');
 });
@@ -43,11 +44,12 @@ test('game over offers continue and starts a fresh run', async ({ page }) => {
     if (life > 1) {
       await expect.poll(async () => (await snapshot(page)).player?.lives).toBe(life - 1);
       await expect.poll(async () => (await snapshot(page)).player?.alive, { timeout: 6_000 }).toBe(true);
-      await page.waitForTimeout(2_100); // Respawn invulnerability must expire before the next kill.
+      // kill() deliberately bypasses respawn invulnerability; hurt() tests normal damage.
     }
   }
   await expect.poll(() => page.evaluate((sceneNames) => sceneNames.some(key => window.__KBE!.game.scene.isActive(key)), gameOverKeys)).toBe(true);
-  await page.keyboard.press('Enter');
+  await page.waitForTimeout(100);
+  await page.keyboard.press('Enter', { delay: 80 });
   await expect.poll(async () => (await snapshot(page)).scene).toBe('Game');
   expect((await snapshot(page)).player!.alive).toBe(true);
   expect((await snapshot(page)).player!.lives).toBe(initialLives);

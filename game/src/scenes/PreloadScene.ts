@@ -1,10 +1,11 @@
 // Preload: queue every pack fetched by Boot, show a clean progress bar, create Aseprite animations
-// (tag names become anim keys), then route: ?scene= → 'Title' (if registered) → 'Game'.
+// (core/anims.ts; tag names become anim keys), then route: ?scene= → 'Title' (if registered) → 'Game'.
 import Phaser from 'phaser';
 import type { LoadedPack } from './BootScene';
 import { PAL } from '../core/textures';
 import { PARAMS } from '../core/params';
 import { setReady } from '../core/debug/hooks';
+import { createAsepriteAnims } from '../core/anims';
 
 interface PackFileEntry { type?: string; key?: string }
 
@@ -52,7 +53,10 @@ export class PreloadScene extends Phaser.Scene {
         this.scene.start(target);
     }
 
-    /** Every `aseprite` entry in any pack gets its tags turned into animations (key = tag name). */
+    /**
+     * Every `aseprite` entry in any pack gets its tags turned into animations (key = tag name). Not Phaser's
+     * createFromAseprite: it makes zero-frame anims for our `key#N` frame names (see core/anims.ts).
+     */
     private createAsepriteAnims(): void {
         for (const p of this.packs) {
             for (const section of Object.values(p.data)) {
@@ -61,7 +65,7 @@ export class PreloadScene extends Phaser.Scene {
                 for (const f of files) {
                     if (f.type !== 'aseprite' || !f.key || !this.textures.exists(f.key)) continue;
                     try {
-                        this.anims.createFromAseprite(f.key);
+                        createAsepriteAnims(this, f.key);
                     } catch (e) {
                         console.warn(`[preload] anims for '${f.key}' failed: ${(e as Error).message}`);
                     }

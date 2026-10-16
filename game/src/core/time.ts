@@ -1,6 +1,8 @@
 // Global gameplay time: hitstop (freeze, max-stacking), slow-mo, pause.
-// Applies the effective scale to Arcade physics, animations, tweens and the scene clock, so gameplay that uses
-// Phaser timers/tweens/anims respects it automatically. Manual movement should use `ctx.time.dt(delta)` or the
+// Applies the effective scale to Arcade physics, this scene's sprite animations, tweens and the scene clock, so
+// gameplay that uses Phaser timers/tweens/anims respects it automatically. Animations are scaled per sprite
+// (`sprite.anims.timeScale`) for THIS scene only: the AnimationManager's globalTimeScale is game-wide and would also
+// freeze HUD/Pause menu animations during hitstop or pause. Manual movement should use `ctx.time.dt(delta)` or the
 // scaled dt passed to `ctx.onUpdate(fn)`.
 import Phaser from 'phaser';
 import type { TimeService } from './contracts';
@@ -14,8 +16,11 @@ export class GameTime implements TimeService {
     private effective = 1;
     private applied = -1;
     private clock = 0;
+    /** The world's configured step rate, restored when slow-mo ends. */
+    private baseFps = 0;
 
     constructor(private readonly scene: Phaser.Scene) {
+        scene.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, this.onAdded, this);
         scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.restore, this);
     }
 
@@ -72,17 +77,33 @@ export class GameTime implements TimeService {
             if (s === 0) { if (!world.isPaused) world.pause(); }
             else {
                 if (world.isPaused) world.resume();
-                // Arcade timeScale is inverted: 2 = half speed.
+                // Arcade timeScale is inverted: 2 = half speed. It stretches the real time between fixed steps, so at
+                // 0.35× bodies would only step at ~21 Hz (visible stutter). Shrinking the step by the same factor
+                // (fps / s) keeps one step per real 1/fps s, each advancing s/fps of game time: smooth slow-mo.
+                if (this.baseFps === 0) this.baseFps = world.fps;
+                world.setFPS(this.baseFps / s);
                 world.timeScale = 1 / s;
             }
         }
-        sc.anims.globalTimeScale = s;
+        const list = sc.sys.updateList.getActive();
+        for (let i = 0; i < list.length; i++) this.scaleAnims(list[i]);
         sc.tweens.timeScale = s;
         sc.time.timeScale = s;
     }
 
+    private scaleAnims(go: Phaser.GameObjects.GameObject): void {
+        const a = (go as Partial<Phaser.GameObjects.Sprite>).anims;
+        if (a) a.timeScale = this.effective;
+    }
+
+    /** Sprites created during hitstop/slow-mo start at the current scale. */
+    private onAdded(go: Phaser.GameObjects.GameObject): void {
+        if (this.effective !== 1) this.scaleAnims(go);
+    }
+
     private restore(): void {
-        // AnimationManager is global: don't leave other scenes frozen.
-        this.scene.anims.globalTimeScale = 1;
+        this.scene.events.off(Phaser.Scenes.Events.ADDED_TO_SCENE, this.onAdded, this);
+        const world = this.scene.physics?.world;
+        if (world && this.baseFps > 0) { world.setFPS(this.baseFps); world.timeScale = 1; }
     }
 }

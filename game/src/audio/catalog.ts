@@ -1,0 +1,180 @@
+// Audio key catalog: per-key playback rules, the alias table (keys other teams guessed before the catalog
+// existed → real asset keys) and the music metadata. The asset keys are the OGG stems in
+// public/assets/audio/{sfx,music}/ (see docs/teams/ui-audio.md §3).
+
+export interface SfxMeta {
+    /** Volume multiplier on top of the pre-balanced file (default 1). */
+    vol?: number;
+    /** Random detune range in cents (±). */
+    vary?: number;
+    /** Max simultaneous voices for the key (the oldest is stolen). */
+    max?: number;
+    /** Minimum ms between two starts of the key (extra requests are dropped). */
+    minMs?: number;
+    /** The asset is authored as a seamless loop (a plain sfx() call still plays it once). */
+    loop?: boolean;
+}
+
+export const SFX_META: Record<string, SfxMeta> = {
+    // weapons and explosions
+    pistol: { vol: 0.9, vary: 60, max: 4, minMs: 30 },
+    hmg: { vol: 0.7, vary: 60, max: 3, minMs: 40 },
+    spread: { vol: 1, max: 3, minMs: 40 },
+    rocket_launch: { vol: 1, max: 2 },
+    rocket_whoosh: { vol: 0.6, loop: true, max: 2 },
+    flame_start: { vol: 0.8, max: 2, minMs: 120 },
+    flame_loop: { vol: 0.7, loop: true, max: 2 },
+    grenade_throw: { vol: 0.8, max: 3, minMs: 40 },
+    grenade_bounce: { vol: 0.7, vary: 60, max: 3 },
+    explo_s: { vol: 1, vary: 40, max: 4, minMs: 30 },
+    explo_m: { vol: 1, vary: 40, max: 3, minMs: 40 },
+    explo_l: { vol: 1, vary: 40, max: 2, minMs: 60 },
+    explo_xl: { vol: 1, vary: 40, max: 2, minMs: 80 },
+    // impacts and melee
+    impact_dirt: { vol: 0.7, vary: 60, max: 4, minMs: 25 },
+    impact_wood: { vol: 0.7, vary: 60, max: 4, minMs: 25 },
+    impact_metal: { vol: 0.7, vary: 60, max: 4, minMs: 25 },
+    impact_body: { vol: 0.7, vary: 60, max: 4, minMs: 25 },
+    shield_tink: { vol: 0.8, vary: 60, max: 3, minMs: 40 },
+    melee_slash: { vol: 1, max: 2, minMs: 60 },
+    melee_hit: { vol: 1, max: 2, minMs: 60 },
+    // player
+    jump: { vol: 0.7, max: 2, minMs: 40 },
+    land: { vol: 0.6, max: 2, minMs: 60 },
+    pickup: { vol: 0.9, max: 3 },
+    pickup_bombs: { vol: 0.9, max: 2 },
+    weapon_get: { vol: 1, max: 1 },
+    player_death: { vol: 1, max: 1 },
+    respawn: { vol: 0.8, max: 1 },
+    one_up: { vol: 1, max: 1 },
+    // POWs and enemies
+    pow_freed: { vol: 1, max: 2 },
+    pow_salute: { vol: 0.7, max: 2 },
+    enemy_alert: { vol: 0.8, max: 3, minMs: 80 },
+    enemy_death_1: { vol: 0.9, vary: 60, max: 3, minMs: 30 },
+    enemy_death_2: { vol: 0.9, vary: 60, max: 3, minMs: 30 },
+    enemy_death_3: { vol: 0.9, vary: 60, max: 3, minMs: 30 },
+    enemy_shoot: { vol: 0.6, vary: 30, max: 3, minMs: 40 },
+    enemy_panic: { vol: 0.7, max: 2, minMs: 120 },
+    turret_windup: { vol: 0.9, max: 2, minMs: 100 },
+    turret_fire: { vol: 0.8, vary: 30, max: 3, minMs: 50 },
+    drone_buzz: { vol: 0.5, loop: true, max: 3 },
+    drone_dive: { vol: 0.8, max: 2, minMs: 100 },
+    chute_open: { vol: 0.7, max: 2 },
+    // boss
+    boss_roar: { vol: 1, max: 1 },
+    boss_stomp: { vol: 1, max: 2, minMs: 100 },
+    boss_steam: { vol: 0.6, loop: true, max: 2 },
+    boss_hurt: { vol: 0.6, vary: 60, max: 2, minMs: 80 },
+    boss_cannon: { vol: 0.9, max: 2, minMs: 60 },
+    boss_charge: { vol: 1, max: 1 },
+    boss_death: { vol: 1, max: 1 },
+    // environment and props
+    steam_hiss: { vol: 0.5, max: 2, minMs: 300 },
+    crate_break: { vol: 0.8, vary: 50, max: 3, minMs: 30 },
+    gate_smash: { vol: 1, max: 1 },
+    checkpoint: { vol: 0.8, max: 1 },
+    // UI and stingers
+    ui_move: { vol: 0.8, max: 2, minMs: 30 },
+    ui_select: { vol: 0.8, max: 2 },
+    ui_back: { vol: 0.8, max: 2 },
+    ui_pause: { vol: 0.9, max: 1 },
+    ui_unpause: { vol: 0.9, max: 1 },
+    ui_start: { vol: 1, max: 1 },
+    continue_tick: { vol: 0.9, max: 2 },
+    continue_final: { vol: 1, max: 1 },
+    mission_start: { vol: 1, max: 1 },
+    mission_complete: { vol: 1, max: 1 },
+    game_over: { vol: 1, max: 1 },
+    callout: { vol: 0.9, max: 2, minMs: 80 },
+    score_tally: { vol: 0.5, max: 3, minMs: 25 },
+    rank_stamp: { vol: 1, max: 1 }
+};
+
+/** One alias target. `keys` picks randomly; `loopMs` runs the key as a loop for that long; `also` layers more keys. */
+export interface AliasSpec {
+    key?: string;
+    keys?: readonly string[];
+    volume?: number;
+    detune?: number;
+    loopMs?: number;
+    also?: readonly string[];
+}
+
+/**
+ * Keys other teams call (`ctx.audio.sfx('<key>')`) → catalog keys. Everything that isn't a catalog key and isn't
+ * listed here is reported once as unknown (dev console + `__KBE.state().audio.unknown`).
+ */
+export const SFX_ALIASES: Record<string, AliasSpec> = {
+    // player / weapons (src/entities/weapons, player/controller.ts, dev sandbox)
+    rocket: { key: 'rocket_launch' },
+    flame: { key: 'flame_start' },
+    knife: { key: 'melee_slash' },
+    melee: { key: 'melee_slash' },
+    sfx_pistol: { key: 'pistol' },
+    shoot: { key: 'pistol' },
+    grenade: { key: 'grenade_throw' },
+    bounce: { key: 'grenade_bounce' },
+    death: { key: 'player_death' },
+    die: { key: 'player_death' },
+    player_die: { key: 'player_death' },
+    '1up': { key: 'one_up' },
+    life: { key: 'one_up' },
+    powerup: { key: 'weapon_get' },
+    pow: { key: 'pow_freed' },
+    // enemies (src/entities/enemies/Enemy.ts)
+    enemy_shout: { key: 'enemy_alert' },
+    enemy_die: { keys: ['enemy_death_1', 'enemy_death_2', 'enemy_death_3'] },
+    enemy_death: { keys: ['enemy_death_1', 'enemy_death_2', 'enemy_death_3'] },
+    chute_tear: { key: 'chute_open', detune: -500, volume: 0.8 },
+    /** The drone calls it once at dive wind-up; the dive whoosh fits that moment better than a 0.45 s buzz loop. */
+    drone_buzz: { key: 'drone_dive' },
+    turret_shoot: { key: 'turret_fire' },
+    shield_block: { key: 'shield_tink' },
+    // boss (src/entities/bosses/Moosezilla.ts)
+    boss_explode: { key: 'boss_death', also: ['explo_xl'] },
+    steam: { key: 'boss_steam', loopMs: 1800 },
+    boss_flame: { key: 'flame_start', detune: -400, also: ['boss_flame_loop'] },
+    boss_flame_loop: { key: 'flame_loop', detune: -300, loopMs: 1300, volume: 0.8 },
+    boss_hit: { key: 'boss_hurt' },
+    boss_phase: { key: 'boss_roar' },
+    // level props (src/level/props.ts)
+    door_open: { key: 'steam_hiss', volume: 0.7, detune: -200 },
+    crate: { key: 'crate_break' },
+    barrel_break: { key: 'crate_break', detune: -300 },
+    gate: { key: 'gate_smash' },
+    explosion: { key: 'explo_m' },
+    hit: { key: 'impact_body' },
+    // UI synonyms
+    select: { key: 'ui_select' },
+    move: { key: 'ui_move' },
+    back: { key: 'ui_back' },
+    pause: { key: 'ui_pause' },
+    unpause: { key: 'ui_unpause' },
+    start: { key: 'ui_start' },
+    tick: { key: 'continue_tick' }
+};
+
+export interface MusicMeta { loop: boolean; durationMs: number }
+
+export const MUSIC_META: Record<string, MusicMeta> = {
+    music_title: { loop: true, durationMs: 58182 },
+    music_stage1: { loop: true, durationMs: 90353 },
+    music_boss: { loop: true, durationMs: 62609 },
+    music_continue: { loop: true, durationMs: 8000 },
+    jingle_complete: { loop: false, durationMs: 7000 },
+    jingle_gameover: { loop: false, durationMs: 6000 }
+};
+
+/** Music keys other teams/maps may use (Levels prefixes trigger keys with `music_`). */
+export const MUSIC_ALIASES: Record<string, string> = {
+    stage1: 'music_stage1', music_stage: 'music_stage1', music_stage_1: 'music_stage1', stage: 'music_stage1',
+    boss1: 'music_boss', boss: 'music_boss', music_boss1: 'music_boss', music_boss_1: 'music_boss',
+    title: 'music_title', menu: 'music_title', music_menu: 'music_title',
+    continue: 'music_continue', music_gameover: 'jingle_gameover', gameover: 'jingle_gameover', game_over: 'jingle_gameover',
+    complete: 'jingle_complete', music_complete: 'jingle_complete', clear: 'jingle_complete', music_clear: 'jingle_complete'
+};
+
+export function isMusicKey(key: string): boolean {
+    return key in MUSIC_META || key in MUSIC_ALIASES;
+}

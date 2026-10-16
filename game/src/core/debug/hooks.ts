@@ -12,8 +12,16 @@ import { isSandboxLevel } from '../dev/sandboxLevel';
 type CheatFn = (...args: never[]) => void;
 
 const extras = new Map<string, () => unknown>();
+/** Keys registered through ctx.debug.register: run-scoped, dropped when the run ends. */
+const runKeys = new Set<string>();
 const cheatOverrides = new Map<string, CheatFn>();
 const errors: string[] = (window as unknown as { __KBE_ERRORS?: string[] }).__KBE_ERRORS ??= [];
+const MAX_ERRORS = 200;
+/** Record an error, keeping only the newest MAX_ERRORS (a per-frame error must not grow memory forever). */
+function noteError(m: string): void {
+    errors.push(m);
+    if (errors.length > MAX_ERRORS) errors.splice(0, errors.length - MAX_ERRORS);
+}
 /** Survives module re-evaluation (dev hot reload) because it lives on window. */
 let globalTapped = (window as unknown as { __KBE_TAPPED?: boolean }).__KBE_TAPPED === true;
 let active: GameContext | null = null;
@@ -21,13 +29,17 @@ let gameRef: Phaser.Game | null = null;
 let bossHp: number | null = null;
 let boss: { name: string; hp: number; maxHp: number; phase: number } | null = null;
 
-/** Add a field to __KBE.state(). Safe to call any time (overwrites the same key). */
+/**
+ * Add a field to __KBE.state() for the whole page lifetime (UI scenes, audio). Overwrites the same key.
+ * Gameplay code should use `ctx.debug.register` instead: those fields are dropped when the run ends.
+ */
 export function registerDebug(key: string, fn: () => unknown): void {
+    runKeys.delete(key);
     extras.set(key, fn);
 }
 
 export const debugService: DebugService = {
-    register: registerDebug,
+    register(key, fn) { extras.set(key, fn); runKeys.add(key); },
     cheat(name, fn) { cheatOverrides.set(name, fn); },
     get enabled() { return PARAMS.debug; }
 };
@@ -38,7 +50,10 @@ export function setActiveContext(ctx: GameContext | null): void {
     bossHp = null;
     boss = null;
     if (!ctx) {
+        // Run-scoped closures point at the run's (now destroyed) objects; every team re-registers next run.
         cheatOverrides.clear();
+        for (const k of runKeys) extras.delete(k);
+        runKeys.clear();
         return;
     }
     syncGodFlag(ctx.cheats.god);
@@ -238,10 +253,10 @@ export function installKbe(game: Phaser.Game, version: string): KbeHandle {
     if (!globalTapped) {
         globalTapped = true;
         (window as unknown as { __KBE_TAPPED?: boolean }).__KBE_TAPPED = true;
-        window.addEventListener('error', e => { errors.push(String(e.message)); });
-        window.addEventListener('unhandledrejection', e => { errors.push(`unhandledrejection: ${String(e.reason)}`); });
+        window.addEventListener('error', e => { noteError(String(e.message)); });
+        window.addEventListener('unhandledrejection', e => { noteError(`unhandledrejection: ${String(e.reason)}`); });
         const origError = console.error.bind(console);
-        console.error = (...args: unknown[]) => { errors.push(args.map(String).join(' ').slice(0, 300)); origError(...args); };
+        console.error = (...args: unknown[]) => { noteError(args.map(String).join(' ').slice(0, 300)); origError(...args); };
     }
     return handle;
 }

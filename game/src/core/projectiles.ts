@@ -10,6 +10,7 @@ import type { CameraController } from './camera';
 import { DEPTH } from './depth';
 import { TEX } from './textures';
 import { ENGINE } from '../config/tuning/engine';
+import { hasAnim } from './anims';
 
 export interface ImpactInfo {
     x: number;
@@ -83,6 +84,8 @@ const MAX_PIERCE_MEMORY = 32;
 export class Projectile {
     readonly sprite: Phaser.GameObjects.Sprite;
     active = false;
+    /** In the pool (not in the live list). Guards against a double release. */
+    pooled = true;
     x = 0; y = 0; vx = 0; vy = 0;
     gravity = 0;
     team: Team = 'player';
@@ -118,9 +121,10 @@ export class Projectile {
         this.sprite = scene.add.sprite(0, 0, TEX.bullet).setActive(false).setVisible(false);
     }
 
-    /** Remove it now (no impact event). */
+    /** Remove it (no impact event): hidden now, recycled by the system's next update. Safe from any callback. */
     kill(): void {
         this.active = false;
+        this.sprite.setVisible(false);
     }
 }
 
@@ -129,6 +133,11 @@ export class ProjectileSystem {
     private readonly live: Projectile[] = [];
     private readonly impact: ImpactInfo = { x: 0, y: 0, material: 'dirt', hurtbox: null, normalX: 0, normalY: 0 };
     private readonly hitInfo: HitInfo = { damage: 0, source: 'player', x: 0, y: 0, dirX: 0, dirY: 0, kind: 'bullet' };
+    /**
+     * True while update() walks `live`. Team callbacks run inside it (onHit → damage.deal → a boss dies →
+     * clear('enemy')), so nothing may splice `live` then: clear()/kill() only deactivate, update() and sweep() recycle.
+     */
+    private updating = false;
 
     constructor(
         private readonly scene: Phaser.Scene,
@@ -147,6 +156,7 @@ export class ProjectileSystem {
         if (this.live.length >= ENGINE.projectiles.max) return null;
         const p = this.pool.pop() ?? new Projectile(this.scene);
         p.active = true;
+        p.pooled = false;
         p.x = s.x; p.y = s.y; p.vx = s.vx; p.vy = s.vy;
         p.gravity = s.gravity ?? 0;
         p.team = s.team;
@@ -175,7 +185,8 @@ export class ProjectileSystem {
         spr.setActive(true).setVisible(true).setPosition(s.x, s.y)
             .setDepth(s.depth ?? DEPTH.PROJECTILES).setScale(s.scale ?? 1).setAlpha(s.alpha ?? 1).setRotation(0).setFlipX(false);
         if (s.tint !== undefined) spr.setTint(s.tint); else spr.clearTint();
-        if (s.anim && this.scene.anims.exists(s.anim)) spr.play(s.anim);
+        // hasAnim, not anims.exists: a zero-frame animation exists but play() throws.
+        if (s.anim && hasAnim(this.scene, s.anim)) spr.play(s.anim);
         else spr.stop();
         if (p.rotate) spr.setRotation(Math.atan2(p.vy, p.vx));
         this.live.push(p);
@@ -184,7 +195,16 @@ export class ProjectileSystem {
 
     /** Engine calls this every frame with scaled dt (ms). */
     update(dtMs: number): void {
-        if (dtMs <= 0) return;
+        if (dtMs <= 0) { this.sweep(); return; }
+        this.updating = true;
+        try {
+            this.run(dtMs);
+        } finally {
+            this.updating = false;
+        }
+    }
+
+    private run(dtMs: number): void {
         const dt = dtMs / 1000;
         const view = this.camera.view();
         const m = ENGINE.projectiles.offscreenMargin;
@@ -201,12 +221,25 @@ export class ProjectileSystem {
                 }
             }
             if (p.active && (p.x < left || p.x > right || p.y < top || p.y > bottom)) p.active = false;
-            if (!p.active) {
-                this.recycle(p);
-                this.live[i] = this.live[this.live.length - 1];
-                this.live.pop();
-            }
+            if (!p.active) this.removeAt(i);
         }
+    }
+
+    /**
+     * Swap-remove live[i] and return it to the pool. Only update()'s own loop and sweep() call it: callbacks can only
+     * append to `live` (spawn), never remove, so the backwards walk stays valid.
+     */
+    private removeAt(i: number): void {
+        const p = this.live[i];
+        const last = this.live.pop()!;
+        if (i < this.live.length) this.live[i] = last;
+        this.recycle(p);
+    }
+
+    /** Recycle every inactive live projectile (hit-stop frames, clear() outside update). */
+    private sweep(): void {
+        if (this.updating) return;
+        for (let i = this.live.length - 1; i >= 0; i--) if (!this.live[i].active) this.removeAt(i);
     }
 
     private step(p: Projectile, dt: number, dtMs: number): void {
@@ -294,6 +327,8 @@ export class ProjectileSystem {
     }
 
     private recycle(p: Projectile): void {
+        if (p.pooled) return;
+        p.pooled = true;
         p.active = false;
         p.onImpact = p.onUpdate = p.onExpire = p.onHit = undefined;
         p.data = undefined;
@@ -304,23 +339,26 @@ export class ProjectileSystem {
         this.pool.push(p);
     }
 
-    /** Remove every live projectile (optionally only one team's), e.g. on respawn or boss death. */
+    /**
+     * Remove every live projectile (optionally only one team's), e.g. on respawn or boss death. Safe to call from
+     * inside any projectile callback: during update() they are only deactivated and hidden, and recycled by it.
+     */
     clear(team?: Team): void {
-        for (let i = this.live.length - 1; i >= 0; i--) {
+        for (let i = 0; i < this.live.length; i++) {
             const p = this.live[i];
             if (team && p.team !== team) continue;
-            this.recycle(p);
-            this.live[i] = this.live[this.live.length - 1];
-            this.live.pop();
+            p.kill();
         }
+        this.sweep();
     }
 
-    get count(): number { return this.live.length; }
+    /** Live (active) projectiles of both teams. */
+    get count(): number { return this.countTeam(); }
 
     /** Phase B: live projectiles of one team. */
-    countTeam(team: Team): number {
+    countTeam(team?: Team): number {
         let n = 0;
-        for (let i = 0; i < this.live.length; i++) if (this.live[i].active && this.live[i].team === team) n++;
+        for (let i = 0; i < this.live.length; i++) if (this.live[i].active && (!team || this.live[i].team === team)) n++;
         return n;
     }
 

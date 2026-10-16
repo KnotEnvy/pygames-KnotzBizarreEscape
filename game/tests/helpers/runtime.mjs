@@ -36,7 +36,7 @@ export async function artifactDirectory(kind) {
 
 export async function openSession(query, report) {
   const server = await createServer({ root: gameRoot, configFile: path.join(gameRoot, 'vite.config.ts'),
-    server: { host: '127.0.0.1', port: 0, strictPort: false }, logLevel: 'error' });
+    server: { host: '127.0.0.1', port: 0, strictPort: false, hmr: false, watch: null }, logLevel: 'error' });
   let browser;
   try {
     await server.listen();

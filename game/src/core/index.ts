@@ -13,5 +13,6 @@ export { getContext } from './context';
 export { registerDebug } from './debug/hooks';
 export { sceneExists } from './flow';
 export { TEX, PAL } from './textures';
+export { createAsepriteAnims, hasAnim, frameOf, tagFrame, playAnim } from './anims';
 export { FallbackAudio, applyMute } from './audio';
 export { ENGINE } from '../config/tuning/engine';

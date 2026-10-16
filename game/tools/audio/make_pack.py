@@ -1,6 +1,6 @@
 """Generate public/assets/packs/ui.json (Phaser pack file) for the UI/HUD/audio team's assets.
 Scans: public/assets/fonts/*.xml (bitmapFont), public/assets/ui/*.json (aseprite sheets), public/assets/ui/*.png
-without json (image), and the sfx/music manifests (audio).  Keys:
+without json (image), public/assets/ui/keyart/*.png (image, ui_keyart_<stem>), and the sfx/music manifests (audio).  Keys:
   font_<name>   bitmap fonts          ui_<sheet>   aseprite sheets (ui_icons, ui_hud, ...)
   ui_<image>    plain images          sfx key = file stem      music key = file stem
 usage: uv run --with numpy python3 -I tools/audio/make_pack.py
@@ -29,6 +29,13 @@ def main():
             files.append(dict(type="aseprite", key=key, textureURL=f"assets/ui/{f}", atlasURL=f"assets/ui/{stem}.json"))
         else:
             files.append(dict(type="image", key=f"ui_{stem}", url=f"assets/ui/{f}"))
+    # key art (Image generation team drops PNGs in ui/keyart/; the Title/Results scenes use ui_keyart_<stem>)
+    keyart = os.path.join(ui, "keyart")
+    if os.path.isdir(keyart):
+        for f in sorted(os.listdir(keyart)):
+            if f.endswith(".png"):
+                stem = f[:-4].replace("_bg", "")
+                files.append(dict(type="image", key=f"ui_keyart_{stem}", url=f"assets/ui/keyart/{f}"))
     for kind in ("sfx", "music"):
         man = os.path.join(ASSETS, "audio", kind, f"{kind}_manifest.json")
         with open(man) as fh:

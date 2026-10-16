@@ -47,7 +47,7 @@ const TEXT_RULES = [
   { id: 'pipeline-api', severity: E, re: /\.(setPipeline|resetPipeline|setPipelineData|getPipelineName|initPipeline|setPostPipeline|resetPostPipeline|initPostPipeline|getPostPipeline|hasPostPipeline|removePostPipeline|setPostPipelineData)\s*\(/g, message: 'WebGL pipelines were replaced by RenderNodes/Filters', fix: 'use Filters (enableFilters + filters.*), setLighting(true) for Light2D; custom shaders via Shader/ShaderQuadConfig' },
   { id: 'pipeline-class', severity: E, re: /\b(PostFXPipeline|PreFXPipeline|WebGLPipeline|MultiPipeline|SinglePipeline|LightPipeline|MobilePipeline|RopePipeline|UtilityPipeline|BitmapMaskPipeline|FXPipeline|PipelineManager)\b|\brenderer\.pipelines\b/g, message: 'pipeline classes/manager do not exist in Phaser 4', fix: 'RenderNodes / Filters' },
   { id: 'mask-removed', severity: E, re: /\b(BitmapMask|GeometryMask)\b|\.(createBitmapMask|createGeometryMask|setBitmapMask|setMask|clearMask)\s*\(/g, message: 'setMask/BitmapMask are gone; GeometryMask is Canvas-only', fix: 'obj.enableFilters(); obj.filters.internal.addMask(maskObjectOrTextureKey)  (or Actions.AddMaskShape)' },
-  { id: 'tint-fill', severity: E, re: /\.(setTintFill)\s*\(|\.tintFill\b/g, message: 'setTintFill() is a deprecated NO-OP in Phaser 4 (silently does nothing)', fix: 'sprite.setTint(c).setTintMode(Phaser.TintModes.FILL); reset with clearTint()/setTintMode(Phaser.TintModes.MULTIPLY)' },
+  { id: 'tint-fill', severity: E, re: /\.(setTintFill)\s*\(|\.tintFill\b/g, message: 'setTintFill() is removed in Phaser 4: it only console.errors and sets nothing (compiles fine, no flash)', fix: 'sprite.setTint(c).setTintMode(Phaser.TintModes.FILL); reset with clearTint()/setTintMode(Phaser.TintModes.MULTIPLY)' },
   { id: 'textures-generate', severity: E, re: /\btextures\s*\.\s*generate\s*\(/g, message: 'TextureManager.generate / Create.GenerateTexture were removed', fix: 'draw with a Graphics object + graphics.generateTexture(key, w, h), or ship a PNG' },
   { id: 'canvas-renderer', severity: E, re: /\bPhaser\.CANVAS\b/g, message: 'Canvas renderer is deprecated; none of our filters/lighting work on it', fix: 'type: Phaser.WEBGL' },
   { id: 'create-emitter', severity: E, re: /\.createEmitter\s*\(/g, message: 'particles.createEmitter() is v3.55-: it only logs a warning in v4', fix: 'const em = this.add.particles(x, y, texture, config)  (the returned object IS the emitter)' },
@@ -234,6 +234,42 @@ function checkFile(file, index) {
   if (rt && !/\.render\s*\(\s*\)/.test(code)) once(rt.index, 'rendertexture-render', W, 'RenderTexture/DynamicTexture buffers commands in v4; nothing shows until .render() is called (no `.render()` found in this file)', 'rt.draw(...); rt.render();');
   const fl = /\b(?!(?:cam|camera|cameras\.main|cameras\.\w+)\b)([\w$.!?\]\[]+)\.filters\s*[!?]?\.\s*(?:internal|external)\b/.exec(code);
   if (fl && !/\benableFilters\s*\(/.test(code) && !/camera/i.test(fl[1])) once(fl.index, 'filters-need-enable', W, 'game objects need enableFilters() before `.filters` exists (no enableFilters() call in this file)', 'obj.enableFilters(); obj.filters!.internal.addGlow(...)');
+
+  // anims.exists() is true for the ZERO-FRAME animations that PreloadScene's createFromAseprite makes (Phaser 4.2.1 looks frames
+  // up by numeric name, ours are "<key>#N"); play() on one throws. Guard with `.frames.length` instead.
+  const existsRe = /\banims\s*\.\s*exists\s*\(/g;
+  for (let m; (m = existsRe.exec(code));) {
+    const ln = posOf(starts, m.index).line;
+    const line = code.slice(starts[ln - 1], starts[ln] ?? code.length);
+    if (/\.frames\b|\.remove\s*\(/.test(line)) continue;
+    once(m.index, 'anims-exists-zero-frame', W, 'anims.exists() is also true for the zero-frame tags createFromAseprite leaves behind; play() on those throws', 'const a = anims.get(key); if (a && a.frames.length) sprite.play(key);');
+  }
+  // Arcade world.timeScale is inverted (2 = half speed). Only `1`, `1 / x` and `x` computed by the caller as an inverse are plausible.
+  const tsRe = /\bworld\s*\.\s*timeScale\s*=(?!=)(?!\s*1\s*(?:\/|[;,)\n]))/g;
+  for (let m; (m = tsRe.exec(code));) once(m.index, 'world-timescale-inverted', W, 'physics.world.timeScale is INVERTED (frame-time multiplier: 2 = half speed)', 'world.timeScale = 1 / slowdown;');
+  // Scene event emitters outlive shutdown: listeners added with scene.events.on(...) survive scene.restart() unless removed.
+  if (!/\.events\s*\.\s*off\s*\(/.test(code) && !/Events\.SHUTDOWN|'shutdown'|"shutdown"/.test(code)) {
+    const evRe = /\b(?:scene|sys)\s*\.\s*events\s*\.\s*on\s*\(|\bthis\s*\.\s*events\s*\.\s*on\s*\(\s*Phaser\s*\.\s*Scenes\s*\.\s*Events\s*\./g;
+    for (let m; (m = evRe.exec(code));) once(m.index, 'scene-events-no-off', W, 'scene.events listeners are NOT cleared on shutdown/restart and no .events.off( / SHUTDOWN handler exists in this file', 'scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.events.off(EVENT, handler, ctx));');
+  }
+  // Per-frame hazards inside update-like function bodies (lexical scan, so helper calls are not flagged).
+  const updHead = /(?:^|[\s;{}])(?:(?:private|public|protected|static|async)\s+)*(update\w*|tick\w*|preUpdate|postUpdate|step\w*|on\w*Update)\s*\([^()]*\)\s*(?::\s*[^{;=()]+)?\{|\bonUpdate\s*\(\s*(?:\([^()]*\)|\w+)\s*(?::\s*\w+)?=>\s*\{/g;
+  const BODY_RULES = [
+    { id: 'update-new-phaser-object', re: /\bnew\s+Phaser\s*\.\s*(?:Geom|Math\s*\.\s*Vector[234]?|Display\s*\.\s*Color|Structs)\b[\w$.]*/g, msg: 'allocates a Phaser math/geom object every frame', fix: 'keep a scratch instance on the class/closure and .setTo()/.set() it' },
+    { id: 'update-creates-gameobject', re: /\.add\s*\.\s*(?:sprite|image|text|bitmapText|graphics|rectangle|ellipse|circle|container|zone|tileSprite|particles|renderTexture|dynamicTexture|shader)\s*\(/g, msg: 'creates a game object inside a per-frame function', fix: 'create once (constructor/create) or take it from a pool' },
+    { id: 'update-adds-collider', re: /\.add\s*\.\s*(?:collider|overlap)\s*\(/g, msg: 'adds an Arcade collider inside a per-frame function (colliders accumulate)', fix: 'create it once and keep the Collider; destroy() it when replaced' },
+    { id: 'update-adds-filter', re: /\.filters\s*[!?]?\.\s*(?:internal|external)\s*\.\s*add\w*\s*\(|\bPhaser\s*\.\s*Actions\s*\.\s*AddEffect\w+\s*\(|\bnew\s+Phaser\s*\.\s*Filters\s*\.\s*Controller\b/g, msg: 'creates a filter inside a per-frame function', fix: 'add the filter once and toggle `controller.active` / mutate its properties' },
+  ];
+  for (let h; (h = updHead.exec(code));) {
+    let depth = 0, i = h.index + h[0].length - 1, end = -1;
+    for (; i < code.length; i++) { const ch = code[i]; if (ch === '{') depth++; else if (ch === '}' && --depth === 0) { end = i; break; } }
+    if (end < 0) continue;
+    const body = code.slice(h.index + h[0].length, end), base = h.index + h[0].length;
+    for (const r of BODY_RULES) {
+      r.re.lastIndex = 0;
+      for (let m; (m = r.re.exec(body));) once(base + m.index, r.id, W, `${r.msg} (\`${m[0].trim()}\`)`, r.fix);
+    }
+  }
   return out;
 }
 function pathTo(root, target) {
@@ -248,6 +284,13 @@ if (opts.list) {
   console.log(`error phantom-api            Phaser.X.Y.Z chain not declared in phaser.d.ts`);
   console.log(`warn  rendertexture-render   RenderTexture/DynamicTexture used without .render()`);
   console.log(`warn  filters-need-enable    .filters.* on a game object without enableFilters()`);
+  console.log(`warn  anims-exists-zero-frame   anims.exists() true for zero-frame Aseprite tags; play() throws`);
+  console.log(`warn  world-timescale-inverted   physics.world.timeScale assigned something other than 1 / x`);
+  console.log(`warn  scene-events-no-off        scene.events.on(...) with no .events.off( / SHUTDOWN handler in the file`);
+  console.log(`warn  update-new-phaser-object   new Phaser.Geom/Math.Vector/... inside update/tick/onUpdate`);
+  console.log(`warn  update-creates-gameobject  add.sprite/text/graphics/... inside update/tick/onUpdate`);
+  console.log(`warn  update-adds-collider       add.collider/overlap inside update/tick/onUpdate`);
+  console.log(`warn  update-adds-filter         filters.*.add*/AddEffect*/new Filters.Controller inside update/tick/onUpdate`);
   console.log(`error suppress-no-reason     // phaser4-ok without a reason`);
   process.exit(0);
 }

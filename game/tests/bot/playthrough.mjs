@@ -8,10 +8,11 @@ const args = options();
 const configuration = {
   start: numeric(args, 'start', 64, 0), end: numeric(args, 'end', 6719),
   step: numeric(args, 'step', 256), captureEvery: numeric(args, 'capture-every', 512),
-  walkMs: numeric(args, 'walk-ms', 600), bossMs: numeric(args, 'boss-ms', 90_000, 0),
-  maxMs: numeric(args, 'max-ms', 180_000), seed: numeric(args, 'seed', 731, 0),
+  walkMs: numeric(args, 'walk-ms', 600), bossMs: numeric(args, 'boss-ms', 150_000, 0),
+  maxMs: numeric(args, 'max-ms', 240_000), seed: numeric(args, 'seed', 731, 0),
   weapon: String(args.weapon ?? 'hmg'),
 };
+if (!['pistol', 'hmg', 'spread', 'rocket', 'flame'].includes(configuration.weapon)) throw new Error('--weapon must be pistol, hmg, spread, rocket, or flame');
 if (configuration.end <= configuration.start) throw new Error('--end must exceed --start');
 const directory = await artifactDirectory('playthrough');
 const report = newReport('visual playthrough', configuration);
@@ -33,7 +34,7 @@ async function capture(label, state) {
 
 async function observe() {
   const state = await session.page.evaluate(() => window.__KBE.state());
-  if (Number.isFinite(state.cameraX)) {
+  if (state.scene === 'Game' && Number.isFinite(state.cameraX)) {
     if (lastCameraX !== null && state.cameraX < lastCameraX - 0.01) {
       report.problems.push(`Camera moved left: ${lastCameraX} → ${state.cameraX}`);
       report.status = 'failed';
@@ -88,6 +89,9 @@ try {
     if (!warped.player || Math.abs(warped.player.x - x) > 32) {
       throw new Error(`warp(${x}) did not move the player (actual x=${warped.player?.x}); arena lock or missing cheat.`);
     }
+    // A warp deliberately snaps/unlocks the camera; don't compare it to the
+    // previous physical input interval. The no-warp E2E test is authoritative.
+    lastCameraX = null;
     await session.page.keyboard.down('ArrowRight');
     try {
       const until = Date.now() + configuration.walkMs;
@@ -107,11 +111,37 @@ try {
     await session.page.waitForTimeout(100);
   }
   await session.page.keyboard.up('x');
+  // HP zero starts a three-second death sequence; it is not the defeat event.
+  let bossDefeated = false;
+  let stageClear = false;
+  if ((await observe()).bossHp === 0) {
+    await capture('boss-death-chain', await observe());
+    try {
+      await session.page.waitForFunction(() => {
+        const s = window.__KBE.state();
+        return s.boss?.state === 'defeated' || s.playerController?.state === 'victory' || s.scene === 'Results';
+      }, {}, { timeout: 12_000 });
+      bossDefeated = true;
+      await capture('boss-defeated', await observe());
+      // The far-right end pillar is beyond stage_end. Walk back into its strip.
+      if ((await observe()).player?.x > 6660) {
+        await session.page.keyboard.down('ArrowLeft');
+        await session.page.waitForTimeout(1200);
+        await session.page.keyboard.up('ArrowLeft');
+      }
+      await session.page.waitForFunction(() => {
+        const s = window.__KBE.state();
+        return s.playerController?.state === 'victory' || s.scene === 'Results';
+      }, {}, { timeout: 8_000 });
+      stageClear = true;
+      await session.page.waitForTimeout(4000);
+    } catch (error) { report.notes.push(`Post-defeat flow did not finish: ${error.message}`); }
+  }
   await capture('final', await observe());
   report.coveredRequestedRange = report.lastWarpX === configuration.end;
   report.bossPhases = [...seenPhases];
   report.coverage = { requestedRange: report.coveredRequestedRange, bossObserved: sawBoss,
-    bossPhasesObservable: sawExplicitPhase, allBossPhases: [1, 2, 3].every(phase => seenPhases.has(phase)) };
+    bossPhasesObservable: sawExplicitPhase, allBossPhases: [1, 2, 3].every(phase => seenPhases.has(phase)), bossDefeated, stageClear };
   if (!sawBoss) report.notes.push('No live boss was observed. Boss coverage remains unverified.');
   if (!sawExplicitPhase) report.notes.push('No bossPhase or boss.phase debug value: automatic phase capture is blocked (Engine/Enemies request).');
   else if (![1, 2, 3].every(phase => seenPhases.has(phase))) report.notes.push('Not all three boss phases were reached; increase --boss-ms or use a weapon in a follow-up run.');

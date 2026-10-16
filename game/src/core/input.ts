@@ -13,6 +13,31 @@ const A_LEFT = IDX.left, A_RIGHT = IDX.right, A_UP = IDX.up, A_DOWN = IDX.down;
 /** Every live InputService (so __KBE.press reaches menus and gameplay alike). */
 export const liveInputs = new Set<InputService>();
 
+/**
+ * Key objects are shared per scene keyboard plugin and key code (addKey returns the existing one). Count how many
+ * InputServices use each code we created, so a rebind or a destroyed menu input removes keys nobody polls any more,
+ * without pulling a key from under another InputService of the same scene. Codes we did not create are never removed.
+ */
+const keyRefs = new WeakMap<Phaser.Input.Keyboard.KeyboardPlugin, Map<number, number>>();
+
+function acquireKey(kb: Phaser.Input.Keyboard.KeyboardPlugin, code: number): Phaser.Input.Keyboard.Key {
+    let refs = keyRefs.get(kb);
+    if (!refs) keyRefs.set(kb, refs = new Map());
+    const n = refs.get(code);
+    if (n !== undefined) refs.set(code, n + 1);
+    else if (!kb.keys[code]) refs.set(code, 1);
+    return kb.addKey(code, true, false);
+}
+
+function releaseKey(kb: Phaser.Input.Keyboard.KeyboardPlugin, code: number): void {
+    const refs = keyRefs.get(kb);
+    const n = refs?.get(code);
+    if (!refs || n === undefined) return;
+    if (n > 1) { refs.set(code, n - 1); return; }
+    refs.delete(code);
+    kb.removeKey(code, true, true);
+}
+
 export class InputService implements InputState {
     private readonly cur = new Uint8Array(N);
     private readonly prev = new Uint8Array(N);
@@ -20,6 +45,8 @@ export class InputService implements InputState {
     /** Remaining ms of programmatic presses. */
     private readonly virtual = new Float32Array(N);
     private keys: Phaser.Input.Keyboard.Key[][] = [];
+    /** Key codes this service acquired (released on rebind/destroy). */
+    private codes: number[] = [];
     private padButtons: number[][] = [];
     private readonly aimOut = { x: 0 as -1 | 0 | 1, y: 0 as -1 | 0 | 1 };
     private readonly offSettings: () => void;
@@ -45,10 +72,17 @@ export class InputService implements InputState {
         const s = settings.get();
         const kb = this.scene.input.keyboard;
         const codes = Phaser.Input.Keyboard.KeyCodes as unknown as Record<string, number>;
+        const old = this.codes;
+        this.codes = [];
+        // Acquire the new set before releasing the old one, so a code bound both before and after keeps its Key.
         this.keys = ACTIONS.map(a => {
             if (!kb || this.index !== 0) return [];
-            return (s.keys[a] ?? []).filter(n => codes[n] !== undefined).map(n => kb.addKey(codes[n], true, false));
+            return (s.keys[a] ?? []).filter(n => codes[n] !== undefined).map(n => {
+                this.codes.push(codes[n]);
+                return acquireKey(kb, codes[n]);
+            });
         });
+        if (kb) for (const c of old) releaseKey(kb, c);
         this.padButtons = ACTIONS.map(a => s.pad[a] ?? []);
     }
 
@@ -116,8 +150,13 @@ export class InputService implements InputState {
     }
 
     destroy(): void {
-        liveInputs.delete(this);
+        if (!liveInputs.delete(this)) return;
         this.offSettings();
+        this.scene.events.off(Phaser.Scenes.Events.SHUTDOWN, this.destroy, this);
+        const kb = this.scene.input.keyboard;
+        if (kb) for (const c of this.codes) releaseKey(kb, c);
+        this.codes = [];
+        this.keys = [];
         this.scene.events.off(Phaser.Scenes.Events.PRE_UPDATE, this.onPreUpdate, this);
         this.scene.events.off(Phaser.Scenes.Events.RESUME, this.rebaseline, this);
         this.scene.events.off(Phaser.Scenes.Events.WAKE, this.rebaseline, this);

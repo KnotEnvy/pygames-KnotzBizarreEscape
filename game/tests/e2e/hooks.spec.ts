@@ -6,11 +6,11 @@ test('debug hook exposes the documented contract and snapshot', async ({ page })
   const shape = await page.evaluate(() => {
     const hook = window.__KBE!;
     return { game: !!hook.game, version: typeof hook.version, state: typeof hook.state,
-      press: typeof hook.press, cheats: Object.fromEntries(['god', 'warp', 'give', 'kill', 'bombs', 'boss']
+      press: typeof hook.press, cheats: Object.fromEntries(['god', 'warp', 'give', 'kill', 'killEnemies', 'hurt', 'bombs', 'boss']
         .map(key => [key, typeof hook.cheats?.[key]])) };
   });
   expect(shape).toEqual({ game: true, version: 'string', state: 'function', press: 'function',
-    cheats: { god: 'function', warp: 'function', give: 'function', kill: 'function', bombs: 'function', boss: 'function' } });
+    cheats: { god: 'function', warp: 'function', give: 'function', kill: 'function', killEnemies: 'function', hurt: 'function', bombs: 'function', boss: 'function' } });
   const state = await snapshot(page);
   for (const field of ['scene', 'fps', 'player', 'score', 'rescued', 'enemies', 'cameraX', 'bossHp', 'errors']) {
     expect(state, `missing state().${field}`).toHaveProperty(field);

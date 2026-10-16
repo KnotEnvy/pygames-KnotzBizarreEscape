@@ -1,11 +1,15 @@
 import Phaser from 'phaser';
-import { DEPTH, type GameContext, type Hurtbox, type PlayerQuery } from '../../core';
+import { DEPTH, hasAnim, type GameContext, type Hurtbox, type PlayerQuery } from '../../core';
 import { PLAYER as T } from '../../config/tuning/player';
 import { Weapons } from '../weapons';
 
 type ActionState = 'ready' | 'knife' | 'throw' | 'dead' | 'respawn' | 'victory';
 interface Socket { offsetFromFeet: [number, number]; direction: [number, number] }
 interface Metadata { muzzles: Record<string, { frames: Socket[] }> }
+const RUN_BOB = [1, 0, -1, 0, 1, 0, -1, 0] as const;
+const RUN_SWAY = [0, 1, 1, 0, 0, -1, -1, 0] as const;
+const HEADROOM = [-5, 0, 5] as const;
+const MUZZLE_FALLBACK = [15, -21] as const;
 
 export class Knotz {
     readonly sprite: Phaser.Physics.Arcade.Sprite;
@@ -32,11 +36,15 @@ export class Knotz {
     private aimAngle = 0;
     private aimTag = 'aim_fwd';
     private metadata: Metadata;
+    private muzzlePoint = { x: 0, y: 0 };
+    private lastLegs = '';
+    private lastPose = '';
+    private lastVariant = '';
     private knifeRect = new Phaser.Geom.Rectangle();
     constructor(private ctx: GameContext, x: number, y: number, private index = 0) {
         this.sprite = ctx.scene.physics.add.sprite(x, y, 'knotz_legs').setOrigin(0.5, 1).setDepth(DEPTH.PLAYER).setName('knotz');
         this.body = this.sprite.body as Phaser.Physics.Arcade.Body;
-        this.body.setSize(T.standing.width, T.standing.height).setOffset(17, 16).setMaxVelocityY(520);
+        this.body.setSize(T.standing.width, T.standing.height).setOffset((48 - T.standing.width) / 2, 48 - T.standing.height).setMaxVelocityY(520);
         this.torso = ctx.scene.add.sprite(x, y, 'knotz_torso_pistol').setOrigin(0.5, 1).setDepth(DEPTH.PLAYER + 1);
         this.full = ctx.scene.add.sprite(x, y, 'knotz_full').setOrigin(0.5, 1).setDepth(DEPTH.PLAYER + 1);
         this.metadata = ctx.scene.cache.json.get('knotz_meta') as Metadata;
@@ -80,7 +88,7 @@ export class Knotz {
     private alive(): boolean { return this.state !== 'dead'; }
     private change(state: ActionState): void { this.state = state; this.elapsed = 0; this.actionDone = false; }
     private play(sprite: Phaser.GameObjects.Sprite, key: string): void {
-        if (sprite.anims.currentAnim?.key !== key) sprite.play(key);
+        if (sprite.anims.currentAnim?.key !== key && hasAnim(this.ctx.scene, key)) sprite.play(key);
     }
     private die(): void {
         if (!this.alive() || this.state === 'victory') return;
@@ -104,8 +112,10 @@ export class Knotz {
         const tag = this.torso.anims.currentAnim?.key ?? `knotz_pistol_${this.aimTag}`;
         const frames = this.metadata?.muzzles[tag]?.frames;
         const frame = frames?.[Math.min(frames.length - 1, Math.max(0, (this.torso.anims.currentFrame?.index ?? 1) - 1))];
-        const offset = frame?.offsetFromFeet ?? [15, -21];
-        return { x: this.torso.x + this.facing * offset[0], y: this.torso.y + offset[1] };
+        const offset = frame?.offsetFromFeet ?? MUZZLE_FALLBACK;
+        this.muzzlePoint.x = this.torso.x + this.facing * offset[0];
+        this.muzzlePoint.y = this.torso.y + offset[1];
+        return this.muzzlePoint;
     }
     private update(dt: number): void {
         if (dt <= 0) return;
@@ -118,7 +128,7 @@ export class Knotz {
         const ctx = this.ctx, input = ctx.inputFor(this.index), aim = input.aim();
         const ground = this.body.blocked.down || this.body.touching.down;
         if (ground && !this.wasGround) {
-            this.land = 90; ctx.events.emit('player:land', { x: this.sprite.x, y: this.sprite.y, vy: this.lastVy, index: this.index }); ctx.audio.sfx('land');
+            this.land = 130; ctx.events.emit('player:land', { x: this.sprite.x, y: this.sprite.y, vy: this.lastVy, index: this.index }); ctx.audio.sfx('land');
         }
         this.wasGround = ground; this.lastVy = this.body.velocity.y;
         this.coyote = ground ? T.coyoteMs : this.coyote - dt;
@@ -126,7 +136,7 @@ export class Knotz {
         if (aim.x) this.facing = aim.x;
         let crouch = ground && aim.y > 0;
         if (this.crouch && !crouch) {
-            for (const dx of [-6, 0, 6]) if (ctx.physics.solidAt(this.sprite.x + dx, this.sprite.y - 30)) crouch = true;
+            for (const dx of HEADROOM) if (ctx.physics.solidAt(this.sprite.x + dx, this.sprite.y - 30)) crouch = true;
         }
         if (crouch !== this.crouch) {
             this.crouch = crouch;
@@ -165,7 +175,10 @@ export class Knotz {
             if (!this.actionDone && this.elapsed >= (knife ? T.knifeWindupMs : T.throwReleaseMs)) {
                 this.actionDone = true;
                 if (knife) {
-                    for (const h of [...this.knifeTargets()]) if (h.team === 'enemy') ctx.damage.deal(h, { damage: T.knifeDamage, source: 'player', x: this.sprite.x + this.facing * 12, y: this.sprite.y - 18, dirX: this.facing, dirY: 0, kind: 'melee', weapon: 'knife' });
+                    let connected = false;
+                    // Damage callbacks can query again; snapshot only on the actual strike.
+                    for (const h of [...this.knifeTargets()]) if (h.team === 'enemy') connected = ctx.damage.deal(h, { damage: T.knifeDamage, source: 'player', x: this.sprite.x + this.facing * 12, y: this.sprite.y - 18, dirX: this.facing, dirY: 0, kind: 'melee', weapon: 'knife' }) || connected;
+                    if (connected) ctx.fx.hitstop(T.knifeHitstopMs);
                 } else this.weapons.grenade(this.sprite.x + this.facing * 10, this.sprite.y - 33, this.facing);
             }
             if (this.elapsed >= (knife ? T.knifeMs : T.throwMs)) this.change('ready');
@@ -188,7 +201,11 @@ export class Knotz {
         this.render();
     }
     private sync(): void {
-        this.torso.setPosition(this.sprite.x, this.sprite.y).setFlipX(this.facing < 0);
+        const tag = this.sprite.anims.currentAnim?.key;
+        const frame = Math.max(0, (this.sprite.anims.currentFrame?.index ?? 1) - 1);
+        const bob = tag === 'knotz_legs_run' ? RUN_BOB[frame % 8] : tag === 'knotz_legs_land' && frame === 0 ? 3 : tag === 'knotz_legs_jump_rise' ? -1 : 0;
+        const sway = tag === 'knotz_legs_run' ? RUN_SWAY[frame % 8] : 0;
+        this.torso.setPosition(this.sprite.x + sway * this.facing, this.sprite.y + bob).setFlipX(this.facing < 0);
         this.full.setPosition(this.sprite.x, this.sprite.y).setFlipX(this.facing < 0);
         this.sprite.setFlipX(this.facing < 0);
     }
@@ -196,20 +213,20 @@ export class Knotz {
         this.sync();
         const full = this.state === 'dead' || this.state === 'respawn' || this.state === 'victory';
         this.sprite.setVisible(!full); this.torso.setVisible(!full); this.full.setVisible(full);
-        const alpha = this.invulnerable > 0 && Math.floor(this.invulnerable / 80) % 2 === 0 ? 0.4 : 1;
+        const alpha = this.invulnerable > 0 && Math.floor(this.invulnerable / 80) % 2 === 0 ? 0.25 : 1;
         this.sprite.setAlpha(alpha); this.torso.setAlpha(alpha); this.full.setAlpha(this.state === 'dead' ? 1 : alpha);
         if (full) { this.play(this.full, this.state === 'dead' ? 'knotz_death' : this.state === 'victory' ? 'knotz_victory' : 'knotz_respawn_drop'); return; }
         const ground = this.body.blocked.down || this.body.touching.down;
         const moving = Math.abs(this.body.velocity.x) > 5;
         const legs = !ground ? (this.body.velocity.y < 0 ? 'jump_rise' : 'jump_fall') : this.crouch ? (this.crouchEnter > 0 ? 'crouch_enter' : moving ? 'crouch_walk' : 'crouch_idle') : this.skid > 0 ? 'skid' : this.land > 0 ? 'land' : moving ? 'run' : 'idle';
-        this.play(this.sprite, `knotz_legs_${legs}`);
+        if (legs !== this.lastLegs) { this.lastLegs = legs; this.play(this.sprite, `knotz_legs_${legs}`); }
         const variant = this.ctx.state.weapon === 'pistol' ? 'pistol' : 'heavy';
-        const texture = `knotz_torso_${variant}`;
-        if (this.torso.texture.key !== texture) { this.torso.stop(); this.torso.setTexture(texture); }
+        if (variant !== this.lastVariant) { this.torso.stop(); this.torso.setTexture(`knotz_torso_${variant}`); this.lastVariant = variant; this.lastPose = ''; }
         let renderedAim = this.aimTag;
-        if (ground && this.land > 45 && !this.crouch && renderedAim === 'aim_fwd') renderedAim = 'crouch_fwd';
+        
         if (this.crouchEnter > 55) renderedAim = 'aim_fwd';
-        const pose = this.state === 'knife' ? 'knife' : this.state === 'throw' ? 'grenade_throw' : `${renderedAim}${shooting || this.recoil > 0 ? '_shoot' : ''}`;
-        this.play(this.torso, `knotz_${variant}_${pose}`);
+        const pose = this.state === 'knife' ? 'knife' : this.state === 'throw' ? 'grenade_throw' : shooting || this.recoil > 0 ? renderedAim + '_shoot' : renderedAim;
+        if (pose !== this.lastPose) { this.lastPose = pose; this.play(this.torso, `knotz_${variant}_${pose}`); }
+        this.sync();
     }
 }

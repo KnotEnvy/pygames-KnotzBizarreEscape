@@ -11,14 +11,14 @@ grep `phaser.d.ts` before using it.** Most tutorials and model memory are Phaser
 | `obj.preFX`, `obj.postFX`, `camera.postFX`, `addBloom()` via FX | **Filters**: `obj.enableFilters()` (game objects) then `obj.filters.internal.addGlow(...)` / `filters.external.add...`; cameras have `camera.filters.internal/external`. Bloom: `Phaser.Actions.AddEffectBloom(...)` |
 | `setPipeline()`, `resetPipeline()`, custom `WebGLPipeline` / `PostFXPipeline` classes | RenderNodes / Filters. For custom shaders, see the Phaser 4 `Shader` / `ShaderQuadConfig` and Filter docs |
 | `BitmapMask`, `GeometryMask` via `setMask()` | The `Mask` filter (`filters.internal.addMask(...)`). `BitmapMask` is gone; `GeometryMask`/`setMask`/`createGeometryMask` are still *declared* but work in the Canvas renderer only, so they silently do nothing for us |
-| `setTintFill(c)`, `tintFill = true` | `setTint(c).setTintMode(Phaser.TintModes.FILL)`; reset with `clearTint()` (it also resets the mode to MULTIPLY). **`setTintFill()` still exists as a deprecated no-op, so the compiler won't catch it and nothing flashes.** |
+| `setTintFill(c)`, `tintFill = true` | `setTint(c).setTintMode(Phaser.TintModes.FILL)`; reset with `clearTint()` (it also resets the mode to MULTIPLY). **`setTintFill()` still exists as a deprecated stub (`Tint.js`: it only `console.error`s and sets nothing), so the compiler won't catch it and nothing flashes.** |
 | `Phaser.Geom.Point` | `Phaser.Math.Vector2` |
 | `Phaser.Structs.Set` (removed), `Phaser.Structs.Map` (legacy class, still declared in 4.2.1) | native `Set` / `Map` |
 | `Phaser.Math.PI2` | `Phaser.Math.TAU` (now = 2π; π/2 is `Phaser.Math.PI_OVER_2`. Old v3 `TAU` meant π/2) |
 | `Mesh`, `Plane` (`add.mesh`, `add.plane`) | (removed). A new `Mesh2D` exists (`add.mesh2d(x, y, texture, vertices, indices)`); prefer Sprite/Rope. (`RenderTexture` still exists; see "Changed behavior" for `.render()`.) |
 | `this.textures.generate()`, `Create.GenerateTexture` | Draw with `Graphics` + `generateTexture()`, or ship a PNG |
 | Direct `gl.*` state changes | `Extern` game object if you truly need raw GL |
-| Assuming `roundPixels` defaults to true | `pixelArt: true` in the game config sets it, which we do. Per object: `vertexRoundMode` |
+| Assuming `roundPixels` defaults to true | `pixelArt: true` in the game config sets `config.roundPixels`, which every camera created by the CameraManager inherits (our `CameraController` also calls `setRoundPixels(true)`). Rounding is per object via `vertexRoundMode` (default `'safeAuto'`): vertices are only snapped when the object's final matrix is a **pure translation**, so `flipX/flipY` (implemented as a negative scale), any scale/rotation, and children of a scaled/flipped Container are *not* snapped (⚠ not verified visually; with NEAREST sampling at 1:1 the effect is small). `setVertexRoundMode('fullAuto')` snaps them too (right for unscaled sprites, wobbles scaled ones) |
 | Canvas renderer (`type: Phaser.CANVAS`) | WebGL only (`Phaser.WEBGL`). Canvas is deprecated |
 
 ## Changed behavior to watch
@@ -135,7 +135,7 @@ Perf rule of thumb (⚠ unverified numbers): filters create extra draw calls per
 sprite.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);   // hit flash (white silhouette)
 sprite.clearTint();                                            // resets colour AND mode to MULTIPLY
 // enum Phaser.TintModes: MULTIPLY, FILL, ADD, SCREEN, OVERLAY, HARD_LIGHT, MULTIPLY_TWO   (setTintMode(mode: number | TintModes))
-// setTintFill() exists only as a deprecated no-op: never use it.
+// setTintFill() exists only as a deprecated stub (logs console.error, changes nothing): never use it.
 ```
 
 ### Lighting
@@ -280,6 +280,40 @@ this.scale.setSnap(w?, h?); this.scale.refresh(); this.scale.toggleFullscreen();
 this.scale.on('resize', (gameSize, baseSize, displaySize, prevW, prevH) => {…});   // args read from Scale RESIZE_EVENT.js
 ```
 With `FIT` the canvas keeps 384×216 internal pixels and the browser stretches it (non-integer scale blurs/shimmers even with `pixelArt`; prefer `zoom: Phaser.Scale.MAX_ZOOM` or a CSS `image-rendering: pixelated` canvas if shimmering shows up: ⚠ unverified in-browser).
+
+
+### Added in the Phase C rules review (read from `node_modules/phaser/src`, not run in a browser)
+
+**Aseprite tags with `file#N` frame names → zero-frame animations.** `AnimationManager.createFromAseprite` looks every frame up by the
+*numeric* key (`frames['0']`, `frames['1']`…). Our exports name them `<key>#N`, so each tag becomes an animation with **0 frames**
+(`anims.exists(tag)` is `true`, `anims.get(tag).frames` is `[]`). Consequences, all verified in `AnimationState`/`Animation`:
+- `sprite.play(tag)` **throws** (`Animation#getFirstTick` reads `state.currentFrame.duration` of `undefined`);
+- `anims.get(tag).frames[0].frame.name` (the "static icon" trick) is `undefined`, so such helpers silently fall back to a missing texture;
+- guard with `anims.get(k)?.frames.length`, never `anims.exists(k)` (linter rule `anims-exists-zero-frame`).
+Fix once, not per team: build the animations from the cached JSON (`frames = Object.keys(atlas.frames).slice(tag.from, tag.to + 1)`,
+`frameRate: 1000`, per-frame `duration = atlas duration - 1`, `repeat`/`yoyo` from the tag direction) and remove the zero-frame ones first.
+
+**Scene shutdown vs restart (`Systems.shutdown`)**: it only clears the `TRANSITION_*` listeners, then emits `SHUTDOWN`. Anything you hang on
+`scene.events` (`UPDATE`, `POST_UPDATE`, `PRE_RENDER`, custom events) **survives `scene.restart()`** and stacks up unless you `off` it in a `SHUTDOWN` handler
+(linter: `scene-events-no-off`). Scene-owned systems are rebuilt/cleared per run (time `Clock` events, tweens, display list, cameras, arcade
+world/colliders); **global** managers are not: `anims` (also `anims.globalTimeScale`), `sound`, `registry`, `cache`, `textures`, `game.events`,
+renderer node constructors. Our `EventBus` is per run (`createGameContext`), so `ctx.events.on` needs no manual `off`.
+
+**Arcade world step** (`World#update`): fixed step (`fps` 60) with catch-up steps, `msPerFrame = (1000/fps) * timeScale`. With `timeScale = 1/s` a slow-mo
+of `s = 0.35` therefore steps the simulation at ~21 Hz (visible stutter for body-driven actors while manual-`dt` code stays smooth); `isPaused` skips the whole update.
+`fixedStep: false` would use the raw delta and **disables** `fps`/`timeScale` (see the config comment), so it cannot be combined with `timeScale` slow-mo.
+
+**Clock**: `Clock#update` does `delta *= timeScale`, so `timeScale = 0` is safe (events just stop). **TweenManager** resets `timeScale = 1` on scene start.
+
+**Camera filters**: the renderer only runs `filters.internal/external.getActive()` (inactive controllers cost nothing), but
+`Camera#getViewMatrix` switches on `list.length`, not on active filters. `FilterList#remove(ctrl)` also *destroys* the controller; `Camera#destroy` destroys both
+lists, so a later `remove()` of a retained controller is a harmless no-op. `Phaser.Actions.AddEffectBloom(camera, cfg)` returns an array
+(`[{ item, parallelFilters, threshold, blur }]`); toggle `parallelFilters.active` instead of adding/removing per frame.
+
+**Container**: `Container#remove(child)` re-adds the child to the scene display list (`exclusive` containers), so detached parts (debris) stay visible.
+**Tilemaps**: `layer.getTileAtWorldXY(x, y, nonNull?, camera?)` is allocation-free (module-level scratch vector) but converts using
+`camera.scrollX * (1 - layer.scrollFactorX)`: keep gameplay collision layers at `scrollFactor` 1. Tile animations advance via `TilemapLayer#timeElapsed` in real time (not scaled by our hitstop).
+**`Sprite#play` with an object** (`play({ key, repeat }, true)`) allocates the config; use the string form on per-frame paths.
 
 ### Things I could **not** verify (treat as "check before relying")
 - Visual/perf behavior of any filter, lighting, or particle config (nothing was rendered).

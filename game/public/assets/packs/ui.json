@@ -100,6 +100,11 @@
         "atlasURL": "assets/ui/ui_rank.json"
       },
       {
+        "type": "image",
+        "key": "ui_keyart_title",
+        "url": "assets/ui/keyart/title_bg.png"
+      },
+      {
         "type": "audio",
         "key": "boss_cannon",
         "url": [

@@ -207,7 +207,7 @@ ctx.projectiles.spawn({
   For a full grenade, see `src/core/dev/sandboxPlayer.ts`.
 - **Rocket:** in `onUpdate`, accelerate `p.vx`. On impact, call `ctx.damage.applyRadial(...)` and `ctx.fx.explosion(...)`. Use `silent: true` if you don't want the generic impact spark.
 - **Enemy shots:** `team: 'enemy'`, `rotate: false` for round bullets. The engine fallback texture `kbe_ebullet` is bright red and yellow.
-- **Other calls:** `ctx.projectiles.clear('enemy')` clears enemy shots (respawn, boss death). `forEach(fn)` iterates live shots (e.g. reflectors). `count` gives the live total.
+- **Other calls:** `ctx.projectiles.clear('enemy')` clears enemy shots (respawn, boss death). It is safe from inside any projectile callback (a boss dying from `onHit`/`damage.deal`): shots are deactivated and hidden at once and recycled by the system. `p.kill()` is likewise safe anywhere. `forEach(fn)` iterates live shots (e.g. reflectors). `count` / `countTeam(team)` give live (active) totals.
 - **Budget:** 512 live projectiles, pool prewarmed to 64, cleaned up automatically 48 px outside the camera.
 
 ---
@@ -273,7 +273,11 @@ take the **max**, clamped to 250 ms. `ctx.fx.slowmo(0.3, 1000)` scales everythin
 - `ctx.onUpdate((dt) => ...)` already receives scaled ms.
 - In a sprite's `preUpdate(t, delta)`, use `ctx.time.dt(delta)`.
 - `ctx.time.now` is the scaled gameplay clock.
-- `scene.time.delayedCall`, tweens and anims are scaled automatically.
+- `scene.time.delayedCall`, tweens and the Game scene's sprite animations are scaled automatically. Animations are
+  scaled per sprite (`sprite.anims.timeScale`, set by the engine), **not** via the game-wide `anims.globalTimeScale`,
+  so HUD/Pause/menu animations keep running during hitstop and pause. Don't set `anims.timeScale` on gameplay sprites
+  yourself (the engine overwrites it on every time-scale change).
+- Slow-mo keeps Arcade bodies stepping every frame (smaller fixed step), so bodies don't stutter at low scales.
 - Need **real** time (UI blink during pause)? Use the `rawDt` argument.
 
 Arcade bodies are scaled by the engine, so you don't need to do anything for velocity/gravity.
@@ -317,7 +321,9 @@ Other flow behavior:
   - `state()` returns `{scene, scenes, fps, player:{x,y,alive,weapon,ammo,bombs,lives}, score, rescued, enemies, cameraX, bossHp, boss, bossPhase, god, projectiles, enemyProjectiles, shotsFired, level:{stage,name,sandbox}, errors}` plus every `registerDebug` field (team fields win over engine defaults with the same key)
   - `cheats.god(on)`, `warp(x)`, `give(weapon, ammo?)`, `kill()` (**kills the player**), `killEnemies()`, `hurt(dmg?)`, `bombs(n)`, `boss()`
   - `press(action, ms)` reaches every live input, menus included.
-- **Add state fields:** `registerDebug('grunts', () => count)`.
+- **Add state fields:** gameplay code: `ctx.debug.register('grunts', () => count)` (run-scoped: dropped when the run
+  ends, so stale closures never outlive a restart). Page-lifetime code (UI scenes, audio): `registerDebug(key, fn)`.
+- `state().errors` holds the last 20 of at most 200 recorded errors (window errors, unhandled rejections, `console.error`).
 - **Override cheats when the engine default is too generic:**
   - Player: `ctx.debug.cheat('give', (w: string) => this.equip(w))`.
   - Levels: `ctx.debug.cheat('boss', () => warpToArena())`.
@@ -329,13 +335,77 @@ Other flow behavior:
 
 - **Depth:** `DEPTH.PLAYER`, `DEPTH.ENEMIES + 1`, ... (`src/core/depth.ts`).
 - **Engine textures:** `TEX.px` (1×1 white), `TEX.missing`, `TEX.bullet`, `TEX.enemyBullet`. Palette constants: `PAL`.
-- **Asset packs:** `public/assets/packs/<team>.json`. URLs are relative to `index.html` (`assets/sprites/...`). Every `aseprite` entry automatically gets `anims.createFromAseprite(key)` after loading, so **tag names are anim keys** and must be globally unique (prefix them: `grunt_run`). A missing pack is skipped with a `console.info`.
+- **Asset packs:** `public/assets/packs/<team>.json`. URLs are relative to `index.html` (`assets/sprites/...`). Every `aseprite` entry automatically gets its tags turned into valid global animations by Preload (`createAsepriteAnims`, see **Animations** below), so **tag names are anim keys** and must be globally unique (prefix them: `grunt_run`). A missing pack is skipped with a `console.info`.
+- **Animations (`src/core/anims.ts`, exported from core):** Phaser 4.2.1's `anims.createFromAseprite` makes **zero-frame**
+  animations for our `<key>#N` frame names (`exists()` is true, `play()` throws). Preload does not use it: every tag is
+  built from the Aseprite JSON with the exact per-frame ms, `reverse`/`pingpong` honored, `repeat: 0` (Phaser's default).
+  ```ts
+  import { hasAnim, playAnim, tagFrame, frameOf, createAsepriteAnims } from '../core';
+  if (hasAnim(scene, 'ui_cursor')) s.play({ key: 'ui_cursor', repeat: -1 }); // exists AND has frames; never use anims.exists()
+  playAnim(sprite, 'grunt_run');                 // plays if valid, else stop(); never throws; returns whether it plays
+  img.setTexture('ui_icons', tagFrame(scene, 'icon_hmg'));      // texture frame of a tag's first (or i-th) frame
+  img.setTexture('knotz_full', frameOf(scene, 'knotz_full', 3)); // 'knotz_full#3', or undefined if absent
+  createAsepriteAnims(scene, key, tag => /_loop$/.test(tag) ? -1 : 0); // idempotent; only for atlases loaded outside packs
+  ```
+  Loop policy: pass `repeat` to `play()` (`sprite.play({ key, repeat: -1 })`), or keep your own rebuild. An animation
+  that already has frames is never touched again, so a team that recreates its tags with its own `repeat` keeps them.
 - **Settings:** `settings.get()` / `settings.update({...})` / `settings.onChange(fn)` (persisted to localStorage). Fields: `musicVolume`, `sfxVolume`, `mute`, `crt`, `shake`, `difficulty`, `keys`, `pad`. `?mute=1` / `?difficulty=` override without saving.
 - **Audio:** `src/audio/index.ts` (UI/audio team) exports `createAudioService(scene)`. The engine's `FallbackAudio` is exported from core if you want to wrap it.
 - **Dev sandbox source:** `src/core/dev/`. It's a compact working reference for player movement, a grenade, a turret shooting enemy projectiles, and an arena lock.
 
 
 ---
+
+## Changelog (Phase C: rules review fixes, `docs/teams/rules-review.md`)
+
+No signature changed; all fixes are internal or additive.
+- **E1 (S1) `projectiles.clear()` re-entrancy:** fixed. `clear()`/`p.kill()` during `update()` only deactivate and
+  hide; `update()` (or the next hit-stop frame) recycles. Release is idempotent (`Projectile.pooled`). Before the fix a
+  boss killed by a projectile (MOOSEZILLA's lethal hit calls `clear('enemy')`) threw `TypeError ... reading 'active'`
+  every frame or put a projectile in the pool twice. `count`/`countTeam()` count active shots only; `countTeam()` with
+  no team counts both.
+- **E2 (S2) Aseprite animations:** new `src/core/anims.ts` (`createAsepriteAnims`, `hasAnim`, `playAnim`, `tagFrame`,
+  `frameOf`, all exported from core). Preload uses it for every aseprite pack entry instead of `createFromAseprite`, so
+  all 315 tags (player, enemies, boss, props, FX, UI icons/cursor/logo) are valid animations before any scene starts.
+  Per-frame ms are exact (in 4.2.1 a frame lasts `frame.duration` ms, it is **not** added to `msPerFrame`; the review's
+  `d - 1` would be 1 ms short). Idempotent: anims with frames are kept, zero-frame ones are replaced (or removed if
+  the atlas has no frames for the tag, so `exists()` can't lie).
+- **E3:** `ProjectileSpec.anim` is played only if `hasAnim()`.
+- **E4:** the `__KBE` error log is capped at 200 entries.
+- **E5:** slow-mo steps Arcade every frame (`world.setFPS(base / s)` with `timeScale = 1 / s`, restored at 1× and on
+  shutdown). Animation time scale is per Game-scene sprite instead of the global `anims.globalTimeScale`: the Pause
+  menu cursor and HUD animations no longer freeze during pause/hitstop.
+- **E6:** `InputService` reference-counts the keyboard keys it creates per scene and removes the ones nobody binds any
+  more on rebind/destroy (keys it didn't create are never removed). `destroy()` is idempotent.
+- **Flow (found while verifying):** the Enter/Esc that closes Continue or Pause (both are bound to `pause`) could
+  re-pause the Game on the following frames; QA's "game over offers continue" e2e test landed in Pause. `flow` now
+  ignores `pause` after `resume()`/`continueGame()` until it's released. That test now passes (it failed with or
+  without the other fixes).
+- **E7:** `ctx.debug.register` fields are run-scoped (dropped on Game shutdown); `registerDebug` stays page-lifetime.
+- **Regression test:** `node game/tools/engine-selftest.mjs [--shots dir]` (own server, ~20 s): every animation has
+  frames that resolve to a texture, and E1 driven through the real path (`?enemytest=boss`, HP 1, live enemy shots, a
+  player shot spawned last kills the boss inside `update()`): no error, no hole, no double-pooled projectile. Fails on
+  the Phase B code (zero-frame FX tags + the `TypeError`), passes now.
+
+## Requests for other teams (Phase C)
+- **Player** (`entities/player/animations.ts`), **Enemies** (`entities/enemies/animations.ts`), **Level**
+  (`level/animations.ts`): you can delete your atlas rebuild code and keep only your loop policy. Preload already
+  built every tag with `repeat: 0`, so either pass `repeat` at `play()` time (`play({ key, repeat: -1 })`) or set it once
+  at registration: `const a = scene.anims.get(tag); if (a) a.repeat = -1;`. Player/enemies currently
+  `remove`+`create` every run (P2/N3): still works, just wasteful; player's durations are exact, enemies' are 1 ms
+  short (`d - 1`), level's skip-if-valid pass is now a no-op.
+- **UI:** `hasAnim`/`playAnim`/`tagFrame` from core replace the `anims.exists` guards and `widgets.frameOf`. The HUD
+  boss bar looked empty at full HP in `?enemytest=boss` screenshots (`boss:spawn` hp 400): worth a check.
+- **Enemies:** N1 (steam vent) should now be able to play; nothing else needed for E1 (the engine fix covers the
+  re-entrant `clear('enemy')` from `setHp`).
+- **FX:** your `fx_*` tags are now valid global animations, if you ever want `play()` over the clip pool.
+- **QA:** add `node game/tools/engine-selftest.mjs` to the suite if you like; `state().errors` is now capped.
+  `flow.spec.ts` "Title → Game → Pause → resume" is still flaky (failed 5 of 6 times in a probe, and also on the
+  Phase B engine): the second Escape is pressed 3 ms after the first is released, before Pause's `MenuInput` arms
+  (arming needs one sampled frame with no menu key held), so the press is swallowed. No extra `game:pause` fires, so
+  this is not an engine re-pause. Wait for the menu to be ready (e.g. ~150 ms, or poll a `ui` debug field) before the
+  second press, or **UI** could arm on the opening key's `keyup` event (`ui/keys.ts` already tracks it) instead of a
+  per-frame sample.
 
 ## Changelog (Phase B)
 

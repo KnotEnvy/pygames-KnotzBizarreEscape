@@ -13,6 +13,11 @@ export function sceneExists(scene: Phaser.Scene, key: string): boolean {
 
 export class GameFlow implements FlowService {
     private isOver = false;
+    /**
+     * Set by resume()/continueGame(): the key that closed Pause/Continue (Esc/Enter are both `pause`) must not
+     * pause the game again on its way up. Cleared once `pause` is released.
+     */
+    private pauseLatch = false;
     private lastDeath = { x: 0, y: 0, index: 0 };
     private overlay: Phaser.GameObjects.Text | null = null;
     private countdownMs = 0;
@@ -90,6 +95,7 @@ export class GameFlow implements FlowService {
     continueGame(): void {
         if (!this.isOver) return;
         this.isOver = false;
+        this.pauseLatch = true;
         this.hideOverlay();
         if (this.scene.scene.isActive('Continue')) this.scene.scene.stop('Continue');
         this.store.resetForContinue();
@@ -119,6 +125,7 @@ export class GameFlow implements FlowService {
     }
 
     resume(): void {
+        this.pauseLatch = true;
         if (this.internalPause) {
             this.internalPause = false;
             this.ctx.time.setPaused(false);
@@ -165,6 +172,10 @@ export class GameFlow implements FlowService {
             if (input.justDown('confirm') || input.justDown('pause')) this.continueGame();
             else if (this.countdownMs <= 0) this.quit();
             return;
+        }
+        if (this.pauseLatch) {
+            if (input.isDown('pause')) return;
+            this.pauseLatch = false;
         }
         if (!this.isOver && input.justDown('pause')) this.pause();
     }
