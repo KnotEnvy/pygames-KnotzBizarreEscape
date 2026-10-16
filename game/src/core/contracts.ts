@@ -141,6 +141,8 @@ export interface LevelQuery {
     /** Level name/number, for stage:start. */
     stage?: number;
     name?: string;
+    /** Optional: number of POWs placed in the level (Results rank uses it; falls back to UI's estimate when absent). */
+    powTotal?: number;
 }
 
 // ---------------------------------------------------------------- services

@@ -287,8 +287,11 @@ turret_windup, boss roar/cannon/stomp/steam/flame/explode, crate_break, gate_sma
   Pause/Continue quit → Title; dim fades for overlays; HUD fade-to-black before the Results cut.
 
 ### Building blocks (`src/ui/`)
-`MenuInput` wraps `createInput(this)` (keyboard + pad) and **arms itself only once every menu action is released** (keyboard state is
-also read from a page-level keydown/keyup tracker in `keys.ts`), adds held-direction auto-repeat and `anyHeld` for handoffs. `Menu` =
+`MenuInput` wraps `createInput(this)` (keyboard + pad) and **ignores the press that opened the menu**: a page-level keydown/keyup
+tracker (`keys.ts`) timestamps every key's hold, and a menu only accepts keyboard presses that started after it was requested
+(`since`; the Pause scene uses the `game:pause` moment, `flowStamps.pauseRequestedAt`, so a second Escape counts even when the
+first paused frame was slow). Pad/virtual actions held at the first sample are ignored until released. Also held-direction
+auto-repeat and `anyHeld` for handoffs. `Menu` =
 rows with label/value, bouncing `ui_cursor`, blips. `Callout` = the drop/overshoot/flash/hold/fly-out slam used by the HUD, Intro,
 Continue and Results. `ControlsPanel` = bindings → `ui_prompts` glyphs (text key-caps for keys without art). `transitions.ts`,
 `widgets.ts` (bitmap text at native size, 9-slice panels, `frameOf(tag)`/`hasAnim`), `rank.ts`, `prefs.ts`.
@@ -297,8 +300,9 @@ Continue and Results. `ControlsPanel` = bindings → `ui_prompts` glyphs (text k
 - **Scene stepping order matters.** Phaser steps active scenes top-most first and renders bottom-up. A menu therefore acts on a key
   edge *before* the Game samples the same key, so handing control to the Game on the frame of the press makes the engine read it as
   a fresh `pause` (Enter is bound to confirm *and* pause). Continue and Title now hand off only once the confirm key is up
-  (`MenuInput.anyHeld`, 1–1.5 s cap). Menus also wait for all keys to be released before accepting input (the Escape that opened the
-  Pause menu can't close it on the same press).
+  (`MenuInput.anyHeld`, 1–1.5 s cap). Menus judge presses by their start time, not by what is held when the menu's first frame
+  runs: the Escape that opened the Pause menu can't close it, but a new Escape 80 ms later does, even if the first paused frame
+  took 200 ms (SwiftShader's first level render).
 - **One AudioEngine per game, not per run.** Music must survive scene changes (Title → Game crossfade, stage music under the Pause scene,
   jingles into Results). The per-run `ctx.audio` only adds the camera listener and stops the run's voices/loops on shutdown.
 - **Direct calls stay, events add information.** Removing other teams' `sfx()` calls isn't ours to do; instead `hint()` lets an event
@@ -320,9 +324,12 @@ Continue and Results. `ControlsPanel` = bindings → `ui_prompts` glyphs (text k
 - No Preload progress-bar art (Engine owns Preload).
 
 ## 8. QA (Phase B)
-See the final report for the run; the three UI-gated tests (Title → Game → Pause → resume, kill/respawn, game-over → continue) are
-drivable: `Title` reacts to a single Enter, `Pause` toggles with Escape and leaves Game's Phaser pause state intact, `Continue` answers
-Enter with a fresh run (lives reset, score 0).
+Full suite (2026-10-16, SwiftShader): **18 passed, 1 failed** of 19. The failure is `gameplay › holding right moves the player
+right`, and only because QA's "no console errors" guard caught a burst of `net::ERR_NETWORK_CHANGED` resource errors while
+other agents' Vite servers started/stopped on the same machine; the movement assertion itself passed and the test passes alone.
+The three previously UI-gated tests (Title → Game → Pause → resume, kill/respawn, game-over → continue) pass, and pass 3/3 with
+`--repeat-each 3`: `Title` reacts to a single Enter, `Pause` toggles with Escape and leaves Game's Phaser pause state intact,
+`Continue` answers Enter with a fresh run (lives reset, score 0). `npm run typecheck` and `npm run check:phaser4` are clean.
 
 ## 9. Requests for other teams
 - **Engine**: `flow.update` pauses on `input.justDown('pause')` the very frame after a UI scene hands control back; a one-frame

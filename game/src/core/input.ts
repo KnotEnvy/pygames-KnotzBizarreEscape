@@ -44,6 +44,11 @@ export class InputService implements InputState {
     private readonly held = new Float32Array(N);
     /** Remaining ms of programmatic presses. */
     private readonly virtual = new Float32Array(N);
+    /** Actions held through latchHeld(): read as up until the hardware releases them. */
+    private readonly latched = new Uint8Array(N);
+    /** Keys seen down by a fresh (non-repeat) keydown, and keys whose down came from an auto-repeat (held over). */
+    private readonly keysDown = new Set<Phaser.Input.Keyboard.Key>();
+    private readonly staleKeys = new Set<Phaser.Input.Keyboard.Key>();
     private keys: Phaser.Input.Keyboard.Key[][] = [];
     /** Key codes this service acquired (released on rebind/destroy). */
     private codes: number[] = [];
@@ -63,6 +68,8 @@ export class InputService implements InputState {
         if (autoSample) scene.events.on(Phaser.Scenes.Events.PRE_UPDATE, this.onPreUpdate, this);
         // After a pause, re-baseline so the key that resumed the game doesn't count as a fresh press.
         scene.events.on(Phaser.Scenes.Events.RESUME, this.rebaseline, this);
+        // A key/button still held from the scene that started this one is ignored until released.
+        scene.events.once(Phaser.Scenes.Events.CREATE, this.latchHeld, this);
         scene.events.on(Phaser.Scenes.Events.WAKE, this.rebaseline, this);
         scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroy, this);
     }
@@ -102,7 +109,7 @@ export class InputService implements InputState {
         for (let i = 0; i < N; i++) {
             let down = false;
             const ks = this.keys[i];
-            for (let k = 0; k < ks.length && !down; k++) down = ks[k].isDown;
+            for (let k = 0; k < ks.length; k++) if (this.keyDown(ks[k])) down = true;
             if (!down && pad) {
                 const bs = this.padButtons[i];
                 for (let b = 0; b < bs.length && !down; b++) down = pad.buttons[bs[b]]?.pressed === true;
@@ -113,6 +120,10 @@ export class InputService implements InputState {
                     else if (i === A_DOWN) down = sy > dz;
                 }
             }
+            if (this.latched[i]) {
+                if (down) down = false;
+                else this.latched[i] = 0;
+            }
             if (this.virtual[i] > 0) {
                 down = true;
                 this.virtual[i] -= delta;
@@ -120,6 +131,27 @@ export class InputService implements InputState {
             this.cur[i] = down ? 1 : 0;
             this.held[i] = down ? this.held[i] + delta : 0;
         }
+    }
+
+    /**
+     * Key state minus held-over keys: a Key that went down on an auto-repeat keydown was already held before this
+     * scene's keyboard saw it (new scene, scene was paused, window refocus), so it stays up until released.
+     */
+    private keyDown(k: Phaser.Input.Keyboard.Key): boolean {
+        if (!k.isDown) {
+            this.keysDown.delete(k);
+            this.staleKeys.delete(k);
+            return false;
+        }
+        if (this.staleKeys.has(k)) return false;
+        if (!this.keysDown.has(k)) {
+            if ((k.originalEvent as KeyboardEvent | undefined)?.repeat) {
+                this.staleKeys.add(k);
+                return false;
+            }
+            this.keysDown.add(k);
+        }
+        return true;
     }
 
     private pad(): Phaser.Input.Gamepad.Gamepad | undefined {
@@ -131,6 +163,18 @@ export class InputService implements InputState {
     private rebaseline(): void {
         this.sample(0);
         this.prev.set(this.cur);
+    }
+
+    /**
+     * Every action currently held (keyboard or pad) reads as up until it is released, so the key that opened or
+     * continued the game can't pause/jump/shoot. Runs on scene CREATE and from flow.continueGame(). Programmatic
+     * presses are unaffected.
+     */
+    latchHeld(): void {
+        this.sample(0);
+        const v = this.virtual;
+        for (let i = 0; i < N; i++) if (this.cur[i] && !(v[i] > 0)) this.latched[i] = 1;
+        this.rebaseline();
     }
 
     isDown(a: Action): boolean { return this.cur[IDX[a]] === 1; }
@@ -160,7 +204,18 @@ export class InputService implements InputState {
         this.scene.events.off(Phaser.Scenes.Events.PRE_UPDATE, this.onPreUpdate, this);
         this.scene.events.off(Phaser.Scenes.Events.RESUME, this.rebaseline, this);
         this.scene.events.off(Phaser.Scenes.Events.WAKE, this.rebaseline, this);
+        this.scene.events.off(Phaser.Scenes.Events.CREATE, this.latchHeld, this);
+        this.keysDown.clear();
+        this.staleKeys.clear();
     }
+
+    /** True if this service reads `scene`'s input. */
+    belongsTo(scene: Phaser.Scene): boolean { return this.scene === scene; }
+}
+
+/** latchHeld() on every live InputService of a scene (flow.continueGame does this for the Game). */
+export function latchHeldInputs(scene: Phaser.Scene): void {
+    for (const s of liveInputs) if (s.belongsTo(scene)) s.latchHeld();
 }
 
 /** Convenience for any scene (menus, HUD, pause): an InputState sampled every frame. */

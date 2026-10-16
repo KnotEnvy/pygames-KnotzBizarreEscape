@@ -6,6 +6,9 @@
 //   E1     a player projectile kills MOOSEZILLA inside ProjectileSystem.update() while enemy bullets are live
 //          (boss death calls projectiles.clear('enemy') re-entrantly): no error, no hole in the live list, no
 //          projectile in the pool twice, two later spawns hand out distinct projectiles.
+//   input  (second page, plain ?scene=Game) a key held over from the menu that started the game (it reaches the
+//          Game only as auto-repeat keydowns) never pauses it; latchHeld()/flow.continueGame() ignore a held key
+//          until it is released; fresh presses still work.
 // Exit code 0 = pass. Usage: node game/tools/engine-selftest.mjs [--shots /tmp/dir]
 import { createServer } from 'vite';
 import { fileURLToPath } from 'node:url';
@@ -75,6 +78,73 @@ try {
     check('E1: projectile pool intact after re-entrant clear()', after.holes === 0 && after.dupInPool === 0 && after.liveAndPooled === 0 && after.distinctSpawns && after.enemyShots === 0, after);
     await page.waitForTimeout(1500);
     if (shots) await page.screenshot({ path: path.join(shots, 'selftest-boss-defeat.png') });
+
+    // ---- input: held-over keys (UI request: opening Enter must not pause the Game)
+    const p2 = await browser.newPage({ viewport: { width: 1152, height: 648 } });
+    p2.on('pageerror', e => pageErrors.push(e.message));
+    await p2.goto(`http://127.0.0.1:${port}/?scene=Game&fast=1&mute=1&god=1`);
+    await p2.waitForFunction(() => window.__KBE?.ready, null, { timeout: 30000 });
+    await p2.waitForTimeout(500);
+    await p2.evaluate(() => {
+        window.__kbeKey = (type, keyCode, repeat) => {
+            const e = new KeyboardEvent(type, { bubbles: true, cancelable: true, repeat });
+            Object.defineProperty(e, 'keyCode', { get: () => keyCode });
+            Object.defineProperty(e, 'which', { get: () => keyCode });
+            window.dispatchEvent(e);
+        };
+        window.__kbeGame = () => window.__KBE.game.scene.getScene('Game');
+        window.__kbePaused = () => { const g = window.__kbeGame(); return g.scene.isPaused() || g.internals.time.paused || g.scene.isActive('Pause'); };
+    });
+    // Enter held from the Title: the Game's keyboard only ever sees repeat keydowns (~30 Hz) for 1.5 s.
+    for (let t = 0; t < 1500; t += 33) {
+        await p2.evaluate(() => window.__kbeKey('keydown', 13, true));
+        await p2.waitForTimeout(33);
+    }
+    const heldOver = await p2.evaluate(() => ({ paused: window.__kbePaused(), pauseDown: window.__kbeGame().internals.inputs[0].isDown('pause') }));
+    await p2.evaluate(() => window.__kbeKey('keyup', 13, false));
+    await p2.waitForTimeout(100);
+    check('input: held-over Enter (repeat keydowns) neither pauses nor reads as down', !heldOver.paused && !heldOver.pauseDown, heldOver);
+
+    // latchHeld(): X (shoot) held when latched reads up until released, then a fresh press works.
+    await p2.evaluate(() => window.__kbeKey('keydown', 88, false));
+    await p2.waitForTimeout(100);
+    const latch = await p2.evaluate(() => ({ before: window.__kbeGame().internals.inputs[0].isDown('shoot') }));
+    await p2.evaluate(() => window.__kbeGame().internals.inputs[0].latchHeld());
+    await p2.waitForTimeout(100);
+    latch.latched = await p2.evaluate(() => window.__kbeGame().internals.inputs[0].isDown('shoot'));
+    await p2.evaluate(() => window.__kbeKey('keyup', 88, false));
+    await p2.waitForTimeout(100);
+    await p2.evaluate(() => window.__kbeKey('keydown', 88, false));
+    await p2.waitForTimeout(100);
+    latch.fresh = await p2.evaluate(() => window.__kbeGame().internals.inputs[0].isDown('shoot'));
+    await p2.evaluate(() => window.__kbeKey('keyup', 88, false));
+    check('input: latchHeld() ignores a held key until release; fresh press works', latch.before && !latch.latched && latch.fresh, latch);
+
+    // flow.continueGame(): the Enter that confirmed CONTINUE (down in the Game too) neither pauses nor confirms.
+    // (Game-over state is faked: Continue scene's confirm press reaches the Game's keyboard while isOver.)
+    await p2.evaluate(() => { window.__kbeGame().internals.flow.isOver = true; });
+    await p2.evaluate(() => window.__kbeKey('keydown', 13, false));
+    await p2.waitForTimeout(100);
+    const cont = await p2.evaluate(() => {
+        const g = window.__kbeGame();
+        g.internals.flow.continueGame();
+        return { over: g.internals.flow.over };
+    });
+    for (let t = 0; t < 600; t += 33) {
+        await p2.evaluate(() => window.__kbeKey('keydown', 13, true));
+        await p2.waitForTimeout(33);
+    }
+    Object.assign(cont, await p2.evaluate(() => ({ paused: window.__kbePaused(), confirmDown: window.__kbeGame().internals.inputs[0].isDown('confirm') })));
+    await p2.evaluate(() => window.__kbeKey('keyup', 13, false));
+    await p2.waitForTimeout(100);
+    await p2.evaluate(() => window.__kbeKey('keydown', 13, false));
+    await p2.waitForTimeout(150);
+    cont.freshPause = await p2.evaluate(() => window.__kbePaused());
+    await p2.evaluate(() => window.__kbeKey('keyup', 13, false));
+    check('input: Enter held through continueGame() ignored until release; fresh Enter pauses', !cont.over && !cont.paused && !cont.confirmDown && cont.freshPause, cont);
+    const errors2 = await p2.evaluate(() => window.__KBE.state().errors);
+    if (errors2.length) pageErrors.push(...errors2);
+    await p2.close();
     const errors = await page.evaluate(() => window.__KBE.state().errors);
     check('no page errors / __KBE errors', pageErrors.length === 0 && errors.length === 0, [...pageErrors, ...errors].slice(0, 5));
 } catch (e) {

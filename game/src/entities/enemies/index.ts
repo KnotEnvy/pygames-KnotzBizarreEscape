@@ -22,7 +22,7 @@ export function registerEnemies(ctx: RegisterContext): void {
     ctx.debug.register('boss', () => boss?.active ? boss.snapshot() : null);
     // Opt-in sandbox fixture. Delayed until level and player registration have completed.
     const test = new URLSearchParams(location.search).get('enemytest');
-    if (test && (test === 'boss' || kinds.includes(test as EnemyKind))) {
+    if (test && ctx.debug.cheatsEnabled && (test === 'boss' || kinds.includes(test as EnemyKind))) {
         let spawned = false;
         const off = ctx.onUpdate(() => {
             const p = ctx.player(); if (spawned || !ctx.hasLevel() || !p) return;

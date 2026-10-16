@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import type { FlowService, GameContext } from './contracts';
 import type { RunStateStore } from './state';
 import { DEPTH } from './depth';
+import { latchHeldInputs } from './input';
 import { ENGINE } from '../config/tuning/engine';
 
 export function sceneExists(scene: Phaser.Scene, key: string): boolean {
@@ -96,6 +97,8 @@ export class GameFlow implements FlowService {
         if (!this.isOver) return;
         this.isOver = false;
         this.pauseLatch = true;
+        // The Enter/Z that confirmed CONTINUE must not jump/shoot/pause the respawned player until released.
+        latchHeldInputs(this.scene);
         this.hideOverlay();
         if (this.scene.scene.isActive('Continue')) this.scene.scene.stop('Continue');
         this.store.resetForContinue();

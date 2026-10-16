@@ -370,6 +370,29 @@ Other flow behavior:
 
 ---
 
+## Changelog (Phase D, UI/Audio follow-up)
+
+- **Held keys from the opening menu are ignored until released** (`core/input.ts`, UI request). The cause: a Game
+  keyboard created while Enter is held never sees the original keydown. Its Key went down on the first OS auto-repeat
+  (about 0.5–1 s later), which read as a fresh `pause` press. Every `InputService` now applies three rules, and all
+  existing call sites work unchanged:
+  - A Key whose down came from an auto-repeat keydown (`event.repeat`) counts as held over and reads as up until it
+    is released. This covers a new scene, a paused scene and a window refocus.
+  - `latchHeld()` (new, public): every action held right now (keyboard or pad) reads as up until the hardware releases
+    it. Programmatic `press()` is exempt. It runs automatically on scene `CREATE`, which covers the Game and any UI
+    scene built with `createInput`, and from `flow.continueGame()` through the new export `latchHeldInputs(scene)`.
+    The Enter/Z that confirmed CONTINUE therefore can't pause, jump or shoot the respawned player.
+  - `RESUME`/`WAKE` keep their old rebaseline (no `justDown` on the resume frame), and `flow`'s `pauseLatch` is
+    unchanged.
+
+  **UI:** the release-wait workaround in Title/Continue is no longer needed and can be removed.
+- **`LevelQuery.powTotal?: number`** (additive, optional): the number of POWs placed in the level. The UI can read
+  `ctx.level.powTotal` for the Results rank and fall back to its estimate when the value is absent.
+- **Selftest:** `engine-selftest.mjs` has three `input:` checks on a second page. The first sends 1.5 s of
+  repeat-only Enter keydowns to a fresh Game and expects no pause. The second checks that `latchHeld()` ignores a held
+  X until release and that a fresh press still works. The third holds Enter through `continueGame()` and expects no
+  pause or confirm, then expects a fresh Enter to pause. With the repeat check disabled, the first two fail.
+
 ## Changelog (Phase D)
 
 - **KBE-QA-E02 fixed (camera shake strips).** The engine owns the shake now (see §8): a scroll-space offset mirrored
@@ -411,7 +434,9 @@ Other flow behavior:
   adding `npm run selftest` to `check` or CI. It boots its own Vite server and takes about 15 s.
 - **Enemies:** `?enemytest=` (and `window.__KBE_ENEMYTEST`, which can set the boss HP) is live in production builds.
   Gate it with `if (test && ctx.debug.cheatsEnabled && ...)` in `src/entities/enemies/index.ts`.
-- **Levels:** no shake overscan is needed (E02 is fixed in the engine).
+- **Levels:** no shake overscan is needed (E02 is fixed in the engine). New: please set
+  `query.powTotal = <number of POW objects>` on the `LevelQuery` you pass to `ctx.setLevel()` (in `level/map.ts`,
+  after `createTileLevelQuery`), so the Results rank can use the real count.
 
 ## Changelog (Phase C: rules review fixes, `docs/teams/rules-review.md`)
 

@@ -1,12 +1,43 @@
-# Phase D integration contract (in progress)
+# Effects and game feel — Phase D review fixes and polish
 
-FX now consumes `fx:emit` anticipation effects **`boss_cannon_charge`**, **`boss_flame_reach`**, **`boss_charge_lane`**. Emit once at windup start: cannon at each cannon socket (320 ms); flame at mouth with committed `angle` (400 ms, reach 84 px); charge at leading foot / ground y with fixed `angle` (500 ms, lane ~160 px). `scale` multiplies reach (.25–2). Pooled visuals stay below enemies/core/player/projectiles. Enemies owns timing, damage, poses and sounds. Missing events remain silent; FX does not poll boss internals.
+This section supersedes the Phase B tuning and integration notes below. Edits are confined to FX source/tuning, FX art/exports/pack and this report. No installs, commits, staging, branches or other git mutations.
 
-Boss death: keep existing positioned chain events. FX suppresses its extra stops and XL flashes while boss HP is zero, then adds **one final XL at `boss:defeated` x,y−48**, 120 ms stop, white 45 ms flash (settings-gated), followed by .35×/900 ms after the stop. Please avoid adding a duplicate final burst or slow-mo at `boss:defeated`; Enemies still owns the initial death flash/slow-mo and body parts. Omit duplicate initial steam audio if moving to `vent_steam` (Audio already handles it).
+## Changes
 
-Readability: all pooled burst/particle/glow art defaults below enemies (39), preserving player/projectile/core silhouettes from the first frame. Smoke max alpha .28; total alpha-weighted screen rectangle area ≤16%, clouds ≤8%, enforced after emissions before render. These are conservative coverage bounds, counting transparent texture pixels. Embers use small ochre slivers rather than red/white round cores. Snow now has `fx_impact_snow_burst` and pale flakes for `material=snow`.
+- **F1:** `FxPool.spawn/release` maintain per-combat-kind and per-texture live counts, including delayed slots, reclaim, expiry, clear and duplicate-release safety. `scatter()` no longer scans all 344 slots per call. XL admission uses the texture count; the final cinematic reclaims an older XL if necessary to retain the two-XL cap. Combat counters are exposed in `state().fx.combat`.
+- **F2:** fallback popups use `Text.setColor()` instead of multiplying the yellow text fill with `setTint()`.
+- **Engine helper adopted:** FX reads frame order/durations from Preload's shared animations, guarded with `hasAnim()`. FX continues advancing pooled Images with scaled dt, avoiding double animation clocks or re-registering Aseprite animations.
+- **Readability:** smoke, debris, embers, bursts and ordinary glows draw at depth 39, below enemies/core (40), player (50), projectiles (60). Cannon anticipation alone overlays its cannon at depth 41, still below player/projectiles. Loose embers are small ochre diagonal slivers with normal blending, no red/white round core. Delayed and newly emitted effects are presented in POST_UPDATE after alpha configuration, fixing the full-opacity birth frame.
+- **Opacity budget:** smoke alpha ≤.28, cloud coverage ≤8%, all pooled FX ≤16% of the viewport. Coverage is the sum of clipped, alpha-weighted painted bounding rectangles, conservative about holes within shapes. Tight bounds are cached from one atlas readback at startup; no texture readback, allocation or geometry creation during presentation. This preserves ignition strength without charging transparent atlas padding against the budget. `fx.coverage` / `fx.cloudCoverage` expose the actual bounded values. Camera bloom/flash are separate from this sprite budget.
+- **Feel:** ordinary/melee/machine kill stops 32/48/55 ms; M/L/XL stops 45/65/100 ms; phase 65 ms; death 75 ms. Max coalescing remains, with a 160 ms real-time gate for routine stop requests; death/finale retain priority. FX requests respect shake off/reduced flash and reduced-motion flash suppression.
+- **Boss death:** positioned chain stays Enemies-owned. At zero HP, FX cancels pending anticipation and suppresses its extra chain stops/flashes. `boss:defeated` supplies one final XL at x,y−48, the `explo_xl` audio call, 120 ms hitstop, settings-gated white 45 ms flash, then .35× for 900 ms **after** the stop. Initial death flash/slow-mo/body parts remain Enemies-owned. Do not add a duplicate finale/slow-mo on that event.
+- **Snow:** new `fx_impact_snow_burst` emits cool powder and pale flakes for `material=snow`; no brown rock chips. New `fx_heat_reach` provides rising broken heat ribbons. Pack/catalog now contain 37 textures, 224 frames and 66 tags; palette, binary alpha, frame bounds, durations and references validate.
 
-This section supersedes Phase B tuning below; final verification pending.
+## Boss event integration
+
+Enemies has now wired all three `fx:emit` effects (confirmed in `Moosezilla.ts` and its Phase D report):
+
+- `boss_cannon_charge`: cannon socket, one event per committed windup; converging sparks and charge glow for 320 ms. Second socket is staggered by the boss.
+- `boss_flame_reach`: mouth, committed `angle`, `scale=88/84`; rising heat ribbons along an 84×scale px reach for 400 ms.
+- `boss_charge_lane`: leading foot/ground y, committed `angle`; sequential low dust along ~160×scale px for 500 ms.
+
+`scale` is clamped .25–2. FX clears anticipation on phase change/death. Enemies owns its interruption-safe floor graphics, timing, poses, damage and sounds. There is no outstanding event-wiring request. The natural-event capture harness does not inject these anticipation events.
+
+## Verification and evidence
+
+- `npm --prefix game run typecheck`: pass. `npm --prefix game run check:phaser4 -- --strict`: **84 files, zero errors/warnings**. Logs: `/tmp/kbe-fx/phase-d-{typecheck,phaser4}.log`.
+- Requested `node game/tests/perf/probe.mjs`: **passed**, 60.068 average FPS, minimum 58; average frame 16.666 ms, p95 16.7, p99/max 16.8; zero >50/>100 ms spikes and zero sampling/browser errors. 1,265 frame samples. Report: `game/tests/artifacts/2026-10-16T19-30-52-945Z-perf-3534419/report.json`; log `/tmp/kbe-fx/phase-d-perf-final.log`. Earlier attempts hit localhost sandbox denial or browser `ERR_NETWORK_CHANGED` before gameplay and are not performance results.
+- Real bridge/bunker/MOOSEZILLA phase-3 scenes, HMG held, extra three-burst chains every 800 gameplay ms, five live enemy bullets placed through the densest effects: **all checks passed**, zero actor/projectile-depth violations; coverage never exceeded .16/.08 and smoke never exceeded .28. Boss HP was held at 99 during the HMG readability workload. These are explicit stress fixtures, not unassisted balance/playthrough claims.
+- Bridge/bunker/boss stress averages **58.81 / 58.81 / 59.86 FPS**, p95 **16.8 / 16.7 / 16.7 ms**, zero >50 ms spikes. FX CPU moving averages **.126 / .091 / .086 ms**, observed peak CPU **3.6 / 2.0 / 1.8 ms** (includes setup/JIT/event spikes). Peak active slots **129 / 115 / 145**, below fixed 344 capacity. Detailed report: `/tmp/kbe-fx/phase-d-verification.json`; harness `/tmp/kbe-fx/phase-d-verify.mjs`. Pool acquire/release/idempotence/reclaim/expiry/clear invariants, settings suppression and snow dispatch pass.
+- Natural boss anticipation, phase cancellation, single defeat/finale, final audio request and slow-mo recovery: **passed**, `/tmp/kbe-fx/phase-d-natural.json` and `.mjs`. Death composition was centered by a fixture position adjustment; boss timing and parts use the real implementation. Audio was muted; dispatch was verified, audible mixing was not.
+- QA's unchanged full suite: **17 passed, 2 failed** in 1.2 minutes. Failures: Title→Game→Pause→resume stayed paused; movement test passed its motion assertion but recorded `ERR_NETWORK_CHANGED`. Both passed on an isolated two-test recheck (11 s). Preserve this as a flaky initial run, not a clean 19/19 run. Logs `/tmp/kbe-fx/phase-d-qa.log` and `phase-d-qa-recheck.log`; JSON/traces under `/tmp/kbe-fx/phase-d-qa/` and `phase-d-qa-recheck/`. Temporary configs only override artifact paths; no QA source edits.
+- Art validation: `/tmp/kbe-fx/phase-d-art-validation.json`. Strict palette / binary alpha / catalog checks pass for all 37 sheets.
+
+Opened and inspected these PNGs under `/tmp/kbe-fx/`: `phase-d-{bridge,bunker,boss}-{hot,smoke}.png`, `phase-d-natural-cue-{1,2,3}.png`, `phase-d-natural-death-chain.png`, `phase-d-natural-final-boom.png`, and `phase-d-snow-only.png`. Player silhouettes, dangerous round outlined bullets, HMG tracers and phase-3 core stay distinct. Snow reads as cool powder. The last natural finale visibly overlaps the world while preserving Knotz and detached parts. Existing boss HP fill still appears empty/dark in captures (QA #10, UI-owned); no UI edits were made.
+
+All timings are Chromium/SwiftShader on this shared host, not a real-GPU acceptance claim. T3 preview could not launch because host browser libraries are missing; verification used the repository's configured Chromium harness. Scratch/evidence are in `/tmp/kbe-fx/`, except the requested unmodified perf probe's own artifact directory above.
+
+---
 
 # Effects and game feel — Phase B runtime
 

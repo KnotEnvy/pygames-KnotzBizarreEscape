@@ -198,6 +198,19 @@ export class ArenaController {
         this.hooks.fire(a.id, false);
     }
 
+    /**
+     * Warp cheat is about to move the player to x: a running wave arena that x leaves is abandoned now. Otherwise
+     * guardLock would relock from the player's pre-teleport position (the teleport lands a frame later) and the camera
+     * would scroll back left to the arena after the warp. Boss arenas keep waiting while the boss lives.
+     */
+    warped(x: number): void {
+        for (const a of this.arenas) {
+            if (a.boss || x >= a.x0 && x <= a.x1) continue;
+            if (a.state === 'active') { a.state = 'skipped'; this.hooks.fire(a.id, false); }
+            else if (a.state === 'releasing') this.finish(a, false);
+        }
+    }
+
     /** Someone else unlocked the camera (warp): relock while the player is inside, otherwise abandon a wave arena. */
     private guardLock(a: Arena): void {
         if (this.ctx.camera.isLocked()) return;

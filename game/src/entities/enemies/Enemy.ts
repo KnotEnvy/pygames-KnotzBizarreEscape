@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { DEPTH, hasAnim, type GameContext, type HitInfo, type Hurtbox } from '../../core';
 import { ENEMIES, type EnemyKind } from '../../config/tuning/enemies';
+import { getAudio, type LoopHandle } from '../../audio';
 
 export function animate(s: Phaser.GameObjects.Sprite, key: string, loop = false): void {
     if (s.anims.currentAnim?.key === key && s.anims.isPlaying) return;
@@ -43,6 +44,7 @@ export class Enemy extends Phaser.GameObjects.Sprite {
     private base: Phaser.GameObjects.Graphics | null = null;
     private deathCause = '';
     private alertedUntil = 0;
+    private buzz: LoopHandle | null = null;
     private readonly startX: number;
     private readonly startY: number;
     private readonly patrol: number;
@@ -89,7 +91,9 @@ export class Enemy extends Phaser.GameObjects.Sprite {
                 this.facing = e.x < this.x ? 1 : -1; this.enter('panic', 900);
             }
         }));
-        this.once('destroy', () => { for (const off of this.offs) off(); this.chute?.destroy(); this.acting?.destroy(); this.base?.destroy(); });
+        const stopBuzz = () => this.stopBuzz();
+        ctx.scene.events.once('shutdown', stopBuzz);
+        this.once('destroy', () => { this.stopBuzz(); ctx.scene.events.off('shutdown', stopBuzz); for (const off of this.offs) off(); this.chute?.destroy(); this.acting?.destroy(); this.base?.destroy(); });
         this.pose(kind === 'drone' ? 'fly' : kind === 'paratrooper' ? 'descent' : 'idle', true);
     }
     private bounds(): Phaser.Geom.Rectangle {
@@ -108,6 +112,7 @@ export class Enemy extends Phaser.GameObjects.Sprite {
     private hear(x: number, y: number, radius: number): void {
         if (Math.hypot(x - this.x, y - this.y) < radius) this.wake();
     }
+    private stopBuzz(): void { this.buzz?.stop(0); this.buzz = null; }
     hit(h: HitInfo): boolean {
         if (this.hp <= 0) return false;
         this.wake();
@@ -120,6 +125,7 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         if (this.kind === 'shield') this.box.material = 'flesh';
         this.hp -= h.damage; this.flash = 60; this.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
         if (this.hp <= 0) {
+            this.stopBuzz();
             this.ctx.events.emit('enemy:killed', { x: this.x, y: this.y, kind: this.kind, score: ENEMIES[this.kind].score, cause: h.kind });
             this.ctx.audio.sfx('enemy_death_1'); this.chute?.setVisible(false);
             this.acting?.destroy(); this.acting = null; this.deathCause = h.kind; this.enter('dead', ENEMIES.corpseMs); this.vx = h.dirX * this.ctx.rng.range(70, 110); this.vy = h.kind === 'flame' ? -35 : -240;
@@ -152,6 +158,14 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         ctx.audio.sfx('grenade_throw');
     }
     private tick(dt: number): void {
+        if (this.kind === 'drone') {
+            if (this.active && this.hp > 0 && visible(this.ctx, this.x, this.y)) {
+                const audio = getAudio(this.ctx.scene);
+                // Wait for unlock. Retain stolen handles so the catalog's voice cap cannot cause restart churn.
+                if (!this.buzz && !audio.locked) this.buzz = audio.loop('drone_buzz', { x: this.x });
+                if (this.buzz?.active) this.buzz.setX(this.x);
+            } else this.stopBuzz();
+        }
         if (!dt || !this.active) return;
         if (this.state !== 'dead' && this.x < this.ctx.camera.leftEdge() - 96) { this.destroy(); return; }
         if (this.state !== 'dead' && this.state !== 'descent' && this.state !== 'land' && !visible(this.ctx, this.x, this.y, 32)) return;
@@ -188,7 +202,7 @@ export class Enemy extends Phaser.GameObjects.Sprite {
             if (this.state === 'windup' && this.clock <= 0) { this.enter('dive', 700); this.vx = Math.cos(this.aimAngle) * 125; this.vy = Math.sin(this.aimAngle) * 125; this.pose('dive'); }
             else if (this.state === 'dive') { this.x += this.vx * dt / 1000; this.y += this.vy * dt / 1000; this.ctx.damage.applyRadial(this.x, this.y, 9, 1, 'enemy', 'contact'); if (this.ctx.level.solidAt(this.x, this.y + 8)) this.hit({ damage: this.hp, source: 'neutral', x: this.x, y: this.y, dirX: this.facing, dirY: 1, kind: 'contact' }); else if (this.clock <= 0) this.enter('recover', 900); }
             else if (this.state === 'recover') { this.x += (this.startX - this.x) * Math.min(1, dt / 600); this.y += (this.startY - this.y) * Math.min(1, dt / 300); if (this.clock <= 0) { this.enter('patrol', 0); this.cooldown = 1800; } }
-            else if (this.state !== 'windup') { this.pose('fly', true); this.y = this.startY + Math.sin(this.age / 1800 * Math.PI * 2) * 12; this.x += this.facing * 44 * dt / 1000; if (Math.abs(this.x - this.startX) > Math.max(48, this.patrol)) this.facing = this.x > this.startX ? -1 : 1; if (sees && this.cooldown <= 0) { this.aimAngle = Math.atan2(p!.centerY - this.y, dx); this.enter('windup', 320); this.pose('dive'); this.ctx.audio.sfx('drone_buzz'); } }
+            else if (this.state !== 'windup') { this.pose('fly', true); this.y = this.startY + Math.sin(this.age / 1800 * Math.PI * 2) * 12; this.x += this.facing * 44 * dt / 1000; if (Math.abs(this.x - this.startX) > Math.max(48, this.patrol)) this.facing = this.x > this.startX ? -1 : 1; if (sees && this.cooldown <= 0) { this.aimAngle = Math.atan2(p!.centerY - this.y, dx); this.enter('windup', 320); this.pose('dive'); this.ctx.audio.sfx('drone_dive'); } }
             return;
         }
         if (this.state === 'windup' && this.clock <= 0) {

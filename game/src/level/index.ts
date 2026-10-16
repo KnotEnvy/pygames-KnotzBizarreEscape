@@ -88,6 +88,7 @@ export function registerLevel(ctx: RegisterContext): void {
             if (best && best.cost <= d * LEVEL.warp.sideCost) break;
         }
         const to = best ?? { x, y: refY };
+        arenas.warped(to.x);
         ctx.camera.unlock();
         ctx.camera.snapTo(to.x, to.y - 18);
         if (!p) return;
