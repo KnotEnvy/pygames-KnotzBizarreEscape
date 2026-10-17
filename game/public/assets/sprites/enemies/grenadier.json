@@ -24,7 +24,7 @@
     "duration": 140
    },
    "grenadier#3": {
-    "frame": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "frame": { "x": 98, "y": 0, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -32,7 +32,7 @@
     "duration": 140
    },
    "grenadier#4": {
-    "frame": { "x": 98, "y": 0, "w": 48, "h": 48 },
+    "frame": { "x": 147, "y": 0, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -40,7 +40,7 @@
     "duration": 80
    },
    "grenadier#5": {
-    "frame": { "x": 147, "y": 0, "w": 48, "h": 48 },
+    "frame": { "x": 196, "y": 0, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -56,14 +56,6 @@
     "duration": 80
    },
    "grenadier#7": {
-    "frame": { "x": 196, "y": 0, "w": 48, "h": 48 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
-    "sourceSize": { "w": 48, "h": 48 },
-    "duration": 80
-   },
-   "grenadier#8": {
     "frame": { "x": 245, "y": 0, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -71,8 +63,16 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 80
    },
-   "grenadier#9": {
+   "grenadier#8": {
     "frame": { "x": 0, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 80
+   },
+   "grenadier#9": {
+    "frame": { "x": 49, "y": 49, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -88,7 +88,7 @@
     "duration": 80
    },
    "grenadier#11": {
-    "frame": { "x": 49, "y": 49, "w": 48, "h": 48 },
+    "frame": { "x": 98, "y": 49, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -96,7 +96,7 @@
     "duration": 80
    },
    "grenadier#12": {
-    "frame": { "x": 98, "y": 49, "w": 48, "h": 48 },
+    "frame": { "x": 147, "y": 49, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -104,7 +104,7 @@
     "duration": 120
    },
    "grenadier#13": {
-    "frame": { "x": 98, "y": 49, "w": 48, "h": 48 },
+    "frame": { "x": 147, "y": 49, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -112,7 +112,7 @@
     "duration": 120
    },
    "grenadier#14": {
-    "frame": { "x": 98, "y": 49, "w": 48, "h": 48 },
+    "frame": { "x": 147, "y": 49, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -120,7 +120,7 @@
     "duration": 120
    },
    "grenadier#15": {
-    "frame": { "x": 147, "y": 49, "w": 48, "h": 48 },
+    "frame": { "x": 196, "y": 49, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -128,7 +128,7 @@
     "duration": 140
    },
    "grenadier#16": {
-    "frame": { "x": 196, "y": 49, "w": 48, "h": 48 },
+    "frame": { "x": 245, "y": 49, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -136,7 +136,7 @@
     "duration": 120
    },
    "grenadier#17": {
-    "frame": { "x": 245, "y": 49, "w": 48, "h": 48 },
+    "frame": { "x": 0, "y": 98, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -144,7 +144,7 @@
     "duration": 140
    },
    "grenadier#18": {
-    "frame": { "x": 0, "y": 98, "w": 48, "h": 48 },
+    "frame": { "x": 49, "y": 98, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -152,7 +152,7 @@
     "duration": 70
    },
    "grenadier#19": {
-    "frame": { "x": 49, "y": 98, "w": 48, "h": 48 },
+    "frame": { "x": 98, "y": 98, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -160,7 +160,7 @@
     "duration": 80
    },
    "grenadier#20": {
-    "frame": { "x": 98, "y": 98, "w": 48, "h": 48 },
+    "frame": { "x": 147, "y": 98, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -168,7 +168,7 @@
     "duration": 120
    },
    "grenadier#21": {
-    "frame": { "x": 98, "y": 0, "w": 48, "h": 48 },
+    "frame": { "x": 147, "y": 0, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -184,7 +184,7 @@
     "duration": 75
    },
    "grenadier#23": {
-    "frame": { "x": 147, "y": 98, "w": 48, "h": 48 },
+    "frame": { "x": 196, "y": 98, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -192,7 +192,7 @@
     "duration": 75
    },
    "grenadier#24": {
-    "frame": { "x": 245, "y": 0, "w": 48, "h": 48 },
+    "frame": { "x": 0, "y": 49, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -208,7 +208,7 @@
     "duration": 75
    },
    "grenadier#26": {
-    "frame": { "x": 196, "y": 98, "w": 48, "h": 48 },
+    "frame": { "x": 245, "y": 98, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -216,7 +216,7 @@
     "duration": 75
    },
    "grenadier#27": {
-    "frame": { "x": 245, "y": 98, "w": 48, "h": 48 },
+    "frame": { "x": 0, "y": 147, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -224,14 +224,6 @@
     "duration": 70
    },
    "grenadier#28": {
-    "frame": { "x": 0, "y": 147, "w": 48, "h": 48 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
-    "sourceSize": { "w": 48, "h": 48 },
-    "duration": 85
-   },
-   "grenadier#29": {
     "frame": { "x": 49, "y": 147, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -239,7 +231,7 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 85
    },
-   "grenadier#30": {
+   "grenadier#29": {
     "frame": { "x": 98, "y": 147, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -247,7 +239,7 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 85
    },
-   "grenadier#31": {
+   "grenadier#30": {
     "frame": { "x": 147, "y": 147, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -255,7 +247,7 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 85
    },
-   "grenadier#32": {
+   "grenadier#31": {
     "frame": { "x": 196, "y": 147, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -263,7 +255,7 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 85
    },
-   "grenadier#33": {
+   "grenadier#32": {
     "frame": { "x": 245, "y": 147, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -271,15 +263,15 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 85
    },
-   "grenadier#34": {
+   "grenadier#33": {
     "frame": { "x": 0, "y": 196, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
     "sourceSize": { "w": 48, "h": 48 },
-    "duration": 90
+    "duration": 85
    },
-   "grenadier#35": {
+   "grenadier#34": {
     "frame": { "x": 49, "y": 196, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -287,7 +279,7 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 90
    },
-   "grenadier#36": {
+   "grenadier#35": {
     "frame": { "x": 98, "y": 196, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -295,7 +287,7 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 90
    },
-   "grenadier#37": {
+   "grenadier#36": {
     "frame": { "x": 147, "y": 196, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -303,7 +295,7 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 90
    },
-   "grenadier#38": {
+   "grenadier#37": {
     "frame": { "x": 196, "y": 196, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -311,7 +303,7 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 90
    },
-   "grenadier#39": {
+   "grenadier#38": {
     "frame": { "x": 245, "y": 196, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -319,7 +311,7 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 90
    },
-   "grenadier#40": {
+   "grenadier#39": {
     "frame": { "x": 0, "y": 245, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -327,7 +319,7 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 90
    },
-   "grenadier#41": {
+   "grenadier#40": {
     "frame": { "x": 49, "y": 245, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -335,7 +327,7 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 90
    },
-   "grenadier#42": {
+   "grenadier#41": {
     "frame": { "x": 98, "y": 245, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -343,8 +335,16 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 90
    },
-   "grenadier#43": {
+   "grenadier#42": {
     "frame": { "x": 147, "y": 245, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 90
+   },
+   "grenadier#43": {
+    "frame": { "x": 196, "y": 245, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },

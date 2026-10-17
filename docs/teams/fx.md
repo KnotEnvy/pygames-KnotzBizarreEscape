@@ -1,3 +1,173 @@
+# Phase F — background effect API (2026-10-17)
+
+Levels integration contract: emit `fx:emit { effect, x, y, bg: true, scrollFactor, ... }`.
+Coordinates are **parallax-layer coordinates**, exactly as for a Phaser object with
+`setScrollFactor(scrollFactor)` (both axes). To anchor at a current world point,
+use `x = worldX - camera.scrollX * (1 - scrollFactor)` and likewise for y.
+All eight effects below always draw at depth 18, below terrain/actors/bullets.
+Default `scrollFactor=.3`, clamped 0–1; `scale=1`, clamped .25–2. They never
+request hitstop, camera shake, full-camera flash, damage, or gameplay projectiles.
+
+| Effect | Optional params (pixels / milliseconds) | Anchor and behavior |
+|---|---|---|
+| `bg_flak` | `count=7`, `duration=650`, `scale` | Airburst center; small warm ignition, dark puff and falling sparks. |
+| `bg_explosion` | `count=12`, `duration=1400`, `scale` | Blast center; distant fireball, drifting smoke and debris. |
+| `bg_lightning` | `height=90`, `width=40`, `duration=420`, `scale` | Bolt top; branching stepped bolt and a faint sky-only flash. Reduced flash / reduced motion removes the sky flash and retains a dim steady bolt. |
+| `aurora` | `width=320`, `height=48`, `duration=30000`, `scale` | Band center; slow teal/violet shimmer, faded edges. |
+| `bg_birds` | `count=7`, `width=45`, `speed=38`, `angle=-2.1`, `duration=2200`, `scale` | Flock origin; small dark flapping crows burst upward. Angle is radians. |
+| `bg_smoke_plume` | `width=24`, `height=96`, `count=10`, `speed=14`, `duration=12000`, `scale` | Stack mouth; rising dark column. Repeat to refresh/reposition the one plume at the same scroll factor, preserving its animation age. |
+| `bg_avalanche` | `width=130`, `height=65`, `count=18`, `speed=38`, `angle=.65`, `duration=3200`, `scale` | Slide head; tumbling snow and a trailing low-contrast powder cloud. |
+| `bg_mist` | `width=64`, `height=30`, `count=12`, `speed=10`, `duration=8000`, `scale` | Waterfall foot; rising cool spray. Repeat to refresh/reposition the one mist at the same scroll factor. |
+
+`aurora`, plume and mist refresh at the same effect + scroll factor instead of
+stacking. `duration=0` removes that persistent effect. Durations cap at 120 s;
+counts cap at 24. Multiple distinct persistent anchors can use distinct scroll
+factors. `bg:event` is a notification owned by Levels/Audio: FX does not duplicate
+the director's explicit `fx:emit` request. Pooled `dust_run`, `dust_skid`,
+`dust_land`, `steam`/`vent_steam`, `debris`, `shield_spark`, `shockwave`,
+`splash`/`waterfall`, `muzzle_enemy` and `casing` also accept `bg:true` and
+inherit depth/scroll factor. Campaign chains, ground markers and scorch remain
+world-only; use `bg_explosion` and `bg_smoke_plume` for distant destruction.
+
+`boss:intro` sheds local snow/dust near the supplied boss position;
+`arena:clear` gives one restrained snow sparkle inside the known arena bounds.
+`ice_impact {x,y}` is an optional combat glint/chip request. Ordinary projectile
+hits also select ice automatically using `ctx.physics.surfaceAt`, since the
+shared `ImpactMaterial` enum does not contain `ice`.
+
+```ts
+// A plume currently 330 px from the viewport left, 70 px from the top.
+const cam = ctx.scene.cameras.main;
+ctx.events.emit('fx:emit', {
+    effect: 'bg_smoke_plume', x: 330 + cam.scrollX * .6,
+    y: 70 + cam.scrollY * .6, bg: true, scrollFactor: .6,
+    duration: 12000, scale: .8
+});
+// Repeat with new x/y to follow a locomotive. duration: 0 cancels that plume.
+```
+
+## Phase F implementation
+
+Owned changes: `game/src/fx/{background,director,pool,gallery}.ts`,
+`game/src/config/tuning/fx.ts`, and this document. No git operations, dependency
+changes, shared contract edits, gameplay damage, or asset-pack changes.
+
+- Flesh hits have a small star and trailing poof; death adds a distinct 90 ms pop
+  before the larger poof. Metal sparks vary orientation, wood sheds chips, snow
+  throws powder/flakes, and raw ice surfaces get cool chips and a short glint.
+  Paired damage/impact requests still coalesce once per frame.
+- HMG impacts add fast, short sweep sparks (70 ms rate limit). Laser no longer
+  falls back to pistol muzzle/casings: it receives a cool local burn glow.
+  Actual rocket projectiles leave smoke every 55 ms (six requests/frame max),
+  with no projectile mutations. Flame retains sparse nozzle embers.
+- Explosions retain their authored fireball, staggered smoke, material debris,
+  ground-only expanding dust ring and scorch. Added flattened additive ground
+  pools; muzzle pools also appear in tunnels and Part III. One neutral 32×32
+  alpha-falloff texture is baked once and shared across restarts. No new filter
+  passes or per-shot texture uploads.
+- Tested feel tiers remain: ordinary/melee/machine kills 32/48/55 ms; S/M/L/XL
+  explosions 0/45/65/100 ms and T1/T2/T3/T4 shake. Routine hitstop requests
+  coalesce by maximum with a 160 ms gate; critical deaths retain priority.
+  Reduced flash dims local pools and removes the lightning sky wash. Shake
+  requests still pass through the existing setting gate.
+- Backgrounds have eight reusable Graphics and at most 96 analytic motes,
+  separate from the unchanged 344 pooled Images. Geometry redraws at 30 Hz on
+  scaled game time. A lightning bolt costs nine motes; an aurora has 48 fixed
+  strips. No new sprites/timers/arrays are allocated per mote. Pool reuse resets
+  scroll factor; background culling/coverage uses the appropriate coordinate
+  space. Transient FX stay at depth 39, backgrounds at 18, enemy bullets at 60.
+  The existing .16 overall / .08 cloud coverage caps still bound pooled FX;
+  background drawings have separate low-opacity bounds and are not included in
+  those pooled-coverage metrics.
+- `state().fx.background` reports active/peak drawings, motes, dropped requests,
+  emission count and whether a sky wash is active. Its draw/update work is
+  included in `state().fx.cpuMs`. Continue, game over, stage start and scene
+  shutdown clear background work. Persistent effects keep age across refreshes.
+
+Preview URLs: `?scene=Game&fast=1&mute=1&god=1&seed=7&fxtest=phasef` for combat;
+`fxtest=background` cycles all eight backgrounds; `fxtest=bg_flak`,
+`bg_explosion`, `bg_lightning`, `aurora`, `bg_birds`, `bg_smoke_plume`,
+`bg_avalanche`, or `bg_mist` isolates a named effect. Existing Phase E galleries
+remain available. These fixtures are gated by dev/debug cheats.
+
+## Phase F verification
+
+`npm run check` passes (TypeScript plus Phaser 4 scan: **102 files, zero
+errors/warnings**). `npm run audit` passes reachability and every arena/boss for
+**1-1, 1-2 and 1-3**, including terminal PartClear/Results flow. An earlier run
+caught an in-progress Levels `LEVEL.boss.names` / `introFocusUp` integration;
+the final run passes after that team's configuration landed. No external files
+were repaired by FX. Logs: `/tmp/kbe-fx/phase-f/{check,phaser4,audit}.log`.
+
+The final bounded Chromium 156 / SwiftShader fixture holds the real HMG at the
+camp bridge for 30 seconds, emits three M/XL/M explosions every 850 gameplay ms,
+maintains up to ten enemy bullets, and runs aurora/plume/mist/distant artillery.
+This is a stationary stress fixture, not a bot playthrough.
+
+| Measurement | Result |
+|---|---:|
+| Mean `state().fps` / minimum | **60.63 / 60** |
+| Mean frame / p95 / maximum | **16.666 / 16.7 / 16.8 ms** |
+| `state().fx.cpuMs` at end | **0.114 ms** |
+| Maximum observed FX CPU moving average | **0.153 ms** |
+| FX single-frame `cpuPeakMs` | **1.80 ms** |
+| Peak pooled FX / background drawings / background motes | **135 / 5 / 41** |
+| Maximum pooled coverage / cloud coverage | **16.0% / 5.32%** |
+| Depth violations / >50 ms frames / browser errors | **0 / 0 / 0** |
+
+CPU covers FX handlers/update/presentation, including background draw-command
+generation; it excludes renderer/GPU time. These are software-renderer timings
+on this shared host, not a hardware GPU measurement. The report and reproducible
+fixture are `/tmp/kbe-fx/phase-f/verification.json` and `verify.mjs`.
+
+All 18 focused checks pass: all eight background names/layers/scroll factors
+without combat feel; persistent refresh/reposition/cancel; pause; reduced-flash
+lightning while frozen; actual ice surface routing; pooled background culling
+and foreground reuse; 8-drawing/96-mote overload limits; intro/clear events;
+combat coverage/depth limits; laser without pistol casing; rocket flight smoke;
+stable FX listener counts after scene restart. The fixture was adjusted when
+Levels' own aurora became available so it distinguishes that separate background
+from the plume under test.
+
+Screenshots were generated, opened and inspected under `/tmp/kbe-fx/phase-f/`:
+
+- `map-camp.png`, `map-tunnel.png`, `map-lake-normal.png`, `map-lake.png`:
+  **`node tools/shot.mjs`** on `part=1-1|1-2|1-3`. The lake pair shows ordinary
+  and reduced-flash lightning with real laser fire. Tunnel entry uses a short
+  jump/right step at x=1690; no automated stage traversal. Enemy bullets remain
+  distinct through explosion layers and tunnel light. `maps.mjs` records exact
+  screenshot arguments/steps, and matching `.log` files contain full state.
+- `busy-fight.png`: final sustained combat fixture with visible enemy bullets.
+- `gallery-materials.png`, `gallery-background.png`: `fxtest=phasef` and
+  `fxtest=background` on real maps. `aurora.png`, `bg_flak.png`,
+  `bg_explosion.png`, `bg_lightning.png`, `bg_birds.png`, `bg_smoke_plume.png`,
+  `bg_avalanche.png`, `bg_mist.png` isolate every background effect.
+- `lightning-reduced.png`, `ice-impact.png`, `boss-intro.png`,
+  `arena-clear.png`, `laser-glow.png`, `rocket-trail.png` cover targeted reactions.
+- `contact-sheet.png` and self-contained `contact-sheet.html`: six-image review,
+  including all three real maps and the busy fight; opened and inspected. HTML
+  enlargement was also checked. T3's `html_preview` host lacked libnspr4/libnss3,
+  so `contact.mjs` used the repository Chromium libraries to validate the sheet.
+
+Final map snapshot FPS / FX moving-average CPU: camp **61 / .110 ms**, tunnel
+**61 / .118 ms**, lake **60 / .090 ms**. These are short captures; the 30-second
+fixture above is the sustained combat measurement. Final map captures have no
+runtime/load errors. An earlier tunnel capture reported missing background
+assets while the other teams were integrating them; those paths are outside FX.
+
+```sh
+# Run from game/; short gallery capture on the real lake.
+node tools/shot.mjs --out /tmp/kbe-fx/phase-f/gallery.png \
+  --query 'scene=Game&part=1-3&x=1200&fast=1&mute=1&god=1&seed=7&fxtest=background' \
+  --wait 15500
+```
+
+Levels' live director was inspected against this API: its `fx()` helper already
+uses `screen + camera.scroll * scrollFactor`, matching the native parallax
+contract above. Background notification events are not duplicated by FX.
+
+---
+
 # Effects and game feel — real-map ambience polish (2026-10-17)
 
 This pass supersedes the tunnel and train presentation values below. Edited only `game/src/fx/weather.ts`, `game/src/config/tuning/fx.ts`, and this report. No git state operations.

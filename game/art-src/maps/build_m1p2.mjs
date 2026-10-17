@@ -254,6 +254,14 @@ tr('stage_end', 312, 335, 0, H - 1, { requires: 'boss' });
 
 tr('ambience', 0, W - 1, 0, H - 1, { fx: 'train' });
 
+// Phase F background moments (src/level/background.ts)
+const bg = (id, x0, x1, p = {}) => tr('bg_event', x0, x1, 0, H - 1, { id, ...p });
+bg('gorge', 72, 73, { ms: 8000 });    // trestle over a gorge: the background drops away to a deep valley and river
+bg('buzzard_circle', 100, 101);       // a Buzzard circles far off before the log-car attack (spawns at 131)
+bg('buzzard_circle', 284, 285);       // ...and before the last one (304)
+bg('ironhorn_plume', 224, 306);       // IRONHORN's smoke plume far ahead, closer through the coal cars
+bg('avalanche', 262, 263);            // fallback: the avalanche normally follows tunnel 2's exit (hook)
+
 finish();
 write('m1p2', { name: 'Pine Ridge Breakout', title: 'TIMBER EXPRESS', music: 'music_m1p2', parallax: 'm1p2', drift: 260,
   sections: SECTIONS.map((s) => `${s.id}:${s.x0}-${s.x1}`).join(',') }, { background: '#7f98b8' });

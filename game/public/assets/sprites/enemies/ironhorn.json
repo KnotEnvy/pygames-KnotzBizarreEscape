@@ -40,7 +40,7 @@
     "duration": 100
    },
    "ironhorn#5": {
-    "frame": { "x": 0, "y": 113, "w": 192, "h": 112 },
+    "frame": { "x": 965, "y": 0, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
@@ -48,7 +48,7 @@
     "duration": 100
    },
    "ironhorn#6": {
-    "frame": { "x": 193, "y": 113, "w": 192, "h": 112 },
+    "frame": { "x": 1158, "y": 0, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
@@ -56,54 +56,6 @@
     "duration": 100
    },
    "ironhorn#7": {
-    "frame": { "x": 386, "y": 113, "w": 192, "h": 112 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
-    "sourceSize": { "w": 192, "h": 112 },
-    "duration": 100
-   },
-   "ironhorn#8": {
-    "frame": { "x": 0, "y": 0, "w": 192, "h": 112 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
-    "sourceSize": { "w": 192, "h": 112 },
-    "duration": 100
-   },
-   "ironhorn#9": {
-    "frame": { "x": 193, "y": 0, "w": 192, "h": 112 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
-    "sourceSize": { "w": 192, "h": 112 },
-    "duration": 100
-   },
-   "ironhorn#10": {
-    "frame": { "x": 386, "y": 0, "w": 192, "h": 112 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
-    "sourceSize": { "w": 192, "h": 112 },
-    "duration": 100
-   },
-   "ironhorn#11": {
-    "frame": { "x": 579, "y": 0, "w": 192, "h": 112 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
-    "sourceSize": { "w": 192, "h": 112 },
-    "duration": 100
-   },
-   "ironhorn#12": {
-    "frame": { "x": 772, "y": 0, "w": 192, "h": 112 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
-    "sourceSize": { "w": 192, "h": 112 },
-    "duration": 100
-   },
-   "ironhorn#13": {
     "frame": { "x": 0, "y": 113, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -111,7 +63,7 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#14": {
+   "ironhorn#8": {
     "frame": { "x": 193, "y": 113, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -119,7 +71,7 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#15": {
+   "ironhorn#9": {
     "frame": { "x": 386, "y": 113, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -127,7 +79,7 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#16": {
+   "ironhorn#10": {
     "frame": { "x": 579, "y": 113, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -135,7 +87,7 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#17": {
+   "ironhorn#11": {
     "frame": { "x": 772, "y": 113, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -143,7 +95,23 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#18": {
+   "ironhorn#12": {
+    "frame": { "x": 965, "y": 113, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#13": {
+    "frame": { "x": 1158, "y": 113, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#14": {
     "frame": { "x": 0, "y": 226, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -151,7 +119,7 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#19": {
+   "ironhorn#15": {
     "frame": { "x": 193, "y": 226, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -159,7 +127,7 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#20": {
+   "ironhorn#16": {
     "frame": { "x": 386, "y": 226, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -167,7 +135,7 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#21": {
+   "ironhorn#17": {
     "frame": { "x": 579, "y": 226, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -175,7 +143,7 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#22": {
+   "ironhorn#18": {
     "frame": { "x": 772, "y": 226, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -183,7 +151,23 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#23": {
+   "ironhorn#19": {
+    "frame": { "x": 965, "y": 226, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#20": {
+    "frame": { "x": 1158, "y": 226, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#21": {
     "frame": { "x": 0, "y": 339, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -191,7 +175,7 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#24": {
+   "ironhorn#22": {
     "frame": { "x": 193, "y": 339, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -199,7 +183,7 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#25": {
+   "ironhorn#23": {
     "frame": { "x": 386, "y": 339, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -207,7 +191,7 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#26": {
+   "ironhorn#24": {
     "frame": { "x": 579, "y": 339, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
@@ -215,8 +199,24 @@
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
    },
-   "ironhorn#27": {
+   "ironhorn#25": {
     "frame": { "x": 772, "y": 339, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#26": {
+    "frame": { "x": 965, "y": 339, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#27": {
+    "frame": { "x": 1158, "y": 339, "w": 192, "h": 112 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
@@ -254,6 +254,134 @@
     "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
     "sourceSize": { "w": 192, "h": 112 },
     "duration": 100
+   },
+   "ironhorn#32": {
+    "frame": { "x": 772, "y": 452, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#33": {
+    "frame": { "x": 965, "y": 452, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#34": {
+    "frame": { "x": 1158, "y": 452, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#35": {
+    "frame": { "x": 0, "y": 565, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#36": {
+    "frame": { "x": 193, "y": 565, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#37": {
+    "frame": { "x": 386, "y": 565, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#38": {
+    "frame": { "x": 579, "y": 565, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#39": {
+    "frame": { "x": 772, "y": 565, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#40": {
+    "frame": { "x": 965, "y": 565, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#41": {
+    "frame": { "x": 1158, "y": 565, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#42": {
+    "frame": { "x": 0, "y": 678, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#43": {
+    "frame": { "x": 193, "y": 678, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#44": {
+    "frame": { "x": 386, "y": 678, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#45": {
+    "frame": { "x": 579, "y": 678, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#46": {
+    "frame": { "x": 772, "y": 678, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
+   },
+   "ironhorn#47": {
+    "frame": { "x": 965, "y": 678, "w": 192, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 112 },
+    "sourceSize": { "w": 192, "h": 112 },
+    "duration": 100
    }
  },
  "meta": {
@@ -261,13 +389,15 @@
   "version": "1.3.18.6-dev",
   "image": "ironhorn.png",
   "format": "RGBA8888",
-  "size": { "w": 964, "h": 564 },
+  "size": { "w": 1350, "h": 790 },
   "scale": "1",
   "frameTags": [
    { "name": "ironhorn_idle", "from": 0, "to": 7, "direction": "forward", "color": "#000000ff" },
-   { "name": "ironhorn_damaged", "from": 8, "to": 15, "direction": "forward", "color": "#000000ff" },
-   { "name": "ironhorn_core", "from": 16, "to": 23, "direction": "forward", "color": "#000000ff" },
-   { "name": "ironhorn_death", "from": 24, "to": 31, "direction": "forward", "color": "#000000ff" }
+   { "name": "ironhorn_intro", "from": 8, "to": 15, "direction": "forward", "color": "#000000ff" },
+   { "name": "ironhorn_damaged", "from": 16, "to": 23, "direction": "forward", "color": "#000000ff" },
+   { "name": "ironhorn_critical", "from": 24, "to": 31, "direction": "forward", "color": "#000000ff" },
+   { "name": "ironhorn_core", "from": 32, "to": 39, "direction": "forward", "color": "#000000ff" },
+   { "name": "ironhorn_death", "from": 40, "to": 47, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "main", "opacity": 255, "blendMode": "normal" }

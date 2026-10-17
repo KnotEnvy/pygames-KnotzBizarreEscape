@@ -6,6 +6,8 @@ import { FxFilters } from './filters';
 
 import { CampaignFx, ambience, type Ambience, type SpatialFx } from './campaign';
 import { FxWeather } from './weather';
+import { BackgroundFx } from './background';
+import type { Projectile } from '../core/projectiles';
 const MACHINE = /turret|drone|tank|moose|machine|snowcat|ironhorn/i;
 const MUZZLES: Record<string, readonly [string, string]> = {
     pistol: ['fx_muzzle_pistol_right', 'fx_muzzle_pistol_diag'], hmg: ['fx_muzzle_hmg_right', 'fx_muzzle_hmg_diag'],
@@ -25,7 +27,8 @@ export class FxDirector {
     readonly filters: FxFilters;
     readonly campaign: CampaignFx;
     readonly weather: FxWeather;
-    private readonly impacts = Array.from({ length: FX.impactsPerFrame }, () => ({ x: 0, y: 0, material: 'flesh' as ImpactMaterial, primary: false }));
+    readonly background: BackgroundFx;
+    private readonly impacts = Array.from({ length: FX.impactsPerFrame }, () => ({ x: 0, y: 0, material: 'flesh' as ImpactMaterial, primary: false, weapon: '' }));
     private impactCount = 0;
     private frameCpu = 0;
     private readonly zones = Array.from({ length: 32 }, () => ({ id: '', kind: null as Ambience, active: false, x: 0, y: 0, width: 0, height: 0, debt: 0 }));
@@ -42,6 +45,8 @@ export class FxDirector {
     private realClock = 0; private lastShake = -1000; private lastTier = 0; private lastFlash = -1000;
     private lastStop = -1000; private criticalStop = false;
     private lastCasing = -1000; private lastHmg = -1000; private lastFlameHurt = -1000;
+    private lastSweep = -1000; private lastLaser = -1000; private trailDebt = 0; private trailsThisFrame = 0;
+    private readonly arenas = new Map<string, { x0: number; x1: number }>();
     private bossName = ''; private defeated = false;
     private slowScale = 0.35; private slowMs = 900;
     private bossDying = false; private bossPhase = -1; private slowPending = false;
@@ -53,6 +58,7 @@ export class FxDirector {
         this.stats.combat = this.pool.combatLive;
         this.filters = new FxFilters(ctx);
         this.weather = new FxWeather(ctx, this.pool);
+        this.background = new BackgroundFx(ctx);
         this.campaign = new CampaignFx(ctx, this.pool,
             (x, y, size) => { this.explosion(x, y, size, false, true); this.ctx.audio.sfx(`explo_${size}`, { x }); },
             (x, y) => this.finale(x, y, 'IRONHORN'),
@@ -70,7 +76,7 @@ export class FxDirector {
         on('enemy:shoot', e => this.shoot(e, true));
         on('fx:emit', e => this.spatial(e));
         on('fx:zone', e => this.zone(e));
-        on('projectile:impact', e => this.queueImpact(e.x, e.y, e.material, true));
+        on('projectile:impact', e => this.queueImpact(e.x, e.y, e.material, true, e.weapon));
         on('entity:hurt', e => {
             if (e.kind === 'flame') {
                 if (this.realClock - this.lastFlameHurt < 100) return;
@@ -86,8 +92,10 @@ export class FxDirector {
             this.feel(0, this.bossDying ? 0 : machine ? FX.feel.machineKill : e.cause === 'melee' ? FX.feel.meleeKill : FX.feel.kill);
             if (machine) this.scatter(e.x, e.y, METAL, 6, 75, 320, 700, true);
             else {
-                this.pool.spawn('dust', 'fx_death_poof_burst', e.x, e.y - 8, 120)?.image.setDepth(DEPTH.ENEMIES - 1);
-                this.scatter(e.x, e.y, ROCK, 4, 35, 120, 260, false);
+                const pop = this.pool.spawn('impact', 'fx_hit_pop_burst', e.x, e.y - 8, 0, 1.15, true);
+                if (pop) { pop.life = 90; pop.fade = 40; pop.alpha = .9; }
+                this.pool.spawn('dust', 'fx_death_poof_burst', e.x, e.y - 8, 120, 1, true)?.image.setDepth(DEPTH.ENEMIES - 1);
+                this.dust(e.x, e.y, 'run', .45);
             }
         });
         on('player:jump', e => this.dust(e.x, e.y, 'run', 0.75));
@@ -109,6 +117,22 @@ export class FxDirector {
         on('pickup:collected', e => this.celebrate(e.x, e.y, e.kind === 'life' ? 10 : 6));
         on('pow:freed', e => this.celebrate(e.x, e.y - 16, 6));
         on('checkpoint', e => this.celebrate(e.x, e.y - 8, 4));
+        on('boss:intro', e => this.intro(e.x, e.y));
+        on('arena:start', e => {
+            if (this.arenas.size >= 16) this.arenas.clear();
+            this.arenas.set(e.id, { x0: e.x0, x1: e.x1 });
+        });
+        on('arena:clear', e => {
+            const arena = this.arenas.get(e.id);
+            if (!arena) return;
+            this.arenas.delete(e.id);
+            const view = ctx.camera.view(), left = Math.max(view.left + 24, arena.x0), right = Math.min(view.right - 24, arena.x1);
+            if (left > right) return;
+            const x = (left + right) / 2, y = ctx.physics.groundBelow(x, view.top, view.height);
+            if (y === null) return;
+            this.scatter(x, y - 14, SNOW, 6, 25, 35, 650, false);
+            this.celebrate(x, y - 16, 2);
+        });
         on('boss:spawn', e => { this.bossName = e.name; this.defeated = false; this.bossPhase = e.phase; this.bossDying = false; this.feel(this.midboss(e.name) ? 2 : 3, 0); });
         on('boss:phase', e => { if (this.bossName !== e.name || this.bossPhase !== e.phase) { this.bossName = e.name; this.bossPhase = e.phase; this.clearCues(); this.campaign.clearCombat(); this.feel(this.midboss(e.name) ? 2 : 3, this.midboss(e.name) ? 45 : FX.feel.phase); } });
         on('boss:hp', e => { if (e.hp <= 0) { this.bossDying = true; this.clearCues(); } });
@@ -128,14 +152,14 @@ export class FxDirector {
         on('ui:popup', e => this.popup(e));
         on('settings:changed', () => this.filters.applySettings());
         on('stage:clear', () => { this.setAmbience(null); this.ambientEnabled = false; });
-        on('game:over', () => { this.ambientEnabled = false; this.setAmbience(null); this.slowPending = false; this.shake = this.stop = 0; this.campaign.reset(); });
+        on('game:over', () => { this.ambientEnabled = false; this.setAmbience(null); this.slowPending = false; this.shake = this.stop = 0; this.campaign.reset(); this.background.reset(); this.arenas.clear(); });
         on('game:continue', () => this.reset());
-        on('stage:start', () => { this.pool.clear(); this.impactCount = 0; this.ambientEnabled = true; });
+        on('stage:start', () => { this.pool.clear(); this.background.reset(); this.arenas.clear(); this.impactCount = 0; this.ambientEnabled = true; });
         this.offUpdate = ctx.onUpdate((dt, rawDt) => this.update(dt, rawDt));
         // Flush after gameplay/projectiles, so damage and impact pairs coalesce within the same frame.
         ctx.scene.events.on(Phaser.Scenes.Events.POST_UPDATE, this.flush, this);
         ctx.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroy, this);
-        ctx.debug.register('fx', () => ({ ...this.stats, weather: this.weather.stats, campaign: this.campaign.stats }));
+        ctx.debug.register('fx', () => ({ ...this.stats, weather: this.weather.stats, campaign: this.campaign.stats, background: this.background.stats }));
     }
 
     private midboss(name: string): boolean { return /snowcat|ironhorn/i.test(name); }
@@ -151,20 +175,23 @@ export class FxDirector {
         this.explosion(x, y, 'xl', true, false, this.midboss(name) ? FX.campaign.midbossStop : 120);
         this.finishFeel(name);
     }
-    private feel(shake: number, stop: number): void { this.shake = Math.max(this.shake, shake); this.stop = Math.max(this.stop, stop); }
-    private queueImpact(x: number, y: number, material: ImpactMaterial, primary: boolean): void {
+    private feel(shake: number, stop: number): void {
+        if (this.pool.backgroundFactor !== undefined) return;
+        this.shake = Math.max(this.shake, shake); this.stop = Math.max(this.stop, stop);
+    }
+    private queueImpact(x: number, y: number, material: ImpactMaterial, primary: boolean, weapon = ''): void {
         for (let i = 0; i < this.impactCount; i++) {
             const r = this.impacts[i];
             if (Math.abs(x - r.x) <= 4 && Math.abs(y - r.y) <= 4 && (r.material === material || primary !== r.primary)) {
-                if (primary) { r.x = x; r.y = y; r.material = material; r.primary = true; } return;
+                if (primary) { r.x = x; r.y = y; r.material = material; r.primary = true; r.weapon = weapon; } return;
             }
         }
         if (this.impactCount === this.impacts.length) { this.pool.dropped++; return; }
-        const r = this.impacts[this.impactCount++]; r.x = x; r.y = y; r.material = material; r.primary = primary;
+        const r = this.impacts[this.impactCount++]; r.x = x; r.y = y; r.material = material; r.primary = primary; r.weapon = weapon;
     }
     private flush(): void {
         const start = performance.now();
-        for (let i = 0; i < this.impactCount; i++) { const r = this.impacts[i]; this.impact(r.x, r.y, r.material); }
+        for (let i = 0; i < this.impactCount; i++) { const r = this.impacts[i]; this.impact(r.x, r.y, r.material, r.weapon); }
         this.impactCount = 0;
         if (this.stop > 0 && (this.criticalStop || this.realClock - this.lastStop >= FX.feel.stopGate)) {
             this.ctx.fx.hitstop(this.stop); this.lastStop = this.realClock;
@@ -182,9 +209,24 @@ export class FxDirector {
         this.stats.cpuPeakMs = Math.max(this.stats.cpuPeakMs, this.frameCpu);
         this.frameCpu = 0;
     }
-    private impact(x: number, y: number, material: ImpactMaterial): void {
+    private impact(x: number, y: number, material: ImpactMaterial | 'ice', weapon = ''): void {
         this.stats.impacts++;
+        // The shared impact enum deliberately collapses raw ice tiles to a terrain material.
+        // Read the published surface query so real lake hits still receive their ice recipe.
+        if ((material === 'dirt' || material === 'stone' || material === 'snow') &&
+            (this.ctx.physics.surfaceAt(x, y) === 'ice' || this.ctx.physics.surfaceAt(x, y + 2) === 'ice')) material = 'ice';
+        if (weapon === 'laser') this.laserBurn(x, y);
+        if (weapon === 'hmg' && this.realClock - this.lastSweep >= FX.weapons.hmgSparkInterval) {
+            this.lastSweep = this.realClock;
+            this.scatter(x, y, SPARKS, 2, 115, 160, 150, false);
+        }
         if (material === 'water') { this.pool.spawn('impact', 'fx_water_ripple_expand', x, y); return; }
+        if (material === 'ice') {
+            this.campaign.emit({ effect: 'ice_skid', x, y, count: 3, scale: .65 });
+            const glint = this.pool.spawn('impact', 'fx_hit_pop_burst', x, y, 0, .55, true);
+            if (glint) { glint.life = 90; glint.fade = 60; glint.image.setTint(0xa8d4f0).setTintMode(Phaser.TintModes.FILL); }
+            return;
+        }
         if (material === 'snow') {
             const puff = this.pool.spawn('impact', 'fx_impact_snow_burst', x, y, 0, 1, true);
             if (puff) { puff.image.setOrigin(0.5, 20 / 24); puff.alpha = 0.7; }
@@ -196,10 +238,22 @@ export class FxDirector {
         const dirt = material === 'dirt' || material === 'stone';
         const s = this.pool.spawn('impact', metal ? material === 'shield' ? 'fx_impact_shield_tink' : 'fx_impact_metal_burst' : wood ? 'fx_impact_wood_burst' : dirt ? 'fx_impact_dirt_burst' : 'fx_hit_pop_burst', x, y, 0, 1, true);
         if (s && (wood || dirt)) s.image.setOrigin(0.5, 20 / 24);
+        if (s && material === 'flesh') {
+            s.image.setScale(.75 + this.ctx.rng.range(0, .2)); s.life = 140; s.fade = 65;
+            const poof = this.pool.spawn('dust', 'fx_death_poof_burst', x, y, 45, .35);
+            if (poof) { poof.alpha = .4; poof.life = 240; poof.fade = 150; poof.vy = -8; }
+        }
+        if (s && metal) s.image.setRotation(this.ctx.rng.range(-.45, .45));
         if (metal || wood || dirt) this.scatter(x, y, metal ? SPARKS : wood ? WOOD : ROCK, metal ? material === 'shield' ? 2 : 4 : wood ? 3 : 2, metal ? 95 : 45, 250, metal ? 240 : 340, !metal);
     }
 
     private shoot(e: { weapon?: string; x: number; y: number; angle: number }, enemy = false): void {
+        if (e.weapon === 'laser') {
+            // Player owns the authored beam/muzzle. FX adds its short cool burn, never a pistol casing.
+            this.laserBurn(e.x + Math.cos(e.angle) * 8, e.y + Math.sin(e.angle) * 8);
+            this.lightPool(e.x, e.y, .8, .13, 0x7bd6df);
+            return;
+        }
         const weapon = e.weapon && MUZZLES[e.weapon] ? e.weapon : 'pistol';
         if (weapon === 'flame') for (const s of this.pool.slots) {
             if (s.live && s.category === 'muzzle' && s.clip?.texture === 'fx_muzzle_flame' && s.age < 100 && Math.abs(s.image.x - e.x) < 12 && Math.abs(s.image.y - e.y) < 12) return;
@@ -210,6 +264,7 @@ export class FxDirector {
         for (const s of this.pool.slots) if (s.live && s.category === 'muzzle' && Math.abs(s.image.x - e.x) < 12 && Math.abs(s.image.y - e.y) < 12) this.pool.release(s);
         const s = this.pool.spawn('muzzle', MUZZLES[weapon][diagonal ? 1 : 0], e.x, e.y, 0, 1, true);
         if (s) { s.image.setOrigin(8 / 48, 0.5).setRotation(angle + (diagonal ? Math.PI / 4 : 0)); s.fade = 0; }
+        if (!enemy && (this.weather.stats.mode === 'tunnel' || this.ctx.part.id === '1-3')) this.lightPool(e.x, e.y, weapon === 'rocket' ? 1.3 : .85, .18);
         if (weapon === 'pistol' || weapon === 'hmg' || weapon === 'spread') {
             const flare = this.pool.spawn('glow', 'fx_flare_still', e.x + Math.cos(e.angle) * 12, e.y + Math.sin(e.angle) * 12);
             if (flare) { flare.life = 35; flare.fade = 35; flare.alpha = 0.35; flare.image.setRotation(e.angle).setBlendMode(Phaser.BlendModes.ADD); }
@@ -244,6 +299,7 @@ export class FxDirector {
         burst.hot = true; burst.fade = 140;
         this.stats.explosions++;
         this.glow(x, y, recipe.glow, 0.22);
+        this.lightPool(x, y, recipe.glow * 1.5, .2);
         for (let i = 0; i < recipe.smoke; i++) this.smoke(x + this.ctx.rng.range(-10, 10), y - 8, recipe.delay + i * 60, size === 's' ? 0.6 : size === 'xl' ? 1.3 : 1);
         const material = this.ctx.physics.materialAt(x, y + 12);
         this.scatter(x, y, material === 'metal' ? METAL : material === 'wood' ? WOOD : ROCK, recipe.debris, 100, 320, 750, true);
@@ -270,6 +326,41 @@ export class FxDirector {
     private smoke(x: number, y: number, delay: number, scale: number): void {
         const s = this.pool.spawn('smoke', 'fx_smoke_drift', x, y, delay, scale);
         if (s) { s.image.setDepth(DEPTH.ENEMIES - 1); s.alpha = FX.readability.smokeAlpha; s.vy = this.ctx.rng.range(-24, -12); s.vx = this.ctx.rng.range(-8, 8); s.fade = 180; }
+    }
+    private lightPool(x: number, y: number, scale: number, alpha: number, color = 0xffb45d): void {
+        if (this.pool.backgroundFactor !== undefined) return;
+        const floor = this.ctx.physics.groundBelow(x, y, 56);
+        const s = this.pool.spawn('glow', 'fx_light_pool_still', x, floor ?? y + 8, 0, scale);
+        if (s) {
+            s.life = 120; s.fade = 120; s.alpha = settings.get().reducedFlash || this.reducedMotion.matches ? alpha * .55 : alpha;
+            s.image.setScale(scale * 1.6, scale * .45).setTint(color).setTintMode(Phaser.TintModes.FILL).setBlendMode(Phaser.BlendModes.ADD);
+        }
+    }
+    private laserBurn(x: number, y: number): void {
+        if (this.realClock - this.lastLaser < FX.weapons.laserGlowInterval) return;
+        this.lastLaser = this.realClock;
+        const s = this.pool.spawn('glow', 'fx_light_pool_still', x, y, 0, .55);
+        if (s) { s.life = 180; s.fade = 180; s.alpha = .25; s.image.setTint(0x82cddd).setTintMode(Phaser.TintModes.FILL).setBlendMode(Phaser.BlendModes.ADD); }
+    }
+    private readonly projectileTrail = (p: Projectile): void => {
+        if (this.trailsThisFrame >= FX.weapons.trailPerFrame || p.weapon !== 'rocket') return;
+        const speed = Math.hypot(p.vx, p.vy);
+        if (speed < 1) return;
+        const s = this.pool.spawn('smoke', 'fx_smoke_drift', p.x - p.vx / speed * 8, p.y - p.vy / speed * 8, 0, .3);
+        if (!s) return;
+        this.trailsThisFrame++;
+        s.life = 360; s.fade = 260; s.alpha = .2; s.vx = -p.vx / speed * 12; s.vy = -9;
+    };
+    private intro(x: number, y: number): void {
+        const view = this.ctx.camera.view();
+        if (x < view.left - 64 || x > view.right + 128) return;
+        const floor = this.ctx.physics.groundBelow(x, y - 12, 80) ?? y;
+        for (let i = -2; i <= 2; i++) {
+            const puff = this.pool.spawn('dust', 'fx_impact_snow_burst', x + i * 18, floor - 3, Math.abs(i) * 45, .8);
+            if (puff) { puff.alpha = .45; puff.vx = i * 12; puff.image.setOrigin(.5, 20 / 24); }
+        }
+        this.scatter(x, y - 48, SNOW, 10, 35, 110, 650, false);
+        this.dust(x, floor, 'land', 1.3);
     }
     private scatter(x: number, y: number, tags: readonly string[], count: number, speed: number, gravity: number, life: number, bounce: boolean): void {
         // Sub-budgets keep loose embers sparse even during stacked XL bursts.
@@ -340,16 +431,26 @@ export class FxDirector {
     }
     private spatial(e: SpatialFx): void {
         if (!Number.isFinite(e.x) || !Number.isFinite(e.y)) return;
+        if (this.background.emit(e)) return;
+        if (e.bg) this.pool.backgroundFactor = Number.isFinite(e.scrollFactor) ? Math.max(0, Math.min(1, e.scrollFactor!)) : .3;
+        try { this.spatialRecipe(e); } finally { this.pool.backgroundFactor = undefined; }
+    }
+    private spatialRecipe(e: SpatialFx): void {
         if (e.effect === 'ice_skid') this.explicitDustUntil = this.ctx.time.now + 250;
-        if (this.campaign.emit(e)) return;
+        // Campaign markers/chains sample terrain and schedule world effects: never run those in a backdrop.
+        if (!e.bg && this.campaign.emit(e)) return;
         const scale = Math.max(0.25, Math.min(2, e.scale ?? 1));
         switch (e.effect) {
+            case 'ice_impact': if (!e.bg) this.impact(e.x, e.y, 'ice'); break;
             case 'boss_cannon_charge': case 'boss_flame_reach': case 'boss_charge_lane':
                 this.anticipate(e); break;
             case 'dust_run': case 'dust_skid': case 'dust_land':
                 this.explicitDustUntil = this.ctx.time.now + 250;
                 this.dust(e.x, e.y, e.effect === 'dust_run' ? 'run' : e.effect === 'dust_skid' ? 'skid' : 'land', scale); break;
-            case 'splash': case 'waterfall': this.splash(e.x, e.y); break;
+            case 'splash': case 'waterfall':
+                if (e.bg) this.pool.spawn('dust', 'fx_water_splash_fall', e.x, e.y, 0, scale);
+                else this.splash(e.x, e.y);
+                break;
             case 'steam': case 'vent_steam': {
                 let vents = 0;
                 for (const slot of this.pool.slots) if (slot.live && slot.clip?.texture === 'fx_steam') vents++;
@@ -359,7 +460,7 @@ export class FxDirector {
                 break;
             }
             case 'debris': this.scatter(e.x, e.y, e.material === 'metal' ? METAL : e.material === 'wood' ? WOOD : ROCK, Math.min(24, e.count ?? 6), 90, 320, 700, true); break;
-            case 'shield_spark': this.queueImpact(e.x, e.y, 'shield', true); break;
+            case 'shield_spark': if (e.bg) this.impact(e.x, e.y, 'shield'); else this.queueImpact(e.x, e.y, 'shield', true); break;
             case 'shockwave': this.pool.spawn('dust', 'fx_shockwave_expand', e.x, e.y, 0, scale)?.image.setDepth(DEPTH.DECALS + 1); break;
             case 'muzzle_enemy': {
                 const s = this.pool.spawn('muzzle', 'fx_muzzle_pistol_right', e.x, e.y, 0, scale, true);
@@ -372,6 +473,7 @@ export class FxDirector {
                 break;
             }
             case 'scorch': {
+                if (e.bg) break; // Background artwork has no gameplay ground to attach to.
                 const ground = this.ctx.physics.groundBelow(e.x, e.y, 24);
                 if (ground === null || this.ctx.physics.hazardAt(e.x, ground) === 'water' || this.ctx.physics.oneWayAt(e.x, ground)) break;
                 const s = this.pool.spawn('decal', 'fx_scorch_round', e.x, ground, 0, scale, true);
@@ -441,6 +543,12 @@ export class FxDirector {
         if (!this.ctx.time.paused) this.realClock += rawDt;
         if (this.slowPending && this.stop === 0 && !this.ctx.time.frozen) { this.ctx.fx.slowmo(this.slowScale, this.slowMs); this.slowPending = false; }
         this.pool.update(dt);
+        this.background.update(dt);
+        this.trailDebt += dt;
+        if (dt > 0 && this.trailDebt >= FX.weapons.trailInterval) {
+            this.trailDebt %= FX.weapons.trailInterval; this.trailsThisFrame = 0;
+            this.ctx.projectiles.forEach(this.projectileTrail);
+        }
         this.campaign.update(dt, this.ctx.time.paused ? 0 : rawDt);
         this.weather.begin(dt);
         this.observeMovement(dt);
@@ -474,13 +582,14 @@ export class FxDirector {
         this.frameCpu += elapsed;
     }
     private reset(): void {
+        this.background.reset(); this.arenas.clear(); this.trailDebt = 0;
         this.pool.clear(); this.campaign.reset(); this.defeated = false; this.impactCount = 0; this.shake = this.stop = 0; this.bossDying = this.slowPending = this.criticalStop = false; this.lastStop = -1000;
         this.lastX = this.lastY = NaN; this.wasWater = false; this.ambientEnabled = true;
         for (const p of this.popups) { p.age = FX.popup.life; p.text.setVisible(false); }
     }
     private destroy(): void {
         this.offUpdate(); this.ctx.scene.events.off(Phaser.Scenes.Events.POST_UPDATE, this.flush, this);
-        this.campaign.destroy(); this.weather.destroy(); this.filters.destroy(); this.pool.destroy();
+        this.background.destroy(); this.campaign.destroy(); this.weather.destroy(); this.filters.destroy(); this.pool.destroy();
         for (const p of this.popups) p.text.destroy();
     }
 }

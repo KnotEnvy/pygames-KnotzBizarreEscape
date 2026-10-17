@@ -9,6 +9,7 @@ export function installGallery(ctx: GameContext, fx: FxDirector): void {
     if (weather) fx.preview(weather);
     if (mode === 'phasee' || mode === 'derail') fx.preview(mode === 'derail' ? 'train' : 'blizzard');
     const sizes: ExplosionSize[] = ['s', 'm', 'l', 'xl'];
+    const backgrounds = ['bg_flak', 'bg_explosion', 'bg_lightning', 'aurora', 'bg_birds', 'bg_smoke_plume', 'bg_avalanche', 'bg_mist'];
     let elapsed = 0, step = 0;
     ctx.debug.register('fxGallery', () => ({ mode, step }));
     ctx.onUpdate(dt => {
@@ -19,7 +20,19 @@ export function installGallery(ctx: GameContext, fx: FxDirector): void {
         const x = view.left + view.width * 0.62;
         const y = (ctx.physics.groundBelow(x, view.top) ?? view.bottom - 20) - 12;
         const emit = (e: SpatialFx): void => ctx.events.emit('fx:emit', e);
-        if (mode === 'phasee') {
+        if (mode === 'background' || backgrounds.includes(mode ?? '')) {
+            const effect = mode === 'background' ? backgrounds[step % backgrounds.length] : mode!;
+            const cam = ctx.scene.cameras.main, sf = .3;
+            emit({ effect, x: x - cam.scrollX * (1 - sf), y: view.top + (effect === 'bg_smoke_plume' || effect === 'bg_mist' ? 100 : 38) - cam.scrollY * (1 - sf),
+                bg: true, scrollFactor: sf, duration: effect === 'aurora' ? 18000 : undefined });
+        } else if (mode === 'phasef') {
+            const materials = ['flesh', 'metal', 'wood', 'snow'] as const;
+            for (let i = 0; i < materials.length; i++) ctx.events.emit('projectile:impact', { x: view.left + 80 + i * 48, y: y - 12, material: materials[i], team: 'player', weapon: i === 1 ? 'hmg' : 'pistol' });
+            emit({ effect: 'ice_impact', x: view.left + 280, y: y - 12 });
+            if (step % 3 === 0) ctx.events.emit('enemy:killed', { x: view.left + 110, y, kind: 'grunt', cause: 'bullet', score: 0 });
+            if (step % 3 === 1) ctx.events.emit('explosion', { x, y, size: sizes[step % 4], team: 'neutral' });
+            if (step % 3 === 2) ctx.events.emit('player:shoot', { weapon: 'laser', x: view.left + 100, y: y - 18, angle: 0 });
+        } else if (mode === 'phasee') {
             switch (step % 8) {
                 case 0: emit({ effect: 'ice_skid', x, y: y + 12, count: 8 }); break;
                 case 1: emit({ effect: 'ice_crack', x, y: y + 12, width: 64, duration: 1100 }); break;

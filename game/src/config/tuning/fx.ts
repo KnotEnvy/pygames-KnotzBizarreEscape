@@ -14,6 +14,8 @@ export const FX = {
     },
     ambientRate: { snow: 6, embers: 3, fireflies: 1, steam: 1.2, train: 22, tunnel: 0, blizzard: 30 },
     weather: { drift: 180, snowCap: 48, tunnelAlpha: 0.84, lampSpacing: 192, blizzardAlpha: 0.075 },
+    background: { slots: 8, motes: 96, perEffect: 24, depth: 18, redrawMs: 1000 / 30 },
+    weapons: { trailInterval: 55, trailPerFrame: 6, hmgSparkInterval: 70, laserGlowInterval: 80 },
     campaign: { revealMs: 380, midbossStop: 90, midbossSlowScale: 0.5, midbossSlowMs: 650 },
     casing: { gravity: 350, life: 650, interval: 1000 / 14 },
     decalMs: 8000,

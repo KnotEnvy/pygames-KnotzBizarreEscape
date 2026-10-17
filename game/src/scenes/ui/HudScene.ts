@@ -1,6 +1,9 @@
 // HUD overlay (launched by GameScene): 1UP + score + lives, ARMS/BOMB with the weapon icon, rescue tally, weapon
 // callouts, GO! arrow on camera unlock, the boss bar, floating score popups and level prompts. Everything is
 // driven by bus events; the layout follows GDD §9 and the Phase A mock (384×216).
+// Phase F juice: the boss WARNING banner (boss:intro), a score counter that bumps while it rolls and blinks when it
+// locks, a low-ammo blink with a soft click, a weapon-icon drop-and-bounce on a weapon change, multi-kill callouts
+// (NICE! / GREAT! / EXCELLENT!, one per 1.4 s and only when the tier rises) and a POW "THANK YOU!" flourish.
 import Phaser from 'phaser';
 import { getContext, hasAnim, registerDebug, tagFrame, type GameContext, type GameEvents } from '../../core';
 import { getAudio } from '../../audio';
@@ -8,6 +11,7 @@ import { UI } from '../../config/tuning/ui';
 import { C, F, W, WEAPON_NAMES, icon, pad, panel, text } from '../../ui/widgets';
 import { Callout } from '../../ui/callout';
 import { TitleCard } from '../../ui/titlecard';
+import { WarningBanner } from '../../ui/warning';
 import { fadeOut, wipeIn } from '../../ui/transitions';
 import { takePendingPart, uiDebug } from '../../ui';
 
@@ -62,6 +66,15 @@ export class HudScene extends Phaser.Scene {
     private killChain = 0;
     private lastKillAt = -1e9;
     private cleared = false;
+    // Phase F juice
+    private warning!: WarningBanner;
+    private combo!: Callout;
+    private comboTier = 0;
+    private lastComboAt = -1e9;
+    private blinkOn = false;
+    private scoreRolling = false;
+    private scoreLock = 0;
+    private scoreBaseY = 5;
     /** Phase E: part title card + Hazel's radio box. */
     private card!: TitleCard;
 
@@ -94,7 +107,10 @@ export class HudScene extends Phaser.Scene {
         bus.on('enemy:killed', e => this.onKill(e));
         bus.on('ui:prompt', e => this.showPrompt(e.text, e.ms));
         bus.on('stage:clear', e => { this.missionOver = true; this.onClear(e.final ?? ctx.part?.final ?? true); });
-        bus.on('game:over', () => { this.callout.hide(); this.hidePrompt(); this.card.hide(true); });
+        bus.on('game:over', () => { this.callout.hide(); this.combo.hide(); this.warning.hide(); this.hidePrompt(); this.card.hide(true); });
+        // Phase F: WARNING banner (the siren is the audio wiring's) and the POW thank-you.
+        bus.on('boss:intro', e => { this.card.cut(); this.callout.hide(); this.warning.show(e.name); });
+        bus.on('pow:freed', e => this.popup(e.x, e.y - UI.hud.powThanks.riseY, UI.hud.powThanks.text, C.sand5));
         // Phase E: the part:start the Game emitted before this scene existed, then any later one.
         const pending = takePendingPart();
         if (pending) this.card.show(pending, uiDebug.intro ? UI.titleCard.afterIntroMs : UI.titleCard.delayMs);
@@ -106,7 +122,7 @@ export class HudScene extends Phaser.Scene {
             score: this.scoreText.text, lives: this.livesText.text, ammo: this.ammoText.text, bombs: this.bombText.text,
             weapon: this.weapon, rescued: this.rescuedText.text, go: this.goLeft > 0, boss: this.bossShown ? { name: this.bossName.text, hp: this.bossHp, max: this.bossMax } : null,
             callout: this.callout.text, prompt: this.promptShown ? this.promptText.text : '', popups: this.popups.filter(p => p.age < UI.hud.popup.life).length,
-            card: this.card.state
+            card: this.card.state, warning: this.warning.state, combo: this.combo.text, chain: this.killChain
         }));
         uiDebug.hud = 'running';
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { uiDebug.hud = null; });
@@ -152,6 +168,9 @@ export class HudScene extends Phaser.Scene {
         this.promptText = text(this, 0, 0, '', F.hud, [0.5, 0.5]);
         this.promptBox.add([this.promptPanel, this.promptText]);
         this.card = new TitleCard(this, 44);
+        // Phase F: WARNING banner and the multi-kill callout (small, below the weapon callout line).
+        this.warning = new WarningBanner(this, 48);
+        this.combo = new Callout(this, UI.hud.combo.y, 45);
     }
 
     private refreshAll(): void {
@@ -192,14 +211,33 @@ export class HudScene extends Phaser.Scene {
             uiDebug.lastCallout = name;
             getAudio(this).duck(0.6, 500, 300);
         }
+        if (announce && changed) this.iconPop();
+    }
+
+    /** Phase F: the weapon icon drops in from above and bounces into place, white for its first frames. */
+    private iconPop(): void {
+        const P = UI.hud.iconPop;
+        this.tweens.killTweensOf(this.weaponIcon);
+        this.weaponIcon.setY(3 + P.fromDy).setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+        this.tweens.add({ targets: this.weaponIcon, y: 3, duration: P.ms, ease: 'Bounce.easeOut' });
+        this.time.delayedCall(P.flashMs, () => this.weaponIcon.clearTint());
     }
 
     private setRescued(n: number): void {
+        const before = this.powIcons.length;
         for (const i of this.powIcons) i.destroy();
         this.powIcons = [];
         const shown = Math.min(n, 6);
         for (let i = 0; i < shown; i++) this.powIcons.push(icon(this, W - 4 - 16 * (i + 1), 3, 'ui_icons', 'icon_pow'));
         this.rescuedText.setText(`RESCUED ${n}`);
+        // Phase F: the newest face drops into the tally with a bounce (the "thank you" popup rises over the POW).
+        const fresh = this.powIcons[shown - 1];
+        if (fresh && shown > before && this.ctx) {
+            const P = UI.hud.powThanks;
+            fresh.setY(3 + P.iconFromDy).setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+            this.tweens.add({ targets: fresh, y: 3, duration: P.iconMs, ease: 'Bounce.easeOut' });
+            this.time.delayedCall(70, () => { if (fresh.active) fresh.clearTint(); });
+        }
     }
 
     private showGo(): void {
@@ -275,7 +313,28 @@ export class HudScene extends Phaser.Scene {
             const bonus = K.bonusPerExtra * (this.killChain - 1);
             this.ctx.state.score += bonus;
             this.popup(e.x, e.y - 42, `×${this.killChain} +${bonus}`, C.fire4);
-        }
+            this.comboCallout();
+        } else if (this.killChain === 1) this.comboTier = 0;
+    }
+
+    /** Phase F: NICE! / GREAT! / EXCELLENT! when the chain reaches a tier, at most one per `minGapMs`, never the same tier twice in a chain. */
+    private comboCallout(): void {
+        const K = UI.hud.combo;
+        let tier = 0;
+        for (let i = 0; i < K.tiers.length; i++) if (this.killChain >= K.tiers[i][0]) tier = i + 1;
+        if (tier === 0 || tier <= this.comboTier) return;
+        // A bigger word within the same chain replaces the one showing (one slot, so it never stacks); a new chain's
+        // first callout waits `minGapMs` after the previous one.
+        const upgrade = this.comboTier > 0;
+        if (!upgrade && this.clock - this.lastComboAt < K.minGapMs) return;
+        this.comboTier = tier;
+        this.lastComboAt = this.clock;
+        const word = K.tiers[tier - 1][1];
+        if (this.callout.active || this.warning.active) return;
+        this.combo.show(word, { font: tier >= 3 ? F.fire : F.sand, holdMs: K.holdMs, sfx: null });
+        const audio = getAudio(this);
+        if (upgrade) audio.stopRecent(K.sfx, 120);
+        audio.sfx(K.sfx, { detune: (tier - 1) * K.detunePerTier });
     }
 
     private showPrompt(str: string, ms?: number): void {
@@ -304,6 +363,8 @@ export class HudScene extends Phaser.Scene {
         this.cleared = true;
         this.hidePrompt();
         this.card.hide(true);
+        this.combo.hide();
+        this.warning.hide();
         const msg = final ? 'MISSION COMPLETE!' : 'PART CLEAR!';
         // The part-clear jingle comes from the audio wiring (music bus); the final ta-da stays on the callout.
         this.callout.show(msg, { font: final ? F.steel : F.fire, sfx: final ? 'mission_complete' : 'callout', holdMs: 2600 });
@@ -318,24 +379,33 @@ export class HudScene extends Phaser.Scene {
         if (!this.ctx) return;
         const dt = Math.min(100, delta);
         this.clock += dt;
-        // score tally
+        // score tally (Phase F: the counter bumps up a pixel while it rolls and blinks white as it locks in)
         if (this.shownScore !== this.score) {
             const diff = this.score - this.shownScore;
             const step = Math.abs(diff) < 1.5 ? diff : diff * Math.min(1, UI.hud.tallyRate * dt / 16);
             this.shownScore = Math.abs(diff) < 1.5 ? this.score : this.shownScore + (diff > 0 ? Math.max(1, step) : Math.min(-1, step));
             this.scoreText.setText(pad(this.shownScore, UI.hud.scoreDigits));
+            if (!this.scoreRolling) { this.scoreRolling = true; this.scoreText.setY(this.scoreBaseY - UI.hud.scoreRoll.bumpPx); }
+        } else if (this.scoreRolling) {
+            this.scoreRolling = false;
+            this.scoreLock = UI.hud.scoreRoll.lockFlashMs;
+            this.scoreText.setY(this.scoreBaseY).setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
         }
+        if (this.scoreLock > 0) { this.scoreLock -= dt; if (this.scoreLock <= 0) this.scoreText.clearTint(); }
         // lives flash
         if (this.livesFlash > 0) {
             this.livesFlash -= dt;
             this.livesText.setTint(Math.floor(this.livesFlash / 90) % 2 === 0 ? C.red4 : C.white);
             if (this.livesFlash <= 0) this.livesText.setTint(C.white);
         }
-        // low ammo blink
+        // low ammo blink (Phase F: a soft click on each red phase)
         this.blink += dt;
         if (Number.isFinite(this.ammo) && this.ammo <= UI.hud.lowAmmo && this.weapon !== 'pistol') {
-            this.ammoText.setTint(Math.floor(this.blink / 250) % 2 === 0 ? C.red4 : C.white);
-        } else this.ammoText.setTint(C.white);
+            const on = Math.floor(this.blink / UI.hud.lowAmmoBlinkMs) % 2 === 0;
+            this.ammoText.setTint(on ? C.red4 : C.white);
+            if (on && !this.blinkOn) getAudio(this).sfx(UI.hud.lowAmmoClick);
+            this.blinkOn = on;
+        } else { this.ammoText.setTint(C.white); this.blinkOn = false; }
         // GO!
         if (this.goLeft > 0) {
             this.goLeft -= dt; this.goT += dt;
@@ -359,6 +429,8 @@ export class HudScene extends Phaser.Scene {
         }
         // callout, title card (shoot/jump while Hazel types reveals the page; the card never blocks play)
         this.callout.update(dt);
+        this.combo.update(dt);
+        this.warning.update(dt);
         this.card.update(dt);
         if (this.card.radio.active && (this.ctx.input.justDown('shoot') || this.ctx.input.justDown('jump'))) this.card.skip();
         // popups

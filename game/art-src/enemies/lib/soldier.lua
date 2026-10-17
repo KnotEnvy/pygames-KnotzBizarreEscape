@@ -37,6 +37,9 @@ function D.soldier(im,kind,pose,f,n)
   R(20,9,12,7,'outline'); R(22,8,8,1,'outline'); R(21,10,10,5,'red3'); R(22,9,7,2,'red5'); R(21,11,3,3,'red4')
   R(19,14,16,2,'outline'); R(20,14,14,1,'red4'); R(26,10,5,4,'sand4'); R(27,11,3,2,'red1'); R(28,11,1,1,'sand5')
   if pose=='sleep' then R(26,16,7,2,'skin3'); R(26,17,6,1,'outline'); R(29,21,2,2,'skin1') end
+  -- Brief idle blink and a breathing satchel strap; timing/attack markers stay intact.
+  if pose=='idle' and f==4 then R(26,16,6,1,'skin2');R(26,17,6,1,'outline') end
+  if pose=='alert' then R(24,12,7,1,'skin1');R(25,13,6,1,'skin5') end
   if kind=='grenadier' then
     B(14,22,5,11,'sand2','sand4','sand1'); R(15,24,2,2,'olive4'); R(15,28,2,2,'olive4'); R(22,27,2,3,'olive2'); R(25,28,2,3,'olive3')
   end
@@ -90,6 +93,11 @@ function D.death(im,kind,pose,f,n)
     local sx=math.floor(24+(x-24)*cs+(y-24)*sn+0.5); local sy=math.floor(24-(x-24)*sn+(y-24)*cs+0.5)
     if sx>=0 and sx<48 and sy>=0 and sy<48 then im:drawPixel(x,y,tmp:getPixel(sx,sy)) end
   end end
+  -- Helmet separates on the last tumble, adding a readable little personality beat.
+  if f>=n-1 then
+   local hx=7+(f%2)*3;local hy=8+(f-(n-1))*5
+   D.box(im,hx,hy,9,5,'red3','red5','red1');D.line(im,hx-1,hy+4,hx+10,hy+4,'outline')
+  end
 end
 function D.infantry(kind)
   local A={}

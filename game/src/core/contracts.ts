@@ -170,6 +170,17 @@ export interface CameraService {
     snapTo(x: number, y: number): void;
     /** Visible world rect (shared object, updated every frame). */
     view(): Phaser.Geom.Rectangle;
+    /** Cinematic bars (top and bottom, about 14 px each) slide in/out over `ms`. */
+    letterbox(on: boolean, ms?: number): void;
+    /** Brief zoom in and back (peak zoom 1 + amount, capped). No-op when the screen-shake option is off. */
+    zoomPunch(amount: number, ms?: number): void;
+    /** Ease the view toward a world point over `ms` (capped push; the player always stays on screen). Cosmetic:
+     *  view(), edges and clamps stay on the follow camera. */
+    focus(x: number, y: number, ms?: number): void;
+    /** Ease back from focus() to the normal follow over `ms`. */
+    release(ms?: number): void;
+    /** True while the auto boss-intro cinematic runs. */
+    inCinematic(): boolean;
 }
 
 export interface AudioService {

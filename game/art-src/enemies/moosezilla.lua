@@ -14,6 +14,15 @@ local function body(im,f,damage)
   for a=0,3 do local t=a*math.pi/2+f*.08; D.line(im,48,39,48+math.cos(t)*6,39+math.sin(t)*6,'sand5') end
   D.disc(im,48,39,2,'red4')
   D.box(im,75,17,16,14,'steel1','sand4','outline'); D.disc(im,83,23,4,'sand5'); D.line(im,83,23,81,20,'red3')
+  -- Reciprocating chrome pistons and ribbed pressure bellows.
+  local breath=({0,1,2,1})[(f-1)%4+1]
+  for _,x in ipairs({18,91}) do
+   D.box(im,x,16,9,17,'steel1','steel4','outline')
+   D.rect(im,x+3,18,3,8+breath,'steel5');D.rect(im,x+4,18,1,8+breath,'white')
+   for y=27,34,3 do D.line(im,x-1,y+breath,x+9,y+breath,'sand2',2);D.line(im,x,y+breath,x+8,y+breath,'sand5') end
+  end
+  D.line(im,12,54,100,54,'steel3');D.line(im,15,55,28,55,'dirt3')
+  for _,x in ipairs({20,60,85}) do D.line(im,x,47,x+7,48,'dirt2');K.px(im,x+2,46,'dirt4') end
   -- Stacks and rhythmic vent shutters.
   D.box(im,54,4,10,25,'steel2','steel4','steel1'); D.box(im,51,3,16,5,'steel3','steel5','steel1')
   D.box(im,32,5,9,14,'steel2','steel4','steel1'); D.box(im,30,4,13,4,'steel3','steel5','steel1')
@@ -35,36 +44,45 @@ local function steam(im,f)
 end
 D.build('moosezilla_body',112,64,{
  D.anim('moosezilla_body_idle',4,160,function(im,f) body(im,f,0) end),
+ D.anim('moosezilla_body_intro',8,130,function(im,f) body(im,(f-1)%4+1,0);D.rect(im,70,36,2,7,f>3 and 'weird5' or 'weird2') end),
  D.anim('moosezilla_body_vent',4,120,steam),
  D.anim('moosezilla_body_damaged',4,140,function(im,f) body(im,f,1) end),
  D.anim('moosezilla_body_critical',4,100,function(im,f) body(im,f,2) end)})
 local function legs(im,f,back,pose)
   local stride=({-7,-4,1,6,7,4,-1,-6})[(f-1+(back and 4 or 0))%8+1]
   if pose=='idle' then stride=0 end
+  if pose=='intro' then stride=({0,-3,-6,-7,-4,2,1,0})[f] end
   if pose=='stomp' then stride=f<3 and -5 or 3 end
   if pose=='paw' then stride=({-4,-8,2,5})[f] end
   for j=0,1 do
     local x=21+j*57; local s=j==0 and stride or -stride
-    local lift=pose=='stomp' and j==1 and f<3 and 10 or (s<0 and math.floor(-s/2) or 0)
+    local lift=pose=='intro' and j==1 and ({0,4,9,13,11,5,1,0})[f] or pose=='stomp' and j==1 and f<3 and 10 or (s<0 and math.floor(-s/2) or 0)
     local footX=x+s; local footY=43-lift
     D.disc(im,x,8,8,'outline'); D.disc(im,x,8,6,back and 'steel2' or 'sand3'); D.disc(im,x-2,6,3,back and 'steel3' or 'sand5')
     D.limb(im,x,12,x-s/2,25-lift/2,back and 'steel1' or 'steel3',back and 'steel3' or 'steel5',4)
     D.limb(im,x-s/2,25-lift/2,footX,footY-6,back and 'steel2' or 'sand2',back and 'steel3' or 'sand4',3)
     D.box(im,footX-9,footY-4,20,8,back and 'steel1' or 'steel2','steel4','outline')
     D.box(im,footX-6,footY-1,5,5,'steel1','steel3'); D.box(im,footX+3,footY-1,6,5,'steel1','steel3')
+    -- Parallel chrome piston visibly breathes below the torso plating.
+    local stroke=pose=='idle' and ({0,1,2,1})[(f-1)%4+1] or 0
+    D.line(im,x+5,12,x-s/2+5,22-lift/2+stroke,'outline',3)
+    D.line(im,x+5,12,x-s/2+5,22-lift/2+stroke,back and 'steel3' or 'steel5')
+    D.line(im,x-s/2+5,22-lift/2+stroke,footX+4,footY-6,'sand2',2)
+    if not back then D.line(im,x-s/2+5,23-lift/2+stroke,footX+4,footY-6,'sand5') end
     D.disc(im,x-s/2,25-lift/2,5,'outline'); D.disc(im,x-s/2,25-lift/2,3,back and 'steel2' or 'red3'); D.rivet(im,x-s/2-1,24-lift/2)
   end
 end
 for _,side in ipairs({'back','front'}) do
  local back=side=='back'; local name='moosezilla_legs_'..side
  D.build(name,104,48,{
-  D.anim(name..'_idle',1,160,function(im,f) legs(im,f,back,'idle') end),
+  D.anim(name..'_idle',4,160,function(im,f) legs(im,f,back,'idle') end),
+  D.anim(name..'_intro',8,130,function(im,f) legs(im,f,back,'intro') end),
   D.anim(name..'_walk',8,100,function(im,f) legs(im,f,back,'walk') end),
   D.anim(name..'_stomp',4,{180,180,70,160},function(im,f) legs(im,f,back,'stomp') end),
   D.anim(name..'_paw',4,125,function(im,f) legs(im,f,back,'paw') end)})
 end
 local function head(im,f,pose)
-  local yy=pose=='roar' and -1 or (f%4==2 and 1 or 0)
+  local yy=pose=='intro' and -3 or pose=='roar' and -1 or (f%4==2 and 1 or 0)
   -- Neck collar, forehead, elongated drooping moose muzzle.
   D.limb(im,12,38,20,18,'steel2','steel4',10)
   for j=0,2 do D.line(im,6+j*4,28,19+j*4,34,'sand3',2) end
@@ -76,6 +94,10 @@ local function head(im,f,pose)
   D.disc(im,57,45+yy,5,'outline'); D.disc(im,57,45+yy,4,'sand3'); D.rect(im,55,43+yy,5,2,'sand1'); D.rect(im,57,44+yy,2,1,'outline'); D.rect(im,49,44+yy,7,4,'sand2'); D.line(im,40,45+yy,60,45+yy,'sand1')
   D.rect(im,40,33+yy,17,4,'sand3'); D.rect(im,55,35+yy,5,6,'sand1'); D.rect(im,56,36+yy,3,2,'outline')
   D.box(im,23,18+yy,14,9,'steel1','sand4','outline'); D.rect(im,26,20+yy,9,4,'red4'); D.rect(im,28,20+yy,5,2,'fire5'); K.px(im,29,20+yy,'white')
+  -- Pulse stays inside the eye socket: no scene-wide flash.
+  if pose=='intro' or f%4==2 then D.rect(im,26,20+yy,9,3,'weird4');D.rect(im,28,20+yy,5,2,'weird5');K.px(im,29,20+yy,'white') end
+  D.line(im,24,8+yy,33,10+yy,'red5');D.line(im,34,11+yy,39,15+yy,'red2')
+  D.line(im,42,32+yy,49,33+yy,'sand5');D.line(im,43,40+yy,48,41+yy,'dirt2')
   D.line(im,22,17+yy,36,20+yy,'outline',2); D.line(im,22,16+yy,35,18+yy,'sand5')
   -- Large leaf-shaped ears project out from both sides of the crown.
   D.limb(im,22,11+yy,9,4+yy,'sand2','sand4',5)
@@ -91,13 +113,14 @@ local function head(im,f,pose)
   if pose=='flame' then
     D.box(im,39,40+yy,20,7,'fire2','fire4'); D.line(im,42,42+yy,58,42+yy,f>2 and 'white' or 'fire5',2)
     if f>2 then D.disc(im,60,42+yy,3,'fire4'); D.disc(im,61,42+yy,2,'fire5') end
-  elseif pose=='roar' then
+  elseif pose=='roar' or pose=='intro' then
     local gap=({3,6,9,4})[f]
     D.box(im,40,37+yy,18,gap+2,'ink1','sand3'); D.line(im,42,38+yy,55,38+yy,'sand5'); D.line(im,43,38+gap+yy,55,38+gap+yy,'red2')
   end
 end
 D.build('moosezilla_head',64,56,{
  D.anim('moosezilla_head_idle',4,150,function(im,f) head(im,f,'idle') end),
+ D.anim('moosezilla_head_intro',8,130,function(im,f) head(im,(f-1)%4+1,'intro') end),
  D.anim('moosezilla_head_jaw',4,100,function(im,f) head(im,f,'roar') end),
  D.anim('moosezilla_head_roar',4,{180,180,120,120},function(im,f) head(im,f,'roar') end),
  D.anim('moosezilla_head_flame',4,{200,200,100,100},function(im,f) head(im,f,'flame') end)})
@@ -165,15 +188,23 @@ local function cannon(im,f,side,broken)
  if f==2 then D.rect(im,57,27,3,2,'fire4') end
  if f==3 then D.flash(im,70,28,0) end
 end
+local function crackedTines(im,f)
+ D.rect(im,29,3,11,6,{0,0,0,0});D.line(im,31,10,36,12,'steel1',2)
+ D.line(im,45,18,49,23,'outline');D.line(im,45,17,49,22,'sand5')
+ if f==2 then D.flash(im,35,10,0) end
+end
 for _,side in ipairs({'l','r'}) do local name='moosezilla_antler_'..side
  D.build(name,80,48,{
-  D.anim(name..'_idle',1,140,function(im) cannon(im,1,side,false) end),
+  D.anim(name..'_idle',4,160,function(im,f) local tmp=Image(80,48,ColorMode.RGB);cannon(tmp,1,side,false);im:drawImage(tmp,Point(0,f==2 and -1 or 0)) end),
+  D.anim(name..'_intro',8,130,function(im,f) local tmp=Image(80,48,ColorMode.RGB);cannon(tmp,1,side,false);im:drawImage(tmp,Point(0,({1,0,-1,-2,-2,-1,0,0})[f])) end),
+  D.anim(name..'_damaged',4,140,function(im,f) cannon(im,1,side,false);crackedTines(im,f) end),
+  D.anim(name..'_fire_damaged',4,{160,160,60,100},function(im,f) cannon(im,f,side,false);crackedTines(im,f) end),
   D.anim(name..'_fire',4,{160,160,60,100},function(im,f) cannon(im,f,side,false) end),
   D.anim(name..'_broken',2,140,function(im,f) cannon(im,f,side,true) end)})
 end
-D.build('moosezilla_armor',80,40,{
- D.anim('moosezilla_armor_intact',1,140,function(im)
+local function armor(im,f,damage)
   D.box(im,2,3,75,32,'red2','sand4','red1'); D.box(im,7,7,65,24,'red3','red5','red1')
+  D.rect(im,10,9,58,3,'red4');D.rect(im,10,24,58,4,'red2');D.line(im,11,12,64,12,'red3');
   D.rect(im,8,9,3,19,'red4'); D.rect(im,67,9,4,20,'red2'); D.line(im,11,9,62,9,'red4'); D.line(im,9,28,65,28,'red2',2)
   D.line(im,4,3,74,3,'sand2'); D.line(im,4,33,74,33,'steel1')
   for j=0,4 do D.line(im,49+j*4,12,49+j*4,25,'red1',2) end
@@ -182,8 +213,27 @@ D.build('moosezilla_armor',80,40,{
   D.line(im,16,19,23,14,'red1'); D.line(im,23,14,32,18,'red1'); D.line(im,16,19,23,23,'red1'); D.line(im,23,23,32,18,'red1')
   D.line(im,23,16,28,16,'red2'); D.line(im,28,16,28,21,'red2'); D.line(im,28,21,22,21,'red2'); D.line(im,22,21,22,18,'red2'); D.line(im,22,18,25,18,'red2'); K.px(im,25,19,'red1')
   D.line(im,12,12,17,12,'sand4'); D.line(im,57,28,62,27,'sand2'); K.px(im,13,13,'red1')
+  for x=15,67,13 do D.rivet(im,x,5);D.line(im,x,6,x+1,9,'red1') end
   for _,p in ipairs({{5,5},{72,5},{5,32},{72,32},{41,5},{41,32}}) do D.rivet(im,p[1],p[2]) end
- end),
+  -- Welds, chipped paint and rain/oil streaks; strongest light is top-left.
+  D.line(im,12,10,37,10,'red5');D.line(im,14,29,29,29,'sand2')
+  for _,x in ipairs({13,39,61}) do D.line(im,x,22,x+2,26,'red1');K.px(im,x+1,21,'red4') end
+  if damage>0 then
+   D.line(im,42,4,38,12,'outline',2);D.line(im,38,12,45,19,'outline',2);D.line(im,45,19,40,31,'outline',2)
+   D.line(im,43,4,40,11,'sand4');D.line(im,46,19,42,28,'red5')
+   D.box(im,54,22,16,9,'steel1','steel4','outline');D.line(im,56,24,65,28,'red4');D.line(im,65,24,60,29,'sand4')
+  end
+  if damage==2 then
+   -- Missing corner plate exposes a hot rib cage, but the core remains gated by phase 3.
+   D.rect(im,49,8,22,13,'steel1');for x=51,67,4 do D.line(im,x,10,x,18,'weird2',2);K.px(im,x,12+f%3,'weird4') end
+   D.line(im,47,7,72,7,'steel5');D.line(im,11,30,20,24,'outline',2)
+   if f%2==0 then D.flash(im,57,25,0) end
+  end
+end
+D.build('moosezilla_armor',80,40,{
+ D.anim('moosezilla_armor_intact',4,160,function(im,f) armor(im,f,0) end),
+ D.anim('moosezilla_armor_damaged',4,140,function(im,f) armor(im,f,1) end),
+ D.anim('moosezilla_armor_critical',4,120,function(im,f) armor(im,f,2) end),
  D.anim('moosezilla_armor_falling',4,100,function(im,f)
   -- Fragment fan remains in its own canvas; Phase B applies outward velocity.
   for j=0,2 do local x=5+j*25; local y=3+((j+f)%3)*5
@@ -196,9 +246,10 @@ D.build('moosezilla_core',32,32,{
   D.disc(im,16,16,5+(f%3),'weird2'); D.disc(im,15,15,4+(f%2),'weird4'); D.disc(im,14,14,2,'weird5'); K.px(im,13,13,'white')
   for j=0,3 do local a=j*math.pi/2; D.rivet(im,16+math.cos(a)*12,16+math.sin(a)*12) end
  end)})
-D.build('moosezilla_debris',24,24,{
+D.build('moosezilla_debris',36,36,{
+ D.anim('moosezilla_debris_horn',1,120,function(im) D.limb(im,5,29,22,18,'sand2','sand5',5);D.limb(im,22,18,29,5,'steel3','steel5',4);D.line(im,22,18,15,7,'steel3',3);D.line(im,5,27,10,31,'fire4') end),
  D.anim('moosezilla_debris_bolt',1,120,function(im) D.disc(im,12,12,6,'outline'); D.disc(im,12,12,4,'steel4'); D.line(im,9,10,14,14,'steel1',2) end),
- D.anim('moosezilla_debris_plate',1,120,function(im) D.box(im,3,4,17,15,'red2','red5','red1'); D.rivet(im,5,6); D.line(im,8,7,16,16,'sand2') end),
+ D.anim('moosezilla_debris_plate',1,120,function(im) D.box(im,3,4,28,24,'red2','red5','red1');D.box(im,6,7,21,16,'red3','red4','red1');D.rivet(im,5,6);D.rivet(im,27,25);D.line(im,8,7,22,22,'sand2');D.line(im,15,8,11,15,'outline',2);D.line(im,11,15,18,23,'outline',2) end),
  D.anim('moosezilla_debris_gear',1,120,function(im)
   for j=0,7 do local a=j*math.pi/4; D.box(im,10+math.cos(a)*8,10+math.sin(a)*8,5,5,'sand2','sand4') end
   D.disc(im,12,12,8,'outline'); D.disc(im,12,12,6,'sand3'); D.disc(im,12,12,3,'outline'); K.px(im,9,9,'sand5')

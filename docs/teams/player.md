@@ -267,3 +267,37 @@ Verification used only the requested screenshot tool and fast checks, with the e
 Additional inspected captures: `/tmp/kbe-player/aim-{spread,rocket,flame}-{down-forward,down}.png`, `aim-down-left.png`, `aim-hmg-sweep.png`, `aim-knife.png`, `aim-grenade.png`, and `aim-weapons-final.png`. Also inspected `aim-unlocked-down.png`, `aim-air-down.png`, and `aim-air-unlocked-down.png`: unlocked grounded Down remains angle 0 / `crouch_fwd` with an 18 px body; locked and unlocked air Down remain π/2 / `aim_down` with a 30 px body. Matching `steps-aim-*.json` / `aim-*.log` files retain reproducible inputs and event telemetry. Pistol/HMG/spread/laser emit normal snow-floor impacts, rocket emits its normal explosion (two verified), and flame's gap check emits snow impacts at the floor. HMG sweeps across down-diagonal/down/back while held. Knife against a temporary registered in-range enemy hurtbox produces exactly one accepted 4-damage melee hit; grenade count changes 10→9 with normal `(facing*10,-33)` release.
 
 `npm run check` passes: strict TypeScript and Phaser 4 scanner, **98 files / zero errors / zero warnings**. `npm run audit` passes reachability and every arena for **all three parts**. Log: `/tmp/kbe-player/aim-audit.log`. Browser tools required running outside the filesystem sandbox to bind their local Vite port. No commits, index changes, branch operations, or other git state changes were performed.
+
+## Phase F — Knotz hero art and animation (2026-10-17)
+
+The hero now has a rolled/scuffed helmet rim and chin strap, fluttering red bandana tails, shaded canvas webbing and fastened pouches, trouser seams/knee reinforcements, boot cuffs/laces/toe highlights, and separated thumbs/fingers. All pixels use `docs/palette.gpl`; the 1 px outline, 48×48 canvases, `(24,48)` feet pivot, shared split-layer positions, 6 px crouch lowering, and the Heights contract above are preserved.
+
+Idle has chest/shoulder breathing, a short blink and four tail poses with asymmetric 360/140/620/80 ms timing. Laser cells brighten and the flame pilot flickers. Run retains its eight contact/passing poses and runtime torso bob/sway, at 75 ms per frame. `knotz_legs_jump_rise` now has three frames: 35 ms compression, 55 ms extension and a held 100 ms tuck; it plays once. Existing landing compression and recovery receive the richer legs/boots. Death has a startled face, thrown hands, a continuous backward fall and a settled body (no blank/flickering cels); respawn has tucked/spread legs and a crouched impact; victory salutes then holds a two-finger greeting. The existing `stage:clear` listener plays this for both part and final-stage clear.
+
+Each weapon has its own torso profile in **every one of the eight aim/crouch poses**, plus three recoil frames, knife and grenade throw. Pistol is compact with a grip; HMG has a vented jacket and ammunition belt; spread has a wooden stock and ribbed foregrip; laser has charge cells and forked emitter; rocket has a broad olive tube, clamp, sight and red muzzle collar; flame has a brass chamber, hose, pilot and fuel tank. HMG retains `knotz_torso_heavy` / `knotz_heavy_*`. Added `knotz_torso_{spread,laser,rocket,flame}` with matching `knotz_<weapon>_*` global animation prefixes. All historical keys remain. Each torso has **65 frames / 18 tags**; legs have **29 frames / 9 tags**; full body has **22 frames / 3 tags**. Total: **8 hero sheets, 441 frames, 120 tags**.
+
+### Paths and build
+
+- Authoring: `game/art-src/player/build.lua`, `game/art-src/player/lib/poses.lua`; editable `game/art-src/player/knotz_{legs,full,torso_pistol,torso_heavy,torso_spread,torso_laser,torso_rocket,torso_flame}.aseprite`.
+- Runtime: corresponding eight PNG/JSON pairs in `game/public/assets/sprites/player/`; refreshed `knotz_meta.json`; new torso entries in `game/public/assets/packs/player.json`.
+- Presentation integration only: `game/src/entities/player/controller.ts` selects the torso for the equipped weapon; `game/src/entities/player/animations.ts` sets the new torso loop policy and holds the final jump-rise cel. No weapon, input, movement, collision, damage, ammunition, projectile or timing tuning changed.
+- Build from repo root: `bash game/tools/build-art.sh art-src/player/build.lua`.
+
+### Verification and evidence
+
+`npm run check` passes (strict TypeScript; Phaser 4 scan: 98 files, zero errors/warnings). `npm run audit` passes reachability and every arena/boss in **1-1, 1-2 and 1-3**, using turbo simulation, not a real-time bot. The audit and screenshot tool needed their local Vite/Chromium server outside the filesystem sandbox.
+
+Pixel/contract audit: **441 nonempty 48×48 frames**, master palette only, binary alpha, unique `knotz_` tags. All **32 pre-pass muzzle records compare identically**, including every frame's recoil offset/direction; the four added weapon variants use the heavy contract and short 12 px straight-down crouch barrel. Metadata now includes **96 muzzle records** and atlas-derived inventories for all eight sheets. Art check log: `/tmp/kbe-player/f-art-check.log`.
+
+Final nearest-neighbor **2× contact sheet of every hero animation/frame**: `/tmp/kbe-player/f-contact.png` (1440×5442). Inspected this and the eight larger 4× per-sheet composite strips `/tmp/kbe-player/f-knotz_*.png`. Split poses are assembled with legs/torso, so seam and silhouette are visible.
+
+All following `tools/shot.mjs` captures were opened and visually inspected, with clean consoles, no runtime/load errors, and weapons equipped through `__KBE.cheats.give(...)`:
+
+- Camp / `part=1-1`: `/tmp/kbe-player/f-part1-pistol.png`, `f-part1-hmg-run.png`, `f-part1-laser-down.png`.
+- Train / `part=1-2`: `/tmp/kbe-player/f-part2-rocket.png`, `f-part2-rocket-down45.png`, `f-part2-spread-up45.png`, `f-part2-flame.png`, `f-part2-victory.png`.
+- Crash site / `part=1-3`: `/tmp/kbe-player/f-part3-laser-up.png`, `f-part3-flame-down.png`, `f-part3-pistol-left.png`, `f-part3-victory.png`.
+- Frozen lake / `part=1-3&x=1100`: `/tmp/kbe-player/f-part3-lake-hmg.png`, `f-part3-lake-rocket.png`.
+- Trigger/recoil for all six weapons: `/tmp/kbe-player/f-fire-{pistol,hmg,laser,rocket,flame,spread}.png`. Also `/tmp/kbe-player/f-jump.png`, `f-death.png`, `f-respawn.png`. Respawn's existing invulnerability blink remains visible; the full-body contact strip shows the art at full opacity.
+- Reproducible inputs: `/tmp/kbe-player/f-steps-{part1,part2,part3,lake,fire,clear}.json`. Logs: `/tmp/kbe-player/f-{part1,part2,part3,lake,fire,clear}.log`. Additional final captures: `f-part{1,2,3}-final.png`, `f-{lake,fire,clear}-final.png` in the same directory.
+
+No git commands, commits, index changes, branch operations, or other git-state changes were performed.

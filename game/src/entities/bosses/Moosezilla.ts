@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { BossDebris } from './BossDebris';
 import { DEPTH, type GameContext, type HitInfo, type Hurtbox } from '../../core';
 import { ENEMIES } from '../../config/tuning/enemies';
 import { animate, visible } from '../enemies/Enemy';
@@ -11,8 +12,13 @@ type FlyingPart = { sprite: Phaser.GameObjects.Sprite; vx: number; vy: number; s
 export class Moosezilla extends Phaser.GameObjects.Container {
     hp: number = ENEMIES.boss.hp;
     phase = 1;
-    state = 'roar';
-    private clock = 900;
+    state = 'intro';
+    private clock = 1100;
+    private introMs = 1100;
+    private lifeMs = 0;
+    private damageTier = 0;
+    private ventMs = 0;
+    private readonly heavyDebris: BossDebris;
     private elapsed = 0;
     private cycle = 0;
     private fired = 0;
@@ -37,6 +43,7 @@ export class Moosezilla extends Phaser.GameObjects.Container {
     private readonly offs: Array<() => void> = [];
     constructor(private readonly ctx: GameContext, x: number, y: number, props: Record<string, unknown>) {
         super(ctx.scene, x, y);
+        this.heavyDebris = new BossDebris(ctx);
         ctx.scene.add.existing(this); this.setDepth(DEPTH.ENEMIES);
         this.facing = props.facing === 'right' || Number(props.facing) === 1 ? 1 : -1;
         this.arena0 = Number(props.arenaX0 ?? Math.max(ctx.level.bounds.left, ctx.camera.leftEdge()));
@@ -47,6 +54,8 @@ export class Moosezilla extends Phaser.GameObjects.Container {
             const s = ctx.scene.add.sprite(p.attach[0], p.attach[1], p.key).setOrigin(p.pivot[0] / p.sourceSize[0], p.pivot[1] / p.sourceSize[1]);
             this.add(s); this.parts.set(p.id, s); animate(s, p.id.startsWith('legs') ? `${p.key}_walk` : p.idleTag, true);
         }
+        for (const id of ['body', 'head', 'legs_front', 'legs_back', 'antler_l', 'antler_r']) this.pose(id, 'intro');
+        this.pose('jaw', 'open');
         this.setScale(this.facing, 1);
         this.cue = ctx.scene.add.graphics().setDepth(DEPTH.ENEMIES - .1);
         // Source-space rectangles follow the attached rig pieces, including moving feet.
@@ -76,11 +85,16 @@ export class Moosezilla extends Phaser.GameObjects.Container {
             this.boxes.push(box); this.offs.push(ctx.damage.register(box));
         }
         this.offs.push(ctx.onUpdate(dt => this.updateBoss(dt)));
-        this.once('destroy', () => { for (const off of this.offs) off(); for (const d of this.debris) d.sprite.destroy(); for (const s of this.headAntlers) s.destroy(); this.cue.destroy(); });
+        this.once('destroy', () => { this.heavyDebris.destroy(); for (const off of this.offs) off(); for (const d of this.debris) d.sprite.destroy(); for (const s of this.headAntlers) s.destroy(); this.cue.destroy(); });
         ctx.events.emit('boss:spawn', this.info()); ctx.audio.sfx('boss_roar');
+        ctx.events.emit('fx:emit', { effect: 'debris', x, y: y - 12, material: 'stone', count: 12 });
+        this.steam();
+        this.offs.push(ctx.events.on('boss:intro', e => {
+            if (e.name.toUpperCase() === 'MOOSEZILLA' && this.lifeMs < 1100) this.introMs = Math.max(this.introMs, 1100);
+        }));
     }
     private info(): { name: string; hp: number; maxHp: number; phase: number; x: number; y: number } { return { name: 'MOOSEZILLA', hp: this.hp, maxHp: ENEMIES.boss.hp, phase: this.phase, x: this.x, y: this.y }; }
-    private pose(id: string, tag: string, loop = false): void { if (id.startsWith('antler') && this.antlers[id] <= 0 && tag !== 'broken') return; const s = this.parts.get(id); if (s) animate(s, `${s.texture.key}_${tag}`, loop); }
+    private pose(id: string, tag: string, loop = false): void { if (id.startsWith('antler') && this.antlers[id] <= 0 && tag !== 'broken') return; if (id.startsWith('antler') && this.damageTier && this.phase === 1 && (tag === 'idle' || tag === 'fire')) tag = tag === 'idle' ? 'damaged' : 'fire_damaged'; const s = this.parts.get(id); if (s) animate(s, `${s.texture.key}_${tag}`, loop); }
     private socket(key: string): { x: number; y: number } {
         const s = this.rig.sockets[key];
         if (s.rootPoint) return { x: this.x + s.rootPoint[0] * this.facing, y: this.y + s.rootPoint[1] };
@@ -128,6 +142,13 @@ export class Moosezilla extends Phaser.GameObjects.Container {
         if (this.hp <= 0) return;
         this.hp = Phaser.Math.Clamp(value, 0, ENEMIES.boss.hp);
         this.ctx.events.emit('boss:hp', this.info());
+        const tier = this.hp <= ENEMIES.boss.hp / 3 ? 2 : this.hp <= ENEMIES.boss.hp * 2 / 3 ? 1 : 0;
+        if (tier > this.damageTier && this.hp > 0) {
+            this.heavyDebris.burst(this.x - 16 * this.facing, this.y - 70, this.y, 4, tier === 1);
+            this.ctx.events.emit('fx:emit', { effect: 'shield_spark', ...this.socket('core'), count: 8 });
+        }
+        if (tier !== this.damageTier) this.pose('armor', tier === 2 ? 'critical' : tier === 1 ? 'damaged' : 'intact', true);
+        this.damageTier = tier;
         // Emit every crossed threshold, including a single large lethal hit.
         while (this.phase < 3 && this.hp <= (this.phase === 1 ? 240 : 100)) {
             this.phase++; this.ctx.events.emit('boss:phase', this.info());
@@ -136,6 +157,7 @@ export class Moosezilla extends Phaser.GameObjects.Container {
             else { this.detach('armor'); this.parts.get('core')?.setDepth(9); this.bringToTop(this.parts.get('core')!); this.pose('body', 'critical', true); for (const fly of this.flies) fly.destroy(); }
         }
         if (this.hp <= 0) {
+            this.heavyDebris.burst(this.x, this.y - 75, this.y, 14, true);
             this.enter('death', ENEMIES.boss.deathMs); this.ctx.projectiles.clear('enemy');
             for (const fly of this.flies) fly.destroy();
             this.ctx.events.emit('fx:slowmo', { scale: .45, ms: 1000 }); this.ctx.events.emit('fx:flash', { color: 0xffffff, ms: 160 }); this.ctx.events.emit('fx:shake', { tier: 4 }); this.ctx.events.emit('fx:hitstop', { ms: 150 });
@@ -182,10 +204,27 @@ export class Moosezilla extends Phaser.GameObjects.Container {
     }
     private updateBoss(dt: number): void {
         if (!dt || !this.active) return;
-        this.updateDebris(dt);
+        this.updateDebris(dt); this.heavyDebris.update(dt);
         if (this.flash > 0 && (this.flash -= dt) <= 0) for (const s of this.parts.values()) s.clearTint();
         if (this.state === 'defeated') return;
         if (this.state !== 'death' && (!visible(this.ctx, this.x, this.y, 32) || !this.ctx.player()?.alive())) return;
+        this.lifeMs += dt; this.introMs = Math.max(0, this.introMs - dt);
+        if (this.hp > 0) {
+            this.ventMs -= dt;
+            if (this.ventMs <= 0) {
+                this.ventMs = this.damageTier ? 650 : 1000; this.steam();
+                if (this.damageTier) {
+                    const at = this.socket('core');
+                    this.ctx.events.emit('fx:emit', { effect: 'smoke_stack', x: at.x + 24 * this.facing, y: at.y - 8, scale: .7 });
+                    this.ctx.events.emit('fx:emit', { effect: 'shield_spark', ...at, count: this.damageTier + 1 });
+                }
+            }
+            if (this.lifeMs >= 1100) {
+                const body = this.parts.get('body');
+                const tag = this.damageTier === 2 ? 'critical' : this.damageTier === 1 ? 'damaged' : 'idle';
+                if (this.state !== 'flies' && body?.anims.currentAnim?.key !== `moosezilla_body_${tag}`) this.pose('body', tag, true);
+            }
+        }
         this.drawCue();
         this.clock -= dt; this.elapsed += dt; this.tickDamage -= dt;
         if (this.state === 'death') {
@@ -207,8 +246,13 @@ export class Moosezilla extends Phaser.GameObjects.Container {
             if (nx <= this.arena0 + 90 || nx >= this.arena1 - 90) this.walkDirection *= -1;
             this.x = Phaser.Math.Clamp(nx, this.arena0 + 90, this.arena1 - 90);
         }
-        if (this.clock > 0) return;
-        if (this.state !== 'recover' && this.state !== 'roar') { this.enter('recover', 700); if (this.phase === 1) { this.pose('legs_front', 'walk', true); this.pose('legs_back', 'walk', true); } this.steam(); this.pose('head', 'idle', true); return; }
+        if (this.introMs > 0 || this.clock > 0) return;
+        if (this.state !== 'recover' && this.state !== 'roar' && this.state !== 'intro') { this.enter('recover', 700); if (this.phase === 1) { this.pose('legs_front', 'walk', true); this.pose('legs_back', 'walk', true); } this.steam(); this.pose('head', 'idle', true); this.pose('jaw', 'closed'); this.pose('antler_l', 'idle', true); this.pose('antler_r', 'idle', true); return; }
+        if (this.state === 'intro') {
+            for (const id of ['legs_front', 'legs_back']) this.pose(id, 'idle', true);
+            for (const id of ['antler_l', 'antler_r']) this.pose(id, this.damageTier ? 'damaged' : 'idle', true);
+            this.pose('jaw', 'closed');
+        }
         const p = this.ctx.player()!; this.direction = p.x < this.x ? -1 : 1;
         let attack = this.phase === 1 ? (this.cycle++ % 3 === 2 ? 'stomp' : 'cannon') : this.phase === 2 ? ['flame', 'flies', 'stomp'][this.cycle++ % 3] : ['charge', 'flame', 'stomp'][this.cycle++ % 3];
         if (attack === 'flies' && this.flies.size > 0) attack = 'stomp';
@@ -239,5 +283,5 @@ export class Moosezilla extends Phaser.GameObjects.Container {
             g.lineStyle(1, color).beginPath().moveTo(at - this.direction * 3, this.y - 10).lineTo(at + this.direction * 3, this.y - 7).lineTo(at - this.direction * 3, this.y - 4).strokePath();
         }
     }
-    snapshot(): unknown { return { hp: this.hp, phase: this.phase, state: this.state, x: this.x, y: this.y, antlers: this.antlers, hurtboxes: this.boxes.filter(b => b.alive()).map(b => { const r = typeof b.body === 'function' ? b.body() : b.body; return { x: r.x, y: r.y, width: r.width, height: r.height }; }) }; }
+    snapshot(): unknown { return { hp: this.hp, phase: this.phase, damageTier: this.damageTier, introMs: this.introMs, elapsed: this.elapsed, state: this.state, x: this.x, y: this.y, antlers: this.antlers, hurtboxes: this.boxes.filter(b => b.alive()).map(b => { const r = typeof b.body === 'function' ? b.body() : b.body; return { x: r.x, y: r.y, width: r.width, height: r.height }; }) }; }
 }

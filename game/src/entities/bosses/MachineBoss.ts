@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { BossDebris } from './BossDebris';
 import { DEPTH, type GameContext, type HitInfo, type Hurtbox } from '../../core';
 import { MIDBOSSES } from '../../config/tuning/enemies';
 import { animate } from '../enemies/Enemy';
@@ -19,7 +20,12 @@ export class MachineBoss extends Phaser.GameObjects.Container {
     state = 'intro';
     readonly kind: Kind;
     private elapsed = 0;
-    private duration = 900;
+    private duration = 1100;
+    private introMs = 1100;
+    private lifeMs = 0;
+    private damageTier = 0;
+    private ventMs = 0;
+    private readonly heavyDebris: BossDebris;
     private cycle = 0;
     private fired = 0;
     private flash = 0;
@@ -44,6 +50,7 @@ export class MachineBoss extends Phaser.GameObjects.Container {
     private readonly scraps: Phaser.GameObjects.Sprite[] = [];
     constructor(private readonly ctx: GameContext, kind: Kind, x: number, y: number, props: Record<string, unknown>) {
         super(ctx.scene, x, y);
+        this.heavyDebris = new BossDebris(ctx);
         this.kind = kind; this.hp = MIDBOSSES[kind].hp;
         // The train map spawns enemies on the 304px deck; the engine runs on the rails below it.
         if (kind === 'ironhorn' && ctx.part.map === 'm1p2') this.y = 352;
@@ -56,9 +63,9 @@ export class MachineBoss extends Phaser.GameObjects.Container {
         this.home = this.x;
         this.hull = ctx.scene.add.sprite(0, 0, kind).setOrigin(.5, 1); this.add(this.hull);
         this.operator = ctx.scene.add.sprite(kind === 'snowcat' ? 0 : IRON_DRIVER.x, kind === 'snowcat' ? -36 : IRON_DRIVER.y, kind === 'snowcat' ? 'warden' : 'driver').setOrigin(.5, 1); this.add(this.operator); this.operator.setVisible(kind === 'snowcat');
-        animate(this.hull, `${kind}_idle`, true); animate(this.operator, `${this.operator.texture.key}_idle`, true);
+        animate(this.hull, `${kind}_intro`); animate(this.operator, `${this.operator.texture.key}_salute`);
         if (kind === 'ironhorn') for (let i = 0; i < 2; i++) {
-            const s = ctx.scene.add.sprite(IRON_GUNS[i].x, IRON_GUNS[i].y, 'ironhorn_turret').setOrigin(.5, 1); this.add(s); this.turrets.push(s); animate(s, 'ironhorn_turret_idle', true);
+            const s = ctx.scene.add.sprite(IRON_GUNS[i].x, IRON_GUNS[i].y, 'ironhorn_turret').setOrigin(.5, 1); this.add(s); this.turrets.push(s); animate(s, 'ironhorn_turret_intro');
         }
         this.cue = ctx.scene.add.graphics().setDepth(DEPTH.ENEMIES + 1);
         if (kind === 'snowcat') this.box(-52, -40, 104, 40, 'hull');
@@ -69,9 +76,15 @@ export class MachineBoss extends Phaser.GameObjects.Container {
             for (let i = 0; i < 2; i++) this.box(IRON_GUNS[i].x - 12, IRON_GUNS[i].y - 24, 27, 22, `turret${i}`);
         }
         this.offs.push(ctx.onUpdate(dt => this.tick(dt)));
-        this.once('destroy', () => { for (const off of this.offs) off(); this.clearShells(); this.cue.destroy(); for (const s of this.scraps) s.destroy(); });
+        this.once('destroy', () => { this.heavyDebris.destroy(); for (const off of this.offs) off(); this.clearShells(); this.cue.destroy(); for (const s of this.scraps) s.destroy(); });
         ctx.events.emit('boss:spawn', this.info());
         ctx.audio.sfx(kind === 'snowcat' ? 'snowcat_engine' : 'loco_steam');
+        if (kind === 'ironhorn') ctx.events.emit('fx:emit', { effect: 'steam', x: this.x + 22, y: this.y - 70, scale: 1.2 });
+        else ctx.events.emit('fx:emit', { effect: 'debris', x: this.x - 48, y: this.y - 20, material: 'wood', count: 8 });
+        // boss:intro normally precedes construction; spawn always starts the same safe animation.
+        this.offs.push(ctx.events.on('boss:intro', e => {
+            if (e.name.toUpperCase() === this.info().name && this.lifeMs < 1100) this.introMs = Math.max(this.introMs, 1100);
+        }));
     }
     private info() { return { name: this.kind === 'snowcat' ? "WARDEN'S SNOWCAT" : 'IRONHORN', hp: this.hp, maxHp: MIDBOSSES[this.kind].hp, phase: this.phase, x: this.x, y: this.y }; }
     private box(x: number, y: number, w: number, h: number, part: string): void {
@@ -112,12 +125,19 @@ export class MachineBoss extends Phaser.GameObjects.Container {
         if (this.hp <= 0) return;
         this.hp = Phaser.Math.Clamp(value, 0, MIDBOSSES[this.kind].hp);
         this.ctx.events.emit('boss:hp', this.info());
+        const tier = this.hp <= MIDBOSSES[this.kind].hp / 3 ? 2 : this.hp <= MIDBOSSES[this.kind].hp * 2 / 3 ? 1 : 0;
+        if (tier > this.damageTier && this.hp > 0) {
+            this.heavyDebris.burst(this.x + (this.kind === 'ironhorn' ? 75 : 18), this.y - 45, this.y, 3, this.kind === 'ironhorn');
+            this.ctx.events.emit('fx:emit', { effect: 'shield_spark', x: this.x + 18, y: this.y - 40, count: 8, material: 'metal' });
+        }
+        this.damageTier = tier;
         const next = this.kind === 'ironhorn' ? (this.hp <= 70 ? 3 : this.hp <= 140 ? 2 : 1) : this.hp <= 50 ? 3 : this.hp <= 100 ? 2 : 1;
         while (this.phase < next) {
             this.phase++; this.ctx.events.emit('boss:phase', this.info());
             if (this.kind === 'ironhorn') { if (this.phase === 2) { this.turretHp.fill(0); this.turrets.forEach(s => animate(s, 'ironhorn_turret_broken')); } this.enter('intro', 800); if (this.phase === 3) { this.operator.setVisible(true); this.bringToTop(this.operator); } animate(this.hull, `ironhorn_${this.phase === 3 ? 'core' : 'damaged'}`, true); }
         }
         if (this.hp <= 0) {
+            this.heavyDebris.burst(this.x, this.y - 48, this.y, 12, this.kind === 'ironhorn');
             this.enter('death', MIDBOSSES[this.kind].deathMs); this.clearShells(); this.ctx.projectiles.clear('enemy'); this.cue.clear();
             animate(this.hull, `${this.kind}_death`, true); animate(this.operator, `${this.operator.texture.key}_${this.kind === 'snowcat' ? 'eject' : 'panic'}`, true);
             this.ctx.events.emit('fx:shake', { tier: 4 }); this.ctx.audio.sfx(this.kind === 'snowcat' ? 'snowcat_engine' : 'loco_steam');
@@ -149,7 +169,7 @@ export class MachineBoss extends Phaser.GameObjects.Container {
             const attack = ['charge', 'mortar', 'mg'][this.cycle++ % 3];
             this.direction = attack === 'charge' || (this.ctx.player()?.x ?? 0) < this.x ? -1 : 1;
             this.enter(attack, attack === 'charge' ? 2100 : attack === 'mortar' ? 1800 : 1600);
-            animate(this.hull, `snowcat_${attack}`, true); animate(this.operator, `warden_${attack === 'mg' ? 'aim' : 'taunt'}`, true);
+            animate(this.hull, `snowcat_${attack}${this.damageTier === 2 ? '_critical' : this.damageTier === 1 ? '_damaged' : ''}`, true); animate(this.operator, `warden_${attack === 'mg' ? 'aim' : 'taunt'}`, true);
             this.ctx.audio.sfx(attack === 'charge' ? 'snowcat_engine' : attack === 'mortar' ? 'mortar_thump' : 'turret_windup');
             if (attack === 'mortar') this.marks.push(this.target(-48), this.target(0), this.target(48));
             if (attack === 'mg') this.ctx.events.emit('ui:prompt', { text: 'DUCK!', ms: 900 });
@@ -179,7 +199,28 @@ export class MachineBoss extends Phaser.GameObjects.Container {
     private tick(dt: number): void {
         if (!dt || !this.active || this.state === 'defeated') return;
         if (this.hp > 0 && !this.ctx.player()?.alive()) return;
+        this.heavyDebris.update(dt);
+        this.lifeMs += dt; this.introMs = Math.max(0, this.introMs - dt);
         this.elapsed += dt; this.contactMs -= dt;
+        if (this.hp > 0) {
+            this.ventMs -= dt;
+            if (this.ventMs <= 0) {
+                this.ventMs = this.damageTier ? 650 : 1050;
+                const x = this.x + (this.kind === 'ironhorn' ? 71 : 52), y = this.y - (this.kind === 'ironhorn' ? 28 : 42);
+                this.ctx.events.emit('fx:emit', { effect: this.damageTier ? 'smoke_stack' : 'steam', x, y, scale: this.damageTier ? .65 : .4 });
+                if (this.damageTier) this.ctx.events.emit('fx:emit', { effect: 'shield_spark', x: x - 28, y: y + 6, count: this.damageTier + 1 });
+            }
+            // Source-space engine vibration leaves every world hurtbox/socket unchanged.
+            const entry = this.introMs > 0 ? Math.round(18 * (this.introMs / 1100) ** 2) : 0;
+            this.hull.x = this.kind === 'snowcat' ? entry : 0;
+            if (this.kind === 'snowcat') this.operator.x = entry;
+            this.hull.y = this.kind === 'snowcat' && Math.floor(this.lifeMs / 90) % 2 ? -1 : 0;
+            if (this.lifeMs >= 1100) {
+                const pose = this.state === 'death' ? 'death' : this.kind === 'snowcat' && ['charge','mortar','mg'].includes(this.state) ? this.state : this.kind === 'ironhorn' && this.phase === 3 ? 'core' : this.damageTier === 2 ? 'critical' : this.damageTier === 1 ? 'damaged' : 'idle';
+                const tag = `${this.kind}_${pose}${this.kind === 'snowcat' && ['charge','mortar','mg'].includes(pose) && this.damageTier ? this.damageTier === 2 ? '_critical' : '_damaged' : ''}`;
+                if (this.hull.anims.currentAnim?.key !== tag) animate(this.hull, tag, true);
+            }
+        }
         if (this.kind === 'ironhorn' && this.hp > 0) {
             this.smokeMs -= dt;
             if (this.smokeMs <= 0) {
@@ -239,8 +280,13 @@ export class MachineBoss extends Phaser.GameObjects.Container {
         }
         if (this.state === 'recover' && this.kind === 'snowcat') this.x += (Phaser.Math.Clamp(this.home, a, b) - this.x) * Math.min(1, dt / 300);
         if (this.elapsed < this.duration) return;
+        if (this.introMs > 0) return;
+        if (this.state === 'intro' && this.lifeMs < 1200) {
+            animate(this.operator, `${this.operator.texture.key}_idle`, true);
+            for (let i = 0; i < this.turrets.length; i++) if (this.turretHp[i] > 0) animate(this.turrets[i], 'ironhorn_turret_idle', true);
+        }
         if (this.state === 'intro' || this.state === 'recover') this.attack();
         else { this.enter('recover', 850); animate(this.hull, `${this.kind}_${this.kind === 'ironhorn' ? (this.phase === 3 ? 'core' : this.phase === 2 ? 'damaged' : 'idle') : 'idle'}`, true); }
     }
-    snapshot(): unknown { return { kind: this.kind, name: this.info().name, hp: this.hp, phase: this.phase, state: this.state, elapsed: this.elapsed, x: this.x, y: this.y, arenaX0: this.arena0, arenaX1: this.arena1, turretHp: [...this.turretHp], markers: [...this.marks], shells: this.shells.length, mgY: this.y - 24, hurtboxes: this.boxes.filter(b => b.alive()).map(b => { const r = (b.body as () => Phaser.Geom.Rectangle)(); return { x: r.x, y: r.y, width: r.width, height: r.height }; }) }; }
+    snapshot(): unknown { return { kind: this.kind, name: this.info().name, hp: this.hp, phase: this.phase, state: this.state, elapsed: this.elapsed, damageTier: this.damageTier, introMs: this.introMs, x: this.x, y: this.y, arenaX0: this.arena0, arenaX1: this.arena1, turretHp: [...this.turretHp], markers: [...this.marks], shells: this.shells.length, mgY: this.y - 24, hurtboxes: this.boxes.filter(b => b.alive()).map(b => { const r = (b.body as () => Phaser.Geom.Rectangle)(); return { x: r.x, y: r.y, width: r.width, height: r.height }; }) }; }
 }

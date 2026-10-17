@@ -200,8 +200,39 @@ try {
         out.lockSnap = { at: at.x, later: later.x, blend: at.blend, x0: at.x0, ok: at.blend === 1 && at.x >= at.x0 - 0.5 && at.x <= at.x1 - w + 0.5 && Math.abs(later.x - at.x) < 2 };
         c.unlock();
         out.x0 = x0;
+        // Phase F API: letterbox + focus + zoomPunch are cosmetic (view() stays on the follow camera), then release.
+        {
+            const p = g.ctx.player();
+            c.snapTo(p?.x ?? 0, p?.y ?? 200);
+            await wait(100);
+            const before = c.debugInfo();
+            c.letterbox(true, 100);
+            c.focus((p?.x ?? before.x) + 400, p?.y ?? 200, 200);
+            c.zoomPunch(0.1, 300);
+            await wait(60);
+            const zoomMid = c.cam.zoom;
+            await wait(400);
+            const mid = c.debugInfo(), vx = c.view().x;
+            const px = g.ctx.player()?.x ?? 0;
+            c.release(100);
+            c.letterbox(false, 100);
+            await wait(400);
+            const end = c.debugInfo();
+            out.api = { zoomMid, mid, end, viewX: vx, px,
+                ok: zoomMid > 1 && mid.bars === 1 && mid.rx > mid.x + 1 && Math.abs(vx - mid.x) < 0.01 && px > mid.rx + 32 && px < mid.rx + w - 32
+                    && end.bars === 0 && end.focus === 0 && end.zoom === 1 && Math.abs(end.rx - end.x) < 0.01 };
+        }
+        // Boss-intro cinematic: boss:intro shields the player and starts it; a hard cut (warp/respawn) ends it.
+        g.ctx.events.emit('boss:intro', { name: 'TEST', x: (g.ctx.player()?.x ?? 0) + 300, y: 200 });
+        await wait(100);
+        const on = { cine: c.debugInfo().cine, shield: g.internals.damage.playerShield, bars: c.debugInfo().bars };
+        c.snapTo(g.ctx.player()?.x ?? 0, g.ctx.player()?.y ?? 200);
+        out.cine = { on, off: { cine: c.debugInfo().cine, shield: g.internals.damage.playerShield },
+            ok: on.cine === 'intro' && on.shield && on.bars > 0 && c.debugInfo().cine === 'off' && !g.internals.damage.playerShield };
         return out;
     });
+    check('camera: letterbox/focus/zoomPunch render only and release cleanly', cam.api.ok, cam.api);
+    check('camera: boss:intro cinematic shields the player; snapTo() ends it', cam.cine.ok, cam.cine);
     check('camera: scene running (unlock blend progressed)', cam.snapUnlock.blend === 1, cam.snapUnlock);
     check('camera: snapTo() after unlock() cancels the blend (no drag back)', cam.unlockSnap.ok, cam.unlockSnap);
     check('camera: snapTo() then unlock() (Levels warp order) stays put', cam.snapUnlock.ok, cam.snapUnlock);

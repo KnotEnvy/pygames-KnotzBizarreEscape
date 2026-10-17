@@ -12,6 +12,8 @@ local function bird(im,pose,f)
   D.limb(im,20,12,23,6,'sand3','sand5',2); D.disc(im,25,6,4,'outline'); D.disc(im,25,6,3,'steel4')
   D.rect(im,25,5,3,2,'red4'); K.px(im,26,5,'fire5'); D.line(im,27,8,30,8,'sand5',2); K.px(im,29,10,'sand3')
   D.line(im,17,18,16,21,'sand3'); D.line(im,21,18,23,20,'sand3'); D.line(im,14,21,18,21,'steel5')
+  if pose=='dive' then D.line(im,23,3,29,4,'red1',2);D.rect(im,25,5,3,2,f==1 and 'fire4' or 'fire5') end
+  if pose=='fly' and f==5 then D.line(im,25,5,28,5,'steel1') end
   if pose=='hit' then for y=0,23 do for x=0,31 do if app.pixelColor.rgbaA(im:getPixel(x,y))>0 then K.px(im,x,y,'white') end end end end
 end
 local A={D.anim('drone_fly',6,80,function(im,f) bird(im,'fly',f) end),D.anim('drone_dive',2,160,function(im,f) bird(im,'dive',f) end),D.anim('drone_hit',1,70,function(im,f) bird(im,'hit',f) end)}

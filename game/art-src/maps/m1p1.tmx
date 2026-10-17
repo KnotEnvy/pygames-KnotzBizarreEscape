@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="420" height="24" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#6aa2dc" nextlayerid="7" nextobjectid="163">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="420" height="24" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#6aa2dc" nextlayerid="7" nextobjectid="173">
  <properties>
   <property name="name" value="Pine Ridge Breakout"/>
   <property name="title" value="THE CAMP"/>
@@ -2245,6 +2245,56 @@
   <object id="162" type="ambience" x="5760" y="0" width="960" height="384">
    <properties>
     <property name="fx" value="snow"/>
+   </properties>
+  </object>
+  <object id="163" type="bg_event" x="0" y="0" width="1040" height="384">
+   <properties>
+    <property name="id" value="camp_searchlights"/>
+   </properties>
+  </object>
+  <object id="164" type="bg_event" x="1056" y="0" width="32" height="384">
+   <properties>
+    <property name="id" value="zeppelin"/>
+   </properties>
+  </object>
+  <object id="165" type="bg_event" x="896" y="0" width="1872" height="384">
+   <properties>
+    <property name="id" value="crows"/>
+   </properties>
+  </object>
+  <object id="166" type="bg_event" x="2640" y="0" width="1456" height="384">
+   <properties>
+    <property name="id" value="waterfall"/>
+   </properties>
+  </object>
+  <object id="167" type="bg_event" x="2640" y="0" width="1456" height="384">
+   <properties>
+    <property name="id" value="towers"/>
+   </properties>
+  </object>
+  <object id="168" type="bg_event" x="2560" y="0" width="32" height="384">
+   <properties>
+    <property name="id" value="plane"/>
+   </properties>
+  </object>
+  <object id="169" type="bg_event" x="3648" y="0" width="32" height="384">
+   <properties>
+    <property name="id" value="plane"/>
+   </properties>
+  </object>
+  <object id="170" type="bg_event" x="4000" y="0" width="1808" height="384">
+   <properties>
+    <property name="id" value="flak"/>
+   </properties>
+  </object>
+  <object id="171" type="bg_event" x="6048" y="0" width="672" height="384">
+   <properties>
+    <property name="id" value="yard_smoke"/>
+   </properties>
+  </object>
+  <object id="172" type="bg_event" x="6144" y="0" width="32" height="384">
+   <properties>
+    <property name="id" value="snowcat_roar"/>
    </properties>
   </object>
  </objectgroup>

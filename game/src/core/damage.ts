@@ -12,6 +12,9 @@ export class DamageRegistry implements DamageService {
     /** Snapshot used while iterating so hits that register/unregister boxes don't break the loop. */
     private readonly iterBuf: Hurtbox[] = [];
 
+    /** Player-team hurtboxes ignore hits while true (the camera's boss-intro cinematic sets it). */
+    playerShield = false;
+
     constructor(private readonly events: EventBus, private readonly cheats: { god: boolean }) {}
 
     register(h: Hurtbox): () => void {
@@ -47,7 +50,7 @@ export class DamageRegistry implements DamageService {
 
     private eligible(h: Hurtbox, source: Team): boolean {
         if (!this.canHit(source, h.team) || !h.alive()) return false;
-        if (h.team === 'player' && this.cheats.god) return false;
+        if (h.team === 'player' && (this.cheats.god || this.playerShield)) return false;
         return !(h.invulnerable?.() ?? false);
     }
 

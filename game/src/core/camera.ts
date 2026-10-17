@@ -11,12 +11,40 @@ import { settings } from './settings';
 import { createRng } from './rng';
 import { PARAMS } from './params';
 import { ENGINE } from '../config/tuning/engine';
+import { DEPTH } from './depth';
 
 interface FollowTarget { x: number; y: number; facing?: number; sprite?: { body?: unknown }; body?: unknown }
 
+/** Arcade body of the follow target, if any. */
+function bodyOf(t: FollowTarget): Phaser.Physics.Arcade.Body | undefined {
+    return (t.sprite?.body ?? t.body) as Phaser.Physics.Arcade.Body | undefined;
+}
+
+/** A 0..1 value easing from `from` to `to` over `ms` (Sine.InOut). */
+class Ramp {
+    value = 0;
+    private from = 0;
+    private to = 0;
+    private t = 1;
+    private ms = 1;
+    set(to: number, ms: number): void {
+        this.from = this.value;
+        this.to = to;
+        this.ms = Math.max(1, ms);
+        this.t = ms > 0 ? 0 : 1;
+        if (this.t >= 1) this.value = to;
+    }
+    step(dtMs: number): void {
+        if (this.t >= 1) return;
+        this.t = Math.min(1, this.t + dtMs / this.ms);
+        this.value = Phaser.Math.Linear(this.from, this.to, Phaser.Math.Easing.Sine.InOut(this.t));
+    }
+    get target(): number { return this.to; }
+}
+
 /** On the ground? null when the target has no Arcade body to ask. */
 function isGrounded(t: FollowTarget): boolean | null {
-    const b = (t.sprite?.body ?? t.body) as Phaser.Physics.Arcade.Body | undefined;
+    const b = bodyOf(t);
     if (!b || !b.blocked) return null;
     return b.blocked.down || b.touching.down;
 }
@@ -47,12 +75,101 @@ export class CameraController implements CameraService {
     private shakeDur = 0;
     private shakeAmpX = 0;
     private shakeAmpY = 0;
+    /** Run lead (px, signed): eased toward the player's actual movement direction. */
+    private runLead = 0;
+    /** focus()/release(): eased weight toward the focus point (cosmetic offset on top of the follow camera). */
+    private readonly focusW = new Ramp();
+    private focusPX = 0;
+    private focusPY = 0;
+    /** Rendered (steady, pre-shake) scroll, i.e. follow camera + focus offset. */
+    private rx = 0;
+    private ry = 0;
+    private readonly bars = new Ramp();
+    private readonly barTop: Phaser.GameObjects.Rectangle;
+    private readonly barBottom: Phaser.GameObjects.Rectangle;
+    private punchLeft = 0;
+    private punchDur = 0;
+    private punchAmt = 0;
+    /** Boss-intro cinematic: 'off' | 'intro' (waiting for boss:spawn) | 'hold' (counting down to release). */
+    private cine: 'off' | 'intro' | 'hold' = 'off';
+    private cineLeft = 0;
 
-    constructor(scene: Phaser.Scene, private readonly events: EventBus, private readonly playerQuery: () => PlayerQuery | null) {
+    constructor(scene: Phaser.Scene, private readonly events: EventBus, private readonly playerQuery: () => PlayerQuery | null,
+        private readonly onCinematic: (on: boolean) => void = () => {}) {
         this.cam = scene.cameras.main;
         this.cam.setRoundPixels(true);
+        // Bars are screen-fixed rects drawn above every gameplay band (the HUD scene still renders on top of them).
+        // They're taller than needed so a zoom punch never shows a gap above/below them.
+        const w = ENGINE.width, barH = ENGINE.height;
+        this.barTop = scene.add.rectangle(-w, -barH, w * 3, barH, 0x000000).setOrigin(0, 0).setScrollFactor(0).setDepth(DEPTH.FX_TOP + 9).setVisible(false);
+        this.barBottom = scene.add.rectangle(-w, ENGINE.height, w * 3, barH, 0x000000).setOrigin(0, 0).setScrollFactor(0).setDepth(DEPTH.FX_TOP + 9).setVisible(false);
         events.on('fx:shake', e => this.shake(e.tier));
         events.on('fx:flash', e => this.flash(e.color, e.ms));
+        events.on('boss:intro', e => this.bossIntro(e.x, e.y));
+        events.on('boss:spawn', () => {
+            if (this.cine !== 'intro') return;
+            this.cine = 'hold';
+            this.cineLeft = T.bossIntro.holdAfterSpawnMs;
+        });
+        // Death, respawn or a warp ends it at once (no dangling bars or shield).
+        events.on('player:died', () => this.endCinematic(0));
+        events.on('game:respawn', () => this.endCinematic(0));
+    }
+
+    // ---- Phase F camera API ------------------------------------------------------------------------------------
+
+    letterbox(on: boolean, ms = 400): void {
+        this.bars.set(on ? 1 : 0, ms);
+    }
+
+    zoomPunch(amount: number, ms = 220): void {
+        if (!settings.get().shake || !(amount > 0) || !(ms > 0)) return;
+        const a = Math.min(amount, T.zoomPunchMax);
+        // A weaker punch never cuts a stronger running one short.
+        if (this.punchLeft > 0 && a <= this.punchAmt * this.punchEnv()) return;
+        this.punchAmt = a;
+        this.punchDur = this.punchLeft = ms;
+    }
+
+    focus(x: number, y: number, ms = 800): void {
+        this.focusPX = x;
+        this.focusPY = y;
+        this.focusW.set(1, ms);
+    }
+
+    release(ms = 800): void {
+        this.focusW.set(0, ms);
+    }
+
+    inCinematic(): boolean { return this.cine !== 'off'; }
+
+    /** Boss intro: bars in, slow push toward the boss/gate, shield the player; released 1 s after boss:spawn. */
+    private bossIntro(x: number, y: number): void {
+        const c = T.bossIntro;
+        this.cine = 'intro';
+        this.cineLeft = c.timeoutMs;
+        this.onCinematic(true);
+        this.letterbox(true, c.letterboxMs);
+        // Push part of the way from the current view center toward the point. Reduced motion (shake off): bars only.
+        if (settings.get().shake) {
+            const cx = this.x + this.cam.width / 2, cy = this.y + this.cam.height * T.anchorY;
+            this.focus(cx + (x - cx) * c.pushAmount, cy + (y - cy) * c.pushAmount * 0.5, c.pushMs);
+        }
+    }
+
+    private endCinematic(releaseMs: number): void {
+        if (this.cine === 'off') return;
+        this.cine = 'off';
+        this.onCinematic(false);
+        this.letterbox(false, releaseMs > 0 ? T.bossIntro.letterboxMs : 0);
+        this.release(releaseMs);
+    }
+
+    private punchEnv(): number {
+        if (this.punchLeft <= 0 || this.punchDur <= 0) return 0;
+        // Fast attack (first 25%), eased decay.
+        const t = 1 - this.punchLeft / this.punchDur;
+        return t < 0.25 ? Math.sin((t / 0.25) * Math.PI / 2) : Phaser.Math.Easing.Sine.InOut(1 - (t - 0.25) / 0.75);
     }
 
     setBounds(b: Phaser.Geom.Rectangle): void {
@@ -75,6 +192,9 @@ export class CameraController implements CameraService {
         this.focusX = x;
         this.focusY = y;
         this.look = 0;
+        this.runLead = 0;
+        this.endCinematic(0);
+        this.focusW.set(0, 0);
         let sx = x - this.cam.width * T.anchorX;
         if (this.locked && x >= this.lockX0 && x <= this.lockX1) sx = Phaser.Math.Clamp(sx, this.lockX0, this.lockX1 - this.cam.width);
         this.x = this.clampScrollX(sx);
@@ -82,6 +202,8 @@ export class CameraController implements CameraService {
         this.blend = 1;
         this.blendFrom = this.x;
         this.minScroll = this.x;
+        this.rx = this.x;
+        this.ry = this.y;
         this.cam.setScroll(this.x, this.y);
         this.updateView();
     }
@@ -163,9 +285,13 @@ export class CameraController implements CameraService {
             else if (t.x < this.focusX - T.deadzoneX) this.focusX = t.x + T.deadzoneX;
             const facing = t.facing ?? 1;
             this.look += (facing * T.lookAhead - this.look) * (1 - Math.exp(-T.lookAheadRate * dt));
+            // Run lead: a few px more in the direction the player actually moves (standing still eases it out).
+            const vx = bodyOf(t)?.velocity?.x ?? 0;
+            const lead = Math.abs(vx) > T.runLeadMinSpeed ? Math.sign(vx) * T.runLead : 0;
+            this.runLead += (lead - this.runLead) * (1 - Math.exp(-T.runLeadRate * dt));
         }
 
-        let desiredX = this.focusX + this.look - w * T.anchorX;
+        let desiredX = this.focusX + this.look + this.runLead - w * T.anchorX;
         const desiredY = this.clampScrollY(this.focusY - h * T.anchorY);
 
         if (this.locked) {
@@ -192,20 +318,73 @@ export class CameraController implements CameraService {
         }
 
         if (!this.locked && this.x > this.minScroll) this.minScroll = this.x;
-        let sx = this.x, sy = this.y;
+        const dtMs = dt * 1000;
+        this.tickCinematic(dtMs);
+        // Focus: a cosmetic offset on top of the follow camera (forward-only, minScroll and the arena clamps stay on
+        // the follow camera). Capped, and the player always stays focusPlayerMargin inside the rendered view.
+        this.focusW.step(dtMs);
+        let rx = this.x, ry = this.y;
+        const fw = this.focusW.value;
+        if (fw > 0) {
+            const ox = Phaser.Math.Clamp(this.focusPX - w / 2 - this.x, -T.focusMaxPushX, T.focusMaxPushX);
+            const oy = Phaser.Math.Clamp(this.focusPY - h * T.anchorY - this.y, -T.focusMaxPushY, T.focusMaxPushY);
+            rx = this.x + ox * fw;
+            ry = this.y + oy * fw;
+            const p = t ?? null;
+            if (p) {
+                const m = T.focusPlayerMargin;
+                rx = Phaser.Math.Clamp(rx, Math.min(this.x, p.x + m - w), Math.max(this.x, p.x - m));
+            }
+            rx = this.clampScrollX(rx);
+            ry = this.clampScrollY(ry);
+        }
+        this.rx = rx;
+        this.ry = ry;
+        let sx = rx, sy = ry;
         if (this.shakeLeft > 0) {
             if (!settings.get().shake) this.shakeLeft = 0;
             else {
                 const k = this.envelope();
                 const b = this.bounds;
-                sx = reflect(this.x + (this.shakeRng.next() * 2 - 1) * this.shakeAmpX * k, b.x, b.right - w);
-                sy = reflect(this.y + (this.shakeRng.next() * 2 - 1) * this.shakeAmpY * k, b.y, b.bottom - h);
-                this.shakeLeft -= dt * 1000;
+                sx = reflect(rx + (this.shakeRng.next() * 2 - 1) * this.shakeAmpX * k, b.x, b.right - w);
+                sy = reflect(ry + (this.shakeRng.next() * 2 - 1) * this.shakeAmpY * k, b.y, b.bottom - h);
+                this.shakeLeft -= dtMs;
             }
         }
-        // The shake only moves the rendered scroll: view(), edges and clamps stay on the steady camera.
+        // The shake (and focus) only move the rendered scroll: view(), edges and clamps stay on the steady camera.
         this.cam.setScroll(sx, sy);
+        this.updateZoomAndBars(dtMs);
         this.updateView();
+    }
+
+    private tickCinematic(dtMs: number): void {
+        if (this.cine === 'off') return;
+        if ((this.cineLeft -= dtMs) > 0) return;
+        this.endCinematic(T.bossIntro.releaseMs);
+    }
+
+    private updateZoomAndBars(dtMs: number): void {
+        let z = 1;
+        if (this.punchLeft > 0) {
+            if (!settings.get().shake) this.punchLeft = 0;
+            else {
+                z = 1 + this.punchAmt * this.punchEnv();
+                this.punchLeft -= dtMs;
+            }
+        }
+        if (this.cam.zoom !== z) this.cam.setZoom(z);
+        this.bars.step(dtMs);
+        const k = this.bars.value;
+        const on = k > 0.001;
+        this.barTop.setVisible(on);
+        this.barBottom.setVisible(on);
+        if (!on) return;
+        // Screen-fixed objects still scale with the camera zoom around the view center: place the bars' inner
+        // edges so they land on whole screen pixels at the current zoom.
+        const h = this.cam.height, cy = h / 2;
+        const edge = Math.round(T.letterboxPx * k);
+        this.barTop.y = cy + (edge - cy) / z - this.barTop.height;
+        this.barBottom.y = cy + (h - edge - cy) / z;
     }
 
     private updateView(): void {
@@ -223,8 +402,9 @@ export class CameraController implements CameraService {
     }
 
     /** Debug info for the overlay / __KBE.state(). */
-    debugInfo(): { x: number; minScroll: number; locked: boolean; x0: number; x1: number; blend: number } {
-        return { x: this.x, minScroll: this.minScroll, locked: this.locked, x0: this.lockX0, x1: this.lockX1, blend: this.blend };
+    debugInfo(): { x: number; minScroll: number; locked: boolean; x0: number; x1: number; blend: number; rx: number; ry: number; focus: number; bars: number; zoom: number; cine: string } {
+        return { x: this.x, minScroll: this.minScroll, locked: this.locked, x0: this.lockX0, x1: this.lockX1, blend: this.blend,
+            rx: this.rx, ry: this.ry, focus: this.focusW.value, bars: this.bars.value, zoom: this.cam.zoom, cine: this.cine };
     }
 }
 

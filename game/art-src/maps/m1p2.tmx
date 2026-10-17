@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="336" height="24" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#7f98b8" nextlayerid="7" nextobjectid="146">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="336" height="24" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#7f98b8" nextlayerid="7" nextobjectid="151">
  <properties>
   <property name="name" value="Pine Ridge Breakout"/>
   <property name="title" value="TIMBER EXPRESS"/>
@@ -2301,6 +2301,32 @@
   <object id="145" type="ambience" x="0" y="0" width="5376" height="384">
    <properties>
     <property name="fx" value="train"/>
+   </properties>
+  </object>
+  <object id="146" type="bg_event" x="1152" y="0" width="32" height="384">
+   <properties>
+    <property name="id" value="gorge"/>
+    <property name="ms" type="int" value="8000"/>
+   </properties>
+  </object>
+  <object id="147" type="bg_event" x="1600" y="0" width="32" height="384">
+   <properties>
+    <property name="id" value="buzzard_circle"/>
+   </properties>
+  </object>
+  <object id="148" type="bg_event" x="4544" y="0" width="32" height="384">
+   <properties>
+    <property name="id" value="buzzard_circle"/>
+   </properties>
+  </object>
+  <object id="149" type="bg_event" x="3584" y="0" width="1328" height="384">
+   <properties>
+    <property name="id" value="ironhorn_plume"/>
+   </properties>
+  </object>
+  <object id="150" type="bg_event" x="4192" y="0" width="32" height="384">
+   <properties>
+    <property name="id" value="avalanche"/>
    </properties>
   </object>
  </objectgroup>

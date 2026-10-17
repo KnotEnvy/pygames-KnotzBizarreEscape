@@ -264,7 +264,7 @@ export class Knotz {
         const moving = Math.abs(this.body.velocity.x) > 5;
         const legs = !ground ? (this.body.velocity.y < 0 ? 'jump_rise' : 'jump_fall') : this.crouch ? (this.crouchEnter > 0 ? 'crouch_enter' : moving ? 'crouch_walk' : 'crouch_idle') : this.skid > 0 ? 'skid' : this.land > 0 ? 'land' : moving ? 'run' : 'idle';
         if (legs !== this.lastLegs) { this.lastLegs = legs; this.play(this.sprite, `knotz_legs_${legs}`); }
-        const variant = this.ctx.state.weapon === 'pistol' ? 'pistol' : 'heavy';
+        const variant = this.ctx.state.weapon === 'hmg' ? 'heavy' : this.ctx.state.weapon;
         if (variant !== this.lastVariant) { this.torso.stop(); this.torso.setTexture(`knotz_torso_${variant}`); this.lastVariant = variant; this.lastPose = ''; }
         let renderedAim = this.aimTag;
 

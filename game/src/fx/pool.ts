@@ -54,6 +54,22 @@ export class Art {
                 this.clips.set(tag.name, { texture, frames, bounds: frames.map(name => painted.get(name)!), ends, duration, kind });
             }
         }
+        // Neutral alpha falloff lets warm muzzle pools and cool laser burns share one tiny texture.
+        // Baked once, reused after scene restart; no per-frame texture refresh or glow filter.
+        const key = 'fx_light_pool';
+        if (!ctx.scene.textures.exists(key)) {
+            const texture = ctx.scene.textures.createCanvas(key, 32, 32)!;
+            const paint = texture.getContext(), pixels = paint.createImageData(32, 32);
+            for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+                const i = (y * 32 + x) * 4;
+                const radius = Math.hypot(x - 15.5, y - 15.5) / 16;
+                pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = 255;
+                pixels.data[i + 3] = Math.round(Math.max(0, 1 - radius) ** 2 * 255);
+            }
+            paint.putImageData(pixels, 0, 0); texture.refresh();
+        }
+        this.clips.set('fx_light_pool_still', { texture: key, frames: ['__BASE'],
+            bounds: [{ x: 0, y: 0, width: 32, height: 32 }], ends: [160], duration: 160, kind: 'sparks' });
     }
     get(name: string): Clip | undefined { return this.clips.get(name); }
 }
@@ -63,6 +79,7 @@ export class Slot {
     clip: Clip | undefined;
     age = 0; life = 1; vx = 0; vy = 0; gravity = 0; alpha = 1; fade = 120;
     bounce = 0; spin = false; loop = false; hot = false; cue = false; frame = -1;
+    background = false;
     constructor(readonly image: Phaser.GameObjects.Image, readonly category: Category) {}
 }
 
@@ -75,6 +92,8 @@ export class FxPool {
     private readonly textureCounts = new Map<string, number>();
     coverage = 0; cloudCoverage = 0;
     dropped = 0; peak = 0; active = 0; hot = 0;
+    /** Synchronous emission scope; reset by the director in finally. Existing slots retain their layer. */
+    backgroundFactor: number | undefined;
     constructor(private readonly ctx: GameContext) {
         this.art = new Art(ctx);
         for (const key of ctx.scene.textures.getTextureKeys()) if (key.startsWith('fx_')) this.textureCounts.set(key, 0);
@@ -90,7 +109,10 @@ export class FxPool {
     spawn(category: Category, tag: string, x: number, y: number, delay = 0, scale = 1, reclaim = false): Slot | null {
         const clip = this.art.get(tag);
         const view = this.ctx.camera.view();
-        if (!clip || x < view.left - FX.cullMargin || x > view.right + FX.cullMargin || y < view.top - FX.cullMargin || y > view.bottom + FX.cullMargin) return null;
+        const factor = this.backgroundFactor ?? 1;
+        const cam = this.ctx.scene.cameras.main;
+        const worldX = x + cam.scrollX * (1 - factor), worldY = y + cam.scrollY * (1 - factor);
+        if (!clip || worldX < view.left - FX.cullMargin || worldX > view.right + FX.cullMargin || worldY < view.top - FX.cullMargin || worldY > view.bottom + FX.cullMargin) return null;
         const pool = this.pools[category];
         if (pool.free === 0 && reclaim) {
             let oldest: Slot | undefined;
@@ -102,9 +124,10 @@ export class FxPool {
         s.live = true; s.clip = clip; s.age = -delay; s.life = clip.duration;
         s.vx = s.vy = s.gravity = 0; s.alpha = 1; s.fade = 90;
         s.bounce = 0; s.spin = s.loop = s.hot = s.cue = false; s.frame = 0;
+        s.background = this.backgroundFactor !== undefined;
         s.image.setTexture(clip.texture, clip.frames[0]).setPosition(x, y).setOrigin(0.5).setRotation(0)
             .setScale(scale).setAlpha(1).clearTint().setFlip(false, false).setBlendMode(Phaser.BlendModes.NORMAL)
-            .setDepth(DEPTH.ENEMIES - 1).setVisible(false);
+            .setScrollFactor(factor).setDepth(s.background ? FX.background.depth : DEPTH.ENEMIES - 1).setVisible(false);
         // Presentation is committed in POST_UPDATE, after callers configure alpha/lifetime.
         this.textureCounts.set(clip.texture, this.countTexture(clip.texture) + 1);
         if (category === 'combat') this.combatLive[clip.kind]++;
@@ -123,18 +146,21 @@ export class FxPool {
     update(dt: number): void {
         this.hot = 0;
         const view = this.ctx.camera.view();
+        const cam = this.ctx.scene.cameras.main;
         for (const s of this.slots) {
             if (!s.live) continue;
             const oldAge = s.age;
             s.age += dt;
             if (s.age < 0) continue;
-            if (s.age >= s.life || s.image.x < view.left - FX.cullMargin || s.image.x > view.right + FX.cullMargin || s.image.y > view.bottom + FX.cullMargin) { this.release(s); continue; }
+            const worldX = s.image.x + cam.scrollX * (1 - s.image.scrollFactorX);
+            const worldY = s.image.y + cam.scrollY * (1 - s.image.scrollFactorY);
+            if (s.age >= s.life || worldX < view.left - FX.cullMargin || worldX > view.right + FX.cullMargin || worldY > view.bottom + FX.cullMargin) { this.release(s); continue; }
             // Only advance the part of this step after a delayed emission becomes live.
             const seconds = Math.min(dt, s.age - Math.max(0, oldAge)) / 1000;
             const oldY = s.image.y;
             s.vy += s.gravity * seconds;
             s.image.x += s.vx * seconds; s.image.y += s.vy * seconds;
-            if (s.bounce > 0 && s.vy > 0 && seconds > 0) {
+            if (!s.background && s.bounce > 0 && s.vy > 0 && seconds > 0) {
                 const floor = this.ctx.physics.groundBelow(s.image.x, oldY, Math.max(2, s.image.y - oldY + 2));
                 if (floor !== null && s.image.y >= floor) {
                     s.image.y = floor - 1; s.vy *= -0.3; s.vx *= 0.55; s.bounce--;
@@ -146,8 +172,8 @@ export class FxPool {
             let frame = 0;
             while (frame < clip.ends.length - 1 && t >= clip.ends[frame]) frame++;
             if (s.frame !== frame) { s.image.setFrame(clip.frames[frame]); s.frame = frame; }
-            if (s.hot && s.age < FX.bloom.hotMs) this.hot++;
-            if (s.category === 'decal' && s.image.x < view.left - 64) this.release(s);
+            if (!s.background && s.hot && s.age < FX.bloom.hotMs) this.hot++;
+            if (s.category === 'decal' && worldX < view.left - 64) this.release(s);
         }
     }
     countTexture(texture: string): number { return this.textureCounts.get(texture) ?? 0; }
@@ -162,10 +188,12 @@ export class FxPool {
      * Even a full chain stays behind actor/core/bullet silhouettes at every animation frame. */
     present(): void {
         const view = this.ctx.camera.view();
+        const cam = this.ctx.scene.cameras.main;
         let area = 0, clouds = 0;
         for (const s of this.slots) {
             if (!s.live || s.age < 0) continue;
             s.image.setVisible(true);
+            if (s.background) s.image.setDepth(FX.background.depth);
             const cloud = this.cloud(s);
             s.image.alpha = Math.min(s.alpha, cloud ? FX.readability.smokeAlpha : 1) *
                 Math.max(0, Math.min(1, (s.life - s.age) / Math.max(1, s.fade)));
@@ -174,8 +202,8 @@ export class FxPool {
             const localX = (im.flipX ? im.width - box.x - box.width / 2 : box.x + box.width / 2) - im.width * im.originX;
             const localY = (im.flipY ? im.height - box.y - box.height / 2 : box.y + box.height / 2) - im.height * im.originY;
             const cos = Math.cos(im.rotation), sin = Math.sin(im.rotation);
-            const cx = im.x + localX * im.scaleX * cos - localY * im.scaleY * sin;
-            const cy = im.y + localX * im.scaleX * sin + localY * im.scaleY * cos;
+            const cx = im.x + cam.scrollX * (1 - im.scrollFactorX) + localX * im.scaleX * cos - localY * im.scaleY * sin;
+            const cy = im.y + cam.scrollY * (1 - im.scrollFactorY) + localX * im.scaleX * sin + localY * im.scaleY * cos;
             const w = Math.abs(box.width * im.scaleX * cos) + Math.abs(box.height * im.scaleY * sin);
             const h = Math.abs(box.width * im.scaleX * sin) + Math.abs(box.height * im.scaleY * cos);
             const left = cx - w / 2, top = cy - h / 2, right = cx + w / 2, bottom = cy + h / 2;

@@ -342,6 +342,19 @@ for (let x = 2; x < W - 2; x += 3) {
 }
 
 decorate();
+// Phase F background moments (src/level/background.ts): zones run while the view overlaps, one-shots fire at the feet.
+const bg = (id, x0, x1, p = {}) => tr('bg_event', x0, x1, 0, H - 1, { id, ...p });
+bg('camp_searchlights', 0, 64);       // far camp searchlights sweep the sky behind the forest
+bg('zeppelin', 66, 67);               // Regime zeppelin drifts across the far sky over the forest
+bg('crows', 56, 172);                 // crows burst from the far pines when something explodes nearby
+bg('waterfall', 165, 255);            // waterfall + mist beside the rope bridge
+bg('towers', 165, 255);               // far watchtowers (their lamps snap on when the bridge arena locks: hook)
+bg('plane', 160, 161);                // transport plane passes just before the bridge paratroopers drop
+bg('plane', 228, 229);                // ...and before the last one after the arena
+bg('flak', 250, 362);                 // artillery/flak flashes on the outpost horizon
+bg('yard_smoke', 378, 419);           // smoke rising behind the Snowcat yard gate (foreshadowing)
+bg('snowcat_roar', 384, 385);         // ...with an engine roar
+
 finish();
 write('m1p1', { name: 'Pine Ridge Breakout', title: 'THE CAMP', music: 'music_stage1', parallax: 'stage1', clearSfx: 'train_whistle',
   sections: SECTIONS.map((s) => `${s.id}:${s.x0}-${s.x1}`).join(',') });

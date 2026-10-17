@@ -121,7 +121,40 @@ export const SFX_META: Record<string, SfxMeta> = {
     buzzard_rotor: { vol: 0.6, loop: true, max: 2 },
     // Phase E: radio / menus
     radio_blip: { vol: 0.8, max: 2, minMs: 40 },
-    radio_static: { vol: 0.7, max: 1, minMs: 150 }
+    radio_static: { vol: 0.7, max: 1, minMs: 150 },
+    // Phase F: WARNING siren, HUD ticks
+    warning_siren: { vol: 1, max: 1, minMs: 1500 },
+    ammo_click: { vol: 0.8, max: 1, minMs: 200 },
+    combo_sting: { vol: 0.9, max: 1 },
+    // Phase F: weapon layers (played under the weapon's own shot; same fatigue as the shot so a held trigger settles)
+    hmg_punch: { vol: 0.9, vary: 40, max: 2, minMs: 40, burst: { ms: 140, step: 0.06, floor: 0.55 } },
+    laser_tail: { vol: 0.8, vary: 60, max: 2, minMs: 45, burst: { ms: 160, step: 0.06, floor: 0.5 } },
+    rocket_punch: { vol: 1, vary: 40, max: 1, minMs: 150 },
+    flame_crackle: { vol: 0.9, vary: 80, max: 2, minMs: 300 },
+    // Phase F: background moments (distant tiers; the files are already low-passed and reverberant)
+    bg_zeppelin: { vol: 1, max: 1, minMs: 2000 },
+    bg_plane: { vol: 1, max: 1, minMs: 2000 },
+    bg_train_pass: { vol: 1, max: 1, minMs: 2000 },
+    bg_crows: { vol: 1, vary: 80, max: 2, minMs: 400 },
+    bg_waterfall: { vol: 1, max: 1, minMs: 3000 },
+    bg_artillery: { vol: 1, vary: 100, max: 2, minMs: 250 },
+    bg_flak: { vol: 1, vary: 100, max: 2, minMs: 250 },
+    bg_siren: { vol: 1, max: 1, minMs: 2500 },
+    bg_avalanche: { vol: 1, max: 1, minMs: 3000 },
+    bg_tesla: { vol: 1, vary: 120, max: 2, minMs: 120 },
+    bg_aurora: { vol: 1, max: 1, minMs: 4000 },
+    bg_fissure: { vol: 1, vary: 60, max: 1, minMs: 800 },
+    bg_roar: { vol: 1, max: 1, minMs: 1500 },
+    bg_engine: { vol: 1, max: 1, minMs: 1500 },
+    bg_searchlight: { vol: 1, vary: 60, max: 2, minMs: 300 },
+    bg_loco: { vol: 1, max: 1, minMs: 2000 },
+    // Phase F: section beds (1 voice each; the Audio layer cross-fades them by camera x)
+    amb_camp: { vol: 1, loop: true, max: 1 },
+    amb_forest: { vol: 1, loop: true, max: 1 },
+    amb_river: { vol: 1, loop: true, max: 1 },
+    amb_outpost: { vol: 1, loop: true, max: 1 },
+    amb_lake: { vol: 1, loop: true, max: 1 },
+    amb_lab: { vol: 1, loop: true, max: 1 }
 };
 
 /** One alias target. `keys` picks randomly; `loopMs` runs the key as a loop for that long; `also` layers more keys. */
@@ -215,7 +248,23 @@ export const SFX_ALIASES: Record<string, AliasSpec> = {
     tread: { key: 'snowcat_tread' },
     radio: { key: 'radio_blip' },
     static: { key: 'radio_static' },
-    part_clear: { key: 'part_clear_jingle' }
+    part_clear: { key: 'part_clear_jingle' },
+    // Phase F synonyms
+    warning: { key: 'warning_siren' },
+    boss_warning: { key: 'warning_siren' },
+    klaxon: { key: 'warning_siren' },
+    combo: { key: 'combo_sting' },
+    multikill: { key: 'combo_sting' },
+    /** The Buzzard circling far off: the rotor loop, small and low, for 2.5 s. */
+    bg_buzzard: { key: 'buzzard_rotor', volume: 0.35, detune: -250, loopMs: 2500 },
+    /** The gorge under the trestle: the river bed far below for 6 s. */
+    bg_gorge: { key: 'amb_river', volume: 0.5, detune: -200, loopMs: 6000 },
+    /** MOOSEZILLA's silhouette stomping behind the lab: the stomp, small, low and far. */
+    bg_stomp: { key: 'boss_stomp', volume: 0.3, detune: -400 },
+    thunder: { key: 'bg_artillery', detune: -300 },
+    bg_thunder: { key: 'bg_artillery', detune: -300 },
+    far_roar: { key: 'bg_roar' },
+    distant_roar: { key: 'bg_roar' }
 };
 
 export interface MusicMeta { loop: boolean; durationMs: number }

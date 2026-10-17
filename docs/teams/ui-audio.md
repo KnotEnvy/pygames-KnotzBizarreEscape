@@ -597,3 +597,104 @@ Scratch: `/tmp/kbe-ui/p_*.png`. `npm run check` clean, `audio.unknown` `[]` on `
 - **Rules review P1** (`routemap.ts` / `PartClearScene.ts`): `RouteMap` keeps its travel tween and `finish()` stops it (it keys on `arrived`,
   not `travelled`), and `PartClearScene.onArrive()` is idempotent (`ready`/`leaving` return early), so a confirm mid-travel can't restart the
   auto-advance timer. **P3** (`ResultsScene.ts`): the `music:ended` handler is kept and `off`'d on SHUTDOWN.
+
+## 13. Phase F: details and juice (WARNING banner, HUD juice, background sounds, weapon layers, section beds)
+
+Scratch: `/tmp/kbe-ui/f_*.png`, `/tmp/kbe-ui/audio/*_spec.png`. `npm run check` clean; `audio.unknown` `[]` and `audio.bgUnknown` `[]` with every
+id Levels' director announces (`src/level/background.ts`), the four layered weapons and `boss:intro` fired on `part=1-1` and `part=1-3`.
+
+### Code
+| Path | What |
+|---|---|
+| `src/ui/warning.ts` | **`WarningBanner`**: dark strip y 92..132 (between the HUD rows and the boss bar, clear of the engine's 14 px letterbox bars), red/black hazard stripes (a 24×6 canvas tile, `TileSprite`s on the top and bottom edges sweeping opposite ways at 90 px/s), "WARNING!" (`font_callout_white`) slamming in from above, white ↔ red strobe with the stripes flashing bright ↔ dark every 110 ms, the boss name typed in at 650 ms (`font_hud`, gold), fade-out at 1.9 s (2.2 s total). **Reduced flash**: no strobe, steady dim red stripes, the word settles red. Never blocks input |
+| `src/scenes/ui/HudScene.ts` | `boss:intro` → cuts the title card/callout and shows the banner; **score roll** (the counter rides 1 px up while it rolls and blinks white FILL for 70 ms when it locks); **low-ammo blink** (250 ms phases) with `ammo_click` on each red phase; **weapon icon pop** on a weapon change (drops 7 px with `Bounce.easeOut` over 420 ms, white FILL for its first 70 ms); **multi-kill callouts** (chain 2 NICE! / 3 GREAT! / 5 EXCELLENT!, a second small `Callout` at y 128: sand font, fire from GREAT!; one per 1.4 s, but a bigger word within the same chain replaces the one showing; yields to a weapon callout or the banner; `combo_sting` detuned +250 cents per tier); **POW thank-you**: "THANK YOU!" popup rising over the POW (`pow:freed`) and the new rescue face dropping into the tally with a bounce. `__KBE.state().hud` adds `warning {name, t}`, `combo`, `chain` |
+| `src/audio/events.ts` | `boss:intro` → `warning_siren` + music duck 0.45 for 1.9 s; **`bg:event {id, x?}`** → `UI.audio.bgEvents[id]` (also tries the id without a `bg_` prefix, then a catalog key/alias of the same name) → `sfx(key, { pan })`: panned by x (`bgPanRange` 384 px, max ±0.45), **no distance falloff**; `key: ''` = known and silent; unmapped ids land in `audio.bgUnknown` (dev console warns once). **Weapon layers** on `player:shoot` (`UI.audio.weaponLayers`). **Section beds**: the camera centre is polled every 250 ms against `UI.audio.sections[partId]`; a section change fades the old `amb_*` loop out and the new one in over 1.8 s (`LoopHandle.setVolume` ramp); `arena:start` ducks the bed to 0.5, `arena:clear` restores it; beds stop on `stage:clear`/`game:over` and restart on `game:continue`/`part:start`. `audio.bed` shows the current one |
+| `src/audio/engine.ts` | `SfxOptions.pan` (fixed pan, no falloff; `loop()` honours it too), `has(key)`, `noteBg()` + `bgUnknown`/`bg`/`bed` in `debugState()` |
+| `src/audio/catalog.ts` | meta for the 29 new keys; aliases `warning boss_warning klaxon` → `warning_siren`, `combo multikill` → `combo_sting`, `bg_buzzard` → `buzzard_rotor` ×0.35 −250 ¢ as a 2.5 s loop, `bg_gorge` → `amb_river` ×0.5 −200 ¢ for 6 s, `bg_stomp` → `boss_stomp` ×0.3 −400 ¢, `thunder`/`bg_thunder` → `bg_artillery` −300 ¢, `far_roar distant_roar` → `bg_roar` |
+| `src/config/tuning/ui.ts` | `hud.scoreRoll/lowAmmoBlinkMs/lowAmmoClick/iconPop/combo/powThanks`, `warning`, `audio.sections/bedFadeMs/bedArenaGain/bedPollMs/bgEvents/bgPanRange/bgPanMax/weaponLayers/warningDuck` |
+| `tools/audio/sfx.py` | 29 new recipes (below); `public/assets/packs/ui.json` re-packed (124 audio files) |
+
+### bg:event lookup (Levels' ids → sound). Mismatches are one line in `UI.audio.bgEvents`.
+| Levels id (announced by `background.ts`) | Plays | Synonyms also mapped |
+|---|---|---|
+| `camp_searchlights`, `towers` | `bg_searchlight` | searchlight(s), lab_searchlight, searchlight_sweep |
+| `tower_lights` | `bg_siren` (far air-raid wail) | watchtower, watchtower_lights, far_siren, siren |
+| `zeppelin` | `bg_zeppelin` | airship, blimp |
+| `crows` | `bg_crows` | birds, bg_birds, crow_burst |
+| `waterfall` (zone enter) | `bg_waterfall` (5 s swell) | mist, bg_mist |
+| `plane` | `bg_plane` | transport, transport_plane, flyover, paradrop |
+| `flak` | `bg_flak` | bg_flak |
+| `explosion` | `bg_artillery` (**not** the gameplay `explo_m`) | artillery, barrage, bg_explosion, far_explosion |
+| `snowcat_roar` | `bg_engine` | snowcat_engine, engine_roar, gate_engine, yard_engine, snowcat_yard, yard_smoke, gate_smoke |
+| `ironhorn_plume` | `bg_loco` (far chuffing) | smoke_plume, plume, bg_smoke_plume, ironhorn_smoke |
+| `buzzard_circle` | `bg_buzzard` (far rotor, 2.5 s) | buzzard, buzzard_far, heli_far |
+| `armored_train` | `bg_train_pass` | parallel_train, train_pass, train_passby, enemy_train, roar_by |
+| `gorge` | `bg_gorge` (river far below, 6 s) | trestle, valley |
+| `avalanche` | `bg_avalanche` | bg_avalanche |
+| `aurora` | `bg_aurora` (6 s pad, one at a time: `minMs` 4000) | aurora_shimmer |
+| `tesla` | `bg_tesla` | tesla_coil, tesla_arc, arc, lightning, bg_lightning |
+| `ice_fissure` | `bg_fissure` | fissure, ice_boom |
+| `moosezilla_roar` | `bg_roar` | moose_roar, roar, boss_silhouette, silhouette |
+| `moosezilla` (the walk) | `bg_stomp` (far `boss_stomp`) | |
+| `tunnel`, `phaser` | silent (known) | |
+
+### New audio keys (encoded OGG; peak / RMS / max-300 ms RMS dBFS; loop seam)
+| Key | Length | Peak | RMS | 300 ms | Notes |
+|---|---|---|---|---|---|
+| `warning_siren` | 2.12 s | -6.5 | -16.2 | -13.0 | two rising "woop"s through a formant + alarm buzz; `max 1, minMs 1500` |
+| `ammo_click` | 0.04 s | -10.8 | -24.2 | -24.2 | HUD low-ammo tick; `minMs 200` |
+| `combo_sting` | 0.26 s | -3.9 | -17.0 | -17.0 | two ascending pulse notes + tick; detuned per tier |
+| `hmg_punch` | 0.08 s | -8.4 | -17.9 | -17.9 | sub thump 120→55 Hz + bolt click under `hmg`; same burst fatigue |
+| `laser_tail` | 0.28 s | -9.7 | -22.8 | -22.8 | falling FM whine + crackle under `laser` |
+| `rocket_punch` | 0.40 s | -7.3 | -16.1 | -15.0 | ignition boom 90→40 Hz + propellant flash under `rocket_launch` |
+| `flame_crackle` | 0.50 s | -6.8 | -23.3 | -22.0 | popping embers over a soft roar; `minMs 300` while the trigger is held |
+| `bg_zeppelin` | 4.50 s | -18.4 | -28.4 | -23.9 | beating twin-prop drone, LP 900 + big reverb |
+| `bg_plane` | 3.51 s | -13.4 | -27.7 | -22.0 | doppler prop drone (96→64 Hz) + rush |
+| `bg_train_pass` | 3.97 s | -14.6 | -24.9 | -19.9 | rumble swell, 18 clacks, horn fragment |
+| `bg_crows` | 1.85 s | -11.3 | -24.5 | -22.0 | five raspy caws + wing flutter |
+| `bg_waterfall` | 4.97 s | -13.2 | -28.3 | -24.1 | water roar + mist hiss swell |
+| `bg_artillery` | 2.05 s | -17.5 | -23.9 | -19.9 | far thud 120→35 Hz + rumble tail, LP 500 |
+| `bg_flak` | 1.44 s | -10.8 | -24.6 | -21.9 | three staggered far pops |
+| `bg_siren` | 3.35 s | -17.0 | -28.4 | -24.9 | one slow wail, LP 1300 |
+| `bg_avalanche` | 4.20 s | -17.8 | -25.6 | -19.9 | brown rumble swell + tumbling thuds |
+| `bg_tesla` | 0.80 s | -9.2 | -25.1 | -21.1 | buzzing zap + crackle + snap |
+| `bg_aurora` | 5.95 s | -21.0 | -31.5 | -28.0 | detuned fifth-stack pad, slow tremolo |
+| `bg_fissure` | 1.65 s | -12.2 | -23.7 | -18.0 | snap, deep boom, creaking tail |
+| `bg_roar` | 2.34 s | -10.5 | -22.5 | -19.0 | `boss_roar` resampled ×0.82, LP 900, drenched |
+| `bg_engine` | 2.34 s | -15.4 | -26.4 | -22.0 | muffled rev-up 42→95 Hz + exhaust puffs |
+| `bg_searchlight` | 1.64 s | -21.5 | -30.1 | -28.0 | soft servo hum rise/fall |
+| `bg_loco` | 2.98 s | -22.4 | -30.1 | -23.9 | six far steam chuffs + rumble |
+| `amb_camp` | 3.20 s loop | -24.6 | -33.5 | -28.0 | cold wind + generator hum + PA buzz; seam 0.001 |
+| `amb_forest` | 3.20 s loop | -22.1 | -31.4 | -27.9 | pine wind + two far chirps per period; seam 0.000 |
+| `amb_river` | 3.20 s loop | -16.5 | -29.9 | -26.1 | water rush + burble; seam 0.002 |
+| `amb_outpost` | 3.20 s loop | -20.8 | -29.5 | -28.0 | diesel generator + chimney draft + carrier; seam 0.001 |
+| `amb_lake` | 3.20 s loop | -23.3 | -31.9 | -27.9 | sub-wind + ice creaks and pings; seam 0.000 |
+| `amb_lab` | 3.20 s loop | -21.4 | -30.1 | -28.0 | mains hum + fluorescent buzz + tesla hiss; seam 0.000 |
+
+Mix: the `bg_*` files are low-passed and reverberant at render time (`_far()`), tiered -18…-28 dBFS and played with pan only, so a
+background moment never competes with the gameplay layer; beds sit at -26…-28 under the music (music RMS -14…-16). Weapon layers
+share the shot's `burst` fatigue so a held HMG settles at 0.55×. The limiter (-3 dB, 20:1) and bus structure are unchanged.
+Section beds by camera x (`UI.audio.sections`): `1-1` camp 0 / forest 960 / river 2720 / outpost 4000 / yard 5760 (outpost ×0.55);
+`1-3` lake 0 / lab 2416; `1-2` keeps the Phase E `train_clack` + `wind` pair (no extra loop).
+
+### Screenshots (SwiftShader, 3×)
+`f_warn2_strip.png` (four frames of the banner: slam, strobe phases, name typing), `f_warn2_c.png` (full frame, WARDEN'S SNOWCAT at the
+yard), `f_warn_moose.png` (MOOSEZILLA on the lake), `f_hud_sheet.png` (icon pop + HEAVY MACHINE GUN!, ×2/×3 chain popups with the score
+rolling, THANK YOU! + the rescue face dropping in + NICE!, low ammo red), `f_combo_excellent.png` (EXCELLENT! on a 5-chain), `f_sheet2.png`.
+```sh
+# WARNING banner (emit the event from the page; Levels' ArenaController emits it for real once their boss:intro lands)
+node tools/shot.mjs --out /tmp/kbe-ui/warn.png --query "scene=Game&fast=1&part=1-1&x=6150&god=1&mute=1&debug=1" --wait 2000 \
+  --steps '[{"eval":"(window.__KBE.game.scene.getScene(\"Game\").ctx.events.emit(\"boss:intro\",{name:\"WARDEN'"'"'S SNOWCAT\",x:6450,y:300}),1)"},{"wait":900},{"shot":"/tmp/kbe-ui/warn_name.png"}]'
+# HUD juice: 5 kills in one frame → EXCELLENT!
+node tools/shot.mjs --out /tmp/kbe-ui/combo.png --query "scene=Game&fast=1&part=1-1&x=1400&god=1&mute=1&debug=1" --wait 4200 \
+  --steps '[{"eval":"(()=>{const c=window.__KBE.game.scene.getScene(\"Game\").ctx;const p=c.player();for(let i=0;i<5;i++)c.events.emit(\"enemy:killed\",{x:p.x+40+i*22,y:p.y-12,kind:\"grunt\",score:100,cause:\"bullet\"});return 1})()"},{"wait":330}]'
+```
+
+### Known issues / requests (Phase F)
+- Nobody has heard the new audio; levels are numeric. The bg tiers (-18…-28) are a first guess for "distant": nudge `vol` in `SFX_META` or the
+  tiers in `sfx.py` after a listen.
+- `boss:intro` is only emitted by hand so far (Levels' ArenaController owns it); the banner, siren and camera cinematic all key on it.
+  **Engine**: in the shot above the letterbox bars didn't show in the frame; the banner's band (y 92..132) stays clear of them either way.
+- `explosion` as a bg id deliberately maps to `bg_artillery`: Levels' director announces `explosion` for its far `bg_explosion` effect, and the
+  gameplay alias `explosion → explo_m` would otherwise fire at full volume.
+- The combo callout yields to a weapon callout / the banner (the chain bonus popups still show), and the aurora pad is one-at-a-time (4 s gate).

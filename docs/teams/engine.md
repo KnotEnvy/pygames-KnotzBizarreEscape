@@ -271,6 +271,39 @@ ctx.camera.snapTo(x, y);   // instant jump (warps)
 ```
 Tuning lives in `src/config/tuning/engine.ts` under `camera` and `shake`.
 
+### Phase F: cinematic API (letterbox, zoom punch, focus) and the boss-intro cinematic
+
+```ts
+ctx.camera.letterbox(true, 400);     // black bars slide in (ENGINE.camera.letterboxPx = 14 px top and bottom); false = out
+ctx.camera.zoomPunch(0.08, 220);     // brief zoom in and back (peak 1 + amount, capped at zoomPunchMax 0.12). No-op when
+                                     // the screen-shake option is off. A weaker punch never cuts a stronger one short
+ctx.camera.focus(x, y, 1200);        // ease the view toward a world point (capped at focusMaxPushX 96 / Y 32 px)
+ctx.camera.release(800);             // ease back to the normal follow
+ctx.camera.inCinematic();            // true while the auto boss-intro runs
+```
+
+- **All of it is cosmetic.** Like the shake, focus only moves the *rendered* scroll. `view()`, `leftEdge()`/`rightEdge()`,
+  `clampX()`, forward-only `minScroll` and arena locks stay on the follow camera, so the arena audit, spawn ranges and
+  lock-left behave exactly as without it. While a focus is active, the player always stays `focusPlayerMargin` (64 px)
+  inside the rendered view, and the view stays inside the world bounds. The push is therefore zero against a map edge
+  (the 1-1 boss yard sits at the map's right end, so that intro is bars only).
+- **Timing.** Everything runs on the camera's real-time `update(rawDt)`: it is not slowed by hitstop or slow-mo, it
+  stops while the Game scene is paused, and under `__KBE.sim.advance` it advances in sim steps like everything else.
+- **Bars** are screen-fixed rectangles at `DEPTH.FX_TOP + 9`, compensated for the zoom punch so their inner edges stay
+  on whole pixels. The HUD scene renders on top of them, so its top and bottom rows stay readable (UI: keep essential
+  HUD info either inside the bars or more than 14 px from the screen edge).
+- **Zoom.** The zoom punch uses `cam.setZoom` (non-integer zoom shimmers slightly, so keep punches short, ≤ 300 ms).
+
+**Auto boss-intro cinematic** (no caller needed). On `boss:intro {name, x, y}`: bars in (450 ms), a slow push about 60%
+of the way toward `(x, y)` over 1.4 s (bars only when the shake option is off), and `damage.playerShield = true`
+(the player keeps full control but takes no hits). On `boss:spawn`: hold 1 s, then release (900 ms), bars out, shield
+off. It also ends at once on `player:died`, `game:respawn` or any `snapTo()` (warp), and after a 9 s safety timeout if
+`boss:spawn` never comes. Tuning: `ENGINE.camera.bossIntro`.
+
+**Run lead.** On top of the facing look-ahead (36 px), the follow target leads `runLead` (10 px) in the direction the
+player is actually moving (|vx| > 30 px/s), eased at `runLeadRate`. It is part of the follow position, so it is clamped
+by arena locks and never scrolls back past forward-only.
+
 ---
 
 ## 9. Time: hitstop, slow-mo, pause

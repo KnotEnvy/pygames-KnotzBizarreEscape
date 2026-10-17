@@ -455,3 +455,52 @@ Final integration status at this handoff: **full `npm --prefix game run check` i
 Verification: inspected `/tmp/kbe-enemies/rails.png` in the real boss arena (4992–5376), boss x 5278/y 352, player x 5040/y 304. The requested x=5040 screenshot alone leaves the arena idle; the final capture adds a brief debug warp to x 5160, returns the player to x 5040, then advances simulation to close the title card. No keyboard bot. A separate fast controlled phase check confirmed all four cinder marker floors at y 304 and both cinder/grenade endpoints at y 302; capture `/tmp/kbe-enemies/rails-targeting.png`. Both browser runs had clean consoles.
 
 `npm run audit:arenas -- --part 1-2` passed: IRONHORN phases **1/2/3 → PartClear**, no off-view time. The npm script prepends `--part all` and the parser uses the first occurrence, so this command also audited 1-1 and 1-3; both passed. `npm run check` passed (TypeScript and Phaser check: 98 files, zero errors/warnings). These current results supersede the older integration blockers above. Only the boss implementation and these notes were edited; no git operations.
+
+## Phase F — boss detail, life and destruction (2026-10-17)
+
+Implemented the JUICE contract in Enemies-owned files. All HP, weak-point multipliers, hurtbox rectangles, phase thresholds, attack cue/release times, projectile tuning, scores and death-chain durations retain their pre-pass values. The spawn grace is now **1100 scaled ms** (previously 900), so attacks start after Engine's approximately one-second cinematic hold. Phase-transition recovery times are unchanged.
+
+### Runtime and art paths
+
+- `game/src/entities/bosses/MachineBoss.ts`: Snowcat's rev/entry slide and Warden salute, Ironhorn's steam blast and turret covers unfolding, idle exhaust/steam, persistent 66%/33% cosmetic damage skins during attacks and recovery, and large threshold/death fragments.
+- `game/src/entities/bosses/Moosezilla.ts`: eight-frame spawn rear/roar with jaw and eye flare; visible breathing leg pistons and idle antler sway; 66% cracked armor/tines, 33% missing corner plating and exposed glowing ribs; smoke/sparks; large death pieces. The original **60% / 25% gameplay phases**, cannon HP, antler detachment and core activation remain unchanged. Cosmetic 33% internals do not activate the weak point early.
+- `game/src/entities/bosses/BossDebris.ts`: shared cosmetic-only heavy plates, horn fragments, gears, pipes and bolts, capped at **18 pieces**, with gravity, bounce and a **2400 ms** lifetime. No damage/physics registrations. Cleaned up on boss destruction.
+- `game/src/entities/enemies/index.ts`: consumes `boss:intro` before the boss exists, giving the gate rumble socket puffs and machine rev/steam sound; the full sprite intro always starts on spawn, including debug fixtures. Every listener is removed on shutdown.
+- `game/art-src/enemies/phase-e.lua`, `moosezilla.lua`: authored machine/rig changes; rebuilt their editable `.aseprite` sources and corresponding `game/public/assets/sprites/enemies/*.{png,json}`. No new pack entries or palette exceptions.
+- Light roster art polish: `game/art-src/enemies/lib/soldier.lua`, `drone.lua`, `turret.lua`, plus hound/Buzzard/leaper helpers in `phase-e.lua`. Infantry blink, stronger alert brows, separating helmets in late death frames, drone banking eyes, brighter turret anticipation, hound snarl and Buzzard gunner bracing. Existing action frame counts and durations are preserved.
+
+Rebuild from repository root:
+
+```sh
+bash game/tools/build-art.sh art-src/enemies/phase-e.lua art-src/enemies/moosezilla.lua art-src/enemies/grunt.lua art-src/enemies/grenadier.lua art-src/enemies/shield.lua art-src/enemies/paratrooper.lua art-src/enemies/turret.lua art-src/enemies/drone.lua
+/home/knotz2/.local/bin/aseprite --batch --script-param root="$PWD/game" --script-param kbe="$PWD/game/tools/aseprite/kbe.lua" --script game/art-src/enemies/lib/phase-f-preview.lua
+```
+
+### Contact sheets — enlarged and visually inspected
+
+The repeatable source is `game/art-src/enemies/lib/phase-f-preview.lua`; MOOSEZILLA is assembled from the **current shipped rig**, including the wide cupped antlers and their correct pivots. Sheets are **3× nearest-neighbor**. Four columns sample different frames; rows are:
+
+- `/tmp/kbe-enemies/f-snowcat.png`: idle, intro, 66%, 33%, charge, mortar, MG, death/debris.
+- `/tmp/kbe-enemies/f-ironhorn.png`: idle, intro, 66%, 33%, cannon, cinder, coal, grenade, death/debris.
+- `/tmp/kbe-enemies/f-moosezilla.png`: idle, intro, 66%, 33%, cannon, stomp, flame, paw/charge, exposed core, death/debris.
+- `/tmp/kbe-enemies/f-roster.png`: nine regular enemy kinds; idle/entry, cue, action, death/landing samples.
+
+### Real-arena screenshots and checks
+
+The documented `tools/shot.mjs` Vite + SwiftShader workflow was adapted into `/tmp/kbe-enemies/f-capture.mjs` for frozen, fixed-step simulation and multiple captures. **No real-time bot playthrough.** All three bosses were spawned by their real arena controllers, using `part=1-1/1-2/1-3`, fast/mute/god and a warp toward their actual boss gates. Damage uses **`__KBE.cheats.damageBoss(n)`**, preserving weak-point and phase handling. The capture runner never changes shared source files or runtime tuning.
+
+All screenshots below are under `/tmp/kbe-enemies/`, **1152×648**, and were visually inspected individually or in `f-review-{snowcat,ironhorn,moosezilla}.png`:
+
+- All three: `f-<boss>-intro.png`, `f-<boss>-idle.png`, `f-<boss>-damaged.png`, `f-<boss>-damaged-settled.png`, `f-<boss>-critical.png`, `f-<boss>-critical-settled.png`, `f-<boss>-death.png`.
+- Snowcat attacks: `f-snowcat-{charge,mortar,mg}-cue.png` and `f-snowcat-{charge,mortar,mg}.png`.
+- Ironhorn cannon: `f-ironhorn-cannon-cue.png`, `f-ironhorn-cannon.png`.
+- MOOSEZILLA: `f-moosezilla-{cannon,stomp}-cue.png`, `f-moosezilla-{cannon,stomp}.png`, `f-moosezilla-core.png`.
+- Summary: `f-captures.json` / `f-captures.log`. All three remain in **intro at ~850 ms after spawn**, with positive intro time and no attack. Recorded cosmetic tiers: Snowcat **94 / 42 HP**, Ironhorn **140 / 64 HP**, MOOSEZILLA **260 / 124 HP**. MOOSEZILLA's extra core capture is at **90 HP**.
+
+Final validation:
+
+- **`npm --prefix game run check`: PASS**, TypeScript + Phaser 4 checker, **102 files / zero findings** (`f-check.log`). The transient Levels `boss.names` / `introFocusUp` errors encountered mid-pass were fixed by the concurrent Levels work before this final check.
+- **`npm --prefix game run audit`: PASS**, all reach targets and every arena; Snowcat **1/2/3 → PartClear**, Ironhorn **1/2/3 → PartClear**, MOOSEZILLA **1/2/3 → Results**, zero boss off-view time (`f-audit-final.log`).
+- Art validation: **31 assets, 733 frames, 175 unique tags**, pack/atlas/rig bounds and original attack anticipation timings pass; **1,490,310 opaque source pixels** checked against `K.PAL`, no exceptions (`f-art-audit.log`).
+- Final screenshot runs have no page exceptions. Part II logged two concurrent Levels/parallax warnings: missing textures **`bg2_gorge` / `bg2_trestle`**. Snowcat and MOOSEZILLA consoles were clean. T3 preview itself could not start because host browser libraries were missing; the repository Chromium workflow already supplies its own library path. No packages installed.
+- These are targeted visual and simulation checks; no sustained GPU/60-FPS benchmark is claimed. No git operations or non-Enemies source edits were made.

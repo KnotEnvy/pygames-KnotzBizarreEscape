@@ -5,34 +5,122 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
     "sourceSize": { "w": 80, "h": 40 },
-    "duration": 140
+    "duration": 160
    },
    "moosezilla_armor#1": {
+    "frame": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 160
+   },
+   "moosezilla_armor#2": {
+    "frame": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 160
+   },
+   "moosezilla_armor#3": {
+    "frame": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 160
+   },
+   "moosezilla_armor#4": {
     "frame": { "x": 81, "y": 0, "w": 80, "h": 40 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
     "sourceSize": { "w": 80, "h": 40 },
-    "duration": 100
+    "duration": 140
    },
-   "moosezilla_armor#2": {
+   "moosezilla_armor#5": {
+    "frame": { "x": 81, "y": 0, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 140
+   },
+   "moosezilla_armor#6": {
+    "frame": { "x": 81, "y": 0, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 140
+   },
+   "moosezilla_armor#7": {
+    "frame": { "x": 81, "y": 0, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 140
+   },
+   "moosezilla_armor#8": {
+    "frame": { "x": 162, "y": 0, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 120
+   },
+   "moosezilla_armor#9": {
     "frame": { "x": 0, "y": 41, "w": 80, "h": 40 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
     "sourceSize": { "w": 80, "h": 40 },
-    "duration": 100
+    "duration": 120
    },
-   "moosezilla_armor#3": {
+   "moosezilla_armor#10": {
     "frame": { "x": 81, "y": 41, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 120
+   },
+   "moosezilla_armor#11": {
+    "frame": { "x": 162, "y": 41, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 120
+   },
+   "moosezilla_armor#12": {
+    "frame": { "x": 0, "y": 82, "w": 80, "h": 40 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
     "sourceSize": { "w": 80, "h": 40 },
     "duration": 100
    },
-   "moosezilla_armor#4": {
-    "frame": { "x": 81, "y": 0, "w": 80, "h": 40 },
+   "moosezilla_armor#13": {
+    "frame": { "x": 81, "y": 82, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 100
+   },
+   "moosezilla_armor#14": {
+    "frame": { "x": 162, "y": 82, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 100
+   },
+   "moosezilla_armor#15": {
+    "frame": { "x": 0, "y": 82, "w": 80, "h": 40 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
@@ -45,11 +133,13 @@
   "version": "1.3.18.6-dev",
   "image": "moosezilla_armor.png",
   "format": "RGBA8888",
-  "size": { "w": 161, "h": 81 },
+  "size": { "w": 242, "h": 122 },
   "scale": "1",
   "frameTags": [
-   { "name": "moosezilla_armor_intact", "from": 0, "to": 0, "direction": "forward", "color": "#000000ff" },
-   { "name": "moosezilla_armor_falling", "from": 1, "to": 4, "direction": "forward", "color": "#000000ff" }
+   { "name": "moosezilla_armor_intact", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_armor_damaged", "from": 4, "to": 7, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_armor_critical", "from": 8, "to": 11, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_armor_falling", "from": 12, "to": 15, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "main", "opacity": 255, "blendMode": "normal" }

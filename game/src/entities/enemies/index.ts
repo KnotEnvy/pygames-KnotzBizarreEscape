@@ -10,6 +10,26 @@ export function registerEnemies(ctx: RegisterContext): void {
     registerEnemyAnimations(ctx);
     const enemies = new Set<Enemy | AssaultEnemy>();
     let boss: Moosezilla | MachineBoss | null = null;
+    // boss:intro arrives during the gate rumble, before the boss exists. Its authored
+    // sprite intro begins on spawn; these socket puffs bridge the approach beat.
+    let approach: { x: number; y: number; effect: string; left: number; puff: number } | null = null;
+    const offIntro = ctx.events.on('boss:intro', e => {
+        if (boss?.active) return;
+        const name = e.name.toUpperCase();
+        approach = { x: e.x, y: e.y, effect: name.includes('SNOWCAT') ? 'smoke_stack' : 'steam', left: 1600, puff: 0 };
+        if (name.includes('SNOWCAT')) ctx.audio.sfx('snowcat_engine');
+        else if (name === 'IRONHORN') ctx.audio.sfx('loco_steam');
+    });
+    const offApproach = ctx.onUpdate(dt => {
+        if (!approach || !dt) return;
+        if (boss?.active || (approach.left -= dt) <= 0) { approach = null; return; }
+        approach.puff -= dt;
+        if (approach.puff <= 0) {
+            approach.puff = 360;
+            ctx.events.emit('fx:emit', { effect: approach.effect, x: approach.x, y: approach.y, scale: .65, count: 1 });
+        }
+    });
+    ctx.scene.events.once('shutdown', () => { offIntro(); offApproach(); approach = null; });
     const kinds: EnemyKind[] = ['grunt', 'grenadier', 'shield', 'turret', 'drone', 'paratrooper', 'leaper', 'hound', 'buzzard'];
     for (const kind of kinds) ctx.registry.register(`enemy:${kind}`, (c, x, y, props) => {
         if (enemies.size >= ENEMIES.maxEnemies) return;

@@ -7,6 +7,9 @@
 //               with arenaX0/X1 (snowcat, ironhorn, moosezilla). No gate: the boss spawns as the camera arrives.
 //               The boss locks the camera itself and unlocks on boss:defeated.
 //   A wave arena with a gate (Part III's lab gate) smashes it open when the arena is cleared.
+// Phase F events (docs/JUICE.md): arena:start {id,x0,x1,boss} as an arena locks / its intro begins, arena:wave
+// {id,wave,waves} at each wave start (1-based), arena:clear {id} when it finishes by play (not when skipped), and for
+// boss arenas boss:intro {name,x,y} right after arena:start (the gate rumble), always before boss:spawn.
 // If something else unlocks the camera mid-arena (warp cheat), the arena relocks while the player is still
 // inside it, otherwise it's abandoned.
 import Phaser from 'phaser';
@@ -137,6 +140,11 @@ export class ArenaController {
             // No gate: lock now so the camera settles on the arena while the boss rolls in.
             if (!gate && !this.ctx.camera.isLocked()) { a.lockX0 = Math.max(a.x0, Math.ceil(viewX)); this.ctx.camera.lock(a.lockX0, a.x1); }
             this.hooks.fire(a.id, true);
+            this.ctx.events.emit('arena:start', { id: a.id, x0: a.lockX0, x1: a.x1, boss: true });
+            // Camera cinematic / WARNING banner / siren / boss intro anim: focus where the boss will appear (the gate).
+            const b = a.boss, kind = str(b.props.kind, 'moosezilla');
+            const fx = gate && !gate.smashed ? gate.x : b.x;
+            this.ctx.events.emit('boss:intro', { name: LEVEL.boss.names[kind] ?? kind.toUpperCase(), x: fx, y: b.y - LEVEL.boss.introFocusUp });
             return;
         }
         // A warp can drop the camera inside the arena: lock from where it is so it never scrolls back left.
@@ -144,6 +152,7 @@ export class ArenaController {
         this.ctx.camera.lock(a.lockX0, a.x1);
         this.hooks.fire(a.id, true);
         a.state = 'active';
+        this.ctx.events.emit('arena:start', { id: a.id, x0: a.lockX0, x1: a.x1, boss: false });
         this.startWave(a, 0);
     }
 
@@ -158,6 +167,7 @@ export class ArenaController {
     private startWave(a: Arena, i: number): void {
         a.wave = i;
         a.members = (a.waves[i] ?? []).map(obj => ({ obj, delay: num(obj.props.delay, 0), doorOpened: false, go: null, spawned: false, offMs: 0 }));
+        this.ctx.events.emit('arena:wave', { id: a.id, wave: i + 1, waves: a.waves.length });
         if (a.members.length === 0) { this.waveCleared(a); return; }
         // Wave progress for the player: "WAVE 1/3" ... "FINAL WAVE!" (the unlock then shows the UI's GO!).
         const n = a.waves.length;
@@ -224,10 +234,12 @@ export class ArenaController {
     }
 
     private finish(a: Arena, unlock: boolean): void {
+        const cleared = a.state === 'releasing' || a.state === 'boss' || a.state === 'intro';
         a.state = 'done';
         if (!a.boss) this.smashGate(a); // a gated wave arena (lab gate) blows its gate open on clear
         if (unlock && this.ctx.camera.isLocked()) this.ctx.camera.unlock();
         this.hooks.fire(a.id, false);
+        if (cleared) this.ctx.events.emit('arena:clear', { id: a.id });
     }
 
     /**

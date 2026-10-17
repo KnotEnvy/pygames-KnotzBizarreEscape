@@ -28,6 +28,9 @@ const PROP_KINDS = ['crate', 'supply_crate', 'barrel', 'explosive_barrel', 'sand
   // Part III (lake / lab)
   'wreck_boxcar', 'wreck_engine', 'wreck_bogie', 'log_spill', 'sign_thin_ice', 'lab_sign', 'tesla_coil', 'ice_hole'];
 const AIR_KINDS = ['drone', 'paratrooper', 'buzzard', 'leaper'];
+// Background director moment ids (src/level/background.ts SHOTS + ZONES)
+const BG_EVENTS = ['camp_searchlights', 'zeppelin', 'crows', 'waterfall', 'towers', 'plane', 'flak', 'yard_smoke', 'snowcat_roar',
+  'gorge', 'buzzard_circle', 'ironhorn_plume', 'avalanche', 'armored_train', 'aurora', 'ice_fissure', 'lab_searchlights', 'lab_tesla', 'moosezilla'];
 const AMBIENCE = ['snow', 'embers', 'fireflies', 'steam', 'train', 'tunnel', 'blizzard'];
 const FACING = ['left', 'right'];
 
@@ -151,6 +154,7 @@ for (const o of L.triggers.objects) {
       if (o.width < 384) err(`${where}: lock narrower than the 384 px screen`); break;
     case 'checkpoint': need(o, p, 'id', null, where); if (ids.has(p.id)) err(`${where}: duplicate checkpoint id ${p.id}`); ids.add(p.id); break;
     case 'stage_end': break;
+    case 'bg_event': need(o, p, 'id', BG_EVENTS, where); break;
     case 'music': need(o, p, 'key', null, where); break;
     case 'prompt': need(o, p, 'text', null, where); break;
     case 'ambience': need(o, p, 'fx', AMBIENCE, where); break;

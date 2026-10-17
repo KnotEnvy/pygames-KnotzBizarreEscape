@@ -38,7 +38,34 @@ export const ENGINE = {
         /** Arena lock / unlock transition duration. */
         lockTweenMs: 700,
         /** Never scroll back left (Metal Slug). */
-        forwardOnly: true
+        forwardOnly: true,
+        /** Phase F run lead: extra px in the direction the player is actually moving (on top of lookAhead). */
+        runLead: 10,
+        /** Horizontal speed (px/s) above which the run lead applies. */
+        runLeadMinSpeed: 30,
+        runLeadRate: 3,
+        /** focus(): farthest the view is pushed off the follow position (px), and how far inside the view the
+         *  player always stays (px from either edge) while a focus is active. */
+        focusMaxPushX: 96,
+        focusMaxPushY: 32,
+        focusPlayerMargin: 64,
+        /** Cinematic bar height (px, top and bottom). Kept at about 14 so the HUD's top and bottom rows stay clear. */
+        letterboxPx: 14,
+        /** zoomPunch amount cap (1 + amount is the peak zoom). */
+        zoomPunchMax: 0.12,
+        /** Auto boss-intro cinematic (on boss:intro). Runs on real time; it never blocks input. */
+        bossIntro: {
+            letterboxMs: 450,
+            /** Slow push toward the boss/gate (the focus transition time). */
+            pushMs: 1400,
+            /** Push strength toward the boss point, 0..1 of the way (then capped by focusMaxPushX). */
+            pushAmount: 0.6,
+            /** Release this long after boss:spawn. */
+            holdAfterSpawnMs: 1000,
+            releaseMs: 900,
+            /** Safety: end the cinematic if boss:spawn never comes. */
+            timeoutMs: 9000
+        }
     },
 
     /** Camera shake tiers 1..4: duration (ms) and intensity (fraction of the view size). */

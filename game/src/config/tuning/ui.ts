@@ -28,7 +28,35 @@ export const UI = {
         popup: { life: 820, rise: 22, cap: 12 },
         prompt: { y: 200, hiddenY: 236, defaultMs: 3500, slideMs: 220 },
         multiKill: { windowMs: 700, bonusPerExtra: 50 },
-        clearFadeAtMs: 2800
+        clearFadeAtMs: 2800,
+        /** Phase F juice: the score counter bumps while it rolls and blinks white when it locks in. */
+        scoreRoll: { bumpPx: 1, lockFlashMs: 70 },
+        /** Low-ammo blink period (ms per half-cycle) and the soft click on each "on" phase. */
+        lowAmmoBlinkMs: 250, lowAmmoClick: 'ammo_click',
+        /** Weapon icon pop on a weapon change: drop from above with a bounce, white flash for the first frames. */
+        iconPop: { fromDy: -7, ms: 420, flashMs: 70 },
+        /** Multi-kill callouts: chain length → word; one callout per `minGapMs`, only when the tier rises within a chain. */
+        combo: {
+            tiers: [[2, 'NICE!'], [3, 'GREAT!'], [5, 'EXCELLENT!']] as ReadonlyArray<readonly [number, string]>,
+            minGapMs: 1400, holdMs: 620, y: 128, sfx: 'combo_sting', detunePerTier: 250
+        },
+        /** POW rescue flourish: "THANK YOU!" popup over the POW, the new face icon drops into the tally with a bounce. */
+        powThanks: { text: 'THANK YOU!', riseY: 30, iconFromDy: -9, iconMs: 480 }
+    },
+
+    /**
+     * Phase F: Metal Slug-style WARNING banner on boss:intro. A dark strip with hazard stripes sweeping along its top
+     * and bottom edges, "WARNING!" in the middle and the boss name revealed under it. Sits between the HUD's top rows
+     * (y ≤ 30) and the boss bar (y 198), clear of the engine's 14 px letterbox bars; it never blocks input.
+     */
+    warning: {
+        y: 92, h: 40, stripeH: 6, stripeW: 12, panelAlpha: 0.72,
+        /** Stripe sweep speed (px/s; the two edges run opposite ways) and the red/black strobe half-period. */
+        sweepPxPerS: 90, strobeMs: 110,
+        textY: 106, nameY: 123,
+        /** Timeline (ms): text slam, name reveal, hold end, fade-out length. */
+        inMs: 160, nameAt: 650, outAt: 1900, outMs: 300,
+        sfx: 'warning_siren'
     },
 
     intro: {
@@ -124,7 +152,81 @@ export const UI = {
         /** Mix meter (`__KBE.state().audio.mix`): peak-hold window for the busiest moment. */
         mixHoldMs: 1500,
         /** Phase E ambience the Audio layer runs by part id (loop key → volume). Voice-limited to 1, so Levels may call them too. */
-        ambience: { '1-2': { train_clack: 0.9, wind: 0.6 }, '1-3': { wind: 0.85 } } as Record<string, Record<string, number>>
+        ambience: { '1-2': { train_clack: 0.9, wind: 0.6 }, '1-3': { wind: 0.85 } } as Record<string, Record<string, number>>,
+        /**
+         * Phase F: section ambient beds (seamless `amb_*` loops under the music), by part id and camera-centre x
+         * (sorted; the last entry whose `x` ≤ camera x wins). Cross-faded over `bedFadeMs`; ducked to `bedArenaGain`
+         * while an arena is live. Part II's bed is the Phase E `train_clack` + `wind` pair above (no extra loop).
+         */
+        sections: {
+            '1-1': [
+                { x: 0, bed: 'amb_camp', volume: 0.8 },
+                { x: 960, bed: 'amb_forest', volume: 0.85 },
+                { x: 2720, bed: 'amb_river', volume: 0.9 },
+                { x: 4000, bed: 'amb_outpost', volume: 0.8 },
+                { x: 5760, bed: 'amb_outpost', volume: 0.55 }
+            ],
+            '1-2': [],
+            '1-3': [
+                { x: 0, bed: 'amb_lake', volume: 0.85 },
+                { x: 2416, bed: 'amb_lab', volume: 0.85 }
+            ]
+        } as Record<string, ReadonlyArray<{ x: number; bed: string | null; volume?: number }>>,
+        bedFadeMs: 1800, bedArenaGain: 0.5, bedPollMs: 250,
+        /**
+         * Phase F: background moments (`bg:event { id, x? }`) → distant sound. Levels chooses the ids; this table maps
+         * them (plus likely synonyms) to the `bg_*` keys, so a mismatch is a one-line fix. Unlisted ids that are catalog
+         * keys/aliases play as themselves; anything else lands in `__KBE.state().audio.bgUnknown`.
+         * Panned by x (no distance falloff: these are far away by definition).
+         */
+        bgEvents: {
+            // Levels' background director ids (src/level/background.ts SHOTS/ZONES) come first; synonyms follow.
+            camp_searchlights: { key: 'bg_searchlight' }, tower_lights: { key: 'bg_siren' }, zeppelin: { key: 'bg_zeppelin' }, crows: { key: 'bg_crows' },
+            waterfall: { key: 'bg_waterfall' }, plane: { key: 'bg_plane' }, flak: { key: 'bg_flak' }, explosion: { key: 'bg_artillery' }, snowcat_roar: { key: 'bg_engine' },
+            ironhorn_plume: { key: 'bg_loco' }, buzzard_circle: { key: 'bg_buzzard' }, armored_train: { key: 'bg_train_pass' }, gorge: { key: 'bg_gorge' },
+            avalanche: { key: 'bg_avalanche' }, aurora: { key: 'bg_aurora' }, tesla: { key: 'bg_tesla' }, towers: { key: 'bg_searchlight' }, ice_fissure: { key: 'bg_fissure' },
+            moosezilla_roar: { key: 'bg_roar' }, moosezilla: { key: 'bg_stomp' },
+            /** Ambience zones that are visual only (key '' = known, silent). */
+            tunnel: { key: '' }, phaser: { key: '' },
+            // Part I, "The Camp"
+            searchlight: { key: 'bg_searchlight' }, searchlights: { key: 'bg_searchlight' }, camp_searchlight: { key: 'bg_searchlight' },
+            lab_searchlight: { key: 'bg_searchlight' }, searchlight_sweep: { key: 'bg_searchlight' },
+            watchtower: { key: 'bg_siren' }, watchtower_lights: { key: 'bg_siren' }, far_siren: { key: 'bg_siren' }, siren: { key: 'bg_siren' },
+            airship: { key: 'bg_zeppelin' }, blimp: { key: 'bg_zeppelin' },
+            birds: { key: 'bg_crows' }, bg_birds: { key: 'bg_crows' }, crow_burst: { key: 'bg_crows' },
+            mist: { key: 'bg_waterfall' }, bg_mist: { key: 'bg_waterfall' },
+            transport: { key: 'bg_plane' }, transport_plane: { key: 'bg_plane' }, flyover: { key: 'bg_plane' }, paradrop: { key: 'bg_plane' },
+            artillery: { key: 'bg_artillery' }, barrage: { key: 'bg_artillery' }, bg_explosion: { key: 'bg_artillery' }, far_explosion: { key: 'bg_artillery' },
+            bg_flak: { key: 'bg_flak' },
+            snowcat_engine: { key: 'bg_engine' }, engine_roar: { key: 'bg_engine' }, gate_engine: { key: 'bg_engine' }, yard_engine: { key: 'bg_engine' },
+            snowcat_yard: { key: 'bg_engine' }, yard_smoke: { key: 'bg_engine' }, gate_smoke: { key: 'bg_engine' },
+            // Part II, "Timber Express"
+            smoke_plume: { key: 'bg_loco' }, plume: { key: 'bg_loco' }, bg_smoke_plume: { key: 'bg_loco' }, ironhorn_smoke: { key: 'bg_loco' },
+            buzzard: { key: 'bg_buzzard' }, buzzard_far: { key: 'bg_buzzard' }, heli_far: { key: 'bg_buzzard' },
+            parallel_train: { key: 'bg_train_pass' }, train_pass: { key: 'bg_train_pass' }, train_passby: { key: 'bg_train_pass' },
+            enemy_train: { key: 'bg_train_pass' }, roar_by: { key: 'bg_train_pass' },
+            trestle: { key: 'bg_gorge' }, valley: { key: 'bg_gorge' },
+            bg_avalanche: { key: 'bg_avalanche' },
+            // Part III, "Moose Lake"
+            aurora_shimmer: { key: 'bg_aurora' },
+            tesla_coil: { key: 'bg_tesla' }, tesla_arc: { key: 'bg_tesla' }, arc: { key: 'bg_tesla' },
+            lightning: { key: 'bg_tesla' }, bg_lightning: { key: 'bg_tesla' },
+            fissure: { key: 'bg_fissure' }, ice_boom: { key: 'bg_fissure' },
+            moosezilla_silhouette: { key: 'bg_roar' }, silhouette: { key: 'bg_roar' }, moose_roar: { key: 'bg_roar' },
+            roar: { key: 'bg_roar' }, boss_silhouette: { key: 'bg_roar' },
+
+        } as Record<string, { key: string; volume?: number; detune?: number }>,
+        /** Background pan: pan = clamp(dx / bgPanRange) × bgPanMax (gentler than gameplay sounds). */
+        bgPanRange: 384, bgPanMax: 0.45,
+        /** Phase F: weapon layers played under the weapon's own shot (`player:shoot`), positional. */
+        weaponLayers: {
+            hmg: { key: 'hmg_punch', volume: 1 },
+            laser: { key: 'laser_tail', volume: 1 },
+            rocket: { key: 'rocket_punch', volume: 1 },
+            flame: { key: 'flame_crackle', volume: 1 }
+        } as Record<string, { key: string; volume: number }>,
+        /** WARNING siren duck (music gain, hold, recover). */
+        warningDuck: { gain: 0.45, holdMs: 1900, recoverMs: 700 }
     }
 } as const;
 

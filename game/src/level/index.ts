@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import type { RegisterContext } from '../core';
 import { LEVEL } from '../config/tuning/level';
 import { ArenaController, ArenaHookSet } from './arenas';
+import { BackgroundDirector } from './background';
 import { IceSystem } from './ice';
 import { buildMap, parseSections } from './map';
 import { createParallax } from './parallax';
@@ -58,6 +59,8 @@ export function registerLevel(ctx: RegisterContext): void {
     triggers.publishZones();
     const train = trainTriggers || drift ? new TrainSystem(ctx, built.triggers, drift || LEVEL.train.defaultDrift, parallax, k => triggers.setOverride(k), built.map.heightInPixels) : null;
     const ice = new IceSystem(ctx, built);
+    // Phase F: background moments (bg_event triggers + arena/tunnel/explosion hooks), see src/level/background.ts.
+    const bg = new BackgroundDirector(ctx, built.key, built.triggers, parallax);
 
     ctx.onUpdate(dt => {
         spawner.update();
@@ -65,6 +68,7 @@ export function registerLevel(ctx: RegisterContext): void {
         train?.update(dt);
         if (ice.count) ice.update(dt);
         triggers.update(dt);
+        bg.update(dt);
     });
 
     // ---------------------------------------------------------------- debug / QA
@@ -85,6 +89,13 @@ export function registerLevel(ctx: RegisterContext): void {
     }));
     if (train) ctx.debug.register('train', () => train.debug());
     if (ice.count) ctx.debug.register('ice', () => ice.debug());
+    ctx.debug.register('bg', () => bg.debug());
+    // Fire a background moment by id (screenshots / QA): window.__KBE_LEVEL.bg('zeppelin'). Cheat builds only.
+    if (ctx.debug.cheatsEnabled) {
+        const w = window as unknown as { __KBE_LEVEL?: { bg(id: string): boolean } };
+        w.__KBE_LEVEL = { bg: (id: string) => bg.fire(String(id)) };
+        scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { delete w.__KBE_LEVEL; });
+    }
 
     // Warp cheat (and ?x=): land on the standable, hazard-free surface nearest the player's current height, nudging
     // sideways off walls. The engine default takes the first surface from the top, which can be a tree branch or the

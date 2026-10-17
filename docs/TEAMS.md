@@ -29,3 +29,6 @@
   missing SFX and mix trim, the slim radio strip, rules review (0 E) plus fixes. **Next:** owner playtest of the full 3-part Mission 1.
 - **Testing rule:** verify with `npm run audit` + `check` + `selftest` + targeted screenshots. No real-time bot playthroughs; every
   verification attempt is time-boxed (about 10 min).
+- **Owner playtest 2:** stuck enemy muzzle flash, aim-lock 8-way, crouched down shots. All fixed (071de2a, 84ecf19).
+- **Phase F (now): details and juice** ([JUICE.md](JUICE.md)): hero art pass, boss art with damage states and intros, background director
+  and background moments, richer parallax, a combat juice pass, the WARNING banner, HUD juice, background-moment sounds, and the boss-intro camera cinematic.

@@ -14,7 +14,7 @@ local function draw(im,d,pose,f)
   tx,ty=tx-v[1]*recoil,ty-v[2]*recoil
   D.limb(im,16,14,tx,ty,'steel3','steel5',2); D.disc(im,tx,ty,2,'steel1'); K.px(im,tx,ty,'outline')
   D.rivet(im,11,18); D.rivet(im,22,18)
-  if pose=='windup' then D.disc(im,12,9,2,f%2==0 and 'white' or 'fire4'); K.px(im,11,8,'fire5') end
+  if pose=='windup' then D.line(im,10,10,20,10,'fire3');D.line(im,11,9,19,9,f>2 and 'fire5' or 'red4');D.disc(im,12,9,2,f%2==0 and 'white' or 'fire4'); K.px(im,11,8,'fire5') end
   if pose=='fire' and f==2 then D.flash(im,tx+v[1]*2,ty+v[2]*2,0) end
 end
 local A={}

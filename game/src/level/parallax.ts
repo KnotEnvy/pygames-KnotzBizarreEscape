@@ -17,6 +17,8 @@ export interface Parallax {
     destroy(): void;
     /** 0..1: how much of the view a tunnel covers (layers flagged `tunnelHide` fade out). */
     setTunnelCover(f: number): void;
+    /** 0..1 for a named cover group (layers with `hideIn` containing it fade out, `showIn` layers fade in). */
+    setCover(group: string, f: number): void;
     /** Distance the train has travelled (px): drift * scaled seconds. */
     readonly travelled: number;
 }
@@ -50,6 +52,7 @@ export function createParallax(ctx: GameContext, setId: string, drift: number): 
 
     let travelled = 0;
     let cover = 0;
+    const covers: Record<string, number> = {};
     let last = ctx.time.now;
     const update = (): void => {
         // Scaled gameplay clock: the drift stops during hitstop/pause like everything else.
@@ -68,6 +71,12 @@ export function createParallax(ctx: GameContext, setId: string, drift: number): 
             let a = l.alpha;
             if (d.fade) a *= d.fade === 'in' ? t : 1 - t;
             if (d.tunnelHide) a *= 1 - cover;
+            if (d.hideIn) for (const g of d.hideIn) a *= 1 - (covers[g] ?? 0);
+            if (d.showIn) a *= covers[d.showIn] ?? 0;
+            if (d.span) {
+                const [from, to, fadePx] = d.span;
+                a *= Phaser.Math.Clamp(Math.min(camX - from, to - camX) / Math.max(1, fadePx) + 1, 0, 1);
+            }
             l.sprite.setAlpha(a).setVisible(a > 0.001);
         }
     };
@@ -78,6 +87,7 @@ export function createParallax(ctx: GameContext, setId: string, drift: number): 
     return {
         destroy,
         setTunnelCover: (f: number) => { cover = Phaser.Math.Clamp(f, 0, 1); },
+        setCover: (group: string, f: number) => { covers[group] = Phaser.Math.Clamp(f, 0, 1); },
         get travelled() { return travelled; }
     };
 }

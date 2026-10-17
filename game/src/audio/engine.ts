@@ -27,6 +27,8 @@ export interface SfxOptions {
     /** World x for stereo panning and distance falloff (relative to the Game camera). */
     x?: number;
     rate?: number;
+    /** Phase F: a fixed stereo pan (−1..1) with NO distance falloff (background moments are far away by definition). Overrides `x`. */
+    pan?: number;
 }
 
 export interface LoopOptions extends SfxOptions {
@@ -61,6 +63,11 @@ export interface SfxHint {
 export interface AudioDebugState {
     recent: string[];
     unknown: string[];
+    /** Phase F: bg:event ids that reached no sound (fix them in UI.audio.bgEvents) and the last routed ones (`id→key`). */
+    bgUnknown: string[];
+    bg: string[];
+    /** Phase F: the section bed loop currently playing (and its target volume). */
+    bed: string | null;
     voices: number;
     loops: number;
     music: string | null;
@@ -275,6 +282,13 @@ export class AudioEngine {
         this.hints.set(key, { ...spec, until: this.clock + ms });
     }
 
+    /** Phase F: whether `key` is a loaded asset or an alias of one (the bg:event router uses it for unlisted ids). */
+    has(key: string): boolean {
+        if (this.cache.exists(key)) return true;
+        const a = SFX_ALIASES[key];
+        return !!a && (a.key ? this.cache.exists(a.key) : !!a.keys?.some(k => this.cache.exists(k)));
+    }
+
     /** Stop the most recent voice of `key` if it started within `withinMs` (replace a generic sound with a specific one). */
     stopRecent(key: string, withinMs = 40): boolean {
         let newest: Voice | null = null;
@@ -299,7 +313,7 @@ export class AudioEngine {
         let n = 0, oldest: Voice | null = null;
         for (const v of this.voices) if (v.loop && v.key === key && !v.done) { n++; if (!oldest || v.started < oldest.started) oldest = v; }
         if (n >= max && oldest) { this.kill(oldest); this.stats.stolen++; }
-        const sp = this.spatial(opts.x) ?? { gain: UI.audio.pan.farGain, pan: 0 };
+        const sp = opts.pan !== undefined ? { gain: 1, pan: Phaser.Math.Clamp(opts.pan, -1, 1) } : (this.spatial(opts.x) ?? { gain: UI.audio.pan.farGain, pan: 0 });
         const v = this.startVoice(key, (meta.vol ?? 1) * (opts.volume ?? 1), sp.gain, opts.detune ?? 0, sp.pan, true, opts.rate ?? 1);
         if (!v) return noop;
         v.untilMs = opts.durationMs ? this.clock + opts.durationMs : 0;
@@ -342,7 +356,7 @@ export class AudioEngine {
         let n = 0, oldest: Voice | null = null;
         for (const v of this.voices) if (!v.loop && v.key === key && !v.done) { n++; if (!oldest || v.started < oldest.started) oldest = v; }
         if (n >= max && oldest) { this.kill(oldest); this.stats.stolen++; }
-        const sp = this.spatial(o.x);
+        const sp = o.pan !== undefined ? { gain: 1, pan: Phaser.Math.Clamp(o.pan, -1, 1) } : this.spatial(o.x);
         if (!sp) { this.stats.dropped++; return; }
         let base = (meta.vol ?? 1) * (o.volume ?? 1);
         let detune = o.detune ?? 0;
@@ -660,6 +674,22 @@ export class AudioEngine {
         if (this.recent.length > UI.audio.recentKeys) this.recent.shift();
     }
 
+    /** Phase F: bg:event bookkeeping for `__KBE.state().audio` (`bgUnknown`, `bg`, `bed`). */
+    readonly bgUnknown = new Set<string>();
+    private readonly bgRecent: string[] = [];
+    bedKey: string | null = null;
+
+    noteBg(id: string, key: string | null): void {
+        if (!key) {
+            if (this.bgUnknown.has(id)) return;
+            this.bgUnknown.add(id);
+            if (DEV) console.warn(`[audio] bg:event '${id}' has no sound: map it in UI.audio.bgEvents (src/config/tuning/ui.ts)`);
+            return;
+        }
+        this.bgRecent.push(`${id}→${key}`);
+        if (this.bgRecent.length > 12) this.bgRecent.shift();
+    }
+
     private reportUnknown(key: string): void {
         if (this.unknown.has(key)) return;
         this.unknown.add(key);
@@ -674,6 +704,9 @@ export class AudioEngine {
         return {
             recent: this.recent.slice(),
             unknown: [...this.unknown],
+            bgUnknown: [...this.bgUnknown],
+            bg: this.bgRecent.slice(),
+            bed: this.bedKey,
             voices: this.voices.length,
             loops,
             music: this.musicKey,

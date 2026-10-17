@@ -343,3 +343,83 @@ enemies 11 grunts, 14 hounds (packs of 2–3), 4 shields, 5 drones, 2 grenadiers
   `width`/`duration` (FX reads them; Levels casts). `LEVEL.map.key` is now `m1p1` (GameScene's fallback still works). The engine
   selftest's map regex already accepts `m1p1`.
 - **QA:** use `?part=1-2|1-3`; arenas `guncar`, `labgate`; debug fields `train`, `ice`, `level.map`. `cheats.boss()` warps to each part's `cp_boss`.
+
+## Phase F: background director and richer parallax (2026-10-17)
+
+### Events emitted (`src/level/arenas.ts`)
+| Event | When |
+|---|---|
+| `arena:start {id, x0, x1, boss}` | A wave arena locks (x0 = the actual lock x), or a boss arena's intro begins |
+| `arena:wave {id, wave, waves}` | Every wave start, 1-based, including single-wave arenas |
+| `arena:clear {id}` | The arena finishes by play (wave arena unlock, or `boss:defeated`). Not emitted for skipped/abandoned arenas |
+| `boss:intro {name, x, y}` | Right after a boss arena's `arena:start`, as the gate rumble starts (gateless Ironhorn: as the camera arrives), always before `boss:spawn`. `name` = `LEVEL.boss.names[kind]` (WARDEN'S SNOWCAT / IRONHORN / MOOSEZILLA, what Enemies match); x = gate x (or the boss spawn x), y = spawn feet − 40 |
+| `bg:event {id, x, y}` | Background director, once per moment (x/y = world point of the moment's screen spot, for panning) |
+
+### Background director (`src/level/background.ts`, tuning `LEVEL.bg`)
+- Tiled trigger **`bg_event`** (`id`, `once` default true). Zone ids run while the camera view overlaps the rect; any other id is a
+  one-shot fired when the player's feet enter it (`once=false` re-arms after leaving). The validator knows every id (`BG_EVENTS`).
+- Hooks per map (`LEVEL.bg.hooks`): `start:<arena>`, `wave:<arena>:<n>`, `clear:<arena>`, `tunnel_end:<n>` (from the train's
+  `fx:zone` tunnel removals) → moment ids (`id@delayMs`). Explosions in an active `crows` zone set off crows (7 s cooldown).
+- Actors are camera-fixed sprites placed like parallax layers (screen x = ax − (camX + drift·t)·sf), at fractional depths inside
+  the parallax bands (e.g. flak behind the outpost skyline, MOOSEZILLA between `bg3_lab_far` and `bg3_lab_towers`). Missing art
+  → that actor is skipped. FX particles via `fx:emit {bg: true, scrollFactor}` (Phaser scroll semantics).
+- Parallax gained cover groups: `hideIn: ['gorge']` / `showIn: 'gorge'` (driven by the director) and `span: [from, to, fadePx]`.
+- QA: `__KBE.state().bg` = `{actors, zones, fired, shots, tunnel, gorge}`; `window.__KBE_LEVEL.bg('<id>')` fires any moment
+  (cheat builds only; the engine's fixed `__KBE.cheats` list has no slot for it).
+
+| Part | Moment (id) | Trigger | What plays |
+|---|---|---|---|
+| I | `camp_searchlights` | zone 0–64 | 3 far beams sweep the sky from behind the far pines (ADD, 0.26) |
+| I | `zeppelin` | one-shot 66 | Regime zeppelin drifts right→left across the far sky (sf 0.06) |
+| I | `crows` | zone 56–172 + explosions | 8 crows burst up from the far pines |
+| I | `waterfall` | zone 165–255 | Imagegen's cliff + falls (`bg1_waterfall_cliff`, once 1000) with FX `bg_mist`; our animated `bg_waterfall` is the fallback |
+| I | `towers` → `tower_lights` | zone 165–255; hook `start:bridge` | 3 far watchtowers; on the bridge lock their lamps snap on one by one and beams sweep (Audio: siren) |
+| I | `plane` | one-shots 160, 228; hooks `wave:bridge:1`, `wave:bridge:3` | transport plane passes just before paratroopers drop |
+| I | `flak` | zone 250–362 | flak pops behind the outpost skyline + occasional FX `bg_flak`/`bg_explosion` high in the sky |
+| I | `yard_smoke`, `snowcat_roar` | zone 378–419, one-shot 384 | smoke columns behind the yard gatehouse, engine roar + FX plume |
+| II | `gorge` | one-shot 72 (`ms` 8000; a tunnel cuts it short) | slopes/near pines/poles/ballast/track fade out, `bg2_gorge_walls` + `bg2_valley_river` + our `bg2_gorge` fade in, `bg2_trestle` under the cars |
+| II | `buzzard_circle` | one-shots 100, 284 | a far Buzzard circles twice, then peels off toward the train |
+| II | `armored_train` | hooks `start:guncar` (L→R), `wave:guncar:3` (R→L) | enemy armored train roars past behind the cars |
+| II | `ironhorn_plume` | zone 224–306 | IRONHORN's smoke ahead, sliding closer and rising as you advance |
+| II | `avalanche` | hook `tunnel_end:2` (+1.4 s), fallback one-shot 262 | avalanche slides down a far peak (moves with the drift) |
+| III | `aurora` | zone, whole map | `gen_sky_aurora` sky + 4 tiled shimmering curtains (ADD 0.35); FX `aurora` if our art is missing |
+| III | `ice_fissure` | one-shot 112 | a crack races across the far lake, light shake, FX mist |
+| III | `lab_searchlights` | zone 130–262 | 3 beams from the far compound sweep the lake |
+| III | `lab_tesla` / `tesla` | zone 180–262 | arcs on the visible coil tips of `bg3_lab_towers`, sometimes FX `bg_lightning` (dimmed with reduced flash) |
+| III | `moosezilla` (+ `moosezilla_roar`) | hook `clear:labgate` (+0.9 s) | MOOSEZILLA's silhouette stomps in behind the compound, roars (shake tier 2), turns and leaves |
+
+### Art (new)
+- Actors (Aseprite, `art-src/backgrounds/actors/*.lua` → `public/assets/sprites/bg/bg_*.png/json`, pack section `level_bg`):
+  `bg_zeppelin` 80×28, `bg_plane` 72×24, `bg_crow` 8×6, `bg_beam` 24×150, `bg_tower` 20×56 (off/on), `bg_waterfall` 40×112,
+  `bg_plume` 48×96, `bg_armtrain` 224×36, `bg_buzzard` 24×12, `bg_aurora` 128×56, `bg_arc` 24×40, `bg_moosezilla` 112×88
+  (walk/roar), `bg_fissure` 160×10, `bg_avalanche` 96×64, `bg_flak` 16×16. Tags `<key>_<anim>`. Drawn by helpers from my
+  contract; previews `/tmp/kbe-level/art-bg/contact_a.png`, `contact_b.png`.
+- Strips: `art-src/maps/gorge_strips.lua` → `backgrounds/m1p2/gorge.png` (768×136) and `trestle.png` (256×48).
+- Imagegen Phase F layers integrated: `bg1_camp_far` (span camX 0–1500), `bg1_waterfall_cliff`, `bg1_outpost_chimneys` (once 1150),
+  `gen_pines_rich` (replaces `bg1_pines_mid`'s file), `bg2_gorge_walls`, `bg2_valley_river`, `gen_near_pines_rich` (replaces
+  `bg2_near_pines`' file), `gen_sky_aurora` (replaces `bg3_sky`'s file), `bg3_lab_towers` (once 934), `bg3_ice_ridges`.
+  Imagegen's actor stills (`gen_actor_*`) are not used: the animated Aseprite actors fit the far scale better (the stills are 2–3× larger).
+
+### Map touch-ups
+Part III's lab facades (back layer only) now stop at rows 14/15/15 instead of 11/10/12, so the sky, the lab towers, the tesla arcs,
+searchlights and MOOSEZILLA's silhouette show above the lab shore and the labgate arena. Windows/emblems/alarm lights moved down
+with them. No ground tiles, spawns or arenas changed.
+
+### Verification (Phase F)
+- `npm run check`: typecheck clean, `check:phaser4` 102 files, 0 findings. `npm run audit`: reach 1-1/1-2/1-3 PASS, arenas PASS
+  (bridge, bunker, snowcat, guncar, ironhorn, labgate, moosezilla). All maps validate (0 errors, 0 warnings).
+- Screenshots in `/tmp/kbe-level/f/`: `p1_camp_searchlights`, `p1_zeppelin`, `p1_crows`, `p1_plane_waterfall`, `p1_tower_lights`,
+  `p1_flak2`, `p1_yard_smoke`, `p2_gorge`, `p2_buzzard`, `p2_armored_train`, `p2_avalanche`, `p2_ironhorn_plume2`, `p3_aurora`,
+  `p3_ice_fissure`, `p3_lab_shore`, `p3_moosezilla_roar`, `p3_tesla`. Console clean except Audio's two "no sound" warnings below.
+
+### Known issues
+- Crows are tiny (8×6) and read only in motion. Outpost flak shows only where the outpost facades leave sky.
+- Sky actors at y 40–66 can pass behind the radio strip while it's open.
+- The yard smoke sits right of the watchtower; recheck its spot after any yard layout change.
+
+### Requests (Phase F)
+- **UI/Audio:** the zone announcements `lab_searchlights` and `lab_tesla` have no sound mapped (the per-arc `tesla` id does). Map
+  them or ignore them; every other id has a sound already.
+- **Engine:** optionally add a `bg` slot to `__KBE.cheats` so QA can use `__KBE.cheats.bg(id)` (Levels registers `ctx.debug.cheat('bg')`-style
+  behaviour today through `window.__KBE_LEVEL`).
+- **FX:** `fx:emit` background effects work as used here (screen point + camX·sf). Nothing blocking.

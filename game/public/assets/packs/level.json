@@ -1,70 +1,514 @@
 {
-  "level": {"files": [
-    {"type":"tilemapTiledJSON","key":"m1p1","url":"assets/maps/m1p1.tmj"},
-    {"type":"image","key":"tiles_stage1","url":"assets/tiles/stage1.png"},
-    {"type":"aseprite","key":"prop_crate","textureURL":"assets/sprites/props/prop_crate.png","atlasURL":"assets/sprites/props/prop_crate.json"},
-    {"type":"aseprite","key":"prop_supply_crate","textureURL":"assets/sprites/props/prop_supply_crate.png","atlasURL":"assets/sprites/props/prop_supply_crate.json"},
-    {"type":"aseprite","key":"prop_barrel","textureURL":"assets/sprites/props/prop_barrel.png","atlasURL":"assets/sprites/props/prop_barrel.json"},
-    {"type":"aseprite","key":"prop_explosive_barrel","textureURL":"assets/sprites/props/prop_explosive_barrel.png","atlasURL":"assets/sprites/props/prop_explosive_barrel.json"},
-    {"type":"aseprite","key":"prop_sandbag","textureURL":"assets/sprites/props/prop_sandbag.png","atlasURL":"assets/sprites/props/prop_sandbag.json"},
-    {"type":"aseprite","key":"prop_watchtower","textureURL":"assets/sprites/props/prop_watchtower.png","atlasURL":"assets/sprites/props/prop_watchtower.json"},
-    {"type":"aseprite","key":"prop_prison_cell","textureURL":"assets/sprites/props/prop_prison_cell.png","atlasURL":"assets/sprites/props/prop_prison_cell.json"},
-    {"type":"aseprite","key":"prop_pine_fg","textureURL":"assets/sprites/props/prop_pine_fg.png","atlasURL":"assets/sprites/props/prop_pine_fg.json"},
-    {"type":"aseprite","key":"prop_pine_mid","textureURL":"assets/sprites/props/prop_pine_mid.png","atlasURL":"assets/sprites/props/prop_pine_mid.json"},
-    {"type":"aseprite","key":"prop_pine_dead","textureURL":"assets/sprites/props/prop_pine_dead.png","atlasURL":"assets/sprites/props/prop_pine_dead.json"},
-    {"type":"aseprite","key":"prop_sign_jump","textureURL":"assets/sprites/props/prop_sign_jump.png","atlasURL":"assets/sprites/props/prop_sign_jump.json"},
-    {"type":"aseprite","key":"prop_sign_bomb","textureURL":"assets/sprites/props/prop_sign_bomb.png","atlasURL":"assets/sprites/props/prop_sign_bomb.json"},
-    {"type":"aseprite","key":"prop_sign_crouch","textureURL":"assets/sprites/props/prop_sign_crouch.png","atlasURL":"assets/sprites/props/prop_sign_crouch.json"},
-    {"type":"aseprite","key":"prop_sign_shoot","textureURL":"assets/sprites/props/prop_sign_shoot.png","atlasURL":"assets/sprites/props/prop_sign_shoot.json"},
-    {"type":"aseprite","key":"prop_sign_arrow","textureURL":"assets/sprites/props/prop_sign_arrow.png","atlasURL":"assets/sprites/props/prop_sign_arrow.json"},
-    {"type":"aseprite","key":"prop_sign_danger","textureURL":"assets/sprites/props/prop_sign_danger.png","atlasURL":"assets/sprites/props/prop_sign_danger.json"},
-    {"type":"aseprite","key":"prop_gate","textureURL":"assets/sprites/props/prop_gate.png","atlasURL":"assets/sprites/props/prop_gate.json"},
-    {"type":"aseprite","key":"prop_alarm_light","textureURL":"assets/sprites/props/prop_alarm_light.png","atlasURL":"assets/sprites/props/prop_alarm_light.json"},
-    {"type":"aseprite","key":"prop_searchlight","textureURL":"assets/sprites/props/prop_searchlight.png","atlasURL":"assets/sprites/props/prop_searchlight.json"},
-    {"type":"aseprite","key":"prop_searchlight_beam","textureURL":"assets/sprites/props/prop_searchlight_beam.png","atlasURL":"assets/sprites/props/prop_searchlight_beam.json"},
-    {"type":"aseprite","key":"prop_flag","textureURL":"assets/sprites/props/prop_flag.png","atlasURL":"assets/sprites/props/prop_flag.json"},
-    {"type":"aseprite","key":"prop_banner","textureURL":"assets/sprites/props/prop_banner.png","atlasURL":"assets/sprites/props/prop_banner.json"},
-    {"type":"aseprite","key":"prop_bunker_door","textureURL":"assets/sprites/props/prop_bunker_door.png","atlasURL":"assets/sprites/props/prop_bunker_door.json"},
-    {"type":"aseprite","key":"prop_lamp_post","textureURL":"assets/sprites/props/prop_lamp_post.png","atlasURL":"assets/sprites/props/prop_lamp_post.json"},
-    {"type":"aseprite","key":"prop_wire_coil","textureURL":"assets/sprites/props/prop_wire_coil.png","atlasURL":"assets/sprites/props/prop_wire_coil.json"},
-    {"type":"image","key":"bg1_sky","url":"assets/backgrounds/stage1/gen_sky.png"},
-    {"type":"image","key":"bg1_mountains","url":"assets/backgrounds/stage1/gen_mountains.png"},
-    {"type":"image","key":"bg1_pines_far","url":"assets/backgrounds/stage1/gen_pines_far.png"},
-    {"type":"image","key":"bg1_pines_mid","url":"assets/backgrounds/stage1/gen_pines_mid.png"},
-    {"type":"image","key":"bg1_outpost_far","url":"assets/backgrounds/stage1/gen_outpost_far.png"},
-    {"type":"image","key":"bg1_haze","url":"assets/backgrounds/stage1/haze.png"},
-    {"type":"tilemapTiledJSON","key":"m1p2","url":"assets/maps/m1p2.tmj"},
-    {"type":"image","key":"tiles_m1_train","url":"assets/tiles/m1_train.png"},
-    {"type":"aseprite","key":"prop_bogie","textureURL":"assets/sprites/props/prop_bogie.png","atlasURL":"assets/sprites/props/prop_bogie.json"},
-    {"type":"aseprite","key":"prop_coupling","textureURL":"assets/sprites/props/prop_coupling.png","atlasURL":"assets/sprites/props/prop_coupling.json"},
-    {"type":"aseprite","key":"prop_boxcar_door","textureURL":"assets/sprites/props/prop_boxcar_door.png","atlasURL":"assets/sprites/props/prop_boxcar_door.json"},
-    {"type":"aseprite","key":"prop_sign_duck","textureURL":"assets/sprites/props/prop_sign_duck.png","atlasURL":"assets/sprites/props/prop_sign_duck.json"},
-    {"type":"aseprite","key":"prop_low_bridge","textureURL":"assets/sprites/props/prop_low_bridge.png","atlasURL":"assets/sprites/props/prop_low_bridge.json"},
-    {"type":"aseprite","key":"prop_train_lamp","textureURL":"assets/sprites/props/prop_train_lamp.png","atlasURL":"assets/sprites/props/prop_train_lamp.json"},
-    {"type":"image","key":"bg2_sky","url":"assets/backgrounds/m1p2/gen_sky.png"},
-    {"type":"image","key":"bg2_peaks","url":"assets/backgrounds/m1p2/gen_peaks.png"},
-    {"type":"image","key":"bg2_slopes","url":"assets/backgrounds/m1p2/gen_slopes.png"},
-    {"type":"image","key":"bg2_near_pines","url":"assets/backgrounds/m1p2/gen_near_pines.png"},
-    {"type":"image","key":"bg2_poles","url":"assets/backgrounds/m1p2/poles.png"},
-    {"type":"image","key":"bg2_track","url":"assets/backgrounds/m1p2/track.png"},
-    {"type":"image","key":"bg2_ballast","url":"assets/backgrounds/m1p2/ballast_front.png"},
-    {"type":"image","key":"bg2_fg","url":"assets/backgrounds/m1p2/fg_speed.png"},
-    {"type":"image","key":"bg2_tunnel_wall","url":"assets/backgrounds/m1p2/tunnel_wall.png"},
-    {"type":"image","key":"bg2_tunnel_ceiling","url":"assets/backgrounds/m1p2/tunnel_ceiling.png"},
-    {"type":"image","key":"bg2_tunnel_edge","url":"assets/backgrounds/m1p2/tunnel_edge.png"},
-    {"type":"image","key":"bg3_sky","url":"assets/backgrounds/m1p3/gen_sky.png"},
-    {"type":"image","key":"bg3_mountains","url":"assets/backgrounds/m1p3/gen_mountains.png"},
-    {"type":"image","key":"bg3_lake_far","url":"assets/backgrounds/m1p3/gen_lake_far.png"},
-    {"type":"image","key":"bg3_lab_far","url":"assets/backgrounds/m1p3/gen_lab_far.png"},
-    {"type":"tilemapTiledJSON","key":"m1p3","url":"assets/maps/m1p3.tmj"},
-    {"type":"image","key":"tiles_m1_lake","url":"assets/tiles/m1_lake.png"},
-    {"type":"aseprite","key":"prop_wreck_boxcar","textureURL":"assets/sprites/props/prop_wreck_boxcar.png","atlasURL":"assets/sprites/props/prop_wreck_boxcar.json"},
-    {"type":"aseprite","key":"prop_wreck_engine","textureURL":"assets/sprites/props/prop_wreck_engine.png","atlasURL":"assets/sprites/props/prop_wreck_engine.json"},
-    {"type":"aseprite","key":"prop_wreck_bogie","textureURL":"assets/sprites/props/prop_wreck_bogie.png","atlasURL":"assets/sprites/props/prop_wreck_bogie.json"},
-    {"type":"aseprite","key":"prop_log_spill","textureURL":"assets/sprites/props/prop_log_spill.png","atlasURL":"assets/sprites/props/prop_log_spill.json"},
-    {"type":"aseprite","key":"prop_sign_thin_ice","textureURL":"assets/sprites/props/prop_sign_thin_ice.png","atlasURL":"assets/sprites/props/prop_sign_thin_ice.json"},
-    {"type":"aseprite","key":"prop_lab_sign","textureURL":"assets/sprites/props/prop_lab_sign.png","atlasURL":"assets/sprites/props/prop_lab_sign.json"},
-    {"type":"aseprite","key":"prop_tesla_coil","textureURL":"assets/sprites/props/prop_tesla_coil.png","atlasURL":"assets/sprites/props/prop_tesla_coil.json"},
-    {"type":"aseprite","key":"prop_ice_hole","textureURL":"assets/sprites/props/prop_ice_hole.png","atlasURL":"assets/sprites/props/prop_ice_hole.json"}
-  ]}
+  "level": {
+    "files": [
+      {
+        "type": "tilemapTiledJSON",
+        "key": "m1p1",
+        "url": "assets/maps/m1p1.tmj"
+      },
+      {
+        "type": "image",
+        "key": "tiles_stage1",
+        "url": "assets/tiles/stage1.png"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_crate",
+        "textureURL": "assets/sprites/props/prop_crate.png",
+        "atlasURL": "assets/sprites/props/prop_crate.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_supply_crate",
+        "textureURL": "assets/sprites/props/prop_supply_crate.png",
+        "atlasURL": "assets/sprites/props/prop_supply_crate.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_barrel",
+        "textureURL": "assets/sprites/props/prop_barrel.png",
+        "atlasURL": "assets/sprites/props/prop_barrel.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_explosive_barrel",
+        "textureURL": "assets/sprites/props/prop_explosive_barrel.png",
+        "atlasURL": "assets/sprites/props/prop_explosive_barrel.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sandbag",
+        "textureURL": "assets/sprites/props/prop_sandbag.png",
+        "atlasURL": "assets/sprites/props/prop_sandbag.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_watchtower",
+        "textureURL": "assets/sprites/props/prop_watchtower.png",
+        "atlasURL": "assets/sprites/props/prop_watchtower.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_prison_cell",
+        "textureURL": "assets/sprites/props/prop_prison_cell.png",
+        "atlasURL": "assets/sprites/props/prop_prison_cell.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_pine_fg",
+        "textureURL": "assets/sprites/props/prop_pine_fg.png",
+        "atlasURL": "assets/sprites/props/prop_pine_fg.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_pine_mid",
+        "textureURL": "assets/sprites/props/prop_pine_mid.png",
+        "atlasURL": "assets/sprites/props/prop_pine_mid.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_pine_dead",
+        "textureURL": "assets/sprites/props/prop_pine_dead.png",
+        "atlasURL": "assets/sprites/props/prop_pine_dead.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_jump",
+        "textureURL": "assets/sprites/props/prop_sign_jump.png",
+        "atlasURL": "assets/sprites/props/prop_sign_jump.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_bomb",
+        "textureURL": "assets/sprites/props/prop_sign_bomb.png",
+        "atlasURL": "assets/sprites/props/prop_sign_bomb.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_crouch",
+        "textureURL": "assets/sprites/props/prop_sign_crouch.png",
+        "atlasURL": "assets/sprites/props/prop_sign_crouch.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_shoot",
+        "textureURL": "assets/sprites/props/prop_sign_shoot.png",
+        "atlasURL": "assets/sprites/props/prop_sign_shoot.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_arrow",
+        "textureURL": "assets/sprites/props/prop_sign_arrow.png",
+        "atlasURL": "assets/sprites/props/prop_sign_arrow.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_danger",
+        "textureURL": "assets/sprites/props/prop_sign_danger.png",
+        "atlasURL": "assets/sprites/props/prop_sign_danger.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_gate",
+        "textureURL": "assets/sprites/props/prop_gate.png",
+        "atlasURL": "assets/sprites/props/prop_gate.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_alarm_light",
+        "textureURL": "assets/sprites/props/prop_alarm_light.png",
+        "atlasURL": "assets/sprites/props/prop_alarm_light.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_searchlight",
+        "textureURL": "assets/sprites/props/prop_searchlight.png",
+        "atlasURL": "assets/sprites/props/prop_searchlight.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_searchlight_beam",
+        "textureURL": "assets/sprites/props/prop_searchlight_beam.png",
+        "atlasURL": "assets/sprites/props/prop_searchlight_beam.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_flag",
+        "textureURL": "assets/sprites/props/prop_flag.png",
+        "atlasURL": "assets/sprites/props/prop_flag.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_banner",
+        "textureURL": "assets/sprites/props/prop_banner.png",
+        "atlasURL": "assets/sprites/props/prop_banner.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_bunker_door",
+        "textureURL": "assets/sprites/props/prop_bunker_door.png",
+        "atlasURL": "assets/sprites/props/prop_bunker_door.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_lamp_post",
+        "textureURL": "assets/sprites/props/prop_lamp_post.png",
+        "atlasURL": "assets/sprites/props/prop_lamp_post.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_wire_coil",
+        "textureURL": "assets/sprites/props/prop_wire_coil.png",
+        "atlasURL": "assets/sprites/props/prop_wire_coil.json"
+      },
+      {
+        "type": "image",
+        "key": "bg1_sky",
+        "url": "assets/backgrounds/stage1/gen_sky.png"
+      },
+      {
+        "type": "image",
+        "key": "bg1_mountains",
+        "url": "assets/backgrounds/stage1/gen_mountains.png"
+      },
+      {
+        "type": "image",
+        "key": "bg1_pines_far",
+        "url": "assets/backgrounds/stage1/gen_pines_far.png"
+      },
+      {
+        "type": "image",
+        "key": "bg1_pines_mid",
+        "url": "assets/backgrounds/stage1/gen_pines_rich.png"
+      },
+      {
+        "type": "image",
+        "key": "bg1_outpost_far",
+        "url": "assets/backgrounds/stage1/gen_outpost_far.png"
+      },
+      {
+        "type": "image",
+        "key": "bg1_haze",
+        "url": "assets/backgrounds/stage1/haze.png"
+      },
+      {
+        "type": "tilemapTiledJSON",
+        "key": "m1p2",
+        "url": "assets/maps/m1p2.tmj"
+      },
+      {
+        "type": "image",
+        "key": "tiles_m1_train",
+        "url": "assets/tiles/m1_train.png"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_bogie",
+        "textureURL": "assets/sprites/props/prop_bogie.png",
+        "atlasURL": "assets/sprites/props/prop_bogie.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_coupling",
+        "textureURL": "assets/sprites/props/prop_coupling.png",
+        "atlasURL": "assets/sprites/props/prop_coupling.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_boxcar_door",
+        "textureURL": "assets/sprites/props/prop_boxcar_door.png",
+        "atlasURL": "assets/sprites/props/prop_boxcar_door.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_duck",
+        "textureURL": "assets/sprites/props/prop_sign_duck.png",
+        "atlasURL": "assets/sprites/props/prop_sign_duck.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_low_bridge",
+        "textureURL": "assets/sprites/props/prop_low_bridge.png",
+        "atlasURL": "assets/sprites/props/prop_low_bridge.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_train_lamp",
+        "textureURL": "assets/sprites/props/prop_train_lamp.png",
+        "atlasURL": "assets/sprites/props/prop_train_lamp.json"
+      },
+      {
+        "type": "image",
+        "key": "bg2_sky",
+        "url": "assets/backgrounds/m1p2/gen_sky.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_peaks",
+        "url": "assets/backgrounds/m1p2/gen_peaks.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_slopes",
+        "url": "assets/backgrounds/m1p2/gen_slopes.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_near_pines",
+        "url": "assets/backgrounds/m1p2/gen_near_pines_rich.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_poles",
+        "url": "assets/backgrounds/m1p2/poles.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_track",
+        "url": "assets/backgrounds/m1p2/track.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_ballast",
+        "url": "assets/backgrounds/m1p2/ballast_front.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_fg",
+        "url": "assets/backgrounds/m1p2/fg_speed.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_tunnel_wall",
+        "url": "assets/backgrounds/m1p2/tunnel_wall.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_tunnel_ceiling",
+        "url": "assets/backgrounds/m1p2/tunnel_ceiling.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_tunnel_edge",
+        "url": "assets/backgrounds/m1p2/tunnel_edge.png"
+      },
+      {
+        "type": "image",
+        "key": "bg3_sky",
+        "url": "assets/backgrounds/m1p3/gen_sky_aurora.png"
+      },
+      {
+        "type": "image",
+        "key": "bg3_mountains",
+        "url": "assets/backgrounds/m1p3/gen_mountains.png"
+      },
+      {
+        "type": "image",
+        "key": "bg3_lake_far",
+        "url": "assets/backgrounds/m1p3/gen_lake_far.png"
+      },
+      {
+        "type": "image",
+        "key": "bg3_lab_far",
+        "url": "assets/backgrounds/m1p3/gen_lab_far.png"
+      },
+      {
+        "type": "tilemapTiledJSON",
+        "key": "m1p3",
+        "url": "assets/maps/m1p3.tmj"
+      },
+      {
+        "type": "image",
+        "key": "tiles_m1_lake",
+        "url": "assets/tiles/m1_lake.png"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_wreck_boxcar",
+        "textureURL": "assets/sprites/props/prop_wreck_boxcar.png",
+        "atlasURL": "assets/sprites/props/prop_wreck_boxcar.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_wreck_engine",
+        "textureURL": "assets/sprites/props/prop_wreck_engine.png",
+        "atlasURL": "assets/sprites/props/prop_wreck_engine.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_wreck_bogie",
+        "textureURL": "assets/sprites/props/prop_wreck_bogie.png",
+        "atlasURL": "assets/sprites/props/prop_wreck_bogie.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_log_spill",
+        "textureURL": "assets/sprites/props/prop_log_spill.png",
+        "atlasURL": "assets/sprites/props/prop_log_spill.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_thin_ice",
+        "textureURL": "assets/sprites/props/prop_sign_thin_ice.png",
+        "atlasURL": "assets/sprites/props/prop_sign_thin_ice.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_lab_sign",
+        "textureURL": "assets/sprites/props/prop_lab_sign.png",
+        "atlasURL": "assets/sprites/props/prop_lab_sign.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_tesla_coil",
+        "textureURL": "assets/sprites/props/prop_tesla_coil.png",
+        "atlasURL": "assets/sprites/props/prop_tesla_coil.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_ice_hole",
+        "textureURL": "assets/sprites/props/prop_ice_hole.png",
+        "atlasURL": "assets/sprites/props/prop_ice_hole.json"
+      }
+    ]
+  },
+  "level_bg": {
+    "files": [
+      {
+        "type": "image",
+        "key": "bg1_camp_far",
+        "url": "assets/backgrounds/stage1/gen_camp_far.png"
+      },
+      {
+        "type": "image",
+        "key": "bg1_waterfall_cliff",
+        "url": "assets/backgrounds/stage1/gen_waterfall_cliff.png"
+      },
+      {
+        "type": "image",
+        "key": "bg1_outpost_chimneys",
+        "url": "assets/backgrounds/stage1/gen_outpost_chimneys.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_gorge_walls",
+        "url": "assets/backgrounds/m1p2/gen_gorge_walls.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_valley_river",
+        "url": "assets/backgrounds/m1p2/gen_valley_river.png"
+      },
+      {
+        "type": "image",
+        "key": "bg2_trestle",
+        "url": "assets/backgrounds/m1p2/trestle.png"
+      },
+      {
+        "type": "image",
+        "key": "bg3_lab_towers",
+        "url": "assets/backgrounds/m1p3/gen_lab_towers.png"
+      },
+      {
+        "type": "image",
+        "key": "bg3_ice_ridges",
+        "url": "assets/backgrounds/m1p3/gen_ice_ridges.png"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_zeppelin",
+        "textureURL": "assets/sprites/bg/bg_zeppelin.png",
+        "atlasURL": "assets/sprites/bg/bg_zeppelin.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_plane",
+        "textureURL": "assets/sprites/bg/bg_plane.png",
+        "atlasURL": "assets/sprites/bg/bg_plane.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_crow",
+        "textureURL": "assets/sprites/bg/bg_crow.png",
+        "atlasURL": "assets/sprites/bg/bg_crow.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_beam",
+        "textureURL": "assets/sprites/bg/bg_beam.png",
+        "atlasURL": "assets/sprites/bg/bg_beam.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_tower",
+        "textureURL": "assets/sprites/bg/bg_tower.png",
+        "atlasURL": "assets/sprites/bg/bg_tower.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_waterfall",
+        "textureURL": "assets/sprites/bg/bg_waterfall.png",
+        "atlasURL": "assets/sprites/bg/bg_waterfall.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_plume",
+        "textureURL": "assets/sprites/bg/bg_plume.png",
+        "atlasURL": "assets/sprites/bg/bg_plume.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_armtrain",
+        "textureURL": "assets/sprites/bg/bg_armtrain.png",
+        "atlasURL": "assets/sprites/bg/bg_armtrain.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_buzzard",
+        "textureURL": "assets/sprites/bg/bg_buzzard.png",
+        "atlasURL": "assets/sprites/bg/bg_buzzard.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_arc",
+        "textureURL": "assets/sprites/bg/bg_arc.png",
+        "atlasURL": "assets/sprites/bg/bg_arc.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_aurora",
+        "textureURL": "assets/sprites/bg/bg_aurora.png",
+        "atlasURL": "assets/sprites/bg/bg_aurora.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_avalanche",
+        "textureURL": "assets/sprites/bg/bg_avalanche.png",
+        "atlasURL": "assets/sprites/bg/bg_avalanche.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_fissure",
+        "textureURL": "assets/sprites/bg/bg_fissure.png",
+        "atlasURL": "assets/sprites/bg/bg_fissure.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_flak",
+        "textureURL": "assets/sprites/bg/bg_flak.png",
+        "atlasURL": "assets/sprites/bg/bg_flak.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_moosezilla",
+        "textureURL": "assets/sprites/bg/bg_moosezilla.png",
+        "atlasURL": "assets/sprites/bg/bg_moosezilla.json"
+      },
+      {
+        "type": "image",
+        "key": "bg2_gorge",
+        "url": "assets/backgrounds/m1p2/gorge.png"
+      }
+    ]
+  }
 }

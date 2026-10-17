@@ -70,3 +70,40 @@ Previews: `/tmp/kbe-imagegen/m1p2_composite_384x216.png`, `m1p3_composite_384x21
 Validation completed: viewed native composites, nearest-neighbor enlarged readability previews, both scroll phases, all landscape strips together, and repeated terrain joins. All eight outputs pass palette and binary-alpha assertions. Red-uniform swatches and bright yellow/white bullet cores remain distinct. Sources use actual alpha, not a keyed checkerboard. No git operations or runtime files changed.
 
 Known limits: these are art-only composites, not in-engine captures. Searchlights and small spiral-eye markings are deliberately subdued at native scale; runtime searchlight/blizzard FX can reinforce them. Scroll factors and offsets are suggested and need Levels' final terrain/camera alignment. The lab does not repeat; never use it as a tileSprite.
+
+
+<!-- phase-f-assets:start -->
+## Phase F — richer parallax and actors
+
+Files below are available now. Paths are relative to `game/public/assets/backgrounds/`. Coordinates use top-left origin, Y is screen-space canvas top. Actors are stills for Levels to move; none has collision. All except the aurora sky have real transparent pixels. Suggested factors and offsets need terrain alignment.
+
+| File | Size | Scroll X | Y offset | Tiles | Notes |
+|---|---:|---:|---:|---|---|
+| stage1/gen_camp_far.png | 768×132 | 0.13 | 65 | Yes | Watchtowers, tiny lit windows; behind forest. FX may overlay searchlights. |
+| stage1/gen_waterfall_cliff.png | 176×190 | 0.29 | 26 | No | Bridge-side cliff; anchor base to river. Overlay bg_mist at foot. |
+| stage1/gen_outpost_chimneys.png | 384×150 | 0.25 | 45 | No | Outpost horizon; overlay smoke at stack mouths. |
+| stage1/gen_pines_rich.png | 768×156 | 0.34 | 82 | Yes | Richer mid forest; use instead of old mid pines. |
+| m1p2/gen_gorge_walls.png | 768×158 | 0.1 | 56 | Yes | Trestle section far canyon; behind valley river. |
+| m1p2/gen_valley_river.png | 768×114 | 0.18 | 114 | Yes | Deep valley below trestle; keep terrain foreground absent here. |
+| m1p2/gen_near_pines_rich.png | 768×150 | 0.42 | 100 | Yes | Pines and snowbanks; fade out over open gorge. |
+| m1p3/gen_sky_aurora.png | 384×216 | 0.015 | 0 | Yes | Opaque sky variant; muted aurora, FX shimmer optional. |
+| m1p3/gen_lab_towers.png | 512×178 | 0.28 | 30 | No | Closer coils and antler antennas; animate arcs separately. |
+| m1p3/gen_ice_ridges.png | 768×74 | 0.3 | 153 | Yes | Quiet shore ice, behind gameplay snow. |
+| stage1/gen_actor_zeppelin.png | 256×92 | 0.09 | 18 | No | Animate horizontal drift; spiral-eye insignia on hull. |
+| stage1/gen_actor_transport.png | 208×72 | 0.12 | 22 | No | Twin-prop transport; animate flypast before paratroopers. |
+| m1p2/gen_actor_armored_train.png | 640×98 | 0.3 | 95 | No | Locomotive plus three cars; move as one actor on parallel line. |
+| m1p3/gen_actor_moosezilla.png | 224×148 | 0.2 | 42 | No | 148 px canvas; move behind compound for foreshadowing. |
+
+Rebuild: `UV_CACHE_DIR=/tmp/kbe-imagegen/uv-cache /home/knotz2/.local/bin/uv run --offline --with pillow,numpy python game/art-src/backgrounds/gen/process_f.py`. Optional asset IDs select a subset. Retained `raw_f_*.png` sources and `prompts_f.json` record built-in generation. Processing uses BOX (plus 3×3 median cleanup on the aurora sky), restrained atmospheric contrast, 48 px premultiplied wrap, nearest master palette without dithering, alpha threshold 128. Rebuild asserts palette, binary alpha, transparency, and matching wrap-edge columns.
+
+Previews: `/tmp/kbe-imagegen/f-stage1.png`, `f-m1p2.png`, `f-m1p3.png`, their `-3x.png` versions, `f-actors.png`, and `f-tiles.png`. Composites are art-only integration suggestions; runtime FX and actors remain Levels work.
+<!-- phase-f-assets:end -->
+
+
+### Phase F validation and handoff
+
+All 14 new assets rebuilt successfully and pass exact palette membership and binary-alpha assertions. Thirteen contain transparency; only `m1p3/gen_sky_aurora.png` is opaque. All seven repeating assets pass identical left/right edge-column assertions. MOOSEZILLA has a 148 px canvas with approximately 134 px visible height. No existing generated layer was replaced.
+
+Viewed the final three part composites, red-enemy / yellow-white bullet readability swatches, repeated strips, isolated feature sheet (`/tmp/kbe-imagegen/f-features.png`), and all four actors together. The first aurora source was rejected for excessive texture after reduction; its retained `_v1` source is unused. The selected source has broad, cleaner aurora curtains. Exact prompts are retained in `prompts_f.json`; built-in image generation was used throughout.
+
+`npm run check` and `npm run audit` passed (all three parts). The audit and screenshot initially hit sandbox localhost restrictions and passed after running with local-server access. Viewed `/tmp/kbe-imagegen/f-runtime-stage1.png`; console clean. That screenshot verifies the current build only, not integration of these additional textures. No runtime registration, actor motion, FX, git index, branch, or commit changes were made by Imagegen.

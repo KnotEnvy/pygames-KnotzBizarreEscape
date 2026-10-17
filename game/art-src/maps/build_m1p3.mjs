@@ -159,15 +159,17 @@ sandbags(166, 167, G - 2, G - 1);                // step up to the wall block
 mat('ground', 168, 176, 17, G - 1, 'concrete');  // wall block (top y 272)
 hills(151, 165, 15, 18, 'ground', 33);
 fence(151, 165, G - 1, 4, 5);
-labFacade(169, 191, 11, G - 1, [[171, 13, 'wall_lab_window'], [175, 13, 'wall_lab_window_dark'], [179, 13, 'wall_lab_window'],
-  [183, 13, 'wall_lab_window'], [187, 13, 'wall_lab_window_dark'], [177, 18, 'wall_lab_vent'], [185, 18, 'wall_lab_vent'],
-  [181, 16, 'wall_antler_tl'], [182, 16, 'wall_antler_tr'], [181, 17, 'wall_antler_bl'], [182, 17, 'wall_antler_br'],
+// Phase F: the facades stop a few rows lower than in Phase E so the sky, the far lab towers (tesla arcs, searchlights)
+// and MOOSEZILLA's silhouette show above them. Back-layer decor only: traversal and the arenas are unchanged.
+labFacade(169, 191, 14, G - 1, [[171, 15, 'wall_lab_window'], [175, 15, 'wall_lab_window_dark'], [179, 15, 'wall_lab_window'],
+  [183, 15, 'wall_lab_window'], [187, 15, 'wall_lab_window_dark'], [177, 18, 'wall_lab_vent'], [185, 18, 'wall_lab_vent'],
+  [181, 17, 'wall_antler_tl'], [182, 17, 'wall_antler_tr'], [181, 18, 'wall_antler_bl'], [182, 18, 'wall_antler_br'],
   [172, 16, 'wall_lab_pipe'], [173, 16, 'wall_lab_pipe'], [174, 16, 'wall_lab_pipe'], [188, 16, 'wall_lab_hazard'], [189, 16, 'wall_lab_hazard']]);
-labFacade(192, 215, 10, G - 1, [[194, 12, 'wall_lab_window'], [198, 12, 'wall_lab_window_dark'], [202, 12, 'wall_lab_window'],
-  [206, 12, 'wall_lab_window'], [200, 15, 'wall_antler_tl'], [201, 15, 'wall_antler_tr'], [200, 16, 'wall_antler_bl'], [201, 16, 'wall_antler_br'],
-  [195, 17, 'wall_lab_pipe'], [196, 17, 'wall_lab_pipe'], [197, 17, 'wall_lab_pipe'], [205, 17, 'wall_lab_pipe'], [206, 17, 'wall_lab_pipe'],
-  [209, 13, 'wall_lab_hazard'], [210, 13, 'wall_lab_hazard'], [211, 13, 'wall_lab_hazard']]);
-labFacade(216, 231, 12, G - 1, [[218, 14, 'wall_lab_window'], [222, 14, 'wall_lab_window_dark'], [226, 14, 'wall_lab_window'],
+labFacade(192, 215, 15, G - 1, [[194, 16, 'wall_lab_window'], [198, 16, 'wall_lab_window_dark'], [202, 16, 'wall_lab_window'],
+  [206, 16, 'wall_lab_window'], [200, 17, 'wall_antler_tl'], [201, 17, 'wall_antler_tr'], [200, 18, 'wall_antler_bl'], [201, 18, 'wall_antler_br'],
+  [195, 18, 'wall_lab_pipe'], [196, 18, 'wall_lab_pipe'], [197, 18, 'wall_lab_pipe'], [205, 18, 'wall_lab_pipe'], [206, 18, 'wall_lab_pipe'],
+  [209, 16, 'wall_lab_hazard'], [210, 16, 'wall_lab_hazard'], [211, 16, 'wall_lab_hazard']]);
+labFacade(216, 231, 15, G - 1, [[218, 16, 'wall_lab_window'], [222, 16, 'wall_lab_window_dark'], [226, 16, 'wall_lab_window'],
   [220, 18, 'wall_lab_vent'], [228, 18, 'wall_lab_vent'], [224, 17, 'wall_lab_hazard'], [225, 17, 'wall_lab_hazard']]);
 reeds([152, 156, 161]);
 
@@ -177,7 +179,7 @@ enemy('hound', 161, G, { patrol: 24 });
 enemy('hound', 163, G, { patrol: 24 });
 enemy('turret', 172, 17, { mount: 'roof' });
 enemy('shield', 175, 17, { patrol: 0 });
-prop('alarm_light', 170, 12, { layer: 'back', on: true });
+prop('alarm_light', 170, 15, { layer: 'back', on: true });
 prop('tesla_coil', 179, G, { layer: 'back' });
 enemy('grunt', 181, G, { patrol: 32 });
 prop('supply_crate', 186, G, { contains: 'hmg' });
@@ -188,7 +190,7 @@ const LG = { lock: 'labgate' };
 prop('bunker_door', 196, G, { layer: 'back', lock: 'labgate' });
 prop('bunker_door', 205, G, { layer: 'back', lock: 'labgate' });
 prop('gate', 211, G, { layer: 'back', lock: 'labgate' });
-prop('alarm_light', 203, 11, { layer: 'back', lock: 'labgate' });
+prop('alarm_light', 203, 16, { layer: 'back', lock: 'labgate' });
 enemy('grunt', 196, G, { ...LG, wave: 1, from: 'door', facing: 'right', patrol: 16 });
 enemy('grunt', 205, G, { ...LG, wave: 1, from: 'door', delay: 800, patrol: 16 });
 enemy('grunt', 208, G, { ...LG, wave: 1, delay: 1600, patrol: 16 });
@@ -236,6 +238,13 @@ tr('ambience', 0, W - 1, 0, H - 1, { fx: 'blizzard' });
 
 decorate({ x0: 0, x1: 47 });
 decorate({ x0: 151, x1: 231 });
+// Phase F background moments (src/level/background.ts)
+const bg = (id, x0, x1, p = {}) => tr('bg_event', x0, x1, 0, H - 1, { id, ...p });
+bg('aurora', 0, W - 1);               // aurora shimmers over the lake
+bg('ice_fissure', 112, 113);          // a distant ice fissure booms across the far lake
+bg('lab_searchlights', 130, W - 1);   // lab searchlights sweep the lake
+bg('lab_tesla', 180, W - 1);          // tesla masts on the lab towers arc and flash
+
 finish();
 write('m1p3', { name: 'Pine Ridge Breakout', title: 'MOOSE LAKE', music: 'music_m1p3', parallax: 'm1p3',
   crack_gids: [I('crack_f1'), I('crack_f2'), I('crack_f3'), 'stage1:water_top_f0'].map(gidOf).join(','),

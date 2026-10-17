@@ -22,9 +22,14 @@ local run={
  {bob=-1,back={{25,39},{24,45}},front={{22,36},{26,40}}},
  {bob=0,back={{21,40},{18,44}},front={{28,37},{30,42}}},
 }
-leg('run',8,65,function(i)return run[i] end)
+leg('run',8,75,function(i)return run[i] end)
 leg('skid',2,80,function(i)return{stride=6-i}end)
-leg('jump_rise',1,100,function()return{bob=-1,back={{18,36},{14,40}},front={{28,37},{29,43}}}end)
+-- Visual takeoff compression, extension, then held tuck; physics is untouched.
+leg('jump_rise',3,{35,55,100},function(i)return ({
+ {bob=2,back={{17,41},{17,45}},front={{29,41},{31,45}}},
+ {bob=-2,back={{19,35},{16,40}},front={{28,37},{30,44}}},
+ {bob=-1,back={{18,36},{14,40}},front={{28,37},{29,43}}},
+})[i] end)
 leg('jump_fall',1,100,function()return{back={{18,39},{18,44}},front={{28,40},{31,45}}}end)
 leg('land',2,65,function(i)return i==1 and {bob=3,back={{16,42},{15,45}},front={{30,42},{32,45}}} or {bob=0,stride=2} end)
 leg('crouch_enter',2,65,function(i)return{crouch=i==2,stride=1}end)
@@ -33,12 +38,12 @@ leg('crouch_walk',6,100,function(i)return{crouch=true,stride=({0,2,3,0,-2,-3})[i
 build('knotz_legs',48,48,legs)
 -- The crouched heavy down barrel is 12 px so its tip and outline fit above the feet.
 local dirs={{'aim_fwd',0},{'aim_up45',-math.pi/4},{'aim_up',-math.pi/2},{'aim_down45',math.pi/4},{'aim_down',math.pi/2},{'crouch_fwd',0},{'crouch_down45',math.pi/4},{'crouch_down',math.pi/2}}
-for _,variant in ipairs({'pistol','heavy'}) do
+for _,variant in ipairs({'pistol','heavy','spread','laser','rocket','flame'}) do
  local a={}; for _,d in ipairs(dirs) do
   for _,shoot in ipairs({false,true}) do
    local name='knotz_'..variant..'_'..d[1]..(shoot and '_shoot' or '')
-   a[#a+1]=anim(name,shoot and 3 or 4,shoot and 45 or 140,function(im,i)
-    P.torso(im,{angle=d[2],heavy=variant=='heavy',crouch=d[1]:match('^crouch_')~=nil,barrelLength=d[1]=='crouch_down' and 12 or nil,bob=0,recoil=shoot and (variant=='pistol' and ({1,1,0})[i] or ({2,1,0})[i]) or 0})
+   a[#a+1]=anim(name,shoot and 3 or 4,shoot and 45 or {360,140,620,80},function(im,i)
+    P.torso(im,{angle=d[2],weapon=variant=='heavy' and 'hmg' or variant,heavy=variant~='pistol',phase=i,blink=not shoot and i==4,crouch=d[1]:match('^crouch_')~=nil,barrelLength=d[1]=='crouch_down' and 12 or nil,bob=0,recoil=shoot and (variant=='pistol' and ({1,1,0})[i] or ({2,1,0})[i]) or 0})
    end)
   end
  end
@@ -62,25 +67,53 @@ end
 local function full(im,pose) P.legs(im,pose); P.torso(im,pose) end
 build('knotz_full',48,48,{
  anim('knotz_death',12,{65,65,70,70,80,90,90,110,110,110,110,110},function(im,i)
-  if i<3 then full(im,{recoil=2,crouch=i==2,angle=-.6})
-  elseif i<7 or i<10 or i%2==0 then
+  if i<3 then
+   full(im,{recoil=2,phase=i,noGun=true,bob=i==2 and 1 or 0})
+   -- Startled open mouth and flung hands before the backward fall.
+   K.rect(im,27,22,3,2,'skin1'); K.px(im,28,22,'skin5')
+   P.limb(im,{19,26},{13,24},{11,19+i},2,'skin3','skin5')
+   P.limb(im,{28,26},{35,23},{37,18+i},2,'skin3','skin5'); K.outline(im,'outline')
+  else
    local temp=Image(48,48,ColorMode.RGB)
-   full(temp,{stride=i<7 and 4 or 1,lift=i<7 and 5 or 0,angle=-1,noGun=true})
-   local ys= i<7 and .75 or .43
-   local base= i<7 and (26+(i-3)*3) or (i==7 and 38 or 43)
+   full(temp,{stride=i<7 and 4 or 1,lift=i<7 and 5 or 0,noGun=true,phase=(i-1)%4+1})
+   P.limb(temp,{27,26},{33,24},{36,21},2,'skin3','skin5'); K.outline(temp,'outline')
+   local tilt=({.18,.38,.60,.82,.92,1,1,1,1,1})[i-2]
+   local angle=-tilt*math.pi/2; local co,si=math.cos(angle),math.sin(angle)
+   -- Inverse nearest-pixel rotation avoids holes in the falling silhouette.
+   local cx=24; local cy=({30,31,32,34,36,38,39,39,39,39})[i-2]
    for y=0,47 do for x=0,47 do
-    local c=temp:getPixel(x,y)
-    if app.pixelColor.rgbaA(c)>0 then
-     local xx=math.floor(24+(y-28)*.85)
-     local yy=math.floor(base-(x-24)*ys)
-     if xx>=0 and xx<48 and yy>=0 and yy<48 then im:drawPixel(xx,yy,c) end
+    local tx=math.floor(24+(x-cx)*co+(y-cy)*si+.5)
+    local ty=math.floor(28-(x-cx)*si+(y-cy)*co+.5)
+    if tx>=0 and tx<48 and ty>=0 and ty<48 then
+     local c=temp:getPixel(tx,ty); if app.pixelColor.rgbaA(c)>0 then im:drawPixel(x,y,c) end
     end
    end end
+   if i==7 or i==8 then K.line(im,7,46,11,45,'sand3'); K.px(im,35,45,'sand4') end
   end
  end),
- anim('knotz_respawn_drop',4,80,function(im,i) full(im,{stride=({-3,-2,3,0})[i],lift=i<3 and 4 or 0,crouch=i==3,angle=-.5}) end),
- anim('knotz_victory',6,130,function(im,i)
-  P.legs(im,{}); P.torso(im,{angle=-1.2,noGun=true}); P.limb(im,{27,25},{33,25},{({34,33,30,30,30,33})[i],({19,16,15,15,15,16})[i]},3,'skin3','skin5'); K.outline(im,'outline')
+ anim('knotz_respawn_drop',4,80,function(im,i)
+  local pose=({
+   {bob=-2,back={{18,35},{16,40}},front={{28,35},{29,41}},noGun=true,phase=1},
+   {bob=0,back={{18,38},{15,43}},front={{29,39},{32,44}},noGun=true,phase=2},
+   {crouch=true,stride=3,noGun=true,phase=3},
+   {stride=1,phase=4},
+  })[i]
+  full(im,pose)
+  if i<3 then
+   P.limb(im,{18,25},{13,25},{11,20+i},2,'skin3','skin5')
+   P.limb(im,{28,25},{34,25},{36,20+i},2,'skin3','skin5'); K.outline(im,'outline')
+  end
+ end),
+ anim('knotz_victory',6,{100,110,140,180,180,400},function(im,i)
+  P.legs(im,{stride=i<3 and 1 or 2})
+  P.torso(im,{noGun=true,phase=(i-1)%4+1})
+  -- A chest-out salute, then a held two-finger greeting and crooked grin.
+  local h=({{34,26},{34,20},{31,16},{31,15},{33,13},{33,13}})[i]
+  P.limb(im,{27,25},{35,25},h,2,'skin3','skin5')
+  K.line(im,h[1],h[2],h[1]-3,h[2]-1,'skin5')
+  if i>=5 then K.line(im,h[1],h[2],h[1]+1,h[2]-4,'skin5'); K.line(im,h[1]+2,h[2],h[1]+4,h[2]-3,'skin4') end
+  P.limb(im,{18,26},{14,30},{18,32},2,'skin2','skin4')
+  K.line(im,27,23,30,22,'skin1'); K.px(im,28,22,'sand5'); K.outline(im,'outline')
  end)})
 -- Projectiles: local forward direction is +X. Runtime rotates the complete sprite.
 for _,v in ipairs({{'pistol_bullet',8,6},{'hmg_bullet',16,6},{'spread_bullet',8,8}}) do
@@ -159,7 +192,7 @@ if file then
   local result={}; for key,item in pairs(value) do result[key]=plain(item) end; return result
  end
  local meta=plain(json.decode(file:read('*a'))); file:close()
- for _,variant in ipairs({'pistol','heavy'}) do for _,d in ipairs(dirs) do for _,shoot in ipairs({false,true}) do
+ for _,variant in ipairs({'pistol','heavy','spread','laser','rocket','flame'}) do for _,d in ipairs(dirs) do for _,shoot in ipairs({false,true}) do
   local tag='knotz_'..variant..'_'..d[1]..(shoot and '_shoot' or '')
   meta.muzzles[tag]=meta.muzzles[tag] or {angleRadians=d[2],frames={},note='Coordinate is barrel end; spawn FX and projectile here. Recoil is already included.'}
   local frames={}
@@ -167,20 +200,20 @@ if file then
   for i=1,(shoot and 3 or 4) do frames[i]={direction={math.cos(d[2]),math.sin(d[2])}} end
   for i,f in ipairs(frames) do
    local rx=shoot and (variant=='pistol' and ({1,1,0})[i] or ({2,1,0})[i]) or 0
-   local len=variant=='heavy' and d[1]~='crouch_down' and 15 or 12
+   local len=variant~='pistol' and d[1]~='crouch_down' and 15 or 12
    local x=math.floor(27-rx+math.cos(d[2])*len+.5)
    local y=math.floor(27+(d[1]:match('^crouch_') and 6 or 0)+math.sin(d[2])*len+.5)
    f.framePx={x,y}; f.offsetFromFeet={x-24,y-48}
   end
  end end end
  -- Keep inventory frame ranges in sync when torso tags are added.
- for _,variant in ipairs({'pistol','heavy'}) do
-  local key='knotz_torso_'..variant
+ for _,variant in ipairs({'legs','full','torso_pistol','torso_heavy','torso_spread','torso_laser','torso_rocket','torso_flame'}) do
+  local key='knotz_'..variant
   local atlasFile=assert(io.open(R..'/public/assets/sprites/player/'..key..'.json','r'))
   local atlas=json.decode(atlasFile:read('*a')); atlasFile:close()
   local tags={}; local count=0
   for _,tag in ipairs(atlas.meta.frameTags) do
-   tags[#tags+1]={name=tag.name,from=tag.from,to=tag.to,frames=tag.to-tag.from+1,loop=not (tag.name:match('_shoot$') or tag.name:match('_knife$') or tag.name:match('_grenade_throw$'))}
+   tags[#tags+1]={name=tag.name,from=tag.from,to=tag.to,frames=tag.to-tag.from+1,loop=not (tag.name:match('_shoot$') or tag.name:match('_knife$') or tag.name:match('_grenade_throw$') or tag.name:match('_death$') or tag.name:match('_victory$') or tag.name:match('_respawn_drop$') or tag.name:match('_jump_rise$') or tag.name:match('_land$') or tag.name:match('_skid$') or tag.name:match('_enter$'))}
    count=math.max(count,tag.to+1)
   end
   meta.inventory[key]={canvas={48,48},frameCount=count,tags=tags}

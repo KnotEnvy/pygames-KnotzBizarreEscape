@@ -5,17 +5,9 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
     "sourceSize": { "w": 80, "h": 48 },
-    "duration": 140
-   },
-   "moosezilla_antler_r#1": {
-    "frame": { "x": 0, "y": 0, "w": 80, "h": 48 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
-    "sourceSize": { "w": 80, "h": 48 },
     "duration": 160
    },
-   "moosezilla_antler_r#2": {
+   "moosezilla_antler_r#1": {
     "frame": { "x": 81, "y": 0, "w": 80, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -23,23 +15,87 @@
     "sourceSize": { "w": 80, "h": 48 },
     "duration": 160
    },
-   "moosezilla_antler_r#3": {
-    "frame": { "x": 162, "y": 0, "w": 80, "h": 48 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
-    "sourceSize": { "w": 80, "h": 48 },
-    "duration": 60
-   },
-   "moosezilla_antler_r#4": {
+   "moosezilla_antler_r#2": {
     "frame": { "x": 0, "y": 0, "w": 80, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
     "sourceSize": { "w": 80, "h": 48 },
-    "duration": 100
+    "duration": 160
+   },
+   "moosezilla_antler_r#3": {
+    "frame": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 160
+   },
+   "moosezilla_antler_r#4": {
+    "frame": { "x": 162, "y": 0, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 130
    },
    "moosezilla_antler_r#5": {
+    "frame": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_antler_r#6": {
+    "frame": { "x": 81, "y": 0, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_antler_r#7": {
+    "frame": { "x": 243, "y": 0, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_antler_r#8": {
+    "frame": { "x": 243, "y": 0, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_antler_r#9": {
+    "frame": { "x": 81, "y": 0, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_antler_r#10": {
+    "frame": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_antler_r#11": {
+    "frame": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_antler_r#12": {
     "frame": { "x": 0, "y": 49, "w": 80, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -47,8 +103,104 @@
     "sourceSize": { "w": 80, "h": 48 },
     "duration": 140
    },
-   "moosezilla_antler_r#6": {
+   "moosezilla_antler_r#13": {
     "frame": { "x": 81, "y": 49, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 140
+   },
+   "moosezilla_antler_r#14": {
+    "frame": { "x": 0, "y": 49, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 140
+   },
+   "moosezilla_antler_r#15": {
+    "frame": { "x": 0, "y": 49, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 140
+   },
+   "moosezilla_antler_r#16": {
+    "frame": { "x": 0, "y": 49, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 160
+   },
+   "moosezilla_antler_r#17": {
+    "frame": { "x": 162, "y": 49, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 160
+   },
+   "moosezilla_antler_r#18": {
+    "frame": { "x": 243, "y": 49, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 60
+   },
+   "moosezilla_antler_r#19": {
+    "frame": { "x": 0, "y": 49, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 100
+   },
+   "moosezilla_antler_r#20": {
+    "frame": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 160
+   },
+   "moosezilla_antler_r#21": {
+    "frame": { "x": 0, "y": 98, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 160
+   },
+   "moosezilla_antler_r#22": {
+    "frame": { "x": 81, "y": 98, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 60
+   },
+   "moosezilla_antler_r#23": {
+    "frame": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 100
+   },
+   "moosezilla_antler_r#24": {
+    "frame": { "x": 162, "y": 98, "w": 80, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
+    "sourceSize": { "w": 80, "h": 48 },
+    "duration": 140
+   },
+   "moosezilla_antler_r#25": {
+    "frame": { "x": 243, "y": 98, "w": 80, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 48 },
@@ -61,12 +213,15 @@
   "version": "1.3.18.6-dev",
   "image": "moosezilla_antler_r.png",
   "format": "RGBA8888",
-  "size": { "w": 242, "h": 97 },
+  "size": { "w": 323, "h": 146 },
   "scale": "1",
   "frameTags": [
-   { "name": "moosezilla_antler_r_idle", "from": 0, "to": 0, "direction": "forward", "color": "#000000ff" },
-   { "name": "moosezilla_antler_r_fire", "from": 1, "to": 4, "direction": "forward", "color": "#000000ff" },
-   { "name": "moosezilla_antler_r_broken", "from": 5, "to": 6, "direction": "forward", "color": "#000000ff" }
+   { "name": "moosezilla_antler_r_idle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_antler_r_intro", "from": 4, "to": 11, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_antler_r_damaged", "from": 12, "to": 15, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_antler_r_fire_damaged", "from": 16, "to": 19, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_antler_r_fire", "from": 20, "to": 23, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_antler_r_broken", "from": 24, "to": 25, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "main", "opacity": 255, "blendMode": "normal" }
