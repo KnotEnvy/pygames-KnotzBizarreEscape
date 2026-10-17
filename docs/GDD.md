@@ -89,6 +89,8 @@ A huge steam-punk moose tank (~160×120 px, built from multiple parts). Arena lo
 - HP ~ 400 (pistol dps ≈ 3–7, so the fight lasts ~60–90 s with weapons). Weak points take 2×.
 
 ## 8. Mission 1 layout: "Pine Ridge Breakout" (~3–4 min for a good player)
+> **Phase E:** this map is now **Part I "THE CAMP"**, ending with the Warden's Snowcat mid-boss. MOOSEZILLA moves to Part III.
+> See [CAMPAIGN.md](CAMPAIGN.md) for the 3-part structure, Parts II and III, and the escape route.
 Map ≈ **420×24 tiles** (6720×384 px). The camera only scrolls forward (Metal Slug lock-left); vertical
 camera follows within the map height. Sections:
 
@@ -140,7 +142,7 @@ filter), slow-mo on boss death.
 
 ## 13. Out of scope for v1 (designed for, not built)
 Vehicles (the "Slug" tank), 2-player co-op (keep the player/input code instance-based so a P2 can be added),
-missions 2+, online leaderboards, transformations.
+missions 2+ (outlined in CAMPAIGN.md), online leaderboards, transformations.
 
 ## 14. Legacy reference (from the archived pygame game)
 - Old tuning (800×640, 40 px tiles): run 300 px/s, jump −10 px/frame with gravity 0.5, shots every 20 frames, 25 dmg vs

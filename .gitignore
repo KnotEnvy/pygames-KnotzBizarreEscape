@@ -8,3 +8,4 @@ game/tests/artifacts/
 __pycache__/
 .venv/
 .DS_Store
+playtest/

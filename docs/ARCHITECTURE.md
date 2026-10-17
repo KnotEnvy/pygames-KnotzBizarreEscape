@@ -12,6 +12,7 @@ Shared contract files (marked 🔒) are owned by the Engine team; others propose
 | `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html` | Lead (ask for deps in your report) |
 | `src/main.ts`, `src/core/**`, `src/scenes/BootScene.ts`, `src/scenes/PreloadScene.ts`, `src/scenes/GameScene.ts` | Engine |
 | `src/core/contracts.ts` 🔒, `src/core/events.ts` 🔒 | Engine (shared contract) |
+| `src/config/campaign.ts` 🔒 (missions/parts data), `src/core/campaign.ts`, `src/core/progress.ts` | Engine (content values from `docs/CAMPAIGN.md`) |
 | `src/config/tuning/<team>.ts` | Each team owns its own tuning file (`player.ts`, `enemies.ts`, `fx.ts`, `ui.ts`, `level.ts`) |
 | `src/entities/player/**`, `src/entities/weapons/**`, `src/entities/pickups/**`, `src/entities/pow/**` | Player and weapons |
 | `src/entities/enemies/**`, `src/entities/bosses/**` | Enemies, AI and bosses |
@@ -23,11 +24,14 @@ Shared contract files (marked 🔒) are owned by the Engine team; others propose
 | `public/assets/sprites/fx/**`, `art-src/fx/**` | Effects |
 | `public/assets/packs/<team>.json` | Each team owns its Phaser asset-pack file |
 | `public/assets/sprites/props/**` | Levels and content (props such as watchtowers, crates, barrels, gates, signs) |
-| `public/assets/backgrounds/stage1/gen_*`, `art-src/backgrounds/gen/**`, `public/assets/ui/keyart/**` | Image generation |
+| `public/assets/backgrounds/*/gen_*`, `art-src/backgrounds/gen/**`, `public/assets/ui/keyart/**` | Image generation |
 | `docs/teams/<team>.md` | Each team's notes and design decisions (player, enemies, level, fx, ui-audio, qa, rules, engine, imagegen) |
 | `tests/**`, `playwright.config.ts` | QA |
 | `tools/check-phaser4.mjs`, `docs/PHASER4-RULES.md` (additions) | Phaser 4 rules checker |
 | `tools/shot.mjs`, `tools/build-art.sh`, `tools/aseprite/kbe.lua`, `docs/*.md` | Lead |
+
+**Campaign (Phase E):** missions have 3 parts. See [`docs/CAMPAIGN.md`](CAMPAIGN.md) for the part contract (`ctx.part`,
+`part:start`, `stage:clear {part, final}`, the PartClear scene data, `?part=`, progress save).
 
 ## Integration pattern (how teams plug in without touching each other's files)
 
