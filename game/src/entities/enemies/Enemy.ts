@@ -245,7 +245,9 @@ export class Enemy extends Phaser.GameObjects.Sprite {
             else { this.burst = this.kind === 'turret' ? 5 : this.kind === 'shield' ? 1 : this.ctx.rng.int(1, 3); this.enter('burst', 0); }
         }
         if (this.state === 'burst' && this.clock <= 0) { this.fire(); this.burst--; this.clock += this.kind === 'turret' ? 120 : 180; if (!this.burst) this.enter('recover', cfg.cooldown); return; }
-        if (this.state === 'recover') { if (this.kind === 'shield') this.pose(this.shieldHp > 0 ? 'recover' : 'idle', true); if (this.kind === 'grenadier' && p?.alive() && Math.abs(dx) < 112) { this.facing = dx < 0 ? -1 : 1; this.pose('retreat', true); this.move(-this.facing * 52, dt); } if (this.clock <= 0) this.enter('patrol', 0); else return; }
+        if (this.state === 'recover') { if (this.kind === 'shield') this.pose(this.shieldHp > 0 ? 'recover' : 'idle', true);
+            // The shoot anim's last frame carries the muzzle flash: once it has played, settle into idle so the flash doesn't hang.
+            if ((this.kind === 'grunt' || this.kind === 'paratrooper' || this.kind === 'leaper') && !this.anims.isPlaying) this.pose(this.crouch ? 'crouch_idle' : 'idle', true); if (this.kind === 'grenadier' && p?.alive() && Math.abs(dx) < 112) { this.facing = dx < 0 ? -1 : 1; this.pose('retreat', true); this.move(-this.facing * 52, dt); } if (this.clock <= 0) this.enter('patrol', 0); else return; }
         if (this.state === 'alert') { if (this.clock <= 0) { this.enter('windup', cfg.windup); this.crouch = this.kind === 'grunt' && (this.idle === 'crouch' || this.ctx.rng.chance(.25)); this.pose(this.kind === 'grenadier' ? 'throw' : this.crouch ? 'crouch_shoot' : 'shoot'); } return; }
         if (this.state === 'windup' || this.state === 'burst') return;
         if (sees) {
