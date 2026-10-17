@@ -72,6 +72,14 @@ export interface GameEvents {
     'boss:defeated': BossInfo;
     /** Phase E: a boss stomp/slam landed at (x, y). Levels (ice cracks), FX, Audio. `power` ≈ 1 normal, 2+ heavy. */
     'boss:stomp': Pos & { power: number };
+    /** Phase F (docs/JUICE.md): arena lifecycle from the level's ArenaController. */
+    'arena:start': { id: string; x0: number; x1: number; boss: boolean };
+    'arena:wave': { id: string; wave: number; waves: number };
+    'arena:clear': { id: string };
+    /** A boss arena's intro begins (gate rumble), before boss:spawn. Drives the camera cinematic, WARNING banner, siren. */
+    'boss:intro': { name: string; x: number; y: number };
+    /** The level's background director played a background moment (zeppelin, avalanche, ...). */
+    'bg:event': { id: string; x?: number; y?: number };
 
     // feel (anyone emits; Engine services react)
     'fx:shake': { tier: ShakeTier };
@@ -86,7 +94,7 @@ export interface GameEvents {
      * 'shield_spark', 'shockwave', 'muzzle_enemy', 'casing', 'scorch'. Unknown ids are ignored by FX.
      * `angle` in radians, `count` = intensity hint, `scale` = size multiplier.
      */
-    'fx:emit': { effect: string; x: number; y: number; angle?: number; count?: number; scale?: number; material?: ImpactMaterial; team?: Team; width?: number; height?: number; duration?: number; speed?: number };
+    'fx:emit': { effect: string; x: number; y: number; angle?: number; count?: number; scale?: number; material?: ImpactMaterial; team?: Team; width?: number; height?: number; duration?: number; speed?: number; scrollFactor?: number; bg?: boolean };
     /**
      * Ambient zone add/remove (Phase B). Levels emit `active: true` when a zone exists (usually at load) and
      * `active: false` to remove it; FX keeps a registry keyed by `id` and runs the zone while it's on camera.
