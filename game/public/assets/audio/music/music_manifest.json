@@ -35,6 +35,33 @@
     "peak_db": -3.4,
     "rms_db": -16.0
   },
+  "music_m1p2": {
+    "bars": 48,
+    "bpm": 150,
+    "duration": 76.8,
+    "file": "assets/audio/music/music_m1p2.ogg",
+    "loop": true,
+    "peak_db": -1.9,
+    "rms_db": -14.6
+  },
+  "music_m1p3": {
+    "bars": 40,
+    "bpm": 128,
+    "duration": 75.0,
+    "file": "assets/audio/music/music_m1p3.ogg",
+    "loop": true,
+    "peak_db": -3.2,
+    "rms_db": -15.5
+  },
+  "music_midboss": {
+    "bars": 32,
+    "bpm": 176,
+    "duration": 43.636,
+    "file": "assets/audio/music/music_midboss.ogg",
+    "loop": true,
+    "peak_db": -2.1,
+    "rms_db": -13.5
+  },
   "music_stage1": {
     "bars": 64,
     "bpm": 170,
@@ -52,5 +79,14 @@
     "loop": true,
     "peak_db": -3.6,
     "rms_db": -16.0
+  },
+  "part_clear_jingle": {
+    "bars": 2,
+    "bpm": 150,
+    "duration": 4.8,
+    "file": "assets/audio/music/part_clear_jingle.ogg",
+    "loop": false,
+    "peak_db": -1.9,
+    "rms_db": -14.5
   }
 }

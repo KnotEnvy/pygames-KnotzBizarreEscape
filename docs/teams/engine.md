@@ -308,15 +308,22 @@ The flow (Engine-owned):
 
 Other flow behavior:
 - **Pause:** `pause` on P1 calls `flow.pause()`. That launches `'Pause'` and pauses Game if the Pause scene exists. Otherwise there's an internal freeze overlay. The Pause scene resumes with `getContext()!.flow.resume()`.
-- **Stage clear:** when `stage:clear` is emitted, the engine waits 3.5 s, then starts `'Results'` with `{ stage, score, rescued, kills, deaths, accuracy, timeMs, difficulty }`. If there's no Results scene, it shows "MISSION COMPLETE!".
+- **Stage clear (Phase E: parts):** the engine fills `part`/`final` on the `stage:clear` payload if the emitter left them
+  out, then waits 3.5 s. **Not final:** it stops HUD/Intro/Pause/Continue and starts `'PartClear'` with
+  `{ from, next, result, carry }` (`PartClearData`), or `'Game'` with `{ part: next.id, carry }` when there's no PartClear
+  scene. **Final:** it starts `'Results'` with `{ stage, score, rescued, kills, deaths, accuracy, timeMs, difficulty }`
+  (mission totals over every part; `score`/`rescued` are the run's values) plus `{ mission, part, parts, shots, hits }`
+  (`MissionResultsData`). If there's no Results scene, it shows "MISSION COMPLETE!". See **13. Campaign parts**.
 - **Casual difficulty:** HP per life is the player team's job (`ctx.state.difficulty`). Only emit `player:died` when a life is actually lost.
 
 ---
 
 ## 11. Debug and test hooks
 
-- **URL params:** `?scene=Game&stage=1&x=2400&god=1&debug=1&mute=1&seed=42&difficulty=casual&fast=1`.
-  - `x` warps the player on start.
+- **URL params:** `?scene=Game&stage=1&part=1-2&x=2400&god=1&debug=1&mute=1&seed=42&difficulty=casual&fast=1&turbo=8`.
+  - `turbo=n` (cheat-gated) runs n fixed gameplay steps per browser frame (§14).
+  - `x` warps the player on start (inside the current part).
+  - `part` starts that part (cheat-gated like `?x`). It applies to every Game start without scene data, Title's included.
   - **Production gating:** cheats (`?god`, `?x` and every `__KBE.cheats.*`) are live in dev mode (`npm run dev`, QA's
     Playwright server) or with `?debug=1`. A production build (`npm run build`) without `?debug=1` ignores `?god`/`?x`,
     and each cheat becomes a no-op that warns once. Check with `__KBE.cheatsEnabled` (page) or `ctx.debug.cheatsEnabled`
@@ -333,7 +340,11 @@ Other flow behavior:
 - **`window.__KBE`:**
   - `ready`, `game`, `version`
   - `state()` returns `{scene, scenes, fps, player:{x,y,alive,weapon,ammo,bombs,lives}, score, rescued, enemies, cameraX, bossHp, boss, bossPhase, god, projectiles, enemyProjectiles, shotsFired, level:{stage,name,sandbox}, errors}` plus every `registerDebug` field (team fields win over engine defaults with the same key)
-  - `cheats.god(on)`, `warp(x)`, `give(weapon, ammo?)`, `kill()` (**kills the player**), `killEnemies()`, `hurt(dmg?)`, `bombs(n)`, `boss()`
+  - `cheats.god(on)`, `warp(x)`, `give(weapon, ammo?)`, `kill()` (**kills the player**), `killEnemies()` (every live
+    enemy, even frozen off-screen ones), `killVisible()` (only enemies whose hurtbox is inside the view; see §14),
+    `damageBoss(amount)` (a normal hit on the boss; see §14), `hurt(dmg?)`, `bombs(n)`, `boss()`,
+    `part(id, keepRun?)` (restart into a part; fresh run state unless `keepRun`), `clearPart()` (emits `stage:clear` for the current part)
+  - `state().part`: the current part id (`'1-2'`), `null` when Game isn't running.
   - `press(action, ms)` reaches every live input, menus included.
   - `state().loadErrors`: `[]` normally. Non-empty only on Preload's load-error screen: `[{kind:'pack'|'file', team, key, url, reason}]`, with `ready` false and no Game running.
 - **Add state fields:** gameplay code: `ctx.debug.register('grunts', () => count)` (run-scoped: dropped when the run
@@ -368,8 +379,185 @@ Other flow behavior:
 - **Audio:** `src/audio/index.ts` (UI/audio team) exports `createAudioService(scene)`. The engine's `FallbackAudio` is exported from core if you want to wrap it.
 - **Dev sandbox source:** `src/core/dev/`. It's a compact working reference for player movement, a grenade, a turret shooting enemy projectiles, and an arena lock.
 
+---
+
+## 13. Campaign parts (Phase E, `docs/CAMPAIGN.md`)
+
+**Data:** `src/config/campaign.ts` (🔒 Engine): `CAMPAIGN`, `PartId`, `PartDef`, `MissionDef`, `partById(id)`,
+`nextPart(id)` (same mission, else null), `missionOf(id)`, `FIRST_PART`, plus the scene-data types `CarryState`,
+`PartResult`, `PartClearData`, `GameStartData`. Everything is also exported from `core`.
+
+| Part | Title | Map key | Music | Final |
+|---|---|---|---|---|
+| 1-1 | THE CAMP | `m1p1` | `music_stage1` | no |
+| 1-2 | TIMBER EXPRESS | `m1p2` | `music_m1p2` | no |
+| 1-3 | MOOSE LAKE | `m1p3` | `music_m1p3` | yes |
+
+**`ctx.part: PartDef`** is the part being played. Levels: load `ctx.part.map`. Until `m1p1` is in the cache, part
+1-1's `ctx.part.map` is `LEVEL.map.key` (the old Mission 1 map), so 1-1 stays playable; another part whose map is
+missing keeps its key (warning logged), and the level should leave the dev sandbox in place as it does today.
+
+**Starting a part:** `scene.start('Game', { part: '1-2', carry })`. Game resolves the part from `data.part`, then
+`?part=`, then `'1-1'`. Without `carry` the run state is fresh. The data is consumed in `init()`, so a later
+`scene.start('Game')` with no data (Title) is a fresh run and doesn't replay the old part.
+`carry` restores score, lives, bombs, weapon, ammo (`Infinity` stays `Infinity`; `-1`/`null` also read as Infinity
+via `decodeAmmo`; use `encodeAmmo` if you JSON it), rescued, difficulty and `parts` (earlier results). It goes into
+the store **before** any team registers, so no `*:changed` events fire and the HUD just reads the carried values.
+
+**Events:** `part:start { id, mission, part, title, location, briefing, final }` right after `stage:start` (UI title
+card, Audio part music). `stage:clear` gains `part?`/`final?` (filled by Engine before any team listener runs).
+`boss:stomp { x, y, power }` (bosses emit; Levels/FX/Audio listen).
+
+**Per-part stats:** `PartResult { id, score, rescued, kills, deaths, shots, hits, timeMs }`. `score` is the score
+earned in that part (a continue's reset doesn't subtract), `rescued` the POWs freed in it, `timeMs` the gameplay
+clock from part start to the `stage:clear`.
+
+**Continue** still respawns in place inside the current part; **Quit** goes to Title.
+
+**Progress (`src/core/progress.ts`):** `loadProgress(): { unlocked, best }` ('1-1' always unlocked, campaign order),
+`unlockPart(id)`, `recordBest(id, score)`, `isUnlocked(id)`, `resetProgress()`. Stored in
+`localStorage['kbe.progress.v1']`; without storage it keeps progress in memory and never throws. The flow unlocks the
+next part at the clear and records the part's best score when it moves on. Title's PART SELECT reads `loadProgress()`
+and starts `scene.start('Game', { part })` (fresh run state).
+
+**Physics:** `ctx.physics.surfaceAt(x, y): string | null` is the raw `material` tile property on the ground layer
+(`'ice'`), or null (no tile / no property). Probe under the feet: `surfaceAt(x, body.bottom + 1)`. A level can
+override it with `LevelQuery.surfaceAt`.
 
 ---
+
+## 14. Turbo simulation and the level audits
+
+Verifying a part used to mean a keyboard bot walking the map in real time on SwiftShader, which took over an hour per
+part. Now there are two fast tools, plus a test-only turbo stepper that makes them possible.
+
+### `__KBE.sim` (cheat-gated: dev or `?debug=1`; `null` otherwise) — `src/core/debug/sim.ts`
+
+| Call | What it does |
+|---|---|
+| `sim.freeze()` | Stops the browser's RAF loop. The game now moves only when a test advances it, so runs are deterministic. |
+| `sim.advance(ms, { every?, onStep?, until?, budgetMs? })` | Runs `ms` of gameplay in fixed 1000/60 ms steps (`game.headlessStep`: no rendering), as fast as the CPU allows, all inside one JS task. `onStep(simMs)` fires every `every` ms; `until()` stops early; `budgetMs` (default 20 s) caps wall time. Returns `{ simMs, steps, wallMs, speedup, stopped }`. |
+| `sim.render()` | Draws one frame now (for screenshots while frozen). |
+| `sim.resume()` | Back to real time. |
+| `sim.turbo(n)` / `?turbo=n` | Still on RAF and still rendering, but each browser frame runs n fixed steps (n−1 headless). |
+| `sim.events(since?)` | The run's recorded `boss:*`, `stage:*`, `part:start`, `camera:lock/unlock`, `player:died`, `game:respawn` and `game:over` events, as `{ t, name, data }`. |
+| `sim.actors()` | Every live enemy-team hurtbox owner: `{ kind, type, lock, wave, mapId, x, y, state, hp, visible, inView, frozen, boss }`. `lock`/`wave`/`mapId` come from the spawn props (the engine now tags every `ctx.spawn` result). `frozen` means more than 32 px off the view and not in an entry state, which is Enemy.ts's freeze rule. |
+| `sim.view()` | `{ x, y, w, h, locked }` of the camera. |
+| `sim.stats()` | `{ simMs, steps, wallMs, speedup, frozen, turbo, now }` |
+
+**How time stays consistent.** Once the sim is engaged, the loop callback is wrapped: scenes get a virtual clock
+(real deltas on RAF, fixed steps when advancing), and `Date.now()` follows the same clock, because Phaser's
+TweenManager measures its delta with `Date.now()`. Scene clocks and timers, Arcade physics, sprite anims, tweens,
+`ctx.time` (hitstop and slow-mo) and programmatic `press()` all run off the step's `(time, delta)`, so they all
+advance. `game.loop.frame` is bumped each step; bosses use it to group explosion hits. After an advance, the RAF
+delta is reset so the next real frame isn't one huge step. Camera shake now uses its own `?seed=` RNG instead of
+`Math.random`, so seeded runs see the same view every time. The page is untouched until a test calls `sim`.
+
+**Measured (headless Chromium, SwiftShader, this machine):** `advance()` runs at **100–250× real time** (a 6 s wave
+cycle takes 24–60 ms; full-audit average is 115–155×). `?turbo=8` runs at **8.09×** real time while still rendering
+at 59 fps.
+
+### `killVisible()` and `damageBoss(amount)`
+
+- `cheats.killVisible()` hits every live enemy hurtbox overlapping the camera view with a 9999 explosion through
+  `damage.deal` (the normal path: score, `enemy:killed`, death anims). Parachute boxes and the boss are skipped.
+  Off-screen enemies survive, just as they would against a player; that's how the audit finds stranded ones.
+- `cheats.damageBoss(amount = 5)` deals one normal player bullet hit to the active boss (the object spawned as type
+  `boss`, or a hurtbox of kind `snowcat`/`ironhorn`/`moosezilla`). It aims at the most recently registered live box
+  in view (Ironhorn's turrets in phase 1, MOOSEZILLA's core in phase 3, the snowcat's warden), else any box in view,
+  else any box. Armour, multipliers and phase thresholds apply as in play.
+
+### `npm --prefix game run audit:arenas` — `tools/arena-audit.mjs --part 1-1|1-2|1-3|all`
+
+For every `camera_lock` arena in the part's TMJ, in x order: warp 120 px before it, god mode, then walk right (jump
+when blocked) until it locks. **Wave arenas:** repeat {simulate 6 s, sampling every 100 ms; checkpoint: every live
+wave member must be inside the locked view and not frozen; `killVisible()`} until the arena reports done.
+**Boss arenas:** `damageBoss(5)` every 200 ms (25 HP/s), `killVisible()` every 3 s; then wait for `stage:clear` and the
+next scene.
+
+| Result | When |
+|---|---|
+| **FAIL** `off-view>2s` | A wave member stays outside the view for more than 2 s of game time. |
+| **FAIL** `checkpoint-off-view` / `checkpoint-frozen` | A member is off-view or frozen at a 6 s checkpoint. |
+| **FAIL** `not-done-in-90s` | The arena isn't done 90 s after it locks. |
+| **FAIL** `never-locked` | The arena never started after the warp and walk. |
+| **FAIL** boss | Boss off-view for more than 2 s, no HP change for 15 s, phases 2/3 not reached, not dead in 90 s, `stage:clear` count or `{ part, final }` wrong, or the next scene (PartClear, or Results after the final part) not started. |
+| **FAIL** errors | Page or console errors. |
+| **WARN** `pulled-into-view` | The level's off-view safety net had to pull a member back. |
+| **WARN** `vanished-off-view` | A member disappeared while off-view. |
+| **WARN** `members-unaccounted` | Fewer members died than the map places. |
+| **WARN** `waves-not-all-seen` | Not every wave in the map ran. |
+| info | Members that died on screen without being shot, such as a drone crashing in its dive. |
+
+Output is a table, plus `tests/artifacts/arena-audit-<part>.json` and a PNG per failing arena. Exit codes: 1 if
+anything failed, 2 for bad arguments or a tool crash, 3 if the hard watchdog fired. Every part has a 90 s wall
+budget (`--budget`), each page call times out, and a whole-run watchdog kills the process, so it never hangs. A page
+load that fails with a network error (WSL `ERR_NETWORK_CHANGED`) is retried once.
+
+Options:
+
+- `--strict` turns the level's off-view safety net off for the run (runtime tuning only), so drift fails instead of
+  being pulled back.
+- `--cycle <s>` sets the seconds between kills; longer values make a soak test.
+- `--verbose` prints every cycle.
+- `--inject-stray` checks the audit itself. It disables the net and pushes one live wave member 40 px past the locked
+  view, which is the original stall bug. The audit **must FAIL**. It does: `off-view>2s` (frozen), the checkpoint
+  failure and `not-done-in-90s`, in 2.3 s of wall time.
+
+### `npm --prefix game run audit:reach` — `tools/reach-check.mjs --part 1-1|1-2|1-3|all [--tmj file] [--verbose]`
+
+Static, no browser, about 0.2 s for all three parts. It reads the TMJ ground layer:
+
+- `collides` without `oneway` is solid.
+- `oneway` is a platform you can land on from above or drop through (down+jump).
+- `hazard=water|spikes` is deadly.
+- `crack=true` and `crack=stomp` ice count as ground.
+
+It reads the player tuning from `src/config/tuning/player.ts` (run 105, jump 318, gravity 900, jump cut 120, body
+12×30) and the 520 fall cap from the controller. Jump arcs use Arcade's 60 Hz semi-implicit Euler, so the apex is
+53.5 px (measured in game: 53.6), not the continuous 56. Flat jump distance is 74 px.
+
+BFS runs from `player_start` over standable cells (a surface with 2 free tiles above). Moves are walking, walk-offs,
+drop-throughs, and jumps (full, short and tap, at full, half and zero run speed, from the column centre and from the
+overhang edge). It checks that every arena, checkpoint and the `stage_end` is reachable, and **fails** with a
+reason, such as `64 px wall at x=640, standing at y=336; a full jump clears 53 px, no step within reach` or
+`96 px gap from x=2000 to x=2096 (landing 0 px higher); jump reach on the flat is ~74 px`.
+
+POWs and pickups out of reach are **warnings**. `--verbose` also lists unreachable ledges as info. Writes
+`tests/artifacts/reach-check-<part>.json`. `--tmj` checks a work-in-progress map as a given part.
+
+It ignores props (crates and sandbags can be shot; gates open), trains and sweeps, camera lock-left, coyote time
+(which makes it conservative) and turning around in the air. Mutation-tested: on the 1-1 floor at x=640, a 48 px
+wall passes and a 64 px wall fails; an 80 px gap passes (the body's 12 px overhang leaves 70 px of travel) and a
+96 px gap fails.
+
+`npm --prefix game run audit` runs both for all parts, in about 6 s of wall time.
+
+---
+
+## Changelog (fast level audits, 2026-10-17)
+
+- `src/core/debug/sim.ts`: `__KBE.sim` turbo simulation (freeze/advance/render/resume/turbo/events/actors/view/stats),
+  `?turbo=n` (`UrlParams.turbo`). Measured 100–250× real time when advancing, 8× with `?turbo=8` while rendering.
+- `cheats.killVisible()`, `cheats.damageBoss(amount)`.
+- `core/spawn.ts`: every `ctx.spawn` result is tagged with `{ type, kind, lock, wave, mapId }` (`spawnTagOf(obj)`).
+- `core/camera.ts`: shake jitter uses a seeded RNG (`?seed=`) instead of `Math.random`.
+- New tools `tools/arena-audit.mjs` and `tools/reach-check.mjs`; npm scripts `audit:arenas`, `audit:reach` and `audit`.
+  The old `arena-bot.mjs` and `flow-check.mjs` are superseded (kept for reference).
+
+## Changelog (Phase E: campaign parts, 2026-10-16)
+
+- `src/config/campaign.ts`: campaign data and scene-data types (CAMPAIGN.md contract).
+- `ctx.part`; GameScene `init({ part, carry })`; Mission 1 map fallback for 1-1; stale scene data consumed.
+- `RunStateStore.restore(carry)`, `partResult()`, `carry()`, per-part score (`partScore`).
+- Events `part:start`, `boss:stomp`; `stage:clear { part?, final? }` filled by the flow.
+- Flow: PartClear / next part / mission Results with `parts`; Game teardown also stops `Intro`, `Pause`, `Continue`.
+- `src/core/progress.ts`; `ctx.physics.surfaceAt`; `EventBus.totalListeners()`.
+- `?part=`, `__KBE.cheats.part(id, keepRun?)`, `__KBE.cheats.clearPart()`, `state().part`; `PartClear` in `state().scene` priority.
+- Selftest `campaign` section (`node game/tools/engine-selftest.mjs --only campaign`): 1-1 → 1-2 → 1-3 → Results through
+  the flow, carry (Infinity and finite ammo), PartClear data, Results parts, progress, fresh Title start, the 1-1 boss
+  killed in play advancing to 1-2, `?part=` with localStorage blocked, and leak counters (bus listeners, updaters,
+  Game/HUD/game/input/sound emitters, window listeners, audio loops) flat across 3 restarts.
 
 ## Changelog (E04: asset load failures, 2026-10-16)
 

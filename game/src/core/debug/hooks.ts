@@ -1,7 +1,9 @@
 // window.__KBE test/debug hooks (QA depends on these). Installed by main.ts before the game boots.
 //   __KBE.ready, __KBE.game, __KBE.version, __KBE.state(), __KBE.press(action, ms)
-//   __KBE.cheats.{god,warp,give,kill,killEnemies,hurt,bombs,boss}
-// kill() kills the PLAYER (QA's death/game-over flow); killEnemies() clears every live enemy hurtbox.
+//   __KBE.cheats.{god,warp,give,kill,killEnemies,killVisible,damageBoss,hurt,bombs,boss,part,clearPart}
+//   __KBE.sim.{freeze,resume,advance,render,turbo,events,actors,stats} (turbo simulation, see sim.ts)
+// kill() kills the PLAYER (QA's death/game-over flow); killEnemies() clears every live enemy hurtbox (even frozen
+// off-screen ones); killVisible() only the ones a player could reach (hurtbox inside the camera view).
 // Cheats are gated by CHEATS_ENABLED (dev mode or ?debug=1): in a production build without ?debug=1 every cheat
 // is a no-op that warns once. state(), press() and ready stay available everywhere (they can't change the run).
 import Phaser from 'phaser';
@@ -10,6 +12,10 @@ import { ACTIONS } from '../contracts';
 import { liveInputs } from '../input';
 import { CHEATS_ENABLED, PARAMS } from '../params';
 import { isSandboxLevel } from '../dev/sandboxLevel';
+import { partById, type GameStartData } from '../../config/campaign';
+import type { RunStateStore } from '../state';
+import { createSim, notifySimContext, type SimHandle } from './sim';
+import { spawnTagOf } from '../spawn';
 
 type CheatFn = (...args: never[]) => void;
 
@@ -60,6 +66,7 @@ export function setActiveContext(ctx: GameContext | null): void {
         return;
     }
     syncGodFlag(ctx.cheats.god);
+    notifySimContext(ctx);
     const track = (e: { name: string; hp: number; maxHp: number; phase: number }): void => {
         bossHp = e.hp;
         boss = { name: e.name, hp: e.hp, maxHp: e.maxHp, phase: e.phase };
@@ -157,13 +164,92 @@ const defaultCheats = {
             }
         });
     },
+    /**
+     * Kill the live enemies whose hurtbox overlaps the camera view, through the normal damage path (an explosion hit,
+     * so shields don't block it). Bosses are left alone (use damageBoss). Anything off-screen survives, as it would
+     * for a player: the arena audit relies on that to catch enemies stranded off-view.
+     */
+    killVisible(): void {
+        if (!active) return;
+        const ctx = active;
+        const v = ctx.camera.view();
+        const targets: Hurtbox[] = [];
+        ctx.damage.forEach(h => {
+            if (h.team !== 'enemy' || !h.alive() || h.kind === 'chute' || isBossBox(h)) return;
+            const r = ctx.damage.rectOf(h);
+            if (r.right >= v.left && r.x <= v.right && r.bottom >= v.top && r.y <= v.bottom) targets.push(h);
+        });
+        for (const h of targets) {
+            if (!h.alive()) continue;
+            const r = ctx.damage.rectOf(h);
+            ctx.damage.deal(h, { damage: 9999, source: 'player', x: r.centerX, y: r.centerY, dirX: 0, dirY: -1, kind: 'explosion', weapon: 'cheat' });
+        }
+    },
+    /**
+     * A normal player bullet hit of `amount` on the active boss: its weak point if one is live (Ironhorn's turrets,
+     * MOOSEZILLA's core), else the first live hurtbox inside the view, else any live one. Phases, armour and damage
+     * multipliers apply as in play, so phases progress naturally.
+     */
+    damageBoss(amount = 5): void {
+        if (!active) return;
+        const ctx = active;
+        const v = ctx.camera.view();
+        const boxes: Hurtbox[] = [];
+        ctx.damage.forEach(h => { if (h.team === 'enemy' && h.alive() && isBossBox(h)) boxes.push(h); });
+        if (!boxes.length) return;
+        const inView = (h: Hurtbox): boolean => { const r = ctx.damage.rectOf(h); return r.right >= v.left && r.x <= v.right && r.bottom >= v.top && r.y <= v.bottom; };
+        const weak = boxes.filter(h => inView(h) && isWeakBox(h, boxes));
+        const h = weak[0] ?? boxes.find(inView) ?? boxes[0];
+        const r = ctx.damage.rectOf(h);
+        const p = ctx.player();
+        const dirX = p && p.x > r.centerX ? -1 : 1;
+        ctx.damage.deal(h, { damage: amount, source: 'player', x: r.centerX, y: r.centerY, dirX, dirY: 0, kind: 'bullet', weapon: 'cheat' });
+    },
     bombs(n = 30): void {
         if (active) active.state.bombs = n;
     },
     boss(): void {
         if (active) teleportPlayer(active, active.level.bounds.right - 60 * 16);
+    },
+    /**
+     * Phase E: (re)start the Game at a part ('1-3'). Fresh run state, unless `keepRun` is true: then the current
+     * run (score, lives, weapon, ammo, earlier part results) carries over, as if the parts before it were cleared.
+     */
+    part(id: string, keepRun = false): void {
+        const def = partById(id);
+        if (!def) { console.warn(`[__KBE.cheats.part] unknown part '${id}'`); return; }
+        const game = gameRef;
+        if (!game) return;
+        const data: GameStartData = { part: def.id };
+        if (keepRun && active) data.carry = (active.state as RunStateStore).carry();
+        if (active) {
+            const sp = active.scene.scene;
+            for (const k of ['HUD', 'Pause', 'Continue', 'Intro']) if (sp.isActive(k) || sp.isPaused(k)) sp.stop(k);
+            sp.start('Game', data);
+            return;
+        }
+        for (const s of game.scene.getScenes(true)) if (s.scene.key !== 'Game') game.scene.stop(s.scene.key);
+        game.scene.start('Game', data);
+    },
+    /** Phase E: clear the current part now (emits stage:clear; the engine flow fills part/final and moves on). */
+    clearPart(): void {
+        if (active) active.events.emit('stage:clear', { stage: active.level.stage ?? active.params.stage });
     }
 };
+
+/** A hurtbox of the boss (spawned as type 'boss'), by spawn tag, with the known boss kinds as a fallback. */
+function isBossBox(h: Hurtbox): boolean {
+    if (h.owner && spawnTagOf(h.owner)?.type === 'boss') return true;
+    return h.kind === 'moosezilla' || h.kind === 'snowcat' || h.kind === 'ironhorn';
+}
+
+/**
+ * Weak-point guess without knowing the boss's internals: a box that only exists in some phases (it's smaller than the
+ * largest box and is the most recently registered live one). Ironhorn registers its turrets last; MOOSEZILLA its core.
+ */
+function isWeakBox(h: Hurtbox, boxes: Hurtbox[]): boolean {
+    return boxes.length > 1 && h === boxes[boxes.length - 1];
+}
 
 let cheatWarned = false;
 
@@ -182,7 +268,7 @@ function cheat<K extends keyof typeof defaultCheats>(name: K): (typeof defaultCh
 function topScene(game: Phaser.Game): string {
     const scenes = game.scene.getScenes(true);
     const names = scenes.map(s => s.scene.key);
-    for (const k of ['Pause', 'Continue', 'Results', 'Game', 'Intro', 'Title', 'Options', 'Credits', 'Preload', 'Boot']) {
+    for (const k of ['Pause', 'Continue', 'Results', 'PartClear', 'Game', 'Intro', 'Title', 'Options', 'Credits', 'Preload', 'Boot']) {
         if (names.includes(k)) return k;
     }
     return names[names.length - 1] ?? '';
@@ -212,6 +298,7 @@ function snapshot(): Record<string, unknown> {
         projectiles: ctx ? ctx.projectiles.countTeam('player') : 0,
         enemyProjectiles: ctx ? ctx.projectiles.countTeam('enemy') : 0,
         shotsFired: ctx ? (ctx.state as { stats?: { shots: number } }).stats?.shots ?? 0 : 0,
+        part: ctx ? ctx.part.id : null,
         level: ctx ? { stage: ctx.level.stage ?? null, name: ctx.level.name ?? null, sandbox: isSandboxLevel(ctx.level) } : null,
         errors: errors.slice(-20)
     };
@@ -230,10 +317,14 @@ export interface KbeHandle {
     cheatsEnabled: boolean;
     cheats: {
         god(on?: boolean): void; warp(x: number): void; give(weapon: string, ammo?: number): void; kill(): void;
-        killEnemies(): void; hurt(damage?: number): void; bombs(n?: number): void; boss(): void;
+        killEnemies(): void; killVisible(): void; damageBoss(amount?: number): void;
+        hurt(damage?: number): void; bombs(n?: number): void; boss(): void;
+        part(id: string, keepRun?: boolean): void; clearPart(): void;
     };
     press(action: Action, ms?: number): void;
     params: unknown;
+    /** Test-only turbo simulation (null when cheats are disabled). */
+    sim: SimHandle | null;
 }
 
 declare global {
@@ -251,15 +342,18 @@ export function installKbe(game: Phaser.Game, version: string): KbeHandle {
         cheatsEnabled: CHEATS_ENABLED,
         cheats: {
             god: cheat('god'), warp: cheat('warp'), give: cheat('give'), kill: cheat('kill'), killEnemies: cheat('killEnemies'),
-            hurt: cheat('hurt'), bombs: cheat('bombs'), boss: cheat('boss')
+            killVisible: cheat('killVisible'), damageBoss: cheat('damageBoss'),
+            hurt: cheat('hurt'), bombs: cheat('bombs'), boss: cheat('boss'), part: cheat('part'), clearPart: cheat('clearPart')
         },
         press(action: Action, ms?: number) {
             if (!ACTIONS.includes(action)) { console.warn(`[__KBE.press] unknown action '${action}'`); return; }
             for (const inp of liveInputs) if (inp.index === 0) inp.press(action, ms);
         },
-        params: PARAMS
+        params: PARAMS,
+        sim: CHEATS_ENABLED ? createSim(game, () => active) : null
     };
     window.__KBE = handle;
+    if (handle.sim && PARAMS.turbo && PARAMS.turbo > 1) handle.sim.turbo(PARAMS.turbo);
     // Global listeners and the console.error tap are installed once per page, even if a dev hot-reload
     // re-runs this module (otherwise every error would be recorded once per reload).
     if (!globalTapped) {

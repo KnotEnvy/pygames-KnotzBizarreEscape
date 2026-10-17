@@ -25,7 +25,7 @@ function marginFor(o: LevelObject): number {
     const A = LEVEL.activation;
     if (o.type !== 'enemy') return A.margin;
     const kind = kindOf(o);
-    return kind === 'paratrooper' ? -A.paraInside : kind === 'drone' ? A.flyingMargin : A.margin;
+    return kind === 'paratrooper' ? -A.paraInside : kind === 'drone' || kind === 'buzzard' ? A.flyingMargin : A.margin;
 }
 
 export class ProximitySpawner {

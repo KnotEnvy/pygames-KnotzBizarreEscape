@@ -93,7 +93,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 120
+    "duration": 100
    },
    "ui_icons#12": {
     "frame": { "x": 0, "y": 51, "w": 16, "h": 16 },
@@ -101,7 +101,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 120
+    "duration": 100
    },
    "ui_icons#13": {
     "frame": { "x": 17, "y": 51, "w": 16, "h": 16 },
@@ -112,7 +112,23 @@
     "duration": 120
    },
    "ui_icons#14": {
-    "frame": { "x": 0, "y": 51, "w": 16, "h": 16 },
+    "frame": { "x": 34, "y": 51, "w": 16, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+    "sourceSize": { "w": 16, "h": 16 },
+    "duration": 120
+   },
+   "ui_icons#15": {
+    "frame": { "x": 51, "y": 51, "w": 16, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+    "sourceSize": { "w": 16, "h": 16 },
+    "duration": 120
+   },
+   "ui_icons#16": {
+    "frame": { "x": 34, "y": 51, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
@@ -139,7 +155,9 @@
    { "name": "icon_medal", "from": 8, "to": 8, "direction": "forward", "color": "#000000ff" },
    { "name": "icon_skull", "from": 9, "to": 9, "direction": "forward", "color": "#000000ff" },
    { "name": "icon_check", "from": 10, "to": 10, "direction": "forward", "color": "#000000ff" },
-   { "name": "ui_cursor", "from": 11, "to": 14, "direction": "forward", "color": "#000000ff" }
+   { "name": "icon_laser", "from": 11, "to": 11, "direction": "forward", "color": "#000000ff" },
+   { "name": "icon_lock", "from": 12, "to": 12, "direction": "forward", "color": "#000000ff" },
+   { "name": "ui_cursor", "from": 13, "to": 16, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "main", "opacity": 255, "blendMode": "normal" }

@@ -131,6 +131,30 @@
         "type": "json",
         "key": "knotz_meta",
         "url": "assets/sprites/player/knotz_meta.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "laser_beam",
+        "textureURL": "assets/sprites/player/laser_beam.png",
+        "atlasURL": "assets/sprites/player/laser_beam.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "laser_muzzle",
+        "textureURL": "assets/sprites/player/laser_muzzle.png",
+        "atlasURL": "assets/sprites/player/laser_muzzle.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "laser_impact",
+        "textureURL": "assets/sprites/player/laser_impact.png",
+        "atlasURL": "assets/sprites/player/laser_impact.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_l",
+        "textureURL": "assets/sprites/player/pickup_l.png",
+        "atlasURL": "assets/sprites/player/pickup_l.json"
       }
     ]
   },

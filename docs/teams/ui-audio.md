@@ -8,8 +8,9 @@ Everything here is generated from source scripts and can be regenerated:
 | Bitmap fonts | `game/art-src/ui/fonts.lua` (+ `lib/glyphs.lua`, `lib/ui.lua`) | `bash tools/build-art.sh art-src/ui/fonts.lua` | `public/assets/fonts/*.png/.xml` |
 | HUD kit, prompts, countdown, ranks, panels, boss bar | `game/art-src/ui/hud.lua` | `bash tools/build-art.sh art-src/ui/hud.lua` | `public/assets/ui/*` |
 | Logo (animated) | `game/art-src/ui/logo.lua` | `bash tools/build-art.sh art-src/ui/logo.lua` | `public/assets/ui/logo.png/.json` |
-| SFX (66) | `game/tools/audio/sfx.py` (DSP in `kbe_synth.py`) | `bash tools/audio/build.sh sfx` | `public/assets/audio/sfx/*.ogg` + `sfx_manifest.json` |
-| Music (6) | `game/tools/audio/music.py` | `bash tools/audio/build.sh music` | `public/assets/audio/music/*.ogg` + `music_manifest.json` |
+| SFX (84) | `game/tools/audio/sfx.py` (DSP in `kbe_synth.py`) | `bash tools/audio/build.sh sfx` (named keys re-render only those and merge the manifest) | `public/assets/audio/sfx/*.ogg` + `sfx_manifest.json` |
+| Music (10) | `game/tools/audio/music.py` | `bash tools/audio/build.sh music` (named songs likewise) | `public/assets/audio/music/*.ogg` + `music_manifest.json` |
+| Campaign UI art (radio icon, map pictograms, Pine Ridge route map) | `game/art-src/ui/campaign.lua` | `bash tools/build-art.sh art-src/ui/campaign.lua` | `public/assets/ui/ui_radio.*`, `ui_map.*`, `map_m1.png` |
 | Asset pack | `game/tools/audio/make_pack.py` (scans the dirs + manifests) | `uv run --with numpy python3 -I tools/audio/make_pack.py` | `public/assets/packs/ui.json` |
 | QA | `tools/audio/analyze.py` (levels, seams, spectrograms), `tools/audio/pianoroll.py` | `bash tools/audio/build.sh analyze` | `/tmp/kbe-ui/audio/*.png` |
 
@@ -416,3 +417,158 @@ once anything else happens. Changes made from the numbers:
 - **QA:** `flow.spec.ts` can drop its 100 ms "MenuInput arms" wait if you like; `/tmp/kbe-ui/pause_race.mjs` is a harsher
   version of the same flow. `audio.mix` is there for level checks (`peakSfxDb`, `loudest`, `limiterPeakDb`).
 - **Enemies:** the per-drone `loop('drone_buzz')` is exactly the hook we asked for, thanks; the catalog caps it at 3 voices.
+
+## 11. Phase E: missions in 3 parts (PART CLEAR, title cards, Hazel, new audio)
+
+### New audio keys (code against these now; files are in `public/assets/audio/{sfx,music}/`, pack `ui.json`)
+Call them exactly like the Phase B keys: `ctx.audio.sfx('<key>', { x })`, loops through `getAudio(scene).loop('<key>', { x })` → `handle.stop()`.
+Levels are pre-balanced per tier, so the default volume is 1.0. "vary" = random ±detune on every play.
+
+| Key | Kind | Who / when | Notes |
+|---|---|---|---|
+| `train_clack` | **loop** 1.6 s | Part II ambience (the Audio layer starts it itself on `part:start` of `1-2`, voice-limited to 1, so a Levels call won't double it) | rail joints at ~150 BPM, matches `music_m1p2` |
+| `train_horn` | one-shot 1.4 s | low-bridge warning (Levels `hazard_sweep` telegraph), Ironhorn | two-tone air horn |
+| `train_whistle` | one-shot 1.6 s | end of Part I (distant logging train), Part II flavour | steam whistle with a chiff; detune −300 and ×0.5 for "distant" |
+| `wind` | **loop** 2.4 s | Part II + Part III ambience (started by the Audio layer on `part:start`, 1 voice) | gusting blizzard bed |
+| `ice_crack` | one-shot 0.5 s | Levels: `crack=true` tile stepped on; boss stomps on the lake | vary |
+| `ice_shatter` | one-shot 0.9 s | Levels: the cracked tile turns to water | vary |
+| `laser` | one-shot 0.35 s | Player: laser weapon shot | voice-limit 3, min 45 ms, rapid-fire fatigue like `hmg` |
+| `snowcat_engine` | one-shot 1.2 s | Snowcat plow-charge telegraph (rev-up + exhaust puffs) | positional |
+| `snowcat_tread` | **loop** 0.7 s | Snowcat moving (also fine as a one-shot per tread step) | positional |
+| `mortar_thump` | one-shot 0.5 s | Snowcat roof mortar launch | vary |
+| `loco_steam` | one-shot 1.1 s | Ironhorn phase change / smokestack burst | |
+| `loco_cannon` | one-shot 0.7 s | Ironhorn rear cannon turrets | vary, voice-limit 2, min 120 ms (two turrets) |
+| `cinder` | one-shot 0.4 s | burning cinder lands / hits | vary ±120, voice-limit 4 |
+| `hound_bark` | one-shot 0.35 s | hound alert / leap | vary ±150 |
+| `hound_growl` | one-shot 0.8 s | hound charge telegraph | vary |
+| `buzzard_rotor` | **loop** 0.9 s | Buzzard gunship on screen (`loop('buzzard_rotor', { x })` + `setX`, max 2) | positional |
+| `radio_blip` | one-shot 0.25 s | UI: radio line start/end, PART SELECT moves | |
+| `radio_static` | one-shot 0.6 s | UI: radio box opens | |
+| `part_clear_jingle` | **music one-shot** 4.2 s | `stage:clear` with `final:false` (the Audio layer plays it; the HUD shows PART CLEAR!) | music bus; `jingle_complete` stays for the final part |
+| `music_m1p2` | music loop | Part II default (`PartDef.music`) | 150 BPM G minor train theme, rhythmic chug |
+| `music_m1p3` | music loop | Part III default | tense, eerie lake/lab theme |
+| `music_midboss` | music loop | `boss:spawn` whose `name` isn't MOOSEZILLA (WARDEN'S SNOWCAT, IRONHORN) | MOOSEZILLA keeps `music_boss` |
+
+Routing the Audio layer does on its own (no calls needed):
+- `part:start` → if no gameplay music is playing yet (Levels' map `music` property wins when it already started one), start `ctx.part.music`.
+  `1-2`: `train_clack` + `wind` loops; `1-3`: `wind` loop. Loops stop on `stage:clear`, `game:over` and the run's end.
+- `boss:spawn` → `music_midboss` or `music_boss` by `name`; `boss:defeated` fades the music out.
+- `stage:clear` → music out, then `part_clear_jingle` (`final:false`) or `jingle_complete` (`final:true`).
+- `boss:stomp` → positions the boss's own `boss_stomp` call (hint), so emitting the event + calling `sfx('boss_stomp')` as Moosezilla does is right.
+- Aliases accepted: `laser_shot laser_fire` → `laser`; `rotor heli buzzard` → `buzzard_rotor`; `horn` → `train_horn`; `whistle` → `train_whistle`;
+  `bark growl` → `hound_*`; `mortar` → `mortar_thump`; `cannon` → `loco_cannon`; `steam_blast` → `loco_steam`; `crack ice_break` → `ice_crack`/`ice_shatter`;
+  `radio` → `radio_blip`; `static` → `radio_static`; music `midboss boss_snowcat boss_ironhorn` → `music_midboss`, `music_m1p1 stage1` → `music_stage1`,
+  `train stage2 music_stage2` → `music_m1p2`, `lake lab stage3 music_stage3` → `music_m1p3`, `part_clear` → `part_clear_jingle`.
+
+### What was built (code)
+| Path | What |
+|---|---|
+| `src/scenes/ui/PartClearScene.ts` | **`PartClear`** scene (key `'PartClear'`): tally + escape-route map between parts |
+| `src/ui/titlecard.ts`, `src/ui/radio.ts` | HUD title card ("MISSION 1 · PART II" / title slam / location) and Hazel's radio box (typewriter, static, pagination) |
+| `src/ui/routemap.ts` | the Pine Ridge map widget (pictograms, dotted route, travelling Knotz marker, bouncing pin) |
+| `src/ui/tally.ts` | reusable count-up rows (PartClear and Results share it) |
+| `src/scenes/ui/HudScene.ts` | title card on `part:start`, "PART CLEAR!" vs "MISSION COMPLETE!" by `stage:clear.final`, laser icon, card yields to weapon callouts |
+| `src/scenes/ui/ResultsScene.ts` | mission totals + **PARTS** breakdown (one row per part), rank from the mission's POW total |
+| `src/scenes/ui/TitleScene.ts` | **PART SELECT** (reads `core/progress.ts` defensively; locked rows, BEST scores, starts `Game` with `{ part }`) |
+| `src/scenes/ui/IntroScene.ts` | mission name + escape-premise tagline; only on a mission's first part |
+| `src/ui/index.ts` | keeps the `part:start` payload for the HUD (it is launched a frame later), gates the Intro, per-part POW totals |
+| `src/audio/catalog.ts`, `src/audio/events.ts` | new keys/aliases, `bossMusicFor(name)`, part music + ambience on `part:start`, jingle by `final` |
+| `src/config/tuning/ui.ts` | `titleCard`, `radio`, `partClear` (map anchors/route), `partSelect`, `intro.taglines`, `results.powTotalByPart`, `audio.ambience` |
+| `art-src/ui/hud.lua` | `icon_laser` ("L" weapon) and `icon_lock` added to `ui_icons` |
+
+### Scene and data flow
+1. `GameScene.create` emits `stage:start` then `part:start` before the HUD scene exists → `registerUi` stores the payload; `HudScene.create` takes it
+   (`takePendingPart()`) and shows the **title card** after `UI.titleCard.delayMs`, or after the Intro (`afterIntroMs`) when the part is a
+   mission's first (the Intro now carries the mission name and `UI.intro.taglines[mission]`). The card: mission line slides in, the title slams
+   (steel; fire for the final part), the location fades in, and **Hazel's radio box** opens (`radio_static`, `radio_blip` per page, typewriter at
+   26 ms/char, 2 rows × 33 chars per page, long briefings paginate). Shoot/jump reveal the current page; nothing blocks gameplay; a weapon
+   callout cuts the title (Hazel keeps talking); `stage:clear`/`game:over` hide it. `__KBE.state().hud.card` exposes it for QA.
+2. `stage:clear { part, final }` → HUD shows **PART CLEAR!** (fire) or **MISSION COMPLETE!** (steel), fades to black at 2.8 s; Audio stops the
+   music and the ambience loops and plays `part_clear_jingle` / `jingle_complete`.
+3. Engine starts **`PartClear`** with `{ from, next, result, carry }` (every field is defaulted defensively, so the scene also previews from the
+   Title with partial data). Header "PART I CLEAR!", tally (SCORE, POW RESCUED, KILLS, ACCURACY, TIME, TOTAL = carried score; lives/bombs/arms
+   line), the map: pictograms I/II/III on the railway, the Knotz marker travels from the cleared part to the next one along the route
+   (`UI.partClear.route`, dots light up), the pin drops with a blip, "NEXT: TIMBER EXPRESS" + location appear, PRESS START (auto-advance after
+   8 s; confirm during the tally skips everything). A quiet `wind` loop plays under the map. Leave: `ui_start` → wipe →
+   `scene.start('Game', { part: next.id, carry })` (the engine latches held keys on Game create).
+4. The next part: `part:start` → title card again; Audio starts `ctx.part.music` unless Levels' map property already started gameplay music, and
+   the part's ambience loops (`UI.audio.ambience`: `1-2` train clack + wind, `1-3` wind). Boss arenas: `boss:spawn` picks `music_midboss` unless
+   the name is MOOSEZILLA (`music_boss`); the HUD bar shows any `name` (WARDEN'S SNOWCAT, IRONHORN, MOOSEZILLA).
+5. Final part → **Results** with totals + `parts[]`: RESULTS panel (tally) + PARTS panel (numeral, title, score / POW / time per part) + rank
+   (POW total = sum of each part's reported `powTotal`, else `UI.results.powTotalByPart`).
+6. Title → **PART SELECT**: `loadProgress()` (try/catch, shape-checked), rows with the map pictogram or a lock, BEST score / NEW / LOCKED, the
+   selected part's location, cursor starts on the furthest unlocked part; confirm → wipe → `scene.start('Game', { part })` (fresh run state).
+
+### Measured levels (Vorbis files, from the manifests)
+| Key | Length | Peak dBFS | RMS dBFS | Loop |
+|---|---|---|---|---|
+| `train_clack` | 1.60 s | -11.6 | -25.3 | loop (seam 0.001) |
+| `train_horn` | 1.80 s | -3.6 | -15.2 |  |
+| `train_whistle` | 2.02 s | -6.7 | -17.3 |  |
+| `wind` | 2.40 s | -19.2 | -29.8 | loop (seam 0.000) |
+| `ice_crack` | 0.47 s | -1.4 | -20.0 |  |
+| `ice_shatter` | 0.83 s | -1.2 | -19.1 |  |
+| `laser` | 0.30 s | -6.4 | -16.0 |  |
+| `snowcat_engine` | 1.20 s | -10.9 | -17.6 |  |
+| `snowcat_tread` | 0.70 s | -9.8 | -22.3 | loop (seam 0.007) |
+| `mortar_thump` | 0.49 s | -4.6 | -16.2 |  |
+| `loco_steam` | 1.10 s | -2.0 | -20.4 |  |
+| `loco_cannon` | 0.85 s | -5.4 | -16.3 |  |
+| `cinder` | 0.40 s | -3.0 | -22.2 |  |
+| `hound_bark` | 0.32 s | -3.2 | -15.3 |  |
+| `hound_growl` | 0.80 s | -7.8 | -18.7 |  |
+| `buzzard_rotor` | 0.90 s | -9.6 | -22.7 | loop (seam 0.001) |
+| `radio_blip` | 0.18 s | -7.2 | -18.0 |  |
+| `radio_static` | 0.60 s | -8.1 | -22.6 |  |
+| `music_m1p2` | 76.8 s (48 bars @ 150 BPM) | -1.9 (-1.0 after Vorbis) | -14.6 | seamless (seam 0.025; `music_stage1` is 0.052) |
+| `music_m1p3` | 75.0 s (40 bars @ 128 BPM) | -3.2 | -15.5 | seamless (seam 0.003) |
+| `music_midboss` | 43.6 s (32 bars @ 176 BPM) | -2.1 | -13.5 | seamless (seam 0.014) |
+| `part_clear_jingle` | 4.8 s (2 bars @ 150 BPM) | -1.9 | -14.5 | one-shot |
+
+Loops are rendered with `periodic()` (the tail already holds the next period's head) so `loopify()` keeps the exact period: `train_clack` is
+1.600 s = 4 beats at 150 BPM, `wind`'s gust LFOs are multiples of 1/2.4 Hz. Music: `music_m1p2` G minor, palm-mute chug (`inst_chug`) on 8ths,
+woodblock "clack-clack" per 2 beats (`DRUM.w`), brass lead, train bell; `music_m1p3` E minor with b2/tritone, half-time "eerie" kit, icy bell
+arpeggio with delay, dark pad, dissonant organ, wind swells (`inst_whoosh`); `music_midboss` F# harmonic-minor chase, gallop bass, "chase"
+kit, hard lead + organ stabs. Piano rolls: `/tmp/kbe-ui/audio/roll_music_m1p2.png`, `roll_music_m1p3.png`, `roll_music_midboss.png`,
+`roll_part_clear_jingle.png`; spectrograms/waveforms `/tmp/kbe-ui/audio/<key>_spec.png`/`_wave.png`. Limiter and mix rules unchanged
+(`UI.audio.limiter`, catalog tiers; `audio.unknown` stayed `[]` through every flow run).
+
+### Screenshots (SwiftShader, 3×)
+`/tmp/kbe-ui/e_flow_clear.png` (PART CLEAR! over the camp) → `e_flow_partclear.png` / `e_partclear_tally.png` (tally) →
+`e_partclear_arrived.png` (marker at the train, NEXT: TIMBER EXPRESS) → `e_flow_p2_card.png` (Part II title card) → `e_flow_p2_radio.png`
+(Hazel paginating); `e_card_fast.png`, `e_card_radio.png` (Part I card + radio); `e_seq_23.png` (Intro with mission name + tagline) →
+`e_seq_29.png` (card after the Intro); `e_final_clear.png` / `e_final_results.png` (final part → MISSION COMPLETE! → Results);
+`e_results.png` (Results with three parts, rank B); `e_partselect_locked.png` (PART SELECT); `e_laser.png` (laser icon, LASER GUN!);
+`/tmp/kbe-ui/campaign_x3.png` (map/radio/pictogram art sheet).
+
+See it:
+```sh
+node game/tools/shot.mjs --out /tmp/kbe-ui/flow.png --query "scene=Game&fast=1&part=1-1&debug=1&god=1&mute=1" --wait 1800 \
+  --steps '[{"eval":"window.__KBE.cheats.clearPart()"},{"wait":900},{"shot":"/tmp/kbe-ui/clear.png"},{"wait":3400},{"shot":"/tmp/kbe-ui/partclear.png"},{"wait":5500},{"shot":"/tmp/kbe-ui/arrived.png"},{"press":"Enter"},{"wait":1500}]'
+# PartClear / Results with sample data (wrap scene.start in (..., 1): shot.mjs serialises the eval result)
+node game/tools/shot.mjs --out /tmp/kbe-ui/pc.png --query "scene=Title&mute=1" --wait 1500 --steps '[{"eval":"(window.__KBE.game.scene.getScene(\"Title\").scene.start(\"PartClear\",{result:{id:\"1-1\",score:12340,rescued:3,kills:41,deaths:1,shots:200,hits:131,timeMs:154000}}), 1)"},{"wait":8500}]'
+```
+
+### Known issues
+- `?part=1-2` / `1-3` still load the `m1p1` map (Levels' maps haven't landed); the flow, music, ambience and cards were verified on that fallback.
+- The radio box's skip key is shoot/jump (there is no spare action: Enter pauses, Esc pauses, X is shoot). It only fast-forwards the page; it
+  never closes the box, so a trigger-happy player still sees the full line. Pages close by timeout (1.7 s / 2.4 s last).
+- Rank POW totals for `1-2`/`1-3` are estimates (`powTotalByPart` 4 / 3) until those levels report `powTotal`.
+- The Knotz map marker stands on the pictogram it has reached (by design); the radio icon's signal arcs are 1 px and subtle at 1×.
+- Nobody has heard the new audio; levels are numeric. `music_m1p2` peaks at -1.0 dBFS after Vorbis (limiter ceiling 0.80 pre-encode).
+
+### Requests for other teams (Phase E)
+- **Engine**: done, thanks: `part:start`, `stage:clear {part, final}`, PartClear data, `progress.ts`, `cheats.clearPart()`. One wish: a
+  `cheats.part('1-2')` that keeps the carry would let QA test PART CLEAR → Part II with real totals.
+- **Levels**: `PartDef.music` is started by the Audio layer when no gameplay music is playing at `part:start`; a map `music` property that
+  already started one wins (no change needed). `train_clack`/`wind` loops run from `part:start` for `1-2`/`1-3` (1 voice each), so you don't
+  need to call them; `train_horn` for the DUCK! telegraph and `ice_crack`/`ice_shatter` for the crack→water swap are yours to call (positional
+  `{ x }`). When `m1p2`/`m1p3` report `LevelQuery.powTotal`, the rank uses it.
+- **Enemies/Bosses**: `boss:spawn` names route the music (anything but MOOSEZILLA → `music_midboss`). `snowcat_engine` (rev telegraph),
+  `snowcat_tread` (loop handle via `getAudio(scene).loop`), `mortar_thump`, `loco_steam`, `loco_cannon`, `cinder`, `hound_bark/growl`,
+  `buzzard_rotor` (loop) are live; `enemy:shoot` with `kind: 'snowcat' | 'ironhorn'` positions the following direct call (`weapon: 'mortar'`
+  swaps in the mortar). Keep emitting `boss:stomp` + calling `sfx('boss_stomp')` as Moosezilla does (the event only positions the call).
+- **Player**: `laser` is in the catalog with HMG-style rapid-fire fatigue; the HUD shows `icon_laser` and "LASER GUN!" as soon as
+  `weapon:changed { weapon: 'laser' }` arrives (verified through the HUD; `cheats.give('laser')` currently reverts to the pistol on your side).
+- **QA**: `__KBE.state().hud.card` (title/location/radio phase + text), `__KBE.state().partClear` (phase, tallyDone, arrived) and
+  `ui.log` entries `partclear:open`, `partclear:next`, `title:start <part>` are there for flow assertions.

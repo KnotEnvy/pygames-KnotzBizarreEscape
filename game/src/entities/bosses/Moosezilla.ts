@@ -161,7 +161,7 @@ export class Moosezilla extends Phaser.GameObjects.Container {
         this.ctx.audio.sfx('boss_cannon');
     }
     private stomp(): void {
-        const at = this.socket('stomp'); this.ctx.events.emit('fx:shake', { tier: 3 }); this.ctx.audio.sfx('boss_stomp');
+        const at = this.socket('stomp'); this.ctx.events.emit('boss:stomp', { ...at, power: this.phase === 3 ? 2 : 1 }); this.ctx.events.emit('fx:shake', { tier: 3 }); this.ctx.audio.sfx('boss_stomp');
         this.ctx.events.emit('explosion', { ...at, size: 's', team: 'enemy' });
         this.ctx.events.emit('fx:emit', { effect: 'shockwave', ...at, team: 'enemy' });
         // Low, bright ground projectile: jumping clears its 8px radius.
@@ -210,7 +210,7 @@ export class Moosezilla extends Phaser.GameObjects.Container {
         if (this.clock > 0) return;
         if (this.state !== 'recover' && this.state !== 'roar') { this.enter('recover', 700); if (this.phase === 1) { this.pose('legs_front', 'walk', true); this.pose('legs_back', 'walk', true); } this.steam(); this.pose('head', 'idle', true); return; }
         const p = this.ctx.player()!; this.direction = p.x < this.x ? -1 : 1;
-        let attack = this.phase === 1 ? (this.cycle++ % 3 === 2 ? 'stomp' : 'cannon') : this.phase === 2 ? ['flame', 'flies', 'stomp'][this.cycle++ % 3] : this.cycle++ % 2 === 0 ? 'charge' : 'flame';
+        let attack = this.phase === 1 ? (this.cycle++ % 3 === 2 ? 'stomp' : 'cannon') : this.phase === 2 ? ['flame', 'flies', 'stomp'][this.cycle++ % 3] : ['charge', 'flame', 'stomp'][this.cycle++ % 3];
         if (attack === 'flies' && this.flies.size > 0) attack = 'stomp';
         if (attack === 'cannon') { this.enter('cannon', 1300); this.pose('head', 'jaw'); this.ctx.audio.sfx('turret_windup'); this.pose('antler_l', 'fire'); this.pose('antler_r', 'idle'); if (this.antlers.antler_l > 0) this.ctx.events.emit('fx:emit', { effect: 'boss_cannon_charge', ...this.socket('cannon_l'), angle: this.facing > 0 ? 0 : Math.PI }); }
         if (attack === 'stomp') { this.enter('stomp', 850); this.pose('legs_front', 'stomp'); this.pose('legs_back', 'stomp'); }

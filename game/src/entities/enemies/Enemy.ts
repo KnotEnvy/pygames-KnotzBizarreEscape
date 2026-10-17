@@ -77,6 +77,12 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         }
         this.patrol = props.patrol === false ? 0 : Number.isFinite(Number(props.patrol)) ? Math.abs(Number(props.patrol)) : 48;
         this.box = { team: 'enemy', body: () => this.bounds(), hit: h => this.hit(h), alive: () => this.active && this.hp > 0, material: kind === 'shield' ? 'shield' : kind === 'turret' || kind === 'drone' ? 'metal' : 'flesh', kind, owner: this };
+        if (kind === 'leaper') {
+            this.enter('leap_entry', 900); this.vx = x; this.vy = y;
+            this.startX = x + this.facing * 56;
+            this.startY = ctx.physics.groundBelow(this.startX, y - 100, 400) ?? y;
+            this.y = y + 76;
+        }
         if (kind === 'paratrooper') {
             this.state = 'descent';
             ctx.audio.sfx('chute_open');
@@ -87,19 +93,19 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         }
         this.offs.push(ctx.events.on('player:shoot', e => this.hear(e.x, e.y, 150)), ctx.events.on('explosion', e => this.hear(e.x, e.y, 210)), ctx.damage.register(this.box), ctx.onUpdate(dt => this.tick(dt)), ctx.events.on('enemy:killed', e => {
             if (this.state === 'sleep' && Math.hypot(e.x - this.x, e.y - this.y) < 72) { this.wake(); return; }
-            if (this.hp > 0 && this.state !== 'panic' && this.state !== 'descent' && this.state !== 'land' && kind !== 'turret' && kind !== 'drone' && Math.hypot(e.x - this.x, e.y - this.y) < 72 && ctx.rng.chance(.3)) {
+            if (this.hp > 0 && this.state !== 'panic' && this.state !== 'descent' && this.state !== 'land' && this.state !== 'leap_entry' && kind !== 'turret' && kind !== 'drone' && Math.hypot(e.x - this.x, e.y - this.y) < 72 && ctx.rng.chance(.3)) {
                 this.facing = e.x < this.x ? 1 : -1; this.enter('panic', 900);
             }
         }));
         const stopBuzz = () => this.stopBuzz();
         ctx.scene.events.once('shutdown', stopBuzz);
         this.once('destroy', () => { this.stopBuzz(); ctx.scene.events.off('shutdown', stopBuzz); for (const off of this.offs) off(); this.chute?.destroy(); this.acting?.destroy(); this.base?.destroy(); });
-        this.pose(kind === 'drone' ? 'fly' : kind === 'paratrooper' ? 'descent' : 'idle', true);
+        this.pose(kind === 'leaper' ? 'leap' : kind === 'drone' ? 'fly' : kind === 'paratrooper' ? 'descent' : 'idle', true);
     }
     private bounds(): Phaser.Geom.Rectangle {
         return this.rect.setTo(this.x - (this.kind === 'turret' ? 10 : 8), this.y - (this.kind === 'drone' ? 7 : this.crouch ? 26 : 34), this.kind === 'drone' ? 20 : 16, this.kind === 'drone' ? 15 : this.crouch ? 26 : 34);
     }
-    private pose(tag: string, loop = false): void { if (tag === this.lastTag && (loop || this.anims.isPlaying)) return; this.lastTag = tag; animate(this, `${(this.kind === 'paratrooper' && this.state !== 'descent' && this.state !== 'land') || (this.kind === 'shield' && this.shieldHp <= 0 && tag !== 'shield_break') ? 'grunt' : this.kind}_${tag}`, loop); }
+    private pose(tag: string, loop = false): void { if (tag === this.lastTag && (loop || this.anims.isPlaying)) return; this.lastTag = tag; animate(this, `${((this.kind === 'paratrooper' && this.state !== 'descent' && this.state !== 'land') || (this.kind === 'leaper' && this.state !== 'leap_entry' && this.state !== 'land')) || (this.kind === 'shield' && this.shieldHp <= 0 && tag !== 'shield_break') ? 'grunt' : this.kind}_${tag}`, loop); }
     private enter(state: string, ms: number): void { this.state = state; this.clock = ms; if (state === 'panic') this.ctx.audio.sfx('enemy_panic'); }
     private wake(): void {
         if (this.state !== 'sleep') return;
@@ -184,7 +190,7 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         }
         if (!dt || !this.active) return;
         if (this.state !== 'dead' && this.x < this.ctx.camera.leftEdge() - 96) { this.destroy(); return; }
-        if (this.state !== 'dead' && this.state !== 'descent' && this.state !== 'land' && !visible(this.ctx, this.x, this.y, 32)) return;
+        if (this.state !== 'dead' && this.state !== 'descent' && this.state !== 'land' && this.state !== 'leap_entry' && !visible(this.ctx, this.x, this.y, 32)) return;
         this.age += dt; this.clock -= dt; this.cooldown -= dt; this.blockMs -= dt;
         if (this.flash > 0 && (this.flash -= dt) <= 0) this.clearTint();
         if (this.state === 'dead') {
@@ -192,6 +198,19 @@ export class Enemy extends Phaser.GameObjects.Sprite {
             if (this.clock <= 0) this.destroy(); return;
         }
         this.setFlipX(this.kind !== 'turret' && this.facing < 0);
+        if (this.state === 'leap_entry') {
+            const t = Phaser.Math.Clamp(1 - this.clock / 900, 0, 1);
+            const v = this.ctx.camera.view();
+            const target = this.ctx.camera.isLocked() ? Phaser.Math.Clamp(this.startX, v.left + 24, v.right - 24) : this.startX;
+            if (this.ctx.camera.isLocked() && (target !== this.startX || this.startY < v.top || this.startY > v.bottom)) {
+                this.startY = this.ctx.physics.groundBelow(target, v.top, v.height + 8) ?? Phaser.Math.Clamp(this.ctx.player()?.y ?? this.startY, v.top + 36, v.bottom - 8);
+                this.startX = target;
+            }
+            this.x = this.vx + (target - this.vx) * t;
+            this.y = this.vy + 76 + (this.startY - this.vy - 76) * t - Math.sin(t * Math.PI) * 108;
+            if (this.clock <= 0) { this.x = target; this.y = this.startY; this.startX = target; this.enter('land', 360); this.pose('landing'); }
+            return;
+        }
         if (this.state === 'descent') {
             if (this.y > this.ctx.level.bounds.bottom + 96) { this.destroy(); return; }
             this.vy = this.chuteAlive ? 28 : Math.min(190, this.vy + 550 * dt / 1000);
@@ -237,7 +256,7 @@ export class Enemy extends Phaser.GameObjects.Sprite {
             if (this.kind === 'turret') { this.aimAngle = Math.round(Math.atan2(p!.centerY - (this.y - 18), dx) / (Math.PI / 4)) * Math.PI / 4; const d = (Math.round(-this.aimAngle / (Math.PI / 4)) + 8) % 8; this.enter('windup', 580); this.pose(`windup_${d}`); this.ctx.audio.sfx('turret_windup'); }
             else { this.enter('alert', 360); this.pose('alert'); this.ctx.events.emit('ui:popup', { x: this.x, y: this.y - 40, text: '!', color: 0xffe478 }); this.ctx.audio.sfx('enemy_alert'); }
         } else if (this.kind === 'turret') this.pose('aim_4', true);
-        else { if (Math.abs(this.x - this.startX) >= this.patrol) this.facing = this.x > this.startX ? -1 : 1; if (this.patrol) { this.move(this.facing * cfg.speed, dt); this.pose('walk', true); } else if (this.crouch && this.kind === 'grunt') { this.pose('crouch_idle', true); } else this.pose('idle', true); }
+        else { if (Math.abs(this.x - this.homeX()) >= this.patrol) this.facing = this.x > this.homeX() ? -1 : 1; if (this.patrol) { this.move(this.facing * cfg.speed, dt); this.pose('walk', true); } else if (this.crouch && this.kind === 'grunt') { this.pose('crouch_idle', true); } else this.pose('idle', true); }
     }
     snapshot(): unknown { return { kind: this.kind, x: this.x, y: this.y, hp: this.hp, state: this.state, wave: this.wave, chute: this.chuteAlive, idle: this.idle, mount: this.mount, shieldHp: this.shieldHp, exposed: this.kind === 'shield' && (this.state === 'recover' || this.state === 'burst' || (this.state === 'windup' && this.clock < 100)) }; }
 }

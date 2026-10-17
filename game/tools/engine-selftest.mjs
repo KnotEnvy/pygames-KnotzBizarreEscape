@@ -15,7 +15,12 @@
 //          aborted for good -> Preload's load-error screen (ready=false, state().loadErrors, no Game, no crash), then
 //          Enter after un-blocking reloads only the failed file and the Game starts; ui.json aborted once -> Boot's
 //          pack retry recovers.
-// Exit code 0 = pass. Usage: node game/tools/engine-selftest.mjs [--shots /tmp/dir]
+//   campaign (Phase E) the real flow 1-1 → 1-2 → 1-3 → Results through stage:clear (PartClear when registered,
+//          else Game directly): carry-over (score, lives, bombs, weapon, Infinity and finite ammo), PartClear data,
+//          Results totals + parts array, progress unlock/best, Title → Game after a run is a fresh 1-1, killing the
+//          1-1 boss in play reaches the next part, ?part=, no-localStorage, and no growth of bus listeners,
+//          updaters, scene/game emitters, window listeners or audio voices across part restarts.
+// Exit code 0 = pass. Usage: node game/tools/engine-selftest.mjs [--shots /tmp/dir] [--only core|campaign]
 import { createServer } from 'vite';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -27,6 +32,9 @@ process.env.LD_LIBRARY_PATH = [libs, process.env.LD_LIBRARY_PATH].filter(Boolean
 const { chromium } = await import(path.join(root, 'node_modules/@playwright/test/index.mjs'));
 const shotsIdx = process.argv.indexOf('--shots');
 const shots = shotsIdx > 0 ? process.argv[shotsIdx + 1] : null;
+const onlyIdx = process.argv.indexOf('--only');
+const only = onlyIdx > 0 ? process.argv[onlyIdx + 1] : null;
+const runs = section => !only || only === section;
 
 const server = await createServer({ root, configFile: path.join(root, 'vite.config.ts'), server: { port: 0, host: '127.0.0.1', strictPort: false, hmr: false, watch: null }, logLevel: 'error' });
 await server.listen();
@@ -39,6 +47,7 @@ const fails = [];
 const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  ${JSON.stringify(detail)}` : ''}`); if (!ok) fails.push(name); };
 
 try {
+  if (runs('core')) {
     await page.goto(`http://127.0.0.1:${port}/?scene=Game&fast=1&mute=1&god=1&enemytest=boss`);
     await page.waitForFunction(() => window.__KBE?.ready && window.__KBE_ENEMYTEST && window.__KBE.state().boss, null, { timeout: 30000 });
     await page.waitForTimeout(1500);
@@ -279,12 +288,201 @@ try {
         check('load: ui.json pack aborted once -> refetched, Game + HUD up', hits.aborted === 1 && hits.served >= 1 && st.scene === 'Game' && st.hud && st.font && st.loadErrors.length === 0 && errors.length === 0, { hits, ...st, errors: errors.slice(0, 3) });
         await pg.close();
     }
-    const errors = await page.evaluate(() => window.__KBE.state().errors);
+  }
+    if (runs('campaign')) await campaignChecks();
+    const errors = page.url().startsWith('http') ? await page.evaluate(() => window.__KBE.state().errors) : [];
     check('no page errors / __KBE errors', pageErrors.length === 0 && errors.length === 0, [...pageErrors, ...errors].slice(0, 5));
 } catch (e) {
     check('run', false, String(e.message ?? e));
 }
 await browser.close();
 await server.close();
+
 console.log(fails.length ? `engine-selftest: ${fails.length} failure(s)` : 'engine-selftest: all passed');
 process.exit(fails.length ? 1 : 0);
+
+// ---------------------------------------------------------------- Phase E: campaign flow (parts, carry, progress, leaks)
+async function campaignChecks() {
+    const base = `http://127.0.0.1:${port}/?scene=Game&fast=1&mute=1&god=1&seed=731`;
+    const pg = await browser.newPage({ viewport: { width: 1152, height: 648 } });
+    const errs = [];
+    pg.on('pageerror', e => errs.push(e.message));
+    // Count window listeners (keyboard/gamepad/blur handlers must not pile up across restarts).
+    await pg.addInitScript(() => {
+        const live = new Map();
+        window.__kbeWinLive = live;
+        const add = window.addEventListener, rem = window.removeEventListener;
+        window.addEventListener = function (t, f, o) { if (f) { const set = live.get(t) ?? new Set(); set.add(f); live.set(t, set); } return add.call(this, t, f, o); };
+        window.removeEventListener = function (t, f, o) { live.get(t)?.delete(f); return rem.call(this, t, f, o); };
+        localStorage.removeItem('kbe.progress.v1');
+    });
+    await pg.goto(base);
+    await pg.waitForFunction(() => window.__KBE?.ready && window.__KBE.state().part === '1-1', null, { timeout: 30000 });
+
+    // A probe on the Game scene's CREATE event snapshots leak metrics at the exact same point of every run.
+    await pg.evaluate(() => {
+        const game = window.__KBE.game;
+        const emitterCount = em => em.eventNames().reduce((a, k) => a + em.listenerCount(k), 0);
+        window.__kbeMetrics = () => {
+            const g = game.scene.getScene('Game');
+            const hud = game.scene.getScene('HUD');
+            let win = 0;
+            for (const set of (window.__kbeWinLive ?? new Map()).values()) win += set.size;
+            const audio = window.__KBE.state().audio ?? {};
+            return {
+                part: g.ctx?.part?.id,
+                bus: g.ctx.events.totalListeners(),
+                updaters: g.internals.updaters.length,
+                sceneEvents: emitterCount(g.sys.events),
+                hudEvents: hud ? emitterCount(hud.sys.events) : 0,
+                gameEvents: emitterCount(game.events),
+                inputEvents: emitterCount(game.input.events),
+                soundEvents: emitterCount(game.sound),
+                win,
+                voices: audio.voices ?? 0,
+                loops: audio.loops ?? 0
+            };
+        };
+        window.__kbeCreated = [];
+        game.scene.getScene('Game').sys.events.on('create', () => { window.__kbeCreated.push(window.__kbeMetrics()); });
+    });
+
+    const gameState = () => pg.evaluate(() => {
+        const g = window.__KBE.game.scene.getScene('Game');
+        const st = g.ctx.state;
+        return { part: g.ctx.part.id, map: g.ctx.part.map, score: st.score, lives: st.lives, bombs: st.bombs, weapon: st.weapon, ammo: Number.isFinite(st.ammo) ? st.ammo : 'Infinity', rescued: st.rescued, difficulty: st.difficulty, earlier: st.earlierParts.map(p => p.id), hud: g.scene.isActive('HUD') };
+    });
+    /** Clear the current part through the real flow and follow it to the next Game part (via PartClear when it exists). */
+    const advance = async (to, viaCheat = true) => {
+        if (viaCheat) await pg.evaluate(() => window.__KBE.cheats.clearPart());
+        await pg.waitForFunction(t => {
+            const s = window.__KBE.state();
+            return s.scenes.includes('PartClear') || s.part === t;
+        }, to, { timeout: 20000 });
+        const pc = await pg.evaluate(() => {
+            const game = window.__KBE.game;
+            if (!game.scene.isActive('PartClear')) return null;
+            const sc = game.scene.getScene('PartClear');
+            const d = sc.sys.settings.data;
+            const out = { from: d.from?.id, next: d.next?.id, result: d.result, carryAmmo: Number.isFinite(d.carry?.ammo) ? d.carry.ammo : 'Infinity', carryParts: d.carry?.parts?.map(p => p.id), hud: game.scene.isActive('HUD'), gameRunning: game.scene.isActive('Game') };
+            // What the UI's PartClear does once its tally ends (contract): start the next part with the carry.
+            sc.scene.start('Game', { part: d.next.id, carry: d.carry });
+            return out;
+        });
+        await pg.waitForFunction(t => window.__KBE.ready && window.__KBE.state().part === t && window.__KBE.game.scene.isActive('Game'), to, { timeout: 20000 });
+        await pg.waitForTimeout(300);
+        return pc;
+    };
+
+    // ---- carry 1-1 → 1-2
+    await pg.evaluate(() => {
+        const g = window.__KBE.game.scene.getScene('Game');
+        g.ctx.state.score = 12345; g.ctx.state.lives = 2; g.ctx.state.bombs = 7;
+        window.__KBE.cheats.give('hmg', Infinity);
+    });
+    const s11 = await gameState();
+    const pc1 = await advance('1-2');
+    const s12 = await gameState();
+    const progress1 = await pg.evaluate(() => JSON.parse(localStorage.getItem('kbe.progress.v1') ?? 'null'));
+    check('campaign: 1-1 runs with the 1-1 map (or the old Mission 1 map fallback)', s11.part === '1-1' && /^(m1p1|map_stage1)$/.test(s11.map), s11);
+    check('campaign: clearPart on 1-1 → ' + (pc1 ? 'PartClear (1-1 → 1-2) → Game 1-2' : 'Game 1-2 (no PartClear scene)'), s12.part === '1-2' && (!pc1 || (pc1.from === '1-1' && pc1.next === '1-2' && !pc1.hud && !pc1.gameRunning && pc1.result?.score === 12345)), { pc1, s12 });
+    check('campaign: carry 1-1 → 1-2 keeps score, lives, bombs, weapon, Infinity ammo; 1-1 result recorded; HUD up',
+        s12.score === 12345 && s12.lives === 2 && s12.bombs === 7 && s12.weapon === 'hmg' && s12.ammo === 'Infinity' && s12.earlier.join() === '1-1' && s12.hud, s12);
+    check('campaign: progress saves 1-2 unlocked and the 1-1 best score', !!progress1 && progress1.unlocked.includes('1-2') && progress1.best['1-1'] === 12345, progress1);
+
+    // ---- carry 1-2 → 1-3 with finite ammo, then final → Results
+    await pg.evaluate(() => {
+        const g = window.__KBE.game.scene.getScene('Game');
+        window.__KBE.cheats.give('spread', 55);
+        g.ctx.state.score += 1000;
+    });
+    await advance('1-3');
+    const s13 = await gameState();
+    check('campaign: carry 1-2 → 1-3 keeps finite ammo and the new score; 2 earlier parts', s13.part === '1-3' && s13.weapon === 'spread' && s13.ammo === 55 && s13.score === 13345 && s13.earlier.join() === '1-1,1-2', s13);
+    await pg.evaluate(() => { window.__KBE.game.scene.getScene('Game').ctx.state.score += 500; window.__KBE.cheats.clearPart(); });
+    await pg.waitForFunction(() => window.__KBE.game.scene.isActive('Results'), null, { timeout: 20000 });
+    const res = await pg.evaluate(() => {
+        const game = window.__KBE.game;
+        const d = game.scene.getScene('Results').sys.settings.data;
+        return { stage: d.stage, score: d.score, kills: d.kills, mission: d.mission, part: d.part, parts: d.parts?.map(p => ({ id: p.id, score: p.score })), timeMs: d.timeMs, accuracy: d.accuracy, hud: game.scene.isActive('HUD'), game: game.scene.isActive('Game') };
+    });
+    const progress2 = await pg.evaluate(() => JSON.parse(localStorage.getItem('kbe.progress.v1') ?? 'null'));
+    check('campaign: clearing 1-3 (final) → Results with mission totals and a parts array',
+        res.score === 13845 && res.mission === 1 && res.part === '1-3' && res.parts?.map(p => p.id).join() === '1-1,1-2,1-3'
+        && res.parts[0].score === 12345 && res.parts[1].score === 1000 && res.parts[2].score === 500 && typeof res.accuracy === 'number' && res.timeMs > 0 && !res.hud && !res.game, res);
+    check('campaign: progress has 1-1..1-3 unlocked with bests', progress2?.unlocked?.join() === '1-1,1-2,1-3' && progress2.best['1-3'] === 500, progress2);
+
+    // ---- Title → Game with no data after a run: fresh 1-1 (Phaser would otherwise replay the stale part + carry)
+    await pg.evaluate(() => { const sm = window.__KBE.game.scene; sm.stop('Results'); sm.start('Game'); });
+    await pg.waitForFunction(() => window.__KBE.state().part !== null && window.__KBE.game.scene.isActive('Game'), null, { timeout: 20000 });
+    await pg.waitForTimeout(300);
+    const fresh = await gameState();
+    check('campaign: Game started without data after a run is a fresh 1-1', fresh.part === '1-1' && fresh.score === 0 && fresh.lives === 3 && fresh.weapon === 'pistol' && fresh.earlier.length === 0, fresh);
+
+    // ---- real play path: kill the 1-1 boss (stage:clear from the level, no part/final in the payload) → next part
+    {
+        await pg.evaluate(() => {
+            window.__kbeClear = null;
+            window.__KBE.game.scene.getScene('Game').ctx.events.on('stage:clear', e => { window.__kbeClear = { ...e }; });
+            window.__KBE.cheats.boss();
+        });
+        let spawned = true;
+        // cheats.boss() lands just before the arena: walk right (real input) until the fight starts.
+        try {
+            await pg.waitForFunction(() => { window.__KBE.press('right', 300); return window.__KBE.state().boss?.hp > 0; }, null, { timeout: 25000, polling: 250 });
+        } catch { spawned = false; }
+        if (!spawned) {
+            check('campaign: walking into the 1-1 boss arena spawns the boss', false, await pg.evaluate(() => ({ player: window.__KBE.state().player, cameraX: window.__KBE.state().cameraX })));
+        } else {
+            let cleared = true;
+            try {
+                await pg.waitForFunction(() => { window.__KBE.cheats.killEnemies(); return window.__kbeClear !== null; }, null, { timeout: 30000, polling: 250 });
+            } catch { cleared = false; }
+            const clr = await pg.evaluate(() => ({ clear: window.__kbeClear, boss: window.__KBE.state().boss }));
+            let reached = false;
+            if (cleared) { try { await advance('1-2', false); reached = true; } catch { reached = false; } }
+            check('campaign: killing the 1-1 boss in play → stage:clear gets part 1-1, final false → Game 1-2', cleared && clr.clear?.part === '1-1' && clr.clear?.final === false && reached, clr);
+        }
+    }
+
+    // ---- leaks: restart parts 3 more times through the real flow; metrics at every Game create must not grow
+    await pg.evaluate(() => window.__KBE.cheats.part('1-1'));
+    await pg.waitForFunction(() => window.__KBE.state().part === '1-1' && window.__KBE.game.scene.isActive('Game'), null, { timeout: 20000 });
+    await pg.waitForTimeout(800);
+    await pg.evaluate(() => { window.__kbeCreated.length = 0; });
+    const settled = [];
+    for (let i = 0; i < 3; i++) {
+        await pg.evaluate(() => window.__KBE.cheats.part('1-1', true));
+        await pg.waitForFunction(n => window.__kbeCreated.length >= n, i + 1, { timeout: 20000 });
+        await pg.waitForTimeout(1200);
+        settled.push(await pg.evaluate(() => window.__kbeMetrics()));
+    }
+    const created = await pg.evaluate(() => window.__kbeCreated.slice());
+    const keys = ['bus', 'updaters', 'sceneEvents', 'hudEvents', 'gameEvents', 'inputEvents', 'soundEvents', 'win'];
+    const grow = (a, b, ks) => ks.filter(k => b[k] > a[k]);
+    const createdGrowth = grow(created[0], created[2], keys);
+    const settledGrowth = grow(settled[0], settled[2], ['sceneEvents', 'hudEvents', 'gameEvents', 'inputEvents', 'soundEvents', 'win', 'loops']);
+    check('campaign: no listener/updater growth across 3 part restarts (at create)', created.length === 3 && createdGrowth.length === 0 && created[1].bus === created[2].bus, { createdGrowth, created });
+    check('campaign: no emitter/window/audio-loop growth across 3 part restarts (settled)', settledGrowth.length === 0 && settled[2].voices <= settled[0].voices + 4, { settledGrowth, settled });
+    // the flow path restarts the same way (Game → Game): one more through clearPart, compared with the first
+    const errors = [...errs, ...(await pg.evaluate(() => window.__KBE.state().errors))];
+    check('campaign: no page errors during the part flow', errors.length === 0, errors.slice(0, 5));
+    if (shots) await pg.screenshot({ path: path.join(shots, 'selftest-campaign.png') });
+    await pg.close();
+
+    // ---- ?part= and no localStorage at all
+    const p2 = await browser.newPage({ viewport: { width: 1152, height: 648 } });
+    const errs2 = [];
+    p2.on('pageerror', e => errs2.push(e.message));
+    await p2.addInitScript(() => {
+        Object.defineProperty(window, 'localStorage', { get() { throw new Error('storage blocked'); } });
+    });
+    await p2.goto(`${base}&part=1-2`);
+    await p2.waitForFunction(() => window.__KBE?.ready && window.__KBE.state().part !== null, null, { timeout: 30000 });
+    const q = await p2.evaluate(() => window.__KBE.state().part);
+    await p2.evaluate(() => window.__KBE.cheats.clearPart());
+    await p2.waitForFunction(() => window.__KBE.state().part === '1-3' || window.__KBE.state().scenes.includes('PartClear'), null, { timeout: 20000 });
+    const errors2 = [...errs2, ...(await p2.evaluate(() => window.__KBE.state().errors))].filter(e => !/storage blocked/.test(e));
+    check('campaign: ?part=1-2 starts 1-2; clearing it with localStorage blocked still advances, no errors', q === '1-2' && errors2.length === 0, { q, errors: errors2.slice(0, 3) });
+    await p2.close();
+}

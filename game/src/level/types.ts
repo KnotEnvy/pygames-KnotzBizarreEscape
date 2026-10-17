@@ -25,10 +25,13 @@ export interface DoorHandle {
     open(): void;
 }
 
-/** Runtime registry the level modules share (doors for `from=door`, the boss gate). */
+export interface GateHandle { x: number; y: number; lock: string; smash(): void; rumble(): void; smashed: boolean }
+
+/** Runtime registry the level modules share (doors for `from=door`, gates keyed by their arena's lock id). */
 export interface LevelRuntime {
     doors: DoorHandle[];
-    gate: { x: number; y: number; smash(): void; rumble(): void; smashed: boolean } | null;
+    /** Gate props by `lock` (default 'boss'): a boss arena bursts its gate for the boss; a wave arena smashes it open on clear. */
+    gates: Map<string, GateHandle>;
     /** Static bodies of solid props (crates, barrels, sandbags, the gate). Listed in LevelQuery.colliders(). */
     solids: Phaser.Physics.Arcade.StaticGroup;
     hooks: ArenaHooks;

@@ -12,7 +12,9 @@ export const FX = {
         l: { smoke: 3, debris: 10, embers: 14, delay: 260, ring: 1, scorch: 0.85, shake: 3, stop: 65, glow: 2.2 },
         xl: { smoke: 4, debris: 16, embers: 24, delay: 320, ring: 1.35, scorch: 1.2, shake: 4, stop: 100, glow: 3.3 }
     },
-    ambientRate: { snow: 6, embers: 3, fireflies: 1, steam: 1.2 },
+    ambientRate: { snow: 6, embers: 3, fireflies: 1, steam: 1.2, train: 22, tunnel: 0, blizzard: 30 },
+    weather: { drift: 180, snowCap: 48, tunnelAlpha: 0.64, blizzardAlpha: 0.075 },
+    campaign: { revealMs: 380, midbossStop: 90, midbossSlowScale: 0.5, midbossSlowMs: 650 },
     casing: { gravity: 350, life: 650, interval: 1000 / 14 },
     decalMs: 8000,
     impactsPerFrame: 16,

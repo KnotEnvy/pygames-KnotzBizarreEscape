@@ -130,6 +130,72 @@
         "type": "json",
         "key": "enemy_data",
         "url": "assets/sprites/enemies/enemy_data.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "snowcat",
+        "textureURL": "assets/sprites/enemies/snowcat.png",
+        "atlasURL": "assets/sprites/enemies/snowcat.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "snowcat_tread",
+        "textureURL": "assets/sprites/enemies/snowcat_tread.png",
+        "atlasURL": "assets/sprites/enemies/snowcat_tread.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "warden",
+        "textureURL": "assets/sprites/enemies/warden.png",
+        "atlasURL": "assets/sprites/enemies/warden.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "ironhorn",
+        "textureURL": "assets/sprites/enemies/ironhorn.png",
+        "atlasURL": "assets/sprites/enemies/ironhorn.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "ironhorn_turret",
+        "textureURL": "assets/sprites/enemies/ironhorn_turret.png",
+        "atlasURL": "assets/sprites/enemies/ironhorn_turret.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "driver",
+        "textureURL": "assets/sprites/enemies/driver.png",
+        "atlasURL": "assets/sprites/enemies/driver.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "hound",
+        "textureURL": "assets/sprites/enemies/hound.png",
+        "atlasURL": "assets/sprites/enemies/hound.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "buzzard",
+        "textureURL": "assets/sprites/enemies/buzzard.png",
+        "atlasURL": "assets/sprites/enemies/buzzard.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "leaper",
+        "textureURL": "assets/sprites/enemies/leaper.png",
+        "atlasURL": "assets/sprites/enemies/leaper.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "coal",
+        "textureURL": "assets/sprites/enemies/coal.png",
+        "atlasURL": "assets/sprites/enemies/coal.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "cinder",
+        "textureURL": "assets/sprites/enemies/cinder.png",
+        "atlasURL": "assets/sprites/enemies/cinder.json"
       }
     ]
   }

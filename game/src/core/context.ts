@@ -19,6 +19,7 @@ import { debugService, getActiveContext } from './debug/hooks';
 import { createAudioService } from '../audio';
 import { isSandboxLevel } from './dev/sandboxLevel';
 import { ENGINE } from '../config/tuning/engine';
+import { FIRST_PART, type PartDef } from '../config/campaign';
 
 /** All tuning files, keyed by file name: ctx.tuning.engine, ctx.tuning.player, ... (module namespaces). */
 const tuningModules = import.meta.glob('../config/tuning/*.ts', { eager: true }) as Record<string, Record<string, unknown>>;
@@ -50,7 +51,7 @@ function emptyLevel(): LevelQuery {
     return { bounds, solidAt: () => false, colliders: () => [] };
 }
 
-export function createGameContext(scene: Phaser.Scene): { ctx: RegisterContext; internals: EngineInternals } {
+export function createGameContext(scene: Phaser.Scene, part: PartDef = FIRST_PART): { ctx: RegisterContext; internals: EngineInternals } {
     const events = new EventBus();
     const cheats = { god: PARAMS.god };
     const time = new GameTime(scene);
@@ -78,6 +79,7 @@ export function createGameContext(scene: Phaser.Scene): { ctx: RegisterContext; 
     const internals = {} as EngineInternals;
     const ctx = {
         scene,
+        part,
         events,
         input: inputs[0],
         inputFor(i: number) {

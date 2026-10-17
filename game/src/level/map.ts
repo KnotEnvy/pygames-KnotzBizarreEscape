@@ -7,6 +7,7 @@ import { LEVEL } from '../config/tuning/level';
 import type { LevelObject } from './types';
 
 export interface BuiltMap {
+    key: string;
     map: Phaser.Tilemaps.Tilemap;
     ground: Phaser.Tilemaps.TilemapLayer;
     query: LevelQuery;
@@ -50,15 +51,21 @@ function readObjects(map: Phaser.Tilemaps.Tilemap, layer: string): LevelObject[]
     }));
 }
 
-export function buildMap(scene: Phaser.Scene, extraColliders: Phaser.GameObjects.GameObject[]): BuiltMap {
-    const map = scene.make.tilemap({ key: LEVEL.map.key });
-    const tileset = map.addTilesetImage(LEVEL.map.tileset, LEVEL.map.texture);
-    if (!tileset) throw new Error(`[level] tileset '${LEVEL.map.tileset}' / texture '${LEVEL.map.texture}' missing`);
+export function buildMap(scene: Phaser.Scene, key: string, extraColliders: Phaser.GameObjects.GameObject[], stage: number): BuiltMap {
+    const map = scene.make.tilemap({ key });
+    // Every tileset embedded in the map (stage1 + the part's own: m1_train, m1_lake) → texture `tiles_<name>`.
+    const tilesets: Phaser.Tilemaps.Tileset[] = [];
+    for (const ts of map.tilesets) {
+        const tex = LEVEL.texturePrefix + ts.name;
+        const added = scene.textures.exists(tex) ? map.addTilesetImage(ts.name, tex) : null;
+        if (added) tilesets.push(added); else console.warn(`[level] tileset '${ts.name}' has no texture '${tex}'`);
+    }
+    if (!tilesets.length) throw new Error(`[level] map '${key}': no tileset textures`);
 
     let ground: Phaser.Tilemaps.TilemapLayer | null = null;
     for (const [name, depth] of LAYERS) {
         if (map.getLayerIndex(name) === null) { console.warn(`[level] map has no '${name}' layer`); continue; }
-        const layer = map.createLayer(name, tileset, 0, 0) as Phaser.Tilemaps.TilemapLayer | null;
+        const layer = map.createLayer(name, tilesets, 0, 0) as Phaser.Tilemaps.TilemapLayer | null;
         if (!layer) continue;
         layer.setDepth(depth);
         if (name === 'ground') ground = layer;
@@ -71,28 +78,27 @@ export function buildMap(scene: Phaser.Scene, extraColliders: Phaser.GameObjects
     const props = flattenProps(map.properties);
     const start = spawns.find(o => o.type === 'player_start');
 
-    // Water surface per column (top of the first water tile), for splash placement.
-    const surface: Array<number | null> = [];
-    for (let tx = 0; tx < map.width; tx++) {
-        let s: number | null = null;
+    // Water surface at a column: top of the first water tile, scanned live (cracking ice opens new water at runtime).
+    const waterSurfaceAt = (x: number): number | null => {
+        const tx = Math.floor(x / map.tileWidth);
         for (let ty = 0; ty < map.height; ty++) {
-            const t = ground.getTileAt(tx, ty);
-            if (t && t.properties?.hazard === 'water') { s = ty * map.tileHeight; break; }
+            const t = ground!.getTileAt(tx, ty);
+            if (t && t.properties?.hazard === 'water') return ty * map.tileHeight;
         }
-        surface.push(s);
-    }
+        return null;
+    };
 
     const query = createTileLevelQuery({
         ground,
         extraColliders,
         bounds,
         playerStart: start ? { x: start.x, y: start.y } : undefined,
-        stage: LEVEL.map.stage,
+        stage,
         name: String(props.name ?? 'Pine Ridge Breakout'),
-        waterSurfaceAt: (x: number) => surface[Math.floor(x / map.tileWidth)] ?? null
+        waterSurfaceAt
     });
     query.powTotal = spawns.filter(o => o.type === 'pow').length;
-    return { map, ground, query, bounds, spawns, triggers, props };
+    return { key, map, ground, query, bounds, spawns, triggers, props };
 }
 
 /** `sections` map property ("name:t0-t1,...", tiles) → sorted px ranges. */

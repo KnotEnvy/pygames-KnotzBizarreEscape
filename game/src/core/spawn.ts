@@ -6,6 +6,22 @@ import type { GameContext, SpawnFactory, SpawnRegistry } from './contracts';
 import { DEPTH } from './depth';
 import { TEX } from './textures';
 
+/** What ctx.spawn was asked for, kept per spawned object (debug/QA: arena audit, __KBE.sim.actors()). */
+export interface SpawnTag { type: string; kind: string; lock: string | null; wave: number | null; mapId: number | null }
+const tags = new WeakMap<object, SpawnTag>();
+export function spawnTagOf(obj: object): SpawnTag | undefined { return tags.get(obj); }
+
+function tag(r: unknown, type: string, kind: string, props: Record<string, unknown>): unknown {
+    if (r && typeof r === 'object') {
+        const lock = props.lock, wave = Number(props.wave), mapId = Number(props.mapId);
+        tags.set(r, {
+            type, kind, lock: typeof lock === 'string' && lock !== '' ? lock : null,
+            wave: Number.isFinite(wave) ? wave : null, mapId: Number.isFinite(mapId) ? mapId : null
+        });
+    }
+    return r;
+}
+
 export class SpawnTable implements SpawnRegistry {
     private readonly factories = new Map<string, SpawnFactory>();
     private readonly warned = new Set<string>();
@@ -32,7 +48,7 @@ export class SpawnTable implements SpawnRegistry {
         const f = this.resolve(type, kind);
         if (f) {
             try {
-                return f(ctx, x, y, props);
+                return tag(f(ctx, x, y, props), type, kind, props);
             } catch (e) {
                 // A broken factory must not take down the level load: log it (once per key) and place a placeholder.
                 if (!this.failed.has(key)) {

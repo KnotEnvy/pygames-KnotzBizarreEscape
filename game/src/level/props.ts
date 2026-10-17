@@ -145,7 +145,7 @@ export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
         const s = makeSprite(c, kind, x, y, props);
         const variant = str(props.variant);
         if (!(variant && playIf(s, `prop_${kind}_${variant}`, true))) {
-            for (const tag of ['idle', 'wave', 'closed', 'off']) if (playIf(s, `prop_${kind}_${tag}`, true)) break;
+            for (const tag of ['idle', 'spin', 'wave', 'closed', 'off']) if (playIf(s, `prop_${kind}_${tag}`, true)) break;
         }
         if (!c.scene.textures.exists(`prop_${kind}`)) console.warn(`[level] prop texture 'prop_${kind}' missing`);
         return s;
@@ -185,17 +185,19 @@ export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
         return s;
     });
 
-    ctx.registry.register('prop:bunker_door', (c, x, y, props) => {
-        const s = makeSprite(c, 'bunker_door', x, y, props);
-        playIf(s, 'prop_bunker_door_closed', true);
+    // Doors enemies walk out of (`from=door` wave members, `spawns/count/interval` trickles): bunker doors (Part I) and
+    // sliding boxcar doors (Part II).
+    const door = (kind: string) => (c: GameContext, x: number, y: number, props: Record<string, unknown>): Sprite => {
+        const s = makeSprite(c, kind, x, y, props);
+        playIf(s, `prop_${kind}_closed`, true);
         let opened = false;
-        const door = {
+        const handle = {
             x, y,
-            open: () => { if (opened) return; opened = true; playIf(s, 'prop_bunker_door_open', false); c.audio.sfx('door_open', { x }); }
+            open: () => { if (opened) return; opened = true; playIf(s, `prop_${kind}_open`, false); c.audio.sfx('door_open', { x }); }
         };
-        rt.doors.push(door);
-        const kind = str(props.spawns);
-        if (kind) {
+        rt.doors.push(handle);
+        const trickle = str(props.spawns);
+        if (trickle) {
             let left = num(props.count, LEVEL.door.defaultCount);
             const interval = num(props.interval, LEVEL.door.defaultIntervalMs);
             let timer: number = LEVEL.door.firstDelayMs;
@@ -206,16 +208,18 @@ export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
                 if ((timer -= dt) > 0) return;
                 timer = interval;
                 left--;
-                door.open();
+                handle.open();
                 const p = c.player();
                 c.scene.time.delayedCall(LEVEL.arena.doorDelayMs, () => {
-                    c.spawn('enemy', kind, { kind, from: 'door', facing: p && p.x > x ? 'right' : 'left', patrol: 24 }, x, y);
+                    c.spawn('enemy', trickle, { kind: trickle, from: 'door', facing: p && p.x > x ? 'right' : 'left', patrol: 24 }, x, y);
                 });
             });
             s.once(Phaser.GameObjects.Events.DESTROY, off);
         }
         return s;
-    });
+    };
+    ctx.registry.register('prop:bunker_door', door('bunker_door'));
+    ctx.registry.register('prop:boxcar_door', door('boxcar_door'));
 
     ctx.registry.register('prop:gate', (c, x, y, props) => {
         const s = makeSprite(c, 'gate', x, y, props);
@@ -224,7 +228,7 @@ export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
         const zone = c.scene.add.zone(x - 48 + 12 + 36, y - 96 + 16 + 40, 72, 80);
         rt.solids.add(zone);
         const gate = {
-            x, y, smashed: false,
+            x, y, lock: str(props.lock, 'boss'), smashed: false,
             rumble: () => {
                 if (gate.smashed) return;
                 playIf(s, 'prop_gate_shake', true);
@@ -244,8 +248,8 @@ export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
                 c.audio.sfx('gate_smash', { x });
             }
         };
-        rt.gate = gate;
-        s.once(Phaser.GameObjects.Events.DESTROY, () => { if (zone.active) zone.destroy(); if (rt.gate === gate) rt.gate = null; });
+        rt.gates.set(gate.lock, gate);
+        s.once(Phaser.GameObjects.Events.DESTROY, () => { if (zone.active) zone.destroy(); if (rt.gates.get(gate.lock) === gate) rt.gates.delete(gate.lock); });
         return s;
     });
 }

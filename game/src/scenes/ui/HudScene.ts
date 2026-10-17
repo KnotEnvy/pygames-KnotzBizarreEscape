@@ -7,8 +7,9 @@ import { getAudio } from '../../audio';
 import { UI } from '../../config/tuning/ui';
 import { C, F, W, WEAPON_NAMES, icon, pad, panel, text } from '../../ui/widgets';
 import { Callout } from '../../ui/callout';
+import { TitleCard } from '../../ui/titlecard';
 import { fadeOut, wipeIn } from '../../ui/transitions';
-import { uiDebug } from '../../ui';
+import { takePendingPart, uiDebug } from '../../ui';
 
 interface Popup { t: Phaser.GameObjects.BitmapText; wx: number; wy: number; age: number }
 
@@ -61,6 +62,8 @@ export class HudScene extends Phaser.Scene {
     private killChain = 0;
     private lastKillAt = -1e9;
     private cleared = false;
+    /** Phase E: part title card + Hazel's radio box. */
+    private card!: TitleCard;
 
     constructor() { super('HUD'); }
 
@@ -90,15 +93,20 @@ export class HudScene extends Phaser.Scene {
         bus.on('ui:popup', e => this.popup(e.x, e.y, e.text, e.color));
         bus.on('enemy:killed', e => this.onKill(e));
         bus.on('ui:prompt', e => this.showPrompt(e.text, e.ms));
-        bus.on('stage:clear', () => { this.missionOver = true; this.onClear(); });
-        bus.on('game:over', () => { this.callout.hide(); this.hidePrompt(); });
+        bus.on('stage:clear', e => { this.missionOver = true; this.onClear(e.final ?? ctx.part?.final ?? true); });
+        bus.on('game:over', () => { this.callout.hide(); this.hidePrompt(); this.card.hide(true); });
+        // Phase E: the part:start the Game emitted before this scene existed, then any later one.
+        const pending = takePendingPart();
+        if (pending) this.card.show(pending, uiDebug.intro ? UI.titleCard.afterIntroMs : UI.titleCard.delayMs);
+        bus.on('part:start', e => this.card.show(e, UI.titleCard.delayMs));
         bus.on('game:continue', () => { this.killChain = 0; this.refreshAll(); });
         bus.on('player:died', () => { this.killChain = 0; });
         wipeIn(this);
         registerDebug('hud', () => ({
             score: this.scoreText.text, lives: this.livesText.text, ammo: this.ammoText.text, bombs: this.bombText.text,
             weapon: this.weapon, rescued: this.rescuedText.text, go: this.goLeft > 0, boss: this.bossShown ? { name: this.bossName.text, hp: this.bossHp, max: this.bossMax } : null,
-            callout: this.callout.text, prompt: this.promptShown ? this.promptText.text : '', popups: this.popups.filter(p => p.age < UI.hud.popup.life).length
+            callout: this.callout.text, prompt: this.promptShown ? this.promptText.text : '', popups: this.popups.filter(p => p.age < UI.hud.popup.life).length,
+            card: this.card.state
         }));
         uiDebug.hud = 'running';
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { uiDebug.hud = null; });
@@ -143,6 +151,7 @@ export class HudScene extends Phaser.Scene {
         this.promptPanel = panel(this, -60, -9, 120, 18, true);
         this.promptText = text(this, 0, 0, '', F.hud, [0.5, 0.5]);
         this.promptBox.add([this.promptPanel, this.promptText]);
+        this.card = new TitleCard(this, 44);
     }
 
     private refreshAll(): void {
@@ -178,6 +187,7 @@ export class HudScene extends Phaser.Scene {
         this.setAmmo(ammo);
         const name = WEAPON_NAMES[weapon];
         if (announce && name && (changed || weapon !== 'pistol')) {
+            this.card.cut();
             this.callout.show(name, { font: F.fire, sfx: 'callout' });
             uiDebug.lastCallout = name;
             getAudio(this).duck(0.6, 500, 300);
@@ -288,13 +298,17 @@ export class HudScene extends Phaser.Scene {
         this.tweens.add({ targets: this.promptBox, y: UI.hud.prompt.hiddenY, duration: UI.hud.prompt.slideMs, ease: 'Quad.easeIn' });
     }
 
-    private onClear(): void {
+    /** Phase E: "MISSION COMPLETE!" closes a mission (final part); a mid-mission part gets "PART CLEAR!". */
+    private onClear(final: boolean): void {
         if (this.cleared) return;
         this.cleared = true;
         this.hidePrompt();
-        this.callout.show('MISSION COMPLETE!', { font: F.steel, sfx: 'mission_complete', holdMs: 2600 });
-        uiDebug.lastCallout = 'MISSION COMPLETE!';
-        // The engine cuts to Results 3.5 s after stage:clear: land that cut on black.
+        this.card.hide(true);
+        const msg = final ? 'MISSION COMPLETE!' : 'PART CLEAR!';
+        // The part-clear jingle comes from the audio wiring (music bus); the final ta-da stays on the callout.
+        this.callout.show(msg, { font: final ? F.steel : F.fire, sfx: final ? 'mission_complete' : 'callout', holdMs: 2600 });
+        uiDebug.lastCallout = msg;
+        // The engine cuts to PartClear / Results 3.5 s after stage:clear: land that cut on black.
         this.time.delayedCall(UI.hud.clearFadeAtMs, () => fadeOut(this, () => {}, 600));
     }
 
@@ -343,8 +357,10 @@ export class HudScene extends Phaser.Scene {
                 if (this.bossFlash <= 0) { this.bossFrame.clearTint(); this.bossName.setTint(C.red5); }
             }
         }
-        // callout
+        // callout, title card (shoot/jump while Hazel types reveals the page; the card never blocks play)
         this.callout.update(dt);
+        this.card.update(dt);
+        if (this.card.radio.active && (this.ctx.input.justDown('shoot') || this.ctx.input.justDown('jump'))) this.card.skip();
         // popups
         for (const p of this.popups) {
             if (p.age >= UI.hud.popup.life) continue;

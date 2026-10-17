@@ -6,6 +6,13 @@
 import type { GameContext, ImpactMaterial } from '../core/contracts';
 import { UI } from '../config/tuning/ui';
 import type { AudioEngine, LoopHandle } from './engine';
+import { GAMEPLAY_MUSIC, bossMusicFor } from './catalog';
+
+/** Phase E: the part being played, read defensively (the field is on GameContext since Engine's campaign work landed). */
+function partOf(ctx: GameContext): { id: string; music?: string } {
+    const p = (ctx as { part?: { id?: string; music?: string } }).part;
+    return { id: p?.id ?? '1-1', music: p?.music };
+}
 
 function impactKey(material: ImpactMaterial): string {
     switch (material) {
@@ -27,11 +34,18 @@ export function wireAudioEvents(ctx: GameContext, engine: AudioEngine): void {
     let whoosh: LoopHandle | null = null;
     let lives = ctx.state.lives;
     let bossHp = Infinity;
+    /** Phase E: part ambience loops (train clack, wind) the Audio layer owns for the run. */
+    const ambience: LoopHandle[] = [];
 
     const stopLoops = (): void => {
         flame?.stop(80); flame = null;
         whoosh?.stop(120); whoosh = null;
     };
+    const stopAmbience = (fadeMs = 600): void => {
+        for (const h of ambience) h.stop(fadeMs);
+        ambience.length = 0;
+    };
+    const defaultMusic = (): string => partOf(ctx).music ?? 'music_stage1';
 
     // combat
     bus.on('projectile:impact', e => {
@@ -47,6 +61,8 @@ export function wireAudioEvents(ctx: GameContext, engine: AudioEngine): void {
     });
     bus.on('enemy:shoot', e => {
         if (e.kind === 'moosezilla') engine.hint('boss_cannon', { x: e.x });
+        else if (e.kind === 'snowcat') engine.hint(e.weapon === 'mortar' ? 'mortar_thump' : 'enemy_shoot', { x: e.x });
+        else if (e.kind === 'ironhorn') engine.hint('loco_cannon', { x: e.x });
         else engine.hint('enemy_shoot', { x: e.x, replace: e.kind === 'turret' ? 'turret_fire' : undefined });
     });
     bus.on('fx:emit', e => {
@@ -84,12 +100,14 @@ export function wireAudioEvents(ctx: GameContext, engine: AudioEngine): void {
     bus.on('pow:freed', e => engine.sfx('pow_freed', { x: e.x }));
     bus.on('checkpoint', () => engine.sfx('checkpoint'));
 
-    // boss
+    // boss (Phase E: the mid-bosses get their own theme, MOOSEZILLA keeps music_boss)
     bus.on('boss:spawn', e => {
         bossHp = e.hp;
-        engine.music('music_boss', { fade: 800 });
+        engine.music(bossMusicFor(e.name ?? ''), { fade: 800 });
         engine.duck(0.55, 1500, 500);
     });
+    // The boss's own `sfx('boss_stomp')` call follows the event: position it (no doubling).
+    bus.on('boss:stomp', e => engine.hint('boss_stomp', { x: e.x, volume: e.power >= 2 ? 1.1 : 1 }));
     bus.on('boss:hp', e => {
         if (e.hp < bossHp) engine.sfx('boss_hurt', { x: e.x });
         bossHp = e.hp;
@@ -97,20 +115,35 @@ export function wireAudioEvents(ctx: GameContext, engine: AudioEngine): void {
     bus.on('boss:phase', e => { bossHp = e.hp; engine.duck(0.55, 1200, 500); });
     bus.on('boss:defeated', () => engine.music(null, { fade: 2500 }));
 
+    // Phase E: part start → default music (unless Levels' map property already started one) and the part's ambience.
+    bus.on('part:start', e => {
+        const cur = engine.musicKey;
+        const music = partOf(ctx).music;
+        if (music && !(cur && GAMEPLAY_MUSIC.test(cur))) engine.music(music, { fade: 700 });
+        stopAmbience(200);
+        const amb = UI.audio.ambience[e.id];
+        if (amb) for (const [key, volume] of Object.entries(amb)) ambience.push(engine.loop(key, { volume }));
+    });
+
     // flow
-    bus.on('stage:clear', () => {
+    bus.on('stage:clear', e => {
         stopLoops();
+        stopAmbience(1500);
         engine.music(null, { fade: 250 });
-        engine.after(UI.audio.completeJingleDelayMs, () => engine.music('jingle_complete'));
+        const final = e.final ?? (ctx as { part?: { final?: boolean } }).part?.final ?? true;
+        engine.after(UI.audio.completeJingleDelayMs, () => engine.music(final ? 'jingle_complete' : 'part_clear_jingle'));
     });
     bus.on('game:over', () => {
         stopLoops();
+        stopAmbience(800);
         engine.music(null, { fade: 300 });
         engine.sfx('game_over');
     });
     bus.on('game:continue', () => {
         lives = ctx.state.lives;
-        engine.music(engine.lastGameplayMusic ?? 'music_stage1', { fade: 500 });
+        engine.music(engine.lastGameplayMusic ?? defaultMusic(), { fade: 500 });
+        const amb = UI.audio.ambience[partOf(ctx).id];
+        if (amb && ambience.length === 0) for (const [key, volume] of Object.entries(amb)) ambience.push(engine.loop(key, { volume }));
     });
     bus.on('game:pause', e => { if (e.paused) engine.pauseGameplay(); else engine.resumeGameplay(); });
     bus.on('settings:changed', () => engine.applySettings());

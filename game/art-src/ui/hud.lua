@@ -183,6 +183,40 @@ ICONS.medal = grid(16, 16, {
   "................",
   "................",
   "................" })
+ICONS.laser = grid(16, 16, {
+  "................",
+  "................",
+  "................",
+  "...ooooooooooo..",
+  "..oEDDDDDDDDDDo.",
+  ".oDCCuuuuuCCCCoo",
+  ".oDCuWWWWuCooouu",
+  ".ooooBBBoo....uu",
+  "....oBAAoAo..uu.",
+  "....oBAAo.o.....",
+  "....oAAAooo.....",
+  ".....oooo.......",
+  "................",
+  "................",
+  "................",
+  "................" })
+ICONS.lock = grid(16, 16, {
+  "................",
+  "................",
+  ".....oooooo.....",
+  "....oDDDDDDo....",
+  "....oDooooDo....",
+  "....oDo..oDo....",
+  "...oooooooooooo.",
+  "...oTttttttttTo.",
+  "...oTtttootttTo.",
+  "...oTttoxxottTo.",
+  "...oTtttootttTo.",
+  "...oTttttstttTo.",
+  "...oSSSSSSSSSSo.",
+  "....oooooooooo..",
+  "................",
+  "................" })
 ICONS.cursor1 = grid(16, 16, {
   "................",
   "....oo..........",
@@ -244,6 +278,7 @@ U.sheet{ name = "ui_icons", w = 16, h = 16, src = SRC .. "ui_icons.aseprite", sh
     { name = "icon_rocket", img = ICONS.rocket }, { name = "icon_flame", img = ICONS.flame }, { name = "icon_bomb", img = ICONS.bomb },
     { name = "icon_life", img = ICONS.life }, { name = "icon_pow", img = ICONS.pow }, { name = "icon_medal", img = ICONS.medal },
     { name = "icon_skull", img = ICONS.skull }, { name = "icon_check", img = ICONS.check },
+    { name = "icon_laser", img = ICONS.laser }, { name = "icon_lock", img = ICONS.lock },
     { name = "ui_cursor", ms = 120, frames = { ICONS.cursor1, ICONS.cursor3, ICONS.cursor2, ICONS.cursor3 } },
   } }
 
@@ -457,7 +492,7 @@ for i, e in ipairs(CD) do if i <= 3 then U.blit(mock, e.img, 150 + (i - 1) * 30,
 for i, e in ipairs(RK) do U.blit(mock, e.img, 240 + (i - 1) * 36, 146) end
 -- icons strip
 local ix = 150
-for _, n in ipairs({ "pistol", "hmg", "spread", "rocket", "flame", "bomb", "life", "pow", "medal", "skull", "check" }) do U.blit(mock, ICONS[n], ix, 30); ix = ix + 18 end
+for _, n in ipairs({ "pistol", "hmg", "spread", "rocket", "flame", "laser", "bomb", "life", "pow", "medal", "skull", "check", "lock" }) do U.blit(mock, ICONS[n], ix, 30); ix = ix + 18 end
 
 local function save3x(img, path)
   U.saveImage(img, path)

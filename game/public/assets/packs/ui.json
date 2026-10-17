@@ -61,6 +61,11 @@
       },
       {
         "type": "image",
+        "key": "ui_map_m1",
+        "url": "assets/ui/map_m1.png"
+      },
+      {
+        "type": "image",
         "key": "ui_panel",
         "url": "assets/ui/panel.png"
       },
@@ -89,9 +94,21 @@
       },
       {
         "type": "aseprite",
+        "key": "ui_map",
+        "textureURL": "assets/ui/ui_map.png",
+        "atlasURL": "assets/ui/ui_map.json"
+      },
+      {
+        "type": "aseprite",
         "key": "ui_prompts",
         "textureURL": "assets/ui/ui_prompts.png",
         "atlasURL": "assets/ui/ui_prompts.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "ui_radio",
+        "textureURL": "assets/ui/ui_radio.png",
+        "atlasURL": "assets/ui/ui_radio.json"
       },
       {
         "type": "aseprite",
@@ -155,6 +172,13 @@
       },
       {
         "type": "audio",
+        "key": "buzzard_rotor",
+        "url": [
+          "assets/audio/sfx/buzzard_rotor.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "callout",
         "url": [
           "assets/audio/sfx/callout.ogg"
@@ -172,6 +196,13 @@
         "key": "chute_open",
         "url": [
           "assets/audio/sfx/chute_open.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "cinder",
+        "url": [
+          "assets/audio/sfx/cinder.ogg"
         ]
       },
       {
@@ -330,6 +361,34 @@
       },
       {
         "type": "audio",
+        "key": "hound_bark",
+        "url": [
+          "assets/audio/sfx/hound_bark.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "hound_growl",
+        "url": [
+          "assets/audio/sfx/hound_growl.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "ice_crack",
+        "url": [
+          "assets/audio/sfx/ice_crack.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "ice_shatter",
+        "url": [
+          "assets/audio/sfx/ice_shatter.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "impact_body",
         "url": [
           "assets/audio/sfx/impact_body.ogg"
@@ -372,6 +431,27 @@
       },
       {
         "type": "audio",
+        "key": "laser",
+        "url": [
+          "assets/audio/sfx/laser.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "loco_cannon",
+        "url": [
+          "assets/audio/sfx/loco_cannon.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "loco_steam",
+        "url": [
+          "assets/audio/sfx/loco_steam.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "melee_hit",
         "url": [
           "assets/audio/sfx/melee_hit.ogg"
@@ -396,6 +476,13 @@
         "key": "mission_start",
         "url": [
           "assets/audio/sfx/mission_start.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "mortar_thump",
+        "url": [
+          "assets/audio/sfx/mortar_thump.ogg"
         ]
       },
       {
@@ -449,6 +536,20 @@
       },
       {
         "type": "audio",
+        "key": "radio_blip",
+        "url": [
+          "assets/audio/sfx/radio_blip.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "radio_static",
+        "url": [
+          "assets/audio/sfx/radio_static.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "rank_stamp",
         "url": [
           "assets/audio/sfx/rank_stamp.ogg"
@@ -491,6 +592,20 @@
       },
       {
         "type": "audio",
+        "key": "snowcat_engine",
+        "url": [
+          "assets/audio/sfx/snowcat_engine.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "snowcat_tread",
+        "url": [
+          "assets/audio/sfx/snowcat_tread.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "spread",
         "url": [
           "assets/audio/sfx/spread.ogg"
@@ -501,6 +616,27 @@
         "key": "steam_hiss",
         "url": [
           "assets/audio/sfx/steam_hiss.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "train_clack",
+        "url": [
+          "assets/audio/sfx/train_clack.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "train_horn",
+        "url": [
+          "assets/audio/sfx/train_horn.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "train_whistle",
+        "url": [
+          "assets/audio/sfx/train_whistle.ogg"
         ]
       },
       {
@@ -567,6 +703,13 @@
         ]
       },
       {
+        "type": "audio",
+        "key": "wind",
+        "url": [
+          "assets/audio/sfx/wind.ogg"
+        ]
+      },
+      {
         "type": "json",
         "key": "sfx_manifest",
         "url": "assets/audio/sfx/sfx_manifest.json"
@@ -601,6 +744,27 @@
       },
       {
         "type": "audio",
+        "key": "music_m1p2",
+        "url": [
+          "assets/audio/music/music_m1p2.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_m1p3",
+        "url": [
+          "assets/audio/music/music_m1p3.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_midboss",
+        "url": [
+          "assets/audio/music/music_midboss.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "music_stage1",
         "url": [
           "assets/audio/music/music_stage1.ogg"
@@ -611,6 +775,13 @@
         "key": "music_title",
         "url": [
           "assets/audio/music/music_title.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "part_clear_jingle",
+        "url": [
+          "assets/audio/music/part_clear_jingle.ogg"
         ]
       },
       {

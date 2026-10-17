@@ -3,11 +3,11 @@
 -- onto the raw render, outlines triggers, then cuts 40-tile chunks scaled 2x for review.
 -- Marker colours: grunt red, grenadier orange, shield steel, turret ink, drone purple, paratrooper pink,
 -- pow yellow, pickup green, player olive, boss magenta. camera_lock = red frame, checkpoint = green line.
-local ROOT, OUT = app.params.root, app.params.out
+local ROOT, OUT, KEY = app.params.root, app.params.out, (app.params.map ~= "" and app.params.map or "m1p1")
 local function C(r, g, b, a) return app.pixelColor.rgba(r, g, b, a or 255) end
-local f = io.open(ROOT .. "/public/assets/maps/stage1.tmj"); local map = json.decode(f:read("a")); f:close()
+local f = io.open(ROOT .. "/public/assets/maps/" .. KEY .. ".tmj"); local map = json.decode(f:read("a")); f:close()
 
-local base = Sprite{ fromFile = OUT .. "/stage1_full.png" }
+local base = Sprite{ fromFile = OUT .. "/" .. KEY .. "_full.png" }
 local raw = Image(base)
 local W, H = raw.width, raw.height
 -- stand-in sky (the real parallax comes from public/assets/backgrounds/stage1) so composition reads
@@ -33,7 +33,7 @@ local function propImage(kind)
 end
 
 local ENEMY = { grunt = C(240, 60, 50), grenadier = C(255, 150, 30), shield = C(120, 170, 230), turret = C(60, 60, 70),
-  drone = C(170, 80, 210), paratrooper = C(255, 140, 180) }
+  drone = C(170, 80, 210), paratrooper = C(255, 140, 180), leaper = C(255, 90, 120), buzzard = C(120, 60, 160), hound = C(150, 90, 40) }
 local layers = {}
 for _, l in ipairs(map.layers) do layers[l.name] = l end
 
@@ -44,6 +44,8 @@ for _, o in ipairs(layers.triggers.objects) do
   elseif o.type == "checkpoint" then rect(x, 0, 2, H, C(60, 230, 90), true)
   elseif o.type == "stage_end" then rect(x, y + 6, w, h - 12, C(255, 255, 255))
   elseif o.type == "prompt" then rect(x, y, w, h, C(255, 240, 120))
+  elseif o.type == "hazard_sweep" then rect(x, y, w, h, C(255, 150, 0)); rect(x + 1, y + 1, w - 2, h - 2, C(255, 150, 0))
+  elseif o.type == "tunnel" then rect(x, y + 4, w, h - 8, C(40, 40, 60))
   end
 end
 
@@ -93,14 +95,14 @@ local function save(im, name, scale)
   s:saveCopyAs(OUT .. "/" .. name)
   s:close()
 end
-save(img, "stage1_annotated.png", 1)
+save(img, KEY .. "_annotated.png", 1)
 local CH = 40 * 16
 local n = 0
 for x0 = 0, W - 1, CH do
   local w = math.min(CH, W - x0)
   local crop = Image(w, H, ColorMode.RGB)
   crop:drawImage(img, Point(-x0, 0))
-  save(crop, string.format("stage1_x%03d.png", x0 // 16), 2)
+  save(crop, string.format("%s_x%03d.png", KEY, x0 // 16), 2)
   n = n + 1
 end
 -- game-camera screens (384x216, camera resting on the map bottom), 3x
@@ -108,35 +110,48 @@ local sn = 0
 for x0 = 0, W - 1, 384 do
   local crop = Image(384, 216, ColorMode.RGB)
   crop:drawImage(img, Point(-x0, -(H - 216)))
-  save(crop, string.format("screen_%02d.png", sn), 3)
+  save(crop, string.format("%s_screen_%02d.png", KEY, sn), 3)
   sn = sn + 1
 end
 -- parallax-composited screens using the plan in docs/teams/level.md (camera resting on the map bottom)
-local BG = ROOT .. "/public/assets/backgrounds/stage1/"
+local mprops = {}
+for _, pr in ipairs(map.properties or {}) do mprops[pr.name] = pr.value end
+local SET = mprops.parallax or "stage1"
+local BG = ROOT .. "/public/assets/backgrounds/" .. SET .. "/"
 local function load(name)
   local fh = io.open(BG .. name, "rb"); if not fh then return nil end; fh:close()
   local sp = Sprite{ fromFile = BG .. name }; local im = Image(sp); sp:close(); return im
 end
-local PLX = {
-  { img = load("gen_sky.png"), sf = 0.015, y = 0 },
-  { img = load("gen_mountains.png"), sf = 0.08, y = 34 },
-  { img = load("gen_pines_far.png"), sf = 0.18, y = 91 },
-  { img = load("gen_pines_mid.png"), sf = 0.34, y = 90, before = 3840 },
-  { img = load("gen_outpost_far.png"), sf = 0.23, y = 67, after = 3840 },
-  { img = load("haze.png"), sf = 0.5, y = 112 },
+local PLX_SETS = {
+  stage1 = {
+    { img = "gen_sky.png", sf = 0.015, y = 0 }, { img = "gen_mountains.png", sf = 0.08, y = 34 },
+    { img = "gen_pines_far.png", sf = 0.18, y = 91 }, { img = "gen_pines_mid.png", sf = 0.34, y = 90, before = 3840 },
+    { img = "gen_outpost_far.png", sf = 0.23, y = 67, after = 3840 }, { img = "haze.png", sf = 0.5, y = 112 } },
+  m1p2 = {
+    { img = "gen_sky.png", sf = 0.015, y = 0 }, { img = "gen_peaks.png", sf = 0.08, y = 30 },
+    { img = "gen_slopes.png", sf = 0.22, y = 80 }, { img = "gen_near_pines.png", sf = 0.42, y = 104 },
+    { img = "poles.png", sf = 0.85, y = 40 } },
+  m1p3 = {
+    { img = "gen_sky.png", sf = 0.015, y = 0 }, { img = "gen_mountains.png", sf = 0.08, y = 35 },
+    { img = "gen_lake_far.png", sf = 0.16, y = 112 }, { img = "gen_lab_far.png", sf = 0.24, y = 38, once = 600 } },
 }
+local PLX = {}
+for _, l in ipairs(PLX_SETS[SET] or PLX_SETS.stage1) do PLX[#PLX + 1] = { img = load(l.img), sf = l.sf, y = l.y, before = l.before, after = l.after, once = l.once } end
 local pn = 0
 for camX = 0, W - 384, 384 do
   local view = Image(384, 216, ColorMode.RGB)
   for _, l in ipairs(PLX) do
     if l.img and (not l.before or camX < l.before) and (not l.after or camX >= l.after) then
       local w = l.img.width
-      local off = -math.floor(camX * l.sf) % w
-      for x = off - w, 384, w do view:drawImage(l.img, Point(x, l.y)) end
+      if l.once then view:drawImage(l.img, Point(math.floor(l.once - camX * l.sf), l.y))
+      else
+        local off = -math.floor(camX * l.sf) % w
+        for x = off - w, 384, w do view:drawImage(l.img, Point(x, l.y)) end
+      end
     end
   end
   view:drawImage(clean, Point(-camX, -(H - 216)))
-  save(view, string.format("plx_%02d.png", pn), 3)
+  save(view, string.format("%s_plx_%02d.png", KEY, pn), 3)
   pn = pn + 1
 end
 base:close()

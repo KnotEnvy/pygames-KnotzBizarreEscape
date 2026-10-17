@@ -8,6 +8,8 @@ import Phaser from 'phaser';
 import type { CameraService, PlayerQuery, ShakeTier } from './contracts';
 import type { EventBus } from './events';
 import { settings } from './settings';
+import { createRng } from './rng';
+import { PARAMS } from './params';
 import { ENGINE } from '../config/tuning/engine';
 
 interface FollowTarget { x: number; y: number; facing?: number; sprite?: { body?: unknown }; body?: unknown }
@@ -39,6 +41,8 @@ export class CameraController implements CameraService {
     private x = 0;
     private y = 0;
     private falling = false;
+    /** Shake jitter has its own seeded stream: ?seed= runs (turbo audits) see the same view every time. */
+    private readonly shakeRng = createRng(PARAMS.seed);
     private shakeLeft = 0;
     private shakeDur = 0;
     private shakeAmpX = 0;
@@ -194,8 +198,8 @@ export class CameraController implements CameraService {
             else {
                 const k = this.envelope();
                 const b = this.bounds;
-                sx = reflect(this.x + (Math.random() * 2 - 1) * this.shakeAmpX * k, b.x, b.right - w);
-                sy = reflect(this.y + (Math.random() * 2 - 1) * this.shakeAmpY * k, b.y, b.bottom - h);
+                sx = reflect(this.x + (this.shakeRng.next() * 2 - 1) * this.shakeAmpX * k, b.x, b.right - w);
+                sy = reflect(this.y + (this.shakeRng.next() * 2 - 1) * this.shakeAmpY * k, b.y, b.bottom - h);
                 this.shakeLeft -= dt * 1000;
             }
         }

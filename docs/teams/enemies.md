@@ -342,3 +342,108 @@ Existing focused enemy/boss checks also rerun successfully: **19/19**, browser c
 - Production browser checks: **9/9 PASS**, no page errors. Verified ignored fixture/API without debug, enabled fixture/HP control with debug, two independent buzz loops, positional updates, loops **2 → 1 → 0** after actual drone deaths, zero loops after despawn, and zero after scene shutdown. Evidence: `/tmp/kbe-enemies/production-audio.{mjs,json,log}`. An earlier position assertion sampled stationary windup; the final check applies a controlled position change and verifies `setX` follows it.
 - Existing focused enemy/boss checks: **19/19 PASS**, browser console clean (`/tmp/kbe-enemies/final-focused.log`, `/tmp/kbe-enemies/verification.json`). QA's unchanged dev-server Playwright suite: **19/19 PASS**, 59.4 s (`/tmp/kbe-enemies/final-qa.log`, `/tmp/kbe-enemies/final-qa/`).
 - Browser verification used the existing repository Playwright setup because T3 preview reported missing host browser libraries. No installs or git state-changing commands; source edits limited to the two enemy files and this handoff. Audible mix quality was not judged.
+
+## Phase E — Snowcat, Ironhorn and the train/lake roster (2026-10-16)
+
+### Owned delivery
+
+- Runtime: `game/src/entities/bosses/MachineBoss.ts` (both mid-bosses), `game/src/entities/bosses/Moosezilla.ts`, `game/src/entities/enemies/AssaultEnemy.ts` (hound/Buzzard), `Enemy.ts` (leaper entry and existing infantry patrol home), `index.ts` (factories, snapshots and fixtures).
+- Tuning: `game/src/config/tuning/enemies.ts`; new mid-boss values live in `MIDBOSSES`, ordinary roster values in `ENEMIES`.
+- Art builder: `game/art-src/enemies/phase-e.lua`, using the existing KBE palette/drawing helpers. Rebuild with `bash game/tools/build-art.sh art-src/enemies/phase-e.lua`.
+- Eleven editable `.aseprite` files and matching packed PNG/JSON-hash atlases: `snowcat`, `snowcat_tread`, `warden`, `ironhorn`, `ironhorn_turret`, `driver`, `hound`, `buzzard`, `leaper`, `coal`, `cinder`. Sources are under `game/art-src/enemies/`; outputs under `game/public/assets/sprites/enemies/`; registered in `game/public/assets/packs/enemies.json`. **177 frames, 41 globally prefixed tags**, all 41 verified present in Phaser's animation manager. Master palette only.
+
+### Boss contract and attacks
+
+Both factories accept `arenaX0`/`arenaX1`, lock the camera and keep their hull inside the current view. All clocks use scaled `ctx.onUpdate` time; interrupting a state or dying cancels unreleased attacks. Death clears enemy projectiles, marker graphics and local arcing ordnance. `boss:spawn`, `boss:hp`, `boss:phase` and `boss:defeated` include the display name, HP, phase and world position. Defeat occurs exactly once at the end of the chain; Levels owns `stage:clear`. Debug `boss`/`bossPhase` expose both kinds, including their states, clock, arena bounds, markers, live shell count, turrets and actual hurtboxes. Piercing shots remember sibling hurtboxes; melee/radial traversal damages the shared pool once.
+
+**WARDEN'S SNOWCAT — 150 HP, 2500 score.** Hull 1×, rear engine grille 1.5× (`x > root+26`, above the tread), Warden 2×. Phase notifications at 100 and 50 HP; all three attacks remain in the rotation.
+
+- **Plow charge:** **700 ms** engine/exhaust/tread anticipation, then 180 px/s leftward charge and an 850 ms backing recovery. The root stops 104 px inside the wall: the plow/contact envelope leaves **48 px** of clear space. Jumping also clears its low contact zone. The plow faces left; standing behind the machine exposes the grille.
+- **Roof mortar:** **650 ms** anticipation; three shells at 180 ms spacing, each with a fixed blinking ground marker and an **850 ms** visible arc. Landing radius 17. Aim is committed when the state starts, so movement or a jump avoids it.
+- **Warden MG:** **650 ms** sight line/DUCK warning, then eight horizontal rounds at 100 ms spacing, 155 px/s. Round center **feet−24 px**, radius **2 px**. Player documents 12×30 standing and 12×18 crouched: standing intersects; crouch has **4 px** clearance below the round envelope on the same floor. The Warden's roof controls drive the low hull MG.
+- **Death:** **3400 ms** chain, fist-shaking parachute ejection (height capped to preserve the canopy on screen), separate rolling treads, explosions and a wreck.
+
+**IRONHORN — 220 HP, 3500 score.** Two independent **40 HP turrets** consume the first 80 HP. Direct hull hits route into the remaining turret so ordinary horizontal gunfire can dismantle both. Destroyed turrets stop firing and lose their hurtboxes. Phase two runs 140→70 HP; phase three opens the cab and exposes the central boiler, which takes **2×** while the remaining shell takes 1×.
+
+- **Two cannons:** **650 ms** glowing barrel/sight anticipation; second cannon fires 250 ms later (900 ms total warning). Each surviving turret fires a slow, downward shell, 100 X / 30 Y px/s. Crouching/jumping/repositioning works according to the lane.
+- **Cinder rain:** **700 ms** blinking ground markers, four launches 200 ms apart, **900 ms** arcs, radius 16. Targets are committed at state entry, with spaces between them.
+- **Driver coal/grenades:** **600 ms** raised-hand/cab/ground-marker anticipation. Coal flies **650 ms**, radius 13; grenades **1100 ms**, radius 24. Both target the committed marked position and can be moved away from or jumped over.
+- **Death:** **3800 ms** boiler burst/chain, rocking locomotive and downward derail motion; only then emits `boss:defeated` so FX/Levels can continue the train-to-lake transition.
+
+### New enemies and locked-view behavior
+
+- **Leaper:** 3 HP, 150 score. A **900 ms** entry arc begins 76 px below its authored feet, lifts 108 px, moves 56 px toward the train and clamps the landing X inside a locked view. Entry updates outside the visibility margin. A 360 ms braced landing leads into grunt walking, LOS, 360 ms alert + 420 ms rifle anticipation, bursts and the existing personality deaths. The authored Y is the intended train/deck neighborhood; the landing floor is probed there.
+- **Buzzard:** 40 HP, 750 score, 48 px/s. Animated rotor/door/gunner, drops up to three paratroopers through `ctx.spawn('enemy','paratrooper',...)` at 1.2/3.0/4.8 seconds. **700 ms** ground-lane anticipation precedes five strafe rounds at 180 ms spacing. It keeps flying through the free-pass off-view margin and despawns; a locked arena clamps its entire 96 px silhouette and reverses it. Audio owns a positional `buzzard_rotor` loop, stopped on death, exit, destruction and shutdown.
+- **Hound:** 2 HP, 100 score. Fast 84 px/s patrol; **450 ms** crouch/growl/lane cue before a **280 ms** 140 px/s charge and **650 ms** 36 px leap, followed by 900 ms recovery. Antler nubs, glowing eyes, red collar, eight-frame gallop, compressed anticipation and airborne poses. Charge/landing positions are clamped inside the lock and avoid authored hazards. Levels should place packs of 2–3.
+- **MOOSEZILLA:** every actual stomp emits `boss:stomp {x,y,power}` at its mirrored foot socket (power 1 normally, **2 in phase three**). Phase-three rotation now includes charge/flame/stomp so lake ice listeners can receive heavy stomps. Existing **360 ms** foot-lift anticipation is preserved. Arena placement continues to use supplied bounds; there are no map-name or old-camp coordinate assumptions.
+
+### Test URLs and evidence
+
+Use the existing dev server, adding this suffix (fixtures require dev mode or `debug=1`):
+
+```
+/?scene=Game&fast=1&debug=1&god=1&mute=1&x=6280&enemytest=snowcat
+/?scene=Game&fast=1&debug=1&god=1&mute=1&x=6280&enemytest=ironhorn
+/?scene=Game&fast=1&debug=1&god=1&mute=1&enemytest=buzzard
+/?scene=Game&fast=1&debug=1&god=1&mute=1&enemytest=hound
+/?scene=Game&fast=1&debug=1&god=1&mute=1&enemytest=leaper
+/?scene=Game&fast=1&debug=1&god=1&mute=1&part=1-3&x=6280&enemytest=boss
+```
+
+The x=6280 mid-boss fixture URLs currently use the existing flat end yard; after Levels lands the new maps, use their actual end arena coordinates. Hound/Buzzard/leaper fixtures also work without a warp at the current camp. All scratch scripts, logs and captures stay in `/tmp/kbe-enemies/`, with `e-` output prefixes.
+
+- `npm --prefix game run check`: **PASS**, full TypeScript + Phaser checker (90 files, zero findings at this check).
+- `e-snowcat-shots.log`, `e-ironhorn-shots.log`: both full bosses killed with **ordinary HMG fire**, god-mode movement bot, no HP/kill cheats. Captured every attack before firing, then shot through all HP and the full death chain. **152 / 222 shots** in the recorded fixtures; phase events `[2,3]`, exactly one delayed named defeat and one `stage:clear`; actual level arena reports `boss:done`; no runtime errors.
+- `e-locked-view.json`: two of each new kind, seeded at opposite screen edges pointing outward, **960 frames / 16 seconds**, zero off-view/vanished members. Both Buzzards dropped all three troopers, remained on screen and continued strafing; both leapers completed entry and fought. A separate free-pass ship was removed after exiting.
+- The same report includes a **fresh real `ArenaController` spawning Snowcat**, supplied bounds 6138–6522, then a full HMG kill: exactly one defeat, arena `enemy-regression:done`, 161 shots, no runtime errors. `e-arena-ironhorn.json` repeats this real factory/arena check for Ironhorn: 222 shots, exactly one defeat, arena done, no runtime errors. No boss HP/kill controls in these completion tests.
+- `e-mg-crouch.log`, `e-mg-standing.log`: god disabled, actual MG sweep, same floor. Crouch remains alive at 1 HP with no death event; standing is killed by the sweep. The test holds down through the complete burst.
+- `e-{snowcat,ironhorn}-weakpoints.log`: measured Snowcat hull/warden/grille losses **1 / 2 / 1.5**, radial loss 3 once; Ironhorn turret losses **40 / 40**, phase stays 1 after the first, becomes 2 after both, core/shell losses **2 / 1**, phase-three centered radial loss 6 once. These isolated multiplier tests use controlled damage/HP; they are separate from the shooting-only completion runs.
+- `e-moose-stomp.log`: context is `1-3` / `m1p3`, actual phase-three stomp sends one `{x:6216.44,y:336,power:2}`; FX's stomp counter becomes 1; no runtime errors. **The actual lake map is not yet loaded**, so this uses the existing level fallback and does not establish lake-hole collision acceptance.
+- All PNGs below were produced by `node game/tools/shot.mjs ...` and visually inspected. T3 preview could not launch because host browser libraries were missing, so the documented shot workflow supplied Chromium with its existing library path. No browser packages were installed.
+
+**Screenshot paths** (all under `/tmp/kbe-enemies/`):
+
+- Snowcat: `e-snowcat-charge-cue.png`, `e-snowcat-charge.png`, `e-snowcat-mortar-cue.png`, `e-snowcat-mortar.png`, `e-snowcat-mg-cue.png`, `e-snowcat-mg.png`, `e-snowcat-death.png`, `e-snowcat-final.png`.
+- Ironhorn: `e-ironhorn-cannon-cue.png`, `e-ironhorn-cannon.png`, `e-ironhorn-cinder-cue.png`, `e-ironhorn-cinder.png`, `e-ironhorn-coal-cue.png`, `e-ironhorn-coal.png`, `e-ironhorn-grenade-cue.png`, `e-ironhorn-grenade.png`, `e-ironhorn-death.png`, `e-ironhorn-final.png`.
+- Hound: `e-hound-cue.png`, `e-hound-charge.png`, `e-hound-leap.png`, `e-hound-death.png`.
+- Buzzard: `e-buzzard-cue.png`, `e-buzzard-strafe.png`, `e-buzzard-drop.png`, `e-buzzard-death.png`.
+- Leaper: `e-leaper-entry.png`, `e-leaper-land.png`, `e-leaper-aim.png`, `e-leaper-fire.png`, `e-leaper-death.png`.
+- Integration: `e-mg-crouch.png`, `e-mg-standing.png`, `e-locked-view.png`, `e-moose-stomp.png`.
+
+### Known issues / Requests for other teams
+
+- **Levels:** this checkout still has only `stage1.tmj` and `registerLevel` reads the old default map. Land/select `m1p1/m1p2/m1p3`, place the three boss kinds and new roster, and rerun end-to-end part traversal plus ice-crack collisions. Both mid-boss factories are ready for real `ArenaController` props. In `arenas.ts`, consider treating `buzzard` as flying in `spawnMember`/`watchOffscreen` (currently only `drone` gets that classification). Its own clamp already prevents stranding. Also fix the no-gate trigger edge: `v.right < a.x0 + v.width + gateOnScreen` delays an exact-width arena until 16 px past its edge; the arena harness offsets the trigger start 24 px to enter the current contract.
+- **UI/Audio:** requested keys are used exactly: `snowcat_engine`, `snowcat_tread`, `mortar_thump`, `loco_steam`, `loco_cannon`, `cinder`, `hound_bark`, `hound_growl`, `buzzard_rotor` (positional loop). They were still unknown-key warnings in the last muted browser run; please supply the catalog/assets. No additional new sound keys requested. Existing `turret_windup` and the inherited grunt/paratrooper sounds are reused. Audible balance was not evaluated.
+- **FX/Levels:** use named `boss:defeated` for the full Ironhorn derail continuation; boss-owned visuals supply its initial burst/rock/fall. The `boss:stomp` event is now real in phase three. Verify the lake's hole placement still leaves a survivable ground/jump route in Arcade.
+- No claimed full mission/part-transition acceptance while the three maps are absent. Regular enemy death screenshots use targeted damage; boss completion evidence uses only normal shooting. Files outside enemy ownership and git state were not changed.
+
+Final Phase E follow-up: raised the opened cab's driver above the broken turret in phase three (`e-ironhorn-driver.png`, inspected). Restored the original drone fixture's −75 px offset; Buzzard alone uses −95. Added defensive vertical recovery for locked hounds and for leaper landing targets beyond the view. `e-vertical-lock.json` seeds hound/leaper **160 px below the locked screen**, confirms they enter/return to visible fighting states with no vanished/off-view members after entry, then checks another free Buzzard exit. Final aggregate evidence: `/tmp/kbe-enemies/e-verification.json`, **19/19 checks passed**. The final full-project `npm --prefix game run check` passes, 90 files and zero Phaser findings. The three new maps and nine requested audio keys remain the integration requests above.
+
+## Ironhorn locomotive redesign — 2026-10-16
+
+Replaced Ironhorn's tread/slab silhouette in `game/art-src/enemies/phase-e.lua` with a **right-facing armored steam locomotive**. The player approaches its left-hand tender: two independently damageable red turrets aim backward toward the player, followed by the tall windowed cab, long cylindrical boiler with riveted armor bands, flared funnel, iron bull horns, headlamp and slatted cow-catcher. The cab shutter opens in phase three and reveals the existing driver; the visible boiler firebox glows through its grille. Red armor and spiral-eye emblems retain the Regime identity. Snowcat's drawing and gameplay were left intact.
+
+- Editable source: `game/art-src/enemies/ironhorn.aseprite`, **192×112**, opaque width **184 px** including the horns/plow. Packed outputs: `game/public/assets/sprites/enemies/ironhorn.{png,json}`. Same texture key and four prefixed tags: `ironhorn_idle`, `ironhorn_damaged`, `ironhorn_core`, `ironhorn_death`; each now **8×100 ms**. Phase E inventory becomes **193 frames / 41 tags**. Rebuild with `bash game/tools/build-art.sh art-src/enemies/phase-e.lua`.
+- Three **24 px spoked driving wheels** on the visible side, three offset far-side drivers, separate tender trucks, eight wheel/crank positions, connected side rod, reciprocating piston and a one-pixel chassis bob. `MachineBoss.ts` emits the existing FX `smoke_stack` at the funnel every **320 scaled ms**, count 2 / scale .8. Smoke stops on death. Ironhorn's rightmost extent stays within a **98 px root inset** on the arena's right side.
+- Gameplay HP **220**, individual turret HP **40**, phase thresholds **140/70**, cannon/cinder/throw cues **650/700/600 ms**, attacks, projectile velocities, scoring and **3800 ms** death remain unchanged. Phase-two recovery retains damaged hull art; phase three retains its open cab/firebox.
+
+### Geometry changes (relative to the boss's ground root)
+
+The wider shape requires these Ironhorn-only changes in `game/src/entities/bosses/MachineBoss.ts`; Snowcat offsets are unchanged:
+
+- Hull rectangle: old `(-52,-40),104×40` → **`(-88,-65),176×65`**.
+- Tender turret pivots: **`(-68,-40)`**, **`(-43,-55)`**. Hurtboxes: **`(-80,-64),27×22`**, **`(-55,-79),27×22`**. Cannon markers, muzzle/projectile release and turret-destruction bursts follow these pivots; muzzle = pivot + `(-22,-14)`.
+- Firebox 2× weak region: center **`(+16,-36)`**, absolute X/Y distance `<13` from the center. This replaces the former broad lower-center region and matches the visible 26 px firebox rim. No extra shared-pool hit is introduced.
+- Stack/cinder socket **`(+49,-98)`**. Driver feet/pivot **`(-17,-49)`**; thrown ordnance starts at driver + `(-10,-20)`.
+
+### Verification and screenshots
+
+All evidence is under `/tmp/kbe-enemies/`, with the **`loco-`** prefix to distinguish this redesign from the prior tank-shaped version. Tested URL: `?scene=Game&debug=1&god=1&enemytest=ironhorn` (capture runner also adds `fast=1&mute=1`). T3 preview open failed with missing `libnspr4.so, libnss3.so, libnssutil3.so, libasound.so.2`; the repository `game/tools/shot.mjs` Chromium workflow supplied its existing library path. No packages installed.
+
+- **Visually inspected** all cue/attack captures: `loco-ironhorn-{cannon,cinder,coal,grenade}-cue.png`, `loco-ironhorn-{cannon,cinder,coal,grenade}.png`, and `loco-ironhorn-death.png`. Final disappearance: `loco-ironhorn-final.png`.
+- **Same-scale side-by-side**: `loco-silhouettes.png`, plus `loco-silhouettes.gif` for the wheel/rod cycle. Generated directly from the editable sprites by `/tmp/kbe-enemies/loco-comparison.lua`; Snowcat is short, low and tracked while Ironhorn is long, tall, horned and spoked. Motion contact sheet: `loco-wheel-cycle.png`.
+- **Full real-fire fight:** `/tmp/kbe-enemies/loco-shots.mjs ironhorn` drives real player HMG input, god-mode movement and an ammo grant; **no boss HP, direct damage or kill cheats**. **209 shots**, phases **[2,3]**, **one defeat**, **one kill / 3500 score**, death completes at **3804.84 scaled ms**, zero runtime/load errors. Details: `loco-fight-summary.json`, `loco-new-fight.log`, `loco-ironhorn-shots.log`. This run used the dev sandbox while Levels was changing map registration; it does not claim train-arena or part-clear acceptance.
+- Separate controlled weak-point test: `loco-ironhorn-weakpoints.log`: turret **40/40**, phase remains 1 after first turret and becomes 2 after both, firebox/shell **2/1**, radius-8 firebox explosion **6 once**. All **41** Phase E animation tags exist in Phaser. These controlled hits are separate from the real-fire completion run.
+- `loco-art-audit.log`: all opaque pixels use the master palette, alpha is binary, all four tags are prefixed and contain eight frames. `npm --prefix game run check:phaser4` passes (90 files, zero findings).
+
+Final integration status at this handoff: **full `npm --prefix game run check` is blocked by six concurrent Levels-owned diagnostics, all in `src/level/index.ts`**: lines 24/66/109 still use `rt.gate` after `LevelRuntime` switched to `gates`; line 26 calls the new four-argument `buildMap` with two arguments; line 28 calls the new three-argument `createParallax` with one. No Enemies diagnostics. Latest output: `/tmp/kbe-enemies/loco-check.log`. These foreign files were not edited. `game/public/assets/maps/m1p2.tmj` and its source are **not present**, so the conditional real train-arena screenshot cannot yet be taken. Existing Audio warnings for `loco_steam`, `loco_cannon`, `cinder` also remain. This section supersedes earlier Phase E claims of full-project check/map readiness for this live checkout. No git state was changed.

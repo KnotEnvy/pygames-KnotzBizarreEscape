@@ -2,6 +2,12 @@
 
 Delivered 21 Aseprite sheets, 234 frames, editable sources and shared Lua pose helpers. Phase A contains art/data only; no `game/src` changes. All art is original, uses the master palette, and references the legacy soldier only for green-helmet identity. Crate letters are diegetic stencil markings. No extra palette colors.
 
+## Heights
+
+Phase E authoritative runtime sizes: standing hurtbox **12×30 px**, top **30 px above the feet**; crouched hurtbox **12×18 px**, top **18 px above the feet**. Both retain the same feet pivot. A sweep whose bottom is 19–29 px above the floor hits standing Knotz and clears crouching Knotz; aim for 23–25 px with margin. Down changes the body immediately; standing up requires headroom.
+
+Maximum held-jump apex is **56.18 px** above takeoff feet (`318² / (2 × 900)`), approximately 54–56 px in discrete Arcade simulation. Early release clamps ascent to 120 px/s. These existing movement and hurtbox values are unchanged in Phase E.
+
 ## Build and review
 
 From the repository root:
@@ -188,3 +194,32 @@ Final validation: **70/70 systems checks passed**, all five weapons × eight dir
 Full QA E2E final run: **18/19 passed** (`/tmp/kbe-player/phase-d-qa-final.log`). Remaining failure is `flow.spec.ts:3`, Title → Game → Pause → resume: Escape leaves native Pause active (expected paused false, got true). Player movement/jump/fire/camera/damage/death/Continue/hooks checks passed. Earlier runs also caught transient FX asset availability and browser startup/network failures during concurrent work; they are retained in `phase-d-qa.log` and `phase-d-qa-stable.log`, not counted as a clean acceptance run. No core/UI/FX files were changed.
 
 Final visual probe (`phase-d-final-visual.json`) confirms four held pistol rounds each restart recoil at animation frame 1, with zero browser/runtime errors. Captured and inspected `phase-d-pow-salute.png`, `phase-d-pow-handoff.png`, and `phase-d-pow-runoff.png`; the extended packet and hand release precede escape. No npm installs, commits, index changes or branch operations were performed by this implementation agent.
+
+## Phase E — ice, laser, entrances and part carry (2026-10-16)
+
+Implemented only in Player-owned paths. Existing dry-ground movement values remain unchanged.
+
+- `src/config/tuning/player.ts`: ice acceleration **420 px/s²**, passive deceleration **280 px/s²**, crouch/aim-lock brake **700 px/s²**. Run/crouch speed remains **105/35 px/s**. Ice is sampled only when grounded through optional `physics.surfaceAt` at the body feet +1 px. Ordinary dust is suppressed on ice; braking emits `fx:emit {effect:'ice_skid',x,y}` every **100 ms** above 20 px/s. Air control, jump buffering/coyote, aiming and weapon handling keep their existing behavior. From full speed the theoretical passive stop is 375 ms / 19.7 px; crouch/aim-lock stops in 150 ms / 7.9 px.
+- `src/entities/weapons/index.ts`: weapon ID **`laser`**, **100 ammo**, **100 ms** interval, **1.25 damage**, **1000 px/s**, **430 ms** lifetime, **2 px** collision radius, unlimited hurtbox piercing (one hit per target per pulse), terrain stops the pulse. Nominal single-target output is **12.5 DPS**, versus HMG's **14 DPS**; piercing rewards lined-up targets. Uses the heavy torso and all eight existing aim sockets. Each round emits `player:shoot`, calls SFX **`laser`**, and consumes one ammo; exhaustion returns immediately to pistol/Infinity. Engine emits `projectile:impact` for every pierced target and terrain hit. Player renders its own brief laser muzzle/impact sprites.
+- `src/entities/pickups/index.ts`, `src/entities/pow/index.ts`: register `pickup:laser` / `pow:laser`; generic pickup `kind=laser` and POW `item=laser` work. Crate letter **L**. `__KBE.cheats.give('laser', ammo?)` uses the normal equip path.
+- `src/entities/player/{controller,index,animations}.ts`: player_start `entry=walk|jump_down|tumble`. Walk: **280 ms**, **50 px/s**. Jump-down starts **48 px** above the authored feet, velocity **(45,80)**. Tumble starts **24 px** above the feet, velocity **(85,-100)**, with a full-body roll. Air entrances release after grounding and **450 ms**, hard cap **1050 ms**. All entrances ignore control/damage during the short action and stay fully visible; existing 2 s spawn immunity continues afterward. Author the object at a safe landing feet coordinate with at least ~55 px clear space to its right. No entry property preserves the previous spawn behavior.
+- Spawn explicitly equips the Engine-restored `state.weapon/state.ammo` and publishes normal weapon/ammo events. Death respawn still restores pistol as before. HUD can also read the restored RunState at launch.
+- Art: `art-src/player/laser.lua` builds `laser_beam`, `laser_muzzle`, `laser_impact`, `pickup_l` through shared `tools/aseprite/kbe.lua`. Rebuild with `bash game/tools/build-art.sh art-src/player/laser.lua`. Four editable `.aseprite` sources, PNG/JSON pairs in `public/assets/sprites/player/`, and pack entries in `public/assets/packs/player.json`. Globally unique tags: `laser_beam_fly`, `laser_muzzle_flash`, `laser_impact_flash`, `pickup_l_shine`; master palette only. Beam is 64×8; muzzle 20×16; impact/crate 20×20. Muzzle and impact play once.
+
+### Phase E verification
+
+`npm --prefix game run check` passes (TypeScript and Phaser 4 scanner, zero errors/warnings). Requested `tools/shot.mjs` used for screenshots and runtime probes; no repository QA files edited. Scratch evidence lives in `/tmp/kbe-player/`:
+
+- `phase-e-laser-{right,up-right,up,up-left,left,down-left,down,down-right}.png`: inspected all eight angles. Shot events confirm exact multiples of π/4 and real socket coordinates; terrain impacts and finite ammo work. `phase-e-visual.log` records the probe.
+- `phase-e-ice-slide.png`: inspected the slide on clear existing ground with `surfaceAt` overridden to ice in the probe only. `phase-e-focused.json`: 100.33→39.67→0 px/s, **18.82 px** remaining slide, three ice_skid events. The earlier probe against a camp crate was discarded as a slide measurement.
+- `phase-e-entry-{walk,jump_down,tumble}.png`: inspected all three entrances. Each rejects a real DamageService hit with god disabled and returns to ready. `phase-e-crouch.png` and probe confirm body top moves **306→318** at the same **336 px feet** (30→18 px height).
+- `phase-e-crate-l.png`: inspected L crate. `phase-e-items.log`: a single laser pulse hit two registered targets exactly once each and emitted two laser impact events; one-ammo exhaustion restores pistol/Infinity; collecting the L crate and freeing a laser POW both equip laser/100, POW rescue tally increments once.
+- `phase-e-carry-laser.png`, `phase-e-url-part.png`: URL `?part=1-2` and live `cheats.part('1-2',true)` exercised after Engine landed. Laser/37, score 12345, bombs 7 and lives 3 survive; HUD reads laser/37. Pistol remains actual **Infinity** in RunState and displays **∞** after the next part. Debug serialization represents Infinity as -1. No runtime errors.
+
+### Requests for other teams / remaining integration
+
+- **Levels:** ship/load `m1p2` and `m1p3`, set player_start entry `jump_down` / `tumble`, put `material=ice` on lake tiles, and place laser crates or POW `item=laser`. During verification those maps were not yet loaded and the level still rendered the camp, so final train/lake visual placement remains to check. The player mechanics were verified independently on existing terrain.
+- **UI:** add a HUD laser weapon icon and laser pickup callout mapping for weapon ID `laser` (current HUD receives the correct ID/ammo but shows its fallback gun icon). The L crate is in the Player pack; HUD art belongs to UI.
+- **Audio:** add **`laser`** SFX, called once per accepted pulse at up to 10 Hz. Current catalog reports this unknown key; no audio files changed here.
+- **FX:** consume `ice_skid` at body feet (100 ms spacing while braking). Laser's Player-owned muzzle/impact art is already rendered; consider the generic player:shoot muzzle fallback when wiring laser-specific FX to avoid a duplicate orange flash.
+- **Bosses/Levels:** use the Heights section above. Standing-height sweeps should clear the 18 px crouch hurtbox with margin.

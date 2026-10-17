@@ -11,7 +11,13 @@ export { createTileLevelQuery, prepareTileLayer, type TileLevelOptions } from '.
 export { ProjectileSystem, Projectile, type ProjectileSpec, type ImpactInfo } from './projectiles';
 export { getContext } from './context';
 export { registerDebug } from './debug/hooks';
-export { sceneExists } from './flow';
+export { sceneExists, type MissionResultsData } from './flow';
+export { loadProgress, unlockPart, recordBest, isUnlocked, resetProgress, PROGRESS_KEY, type Progress } from './progress';
+export { encodeAmmo, decodeAmmo } from './state';
+export {
+    CAMPAIGN, FIRST_PART, partById, nextPart, missionOf,
+    type PartId, type PartDef, type MissionDef, type PartResult, type CarryState, type PartClearData, type GameStartData
+} from '../config/campaign';
 export { TEX, PAL } from './textures';
 export { createAsepriteAnims, hasAnim, frameOf, tagFrame, playAnim } from './anims';
 export { FallbackAudio, applyMute } from './audio';

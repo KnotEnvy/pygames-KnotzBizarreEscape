@@ -1,31 +1,43 @@
-// Levels and content: Mission 1 "Pine Ridge Breakout".
-// registerLevel builds the tilemap + parallax, publishes the LevelQuery (the engine sandbox then steps aside),
-// registers the prop factories, spawns the player and every prop, and runs the proximity spawner, arenas and
-// triggers each frame. See docs/teams/level.md.
+// Levels and content: Mission 1 "Pine Ridge Breakout", in 3 parts (m1p1 THE CAMP, m1p2 TIMBER EXPRESS, m1p3 MOOSE LAKE).
+// registerLevel loads the part's map (ctx.part.map), builds the tilemap + parallax (set and train drift from the map's
+// `parallax` / `drift` properties), publishes the LevelQuery (the engine sandbox then steps aside), registers the
+// prop factories, spawns the player and every prop, and runs the proximity spawner, arenas, triggers, the train
+// (low bridges, tunnels) and the cracking ice each frame. See docs/teams/level.md.
 import Phaser from 'phaser';
 import type { RegisterContext } from '../core';
 import { LEVEL } from '../config/tuning/level';
 import { ArenaController, ArenaHookSet } from './arenas';
+import { IceSystem } from './ice';
 import { buildMap, parseSections } from './map';
 import { createParallax } from './parallax';
 import { registerProps } from './props';
 import { ProximitySpawner, kindOf, spawnObject } from './spawner';
+import { TrainSystem } from './train';
 import { TriggerSystem } from './triggers';
-import { str, type LevelRuntime } from './types';
+import { num, str, type LevelRuntime } from './types';
 
 export function registerLevel(ctx: RegisterContext): void {
     const scene = ctx.scene;
-    if (!scene.cache.tilemap.exists(LEVEL.map.key)) {
-        console.warn(`[level] '${LEVEL.map.key}' not loaded: leaving the dev sandbox in place`);
+    // Phase E: the campaign part names its map. Read defensively in case the context predates ctx.part.
+    const part = (ctx as { part?: { map: string; mission?: number } }).part;
+    let key = part?.map ?? LEVEL.map.key;
+    if (!scene.cache.tilemap.exists(key)) {
+        console.warn(`[level] map '${key}' not loaded: falling back to '${LEVEL.map.key}'`);
+        key = LEVEL.map.key;
+    }
+    if (!scene.cache.tilemap.exists(key)) {
+        console.warn(`[level] '${key}' not loaded: leaving the dev sandbox in place`);
         return;
     }
 
     const hooks = new ArenaHookSet();
-    const rt: LevelRuntime = { doors: [], gate: null, solids: scene.physics.add.staticGroup(), hooks };
+    const rt: LevelRuntime = { doors: [], gates: new Map(), solids: scene.physics.add.staticGroup(), hooks };
     // The static group goes in as a collider (Arcade colliders accept groups; the contract types it as GameObject).
-    const built = buildMap(scene, [rt.solids as unknown as Phaser.GameObjects.GameObject]);
-    scene.cameras.main.setBackgroundColor(LEVEL.map.sky);
-    createParallax(ctx);
+    const built = buildMap(scene, key, [rt.solids as unknown as Phaser.GameObjects.GameObject], part?.mission ?? LEVEL.map.stage);
+    scene.cameras.main.setBackgroundColor(LEVEL.skies[key] ?? LEVEL.map.sky);
+    const trainTriggers = built.triggers.some(t => t.type === 'hazard_sweep' || t.type === 'tunnel');
+    const drift = num(built.props.drift, trainTriggers ? LEVEL.train.defaultDrift : 0);
+    const parallax = createParallax(ctx, str(built.props.parallax, 'stage1'), drift);
     ctx.setLevel(built.query);
 
     registerProps(ctx, rt);
@@ -42,12 +54,16 @@ export function registerLevel(ctx: RegisterContext): void {
 
     const spawner = new ProximitySpawner(ctx, proximity);
     const arenas = new ArenaController(ctx, rt, hooks, built.triggers, owned);
-    const triggers = new TriggerSystem(ctx, built.triggers);
+    const triggers = new TriggerSystem(ctx, built.triggers, str(built.props.clearSfx));
     triggers.publishZones();
+    const train = trainTriggers || drift ? new TrainSystem(ctx, built.triggers, drift || LEVEL.train.defaultDrift, parallax, k => triggers.setOverride(k), built.map.heightInPixels) : null;
+    const ice = new IceSystem(ctx, built);
 
     ctx.onUpdate(dt => {
         spawner.update();
         arenas.update(dt);
+        train?.update(dt);
+        if (ice.count) ice.update(dt);
         triggers.update(dt);
     });
 
@@ -61,11 +77,14 @@ export function registerLevel(ctx: RegisterContext): void {
     ctx.debug.register('section', () => sectionAt(focusX()));
     ctx.debug.register('arena', () => arenas.debug());
     ctx.debug.register('level', () => ({
-        name: built.query.name, section: sectionAt(focusX()), checkpoint: triggers.lastCheckpoint,
+        map: built.key, name: built.query.name, section: sectionAt(focusX()), checkpoint: triggers.lastCheckpoint,
         pending: spawner.pending, spawned: spawner.spawned, skipped: spawner.skipped,
-        gate: rt.gate ? (rt.gate.smashed ? 'smashed' : 'closed') : null,
-        kinds: [...new Set(built.spawns.map(o => `${o.type}:${kindOf(o)}`))].length
+        gate: [...rt.gates.values()].map(g => `${g.lock}:${g.smashed ? 'smashed' : 'closed'}`).join(' ') || null,
+        kinds: [...new Set(built.spawns.map(o => `${o.type}:${kindOf(o)}`))].length,
+        powTotal: built.query.powTotal ?? 0, drift
     }));
+    if (train) ctx.debug.register('train', () => train.debug());
+    if (ice.count) ctx.debug.register('ice', () => ice.debug());
 
     // Warp cheat (and ?x=): land on the standable, hazard-free surface nearest the player's current height, nudging
     // sideways off walls. The engine default takes the first surface from the top, which can be a tree branch or the
@@ -106,5 +125,5 @@ export function registerLevel(ctx: RegisterContext): void {
         warpTo(triggers.checkpointX('cp_boss') ?? (arenas.find('boss')?.x0 ?? built.bounds.right - 480) - 32);
     });
 
-    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { rt.doors.length = 0; rt.gate = null; });
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { rt.doors.length = 0; rt.gates.clear(); });
 }

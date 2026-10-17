@@ -2,9 +2,11 @@
 <map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="420" height="24" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#6aa2dc" nextlayerid="7" nextobjectid="163">
  <properties>
   <property name="name" value="Pine Ridge Breakout"/>
+  <property name="title" value="THE CAMP"/>
   <property name="music" value="music_stage1"/>
   <property name="parallax" value="stage1"/>
-  <property name="sections" value="prison_camp:0-60,pine_forest:60-170,river_bridge:170-250,regime_outpost:250-360,moose_pen:360-420"/>
+  <property name="clearSfx" value="train_whistle"/>
+  <property name="sections" value="prison_camp:0-60,pine_forest:60-170,river_bridge:170-250,regime_outpost:250-360,warden_yard:360-420"/>
  </properties>
  <tileset firstgid="1" name="stage1" tilewidth="16" tileheight="16" tilecount="448" columns="32">
   <image source="../../public/assets/tiles/stage1.png" width="512" height="224"/>
@@ -1553,22 +1555,24 @@
    </properties>
    <point/>
   </object>
-  <object id="69" type="enemy" x="3608" y="288">
+  <object id="69" type="enemy" x="3512" y="288">
    <properties>
     <property name="kind" value="grunt"/>
     <property name="facing" value="left"/>
     <property name="lock" value="bridge"/>
     <property name="wave" type="int" value="1"/>
+    <property name="patrol" type="int" value="16"/>
    </properties>
    <point/>
   </object>
-  <object id="70" type="enemy" x="3640" y="288">
+  <object id="70" type="enemy" x="3464" y="288">
    <properties>
     <property name="kind" value="grunt"/>
     <property name="facing" value="left"/>
     <property name="lock" value="bridge"/>
     <property name="wave" type="int" value="1"/>
     <property name="delay" type="int" value="600"/>
+    <property name="patrol" type="int" value="16"/>
    </properties>
    <point/>
   </object>
@@ -1592,45 +1596,49 @@
    </properties>
    <point/>
   </object>
-  <object id="73" type="enemy" x="3624" y="288">
+  <object id="73" type="enemy" x="3512" y="288">
    <properties>
     <property name="kind" value="shield"/>
     <property name="facing" value="left"/>
     <property name="lock" value="bridge"/>
     <property name="wave" type="int" value="2"/>
+    <property name="patrol" type="int" value="16"/>
    </properties>
    <point/>
   </object>
-  <object id="74" type="enemy" x="3176" y="288">
+  <object id="74" type="enemy" x="3256" y="288">
    <properties>
     <property name="kind" value="grunt"/>
     <property name="facing" value="right"/>
     <property name="lock" value="bridge"/>
     <property name="wave" type="int" value="2"/>
     <property name="delay" type="int" value="1600"/>
+    <property name="patrol" type="int" value="16"/>
    </properties>
    <point/>
   </object>
-  <object id="75" type="enemy" x="3656" y="288">
+  <object id="75" type="enemy" x="3528" y="288">
    <properties>
     <property name="kind" value="grenadier"/>
     <property name="facing" value="left"/>
     <property name="lock" value="bridge"/>
     <property name="wave" type="int" value="2"/>
     <property name="delay" type="int" value="3400"/>
+    <property name="patrol" type="int" value="8"/>
    </properties>
    <point/>
   </object>
-  <object id="76" type="enemy" x="3176" y="288">
+  <object id="76" type="enemy" x="3256" y="288">
    <properties>
     <property name="kind" value="shield"/>
     <property name="facing" value="right"/>
     <property name="lock" value="bridge"/>
     <property name="wave" type="int" value="3"/>
+    <property name="patrol" type="int" value="16"/>
    </properties>
    <point/>
   </object>
-  <object id="77" type="enemy" x="3624" y="192">
+  <object id="77" type="enemy" x="3496" y="192">
    <properties>
     <property name="kind" value="drone"/>
     <property name="facing" value="left"/>
@@ -1640,7 +1648,7 @@
    </properties>
    <point/>
   </object>
-  <object id="78" type="enemy" x="3192" y="192">
+  <object id="78" type="enemy" x="3272" y="192">
    <properties>
     <property name="kind" value="drone"/>
     <property name="facing" value="left"/>
@@ -1905,22 +1913,24 @@
    </properties>
    <point/>
   </object>
-  <object id="112" type="enemy" x="5592" y="336">
+  <object id="112" type="enemy" x="5496" y="336">
    <properties>
     <property name="kind" value="shield"/>
     <property name="facing" value="left"/>
     <property name="lock" value="bunker"/>
     <property name="wave" type="int" value="2"/>
+    <property name="patrol" type="int" value="8"/>
    </properties>
    <point/>
   </object>
-  <object id="113" type="enemy" x="5128" y="336">
+  <object id="113" type="enemy" x="5192" y="336">
    <properties>
     <property name="kind" value="shield"/>
     <property name="facing" value="right"/>
     <property name="lock" value="bunker"/>
     <property name="wave" type="int" value="2"/>
     <property name="delay" type="int" value="600"/>
+    <property name="patrol" type="int" value="8"/>
    </properties>
    <point/>
   </object>
@@ -2091,9 +2101,9 @@
    </properties>
    <point/>
   </object>
-  <object id="136" name="moosezilla" type="boss" x="6632" y="336">
+  <object id="136" name="snowcat" type="boss" x="6632" y="336">
    <properties>
-    <property name="kind" value="moosezilla"/>
+    <property name="kind" value="snowcat"/>
     <property name="lock" value="boss"/>
     <property name="wave" type="int" value="1"/>
    </properties>

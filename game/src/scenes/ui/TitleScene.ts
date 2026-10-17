@@ -1,15 +1,35 @@
 // Title: key art, the animated logo (drop-in + periodic glitch), snow, "PRESS START" attract mode and the menu
-// (Start / Difficulty / Options / Credits). Confirm in attract mode starts the game at once (arcade style);
-// any other input opens the menu. Keyboard and gamepad via MenuInput.
+// (Start / Part Select / Difficulty / Options / Credits). Confirm in attract mode starts the game at once (arcade
+// style); any other input opens the menu. PART SELECT (Phase E) lists the campaign's parts with the saved
+// progress and starts a fresh run at the chosen part. Keyboard and gamepad via MenuInput.
 import Phaser from 'phaser';
 import { TEX, playAnim, settings } from '../../core';
+import * as progress from '../../core/progress';
+import { CAMPAIGN, type PartDef, type PartId } from '../../config/campaign';
 import { getAudio } from '../../audio';
 import { UI } from '../../config/tuning/ui';
-import { C, F, H, W, text } from '../../ui/widgets';
+import { C, F, H, W, icon, pad, panel, roman, text } from '../../ui/widgets';
 import { MenuInput } from '../../ui/input';
 import { Menu } from '../../ui/menu';
 import { wipeIn, wipeOut } from '../../ui/transitions';
 import { uiLog } from '../../ui';
+
+interface Progress { unlocked: string[]; best: Record<string, number> }
+
+/** Engine's progress save, read defensively (works without storage; falls back to "1-1 only"). */
+function safeProgress(): Progress {
+    try {
+        const p = (progress as { loadProgress?: () => unknown }).loadProgress?.() as Partial<Progress> | undefined;
+        const unlocked = Array.isArray(p?.unlocked) ? p.unlocked.filter((v): v is string => typeof v === 'string') : [];
+        const best: Record<string, number> = {};
+        if (p?.best && typeof p.best === 'object') for (const [k, v] of Object.entries(p.best)) if (typeof v === 'number') best[k] = v;
+        return { unlocked: unlocked.length ? unlocked : ['1-1'], best };
+    } catch {
+        return { unlocked: ['1-1'], best: {} };
+    }
+}
+
+const PICTOGRAM: Record<number, string> = { 1: 'map_camp', 2: 'map_train', 3: 'map_lake' };
 
 export class TitleScene extends Phaser.Scene {
     private menuInput!: MenuInput;
@@ -23,12 +43,13 @@ export class TitleScene extends Phaser.Scene {
     private glitchIn = 0;
     private logoReady = false;
     private starting = false;
-    private overlay: 'none' | 'options' | 'credits' = 'none';
+    private overlay: 'none' | 'options' | 'credits' | 'parts' = 'none';
+    private parts: { root: Phaser.GameObjects.Container; menu: Menu; info: Phaser.GameObjects.BitmapText; defs: PartDef[]; prog: Progress } | null = null;
 
     constructor() { super('Title'); }
 
     create(): void {
-        this.attract = true; this.idle = 0; this.blink = 0; this.starting = false; this.overlay = 'none'; this.logoReady = false;
+        this.attract = true; this.idle = 0; this.blink = 0; this.starting = false; this.overlay = 'none'; this.logoReady = false; this.parts = null;
         this.cameras.main.setBackgroundColor(C.dim);
         if (this.textures.exists('ui_keyart_title')) this.add.image(0, 0, 'ui_keyart_title').setOrigin(0, 0);
         else this.add.rectangle(0, 0, W, H, 0x1f3f7a, 1).setOrigin(0, 0);
@@ -54,9 +75,10 @@ export class TitleScene extends Phaser.Scene {
         this.hint = text(this, W / 2, 170, '↓  MENU', F.plain, [0.5, 0.5]).setAlpha(0.6).setDepth(10);
         // menu
         this.menu = new Menu(this, {
-            x: 150, y: 138, rowHeight: 13, valueX: 250,
+            x: 150, y: 136, rowHeight: UI.title.menuRowHeight, valueX: 250,
             rows: [
                 { label: 'START', onSelect: () => this.start() },
+                { label: 'PART SELECT', onSelect: () => this.openPartSelect() },
                 { label: 'DIFFICULTY', value: () => settings.get().difficulty.toUpperCase(), onAdjust: () => this.toggleDifficulty() },
                 { label: 'OPTIONS', onSelect: () => this.openOverlay('options') },
                 { label: 'CREDITS', onSelect: () => this.openOverlay('credits') }
@@ -80,18 +102,20 @@ export class TitleScene extends Phaser.Scene {
         settings.update({ difficulty: settings.get().difficulty === 'arcade' ? 'casual' : 'arcade' });
     }
 
-    private start(): void {
+    private start(part?: PartId): void {
         if (this.starting) return;
         this.starting = true;
-        uiLog('title:start');
+        uiLog(part ? `title:start ${part}` : 'title:start');
         const audio = getAudio(this);
         audio.sfx('ui_start');
         this.press.setVisible(true).setAlpha(1);
         this.hint.setVisible(false);
         this.menu.setVisible(false);
+        this.parts?.root.setVisible(false);
         this.blink = 0;
         // The engine latches every key still held when the Game scene is created, so a held Enter can't pause it.
-        wipeOut(this, () => this.scene.start('Game'));
+        // No data = the engine's default ('1-1', or ?part= in dev); PART SELECT passes the part (fresh run state).
+        wipeOut(this, () => this.scene.start('Game', part ? { part } : undefined));
     }
 
     private openOverlay(which: 'options' | 'credits'): void {
@@ -107,6 +131,69 @@ export class TitleScene extends Phaser.Scene {
         this.scene.launch(which === 'options' ? 'Options' : 'Credits', { from: 'Title', onClose });
     }
 
+    // ---------------------------------------------------------------- PART SELECT (Phase E)
+
+    private openPartSelect(): void {
+        this.parts?.root.destroy(true);
+        const P = UI.partSelect;
+        const prog = safeProgress();
+        const defs: PartDef[] = [];
+        for (const m of CAMPAIGN) for (const p of m.parts) defs.push(p);
+        const root = this.add.container(0, 0).setDepth(12);
+        root.add(panel(this, P.x, P.y, P.w, P.h));
+        root.add(text(this, P.x + 12, P.y + 6, 'PART SELECT', F.sand));
+        const mission = CAMPAIGN[0];
+        root.add(text(this, P.x + 14, P.y + 26, `MISSION ${mission.id}  ${mission.name}`, F.plain).setTint(C.ink5));
+        const rowY0 = P.y + 42;
+        const rows = defs.map((p, i) => {
+            const locked = (): boolean => !prog.unlocked.includes(p.id);
+            const y = rowY0 + i * P.rowHeight;
+            const tag = PICTOGRAM[p.part];
+            if (!locked() && tag) root.add(icon(this, P.x + 14, y - 5, 'ui_map', tag));
+            else root.add(icon(this, P.x + 14, y - 5, 'ui_icons', 'icon_lock').setAlpha(locked() ? 0.9 : 0));
+            return {
+                label: `${roman(p.part)}  ${p.title}`,
+                value: () => locked() ? 'LOCKED' : (prog.best[p.id] ? `BEST ${pad(prog.best[p.id], 6)}` : 'NEW'),
+                disabled: locked,
+                onSelect: () => this.start(p.id)
+            };
+        });
+        const menu = new Menu(this, { x: P.x + 56, y: rowY0, rowHeight: P.rowHeight, valueX: P.valueX, rows });
+        root.add(menu.container);
+        const info = text(this, P.x + 56, P.y + P.h - 26, '', F.plain).setTint(C.ink5);
+        root.add(info);
+        root.add(text(this, P.x + P.w - 12, P.y + P.h - 14, 'ESC: BACK   ENTER: START', F.plain, [1, 0]).setAlpha(0.6).setTint(C.ink5));
+        // start on the furthest unlocked part
+        let last = 0;
+        defs.forEach((p, i) => { if (prog.unlocked.includes(p.id)) last = i; });
+        menu.setIndex(last);
+        this.parts = { root, menu, info, defs, prog };
+        this.refreshPartInfo();
+        this.overlay = 'parts';
+        this.menu.setVisible(false);
+        this.menuInput.rearm();
+        getAudio(this).sfx('radio_blip', { volume: 0.6 });
+    }
+
+    private refreshPartInfo(): void {
+        if (!this.parts) return;
+        const p = this.parts.defs[this.parts.menu.index];
+        const locked = !this.parts.prog.unlocked.includes(p.id);
+        this.parts.info.setText(locked ? `CLEAR PART ${roman(p.part - 1)} TO UNLOCK` : p.location.toUpperCase());
+    }
+
+    private closePartSelect(): void {
+        if (!this.parts) return;
+        this.parts.root.destroy(true);
+        this.parts = null;
+        this.overlay = 'none';
+        this.menu.setVisible(true);
+        this.menu.refresh();
+        this.menuInput.rearm();
+        this.idle = 0;
+        getAudio(this).sfx('ui_back');
+    }
+
     update(_time: number, delta: number): void {
         const dt = Math.min(100, delta);
         this.menuInput.update(dt);
@@ -119,6 +206,13 @@ export class TitleScene extends Phaser.Scene {
                     this.logo.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => { if (this.logo.active) playAnim(this.logo, 'logo_idle'); });
                 }
             }
+        }
+        if (this.overlay === 'parts' && this.parts && !this.starting) {
+            if (this.menuInput.back) { this.closePartSelect(); return; }
+            const before = this.parts.menu.index;
+            this.parts.menu.update(dt, this.menuInput);
+            if (this.parts && this.parts.menu.index !== before) this.refreshPartInfo();
+            return;
         }
         if (this.overlay !== 'none') return;
         this.blink += dt;

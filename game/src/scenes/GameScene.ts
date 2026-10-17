@@ -1,4 +1,4 @@
-// GameScene: builds the GameContext, lets every team register, falls back to the dev sandbox for anything
+// GameScene: resolves the campaign part (scene data → ?part= → '1-1') and the carried run state, builds the GameContext, lets every team register, falls back to the dev sandbox for anything
 // missing, launches the HUD, and drives the per-frame engine loop:
 //   PRE_UPDATE  input sample → time tick (hitstop/slow-mo)
 //   update      flow (pause/continue) → ctx.onUpdate subscribers (scaled dt) → projectiles
@@ -15,6 +15,9 @@ import { registerEnemies } from '../entities/enemies';
 import { registerLevel } from '../level';
 import { registerFx } from '../fx';
 import { registerUi } from '../ui';
+import { FIRST_PART, partById, type CarryState, type GameStartData, type PartDef } from '../config/campaign';
+import { LEVEL } from '../config/tuning/level';
+import { PARAMS } from '../core/params';
 
 type Registrar = [name: string, fn: (ctx: RegisterContext) => void];
 
@@ -32,12 +35,45 @@ export class GameScene extends Phaser.Scene {
     private internals!: EngineInternals;
     private overlay: DebugOverlay | null = null;
 
+    private startPart: PartDef = FIRST_PART;
+    private startCarry: CarryState | null = null;
+
     constructor() { super('Game'); }
 
+    /** `scene.start('Game', { part, carry })` (docs/CAMPAIGN.md). No data: ?part= (dev) or '1-1', fresh run state. */
+    init(data?: GameStartData): void {
+        const id = data?.part ?? PARAMS.part ?? FIRST_PART.id;
+        const part = partById(id);
+        if (!part) console.warn(`[game] unknown part '${id}': starting ${FIRST_PART.id}`);
+        this.startPart = part ?? FIRST_PART;
+        this.startCarry = data?.carry ?? null;
+        // Phaser keeps the old settings.data when a later start() passes none (Title → Game after a Part II run):
+        // consume it so that start is a fresh run, not a replay of the stale part + carry.
+        this.sys.settings.data = {};
+    }
+
+    /**
+     * The part as the level should load it. Until Levels ships `m1p1`, part 1-1 falls back to the old Mission 1
+     * map key (LEVEL.map.key) so it stays playable; another part with a missing map keeps its key and the level
+     * leaves the dev sandbox in place.
+     */
+    private resolvePart(part: PartDef): PartDef {
+        const maps = this.cache.tilemap;
+        if (maps.exists(part.map)) return part;
+        if (part.id === FIRST_PART.id && maps.exists(LEVEL.map.key)) {
+            console.info(`[game] map '${part.map}' not loaded: part ${part.id} uses '${LEVEL.map.key}'`);
+            return { ...part, map: LEVEL.map.key };
+        }
+        console.warn(`[game] map '${part.map}' for part ${part.id} is not loaded`);
+        return part;
+    }
+
     create(): void {
-        const { ctx, internals } = createGameContext(this);
+        const { ctx, internals } = createGameContext(this, this.resolvePart(this.startPart));
         this.ctx = ctx;
         this.internals = internals;
+        // Carried run state goes in before anyone registers: no change events, and the HUD reads the carried values.
+        if (this.startCarry) internals.store.restore(this.startCarry);
         setActiveContext(ctx);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.teardown, this);
 
@@ -69,6 +105,8 @@ export class GameScene extends Phaser.Scene {
         if (sceneExists(this, 'HUD')) this.scene.launch('HUD');
         internals.store.stats.startedAt = ctx.time.now;
         ctx.events.emit('stage:start', { stage: ctx.level.stage ?? ctx.params.stage, name: ctx.level.name });
+        const p = ctx.part;
+        ctx.events.emit('part:start', { id: p.id, mission: p.mission, part: p.part, title: p.title, location: p.location, briefing: [...p.briefing], final: p.final });
         setReady(true);
     }
 
@@ -112,7 +150,10 @@ export class GameScene extends Phaser.Scene {
         this.events.off(Phaser.Scenes.Events.PRE_UPDATE, this.preUpdate, this);
         this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.postUpdate, this);
         const { ctx, internals } = this;
-        if (this.scene.isActive('HUD')) this.scene.stop('HUD');
+        // In-game overlays never outlive the run (part change, Results, Title, cheats.part).
+        for (const k of ['HUD', 'Intro', 'Pause', 'Continue']) {
+            if (sceneExists(this, k) && (this.scene.isActive(k) || this.scene.isPaused(k))) this.scene.stop(k);
+        }
         internals.physics.destroy();
         internals.damage.clear();
         internals.updaters.length = 0;

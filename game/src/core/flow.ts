@@ -7,6 +7,17 @@ import type { RunStateStore } from './state';
 import { DEPTH } from './depth';
 import { latchHeldInputs } from './input';
 import { ENGINE } from '../config/tuning/engine';
+import { nextPart, type CarryState, type PartClearData, type PartDef, type PartResult } from '../config/campaign';
+import { recordBest, unlockPart } from './progress';
+
+/** Data the flow hands to the Results scene (the pre-Phase-E fields first, so the current scene keeps working). */
+export interface MissionResultsData {
+    stage: number; score: number; rescued: number; kills: number; deaths: number; accuracy: number; timeMs: number;
+    difficulty: CarryState['difficulty'];
+    /** Phase E: mission number, the final part's id, and every part's result in order (this one last). */
+    mission: number; part: PartDef['id']; parts: PartResult[];
+    shots: number; hits: number;
+}
 
 export function sceneExists(scene: Phaser.Scene, key: string): boolean {
     return scene.scene.manager.keys[key] !== undefined;
@@ -30,7 +41,12 @@ export class GameFlow implements FlowService {
     constructor(private readonly ctx: GameContext, private readonly store: RunStateStore) {
         const ev = ctx.events;
         ev.on('player:died', e => this.onDied(e.x, e.y, e.index ?? 0));
-        ev.on('stage:clear', e => this.onClear(e.stage));
+        ev.on('stage:clear', e => {
+            // Fill the Phase E fields in place: the flow listens first, so every team's listener sees them.
+            e.part ??= ctx.part.id;
+            e.final ??= ctx.part.final || nextPart(ctx.part.id) === null;
+            this.onClear(e.stage, e.final);
+        });
     }
 
     get over(): boolean { return this.isOver; }
@@ -141,24 +157,49 @@ export class GameFlow implements FlowService {
         this.ctx.events.emit('game:pause', { paused: false });
     }
 
-    private onClear(stage: number): void {
+    private onClear(stage: number, final: boolean): void {
         if (this.cleared) return;
         this.cleared = true;
+        const part = this.ctx.part;
+        const next = final ? null : nextPart(part.id);
+        // Unlock at once (quitting during the tally still keeps it); the result is frozen at the clear moment.
+        if (next) unlockPart(next.id);
+        const clearedAt = this.ctx.time.now;
         this.scene.time.delayedCall(ENGINE.run.stageClearDelayMs, () => {
-            const sm = this.scene.scene;
-            if (sceneExists(this.scene, 'Results')) {
-                const s = this.store;
-                const data = {
-                    stage, score: s.score, rescued: s.rescued, kills: s.stats.kills, deaths: s.stats.deaths,
-                    accuracy: s.stats.shots > 0 ? Math.min(1, s.stats.hits / s.stats.shots) : 0,
-                    timeMs: this.ctx.time.now - s.stats.startedAt, difficulty: s.difficulty
-                };
-                if (sm.isActive('HUD')) sm.stop('HUD');
-                sm.start('Results', data);
-            } else {
-                this.showOverlay('MISSION COMPLETE!');
-            }
+            const result = this.store.partResult(part.id, clearedAt);
+            recordBest(part.id, result.score);
+            const carry = this.store.carry(result);
+            if (next) this.toNextPart(part, next, result, carry);
+            else this.toResults(stage, carry);
         });
+    }
+
+    /** Not final: PART CLEAR tally (UI), or straight into the next part when that scene doesn't exist. */
+    private toNextPart(from: PartDef, next: PartDef, result: PartResult, carry: CarryState): void {
+        const sm = this.scene.scene;
+        for (const k of ['HUD', 'Pause', 'Continue']) if (sm.isActive(k) || sm.isPaused(k)) sm.stop(k);
+        if (sceneExists(this.scene, 'PartClear')) {
+            const data: PartClearData = { from, next, result, carry };
+            sm.start('PartClear', data);
+        } else {
+            sm.start('Game', { part: next.id, carry });
+        }
+    }
+
+    /** Final part: mission Results with totals over every part of the run. */
+    private toResults(stage: number, carry: CarryState): void {
+        const sm = this.scene.scene;
+        if (!sceneExists(this.scene, 'Results')) { this.showOverlay('MISSION COMPLETE!'); return; }
+        const parts = carry.parts;
+        const sum = (k: 'kills' | 'deaths' | 'shots' | 'hits' | 'timeMs'): number => parts.reduce((a, p) => a + p[k], 0);
+        const shots = sum('shots'), hits = sum('hits');
+        const data: MissionResultsData = {
+            stage, score: carry.score, rescued: carry.rescued, kills: sum('kills'), deaths: sum('deaths'),
+            accuracy: shots > 0 ? Math.min(1, hits / shots) : 0, timeMs: sum('timeMs'), difficulty: carry.difficulty,
+            mission: this.ctx.part.mission, part: this.ctx.part.id, parts, shots, hits
+        };
+        for (const k of ['HUD', 'Pause', 'Continue']) if (sm.isActive(k) || sm.isPaused(k)) sm.stop(k);
+        sm.start('Results', data);
     }
 
     /** Engine calls this every frame (real dt) for pause input and the fallback continue countdown. */

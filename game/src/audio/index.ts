@@ -23,4 +23,4 @@ export function getAudio(scene: Phaser.Scene): AudioEngine {
 
 export { AudioEngine, type LoopHandle, type SfxOptions, type MusicOptions, type AudioDebugState } from './engine';
 export { wireAudioEvents } from './events';
-export { SFX_ALIASES, SFX_META, MUSIC_ALIASES, MUSIC_META } from './catalog';
+export { SFX_ALIASES, SFX_META, MUSIC_ALIASES, MUSIC_META, GAMEPLAY_MUSIC, bossMusicFor } from './catalog';

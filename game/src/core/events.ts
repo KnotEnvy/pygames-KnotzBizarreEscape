@@ -2,6 +2,7 @@
 // Cross-team communication goes ONLY through these events. Gameplay emits; FX/UI/Audio listen.
 import Phaser from 'phaser';
 import type { Difficulty, ExplosionSize, HitInfo, ImpactMaterial, ShakeTier, Team } from './contracts';
+import type { PartId } from '../config/campaign';
 
 type Empty = Record<string, never>;
 interface Pos { x: number; y: number }
@@ -19,7 +20,13 @@ interface Rect { x: number; y: number; width: number; height: number }
 export interface GameEvents {
     // stage / level
     'stage:start': { stage: number; name?: string };
-    'stage:clear': { stage: number };
+    /**
+     * Phase E: `part`/`final` are filled by the Engine when the emitter leaves them out (listeners registered after
+     * the engine's flow see them; the flow is created first, so every team listener does).
+     */
+    'stage:clear': { stage: number; part?: PartId; final?: boolean };
+    /** Phase E: Engine emits right after stage:start, once every team registered. UI title card, Audio. */
+    'part:start': { id: PartId; mission: number; part: number; title: string; location: string; briefing: string[]; final: boolean };
     'checkpoint': { x: number; y: number; id: string };
     'camera:lock': { x0: number; x1: number };
     'camera:unlock': Empty;
@@ -63,6 +70,8 @@ export interface GameEvents {
     'boss:hp': BossInfo;
     'boss:phase': BossInfo;
     'boss:defeated': BossInfo;
+    /** Phase E: a boss stomp/slam landed at (x, y). Levels (ice cracks), FX, Audio. `power` ≈ 1 normal, 2+ heavy. */
+    'boss:stomp': Pos & { power: number };
 
     // feel (anyone emits; Engine services react)
     'fx:shake': { tier: ShakeTier };
@@ -153,6 +162,13 @@ export class EventBus {
 
     listenerCount(key: EventKey): number {
         return this.map.get(key)?.length ?? 0;
+    }
+
+    /** Listeners on every key (leak checks across part restarts). */
+    totalListeners(): number {
+        let n = 0;
+        for (const l of this.map.values()) n += l.length;
+        return n;
     }
 
     /** A view of this bus whose listeners are removed automatically when `scene` shuts down. */

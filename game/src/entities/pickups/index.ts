@@ -4,7 +4,7 @@ import { PLAYER as T, isWeapon } from '../../config/tuning/player';
 export function spawnPickup(ctx: GameContext, x: number, y: number, kind: string, props: Record<string, unknown> = {}) {
     const subtype = String(props.subtype ?? props.item ?? 'medal');
     const pointKind = kind === 'points' ? subtype : kind.replace('points_', '');
-    const letters: Record<string, string> = { hmg: 'h', spread: 's', rocket: 'r', flame: 'f', bombs: 'b', life: 'life' };
+    const letters: Record<string, string> = { hmg: 'h', spread: 's', rocket: 'r', flame: 'f', laser: 'l', bombs: 'b', life: 'life' };
     const texture = `pickup_${letters[kind] ?? (pointKind in T.points ? pointKind : 'medal')}`;
     const spr = ctx.scene.add.sprite(x, y, texture).setOrigin(0.5, 1).setDepth(DEPTH.POW + 1);
     spr.play(`${texture}_shine`);
@@ -32,7 +32,7 @@ export function spawnPickup(ctx: GameContext, x: number, y: number, kind: string
     return spr;
 }
 export function registerPickups(ctx: RegisterContext): void {
-    const kinds = ['hmg', 'spread', 'rocket', 'flame', 'bombs', 'points', 'life', 'fish', 'chicken', 'medal', 'ration', 'points_fish', 'points_chicken', 'points_medal', 'points_ration'];
+    const kinds = ['hmg', 'spread', 'rocket', 'flame', 'laser', 'bombs', 'points', 'life', 'fish', 'chicken', 'medal', 'ration', 'points_fish', 'points_chicken', 'points_medal', 'points_ration'];
     for (const kind of kinds) ctx.registry.register(`pickup:${kind}`, (g, x, y, props) => spawnPickup(g, x, y, kind, props));
     ctx.registry.register('pickup', (g, x, y, props) => spawnPickup(g, x, y, String(props.kind ?? 'points'), props));
 }

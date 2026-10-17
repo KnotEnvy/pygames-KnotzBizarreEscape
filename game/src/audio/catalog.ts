@@ -97,7 +97,29 @@ export const SFX_META: Record<string, SfxMeta> = {
     game_over: { vol: 1, max: 1 },
     callout: { vol: 0.9, max: 2, minMs: 80 },
     score_tally: { vol: 0.5, max: 3, minMs: 25 },
-    rank_stamp: { vol: 1, max: 1 }
+    rank_stamp: { vol: 1, max: 1 },
+    // Phase E: train (Part II). The ambience loops are 1-voice: the Audio layer starts them on part:start and a Levels call can't double them.
+    train_clack: { vol: 0.9, loop: true, max: 1 },
+    train_horn: { vol: 1, max: 1, minMs: 400 },
+    train_whistle: { vol: 0.9, max: 1, minMs: 400 },
+    wind: { vol: 0.8, loop: true, max: 1 },
+    // Phase E: ice / laser
+    ice_crack: { vol: 0.8, vary: 80, max: 3, minMs: 60 },
+    ice_shatter: { vol: 0.9, vary: 60, max: 2, minMs: 80 },
+    laser: { vol: 0.8, vary: 40, max: 3, minMs: 45, burst: { ms: 160, step: 0.05, floor: 0.65 } },
+    // Phase E: bosses and enemies
+    snowcat_engine: { vol: 1, max: 1, minMs: 500 },
+    snowcat_tread: { vol: 0.7, loop: true, max: 1 },
+    mortar_thump: { vol: 0.9, vary: 50, max: 3, minMs: 60 },
+    loco_steam: { vol: 0.8, max: 2, minMs: 250 },
+    loco_cannon: { vol: 0.9, vary: 40, max: 2, minMs: 120 },
+    cinder: { vol: 0.7, vary: 120, max: 4, minMs: 30, burst: { ms: 140, step: 0.08, floor: 0.5 } },
+    hound_bark: { vol: 0.9, vary: 150, max: 3, minMs: 70 },
+    hound_growl: { vol: 0.8, vary: 80, max: 2, minMs: 200 },
+    buzzard_rotor: { vol: 0.6, loop: true, max: 2 },
+    // Phase E: radio / menus
+    radio_blip: { vol: 0.8, max: 2, minMs: 40 },
+    radio_static: { vol: 0.7, max: 1, minMs: 150 }
 };
 
 /** One alias target. `keys` picks randomly; `loopMs` runs the key as a loop for that long; `also` layers more keys. */
@@ -161,7 +183,37 @@ export const SFX_ALIASES: Record<string, AliasSpec> = {
     pause: { key: 'ui_pause' },
     unpause: { key: 'ui_unpause' },
     start: { key: 'ui_start' },
-    tick: { key: 'continue_tick' }
+    tick: { key: 'continue_tick' },
+    // Phase E synonyms
+    laser_shot: { key: 'laser' },
+    laser_fire: { key: 'laser' },
+    rotor: { key: 'buzzard_rotor' },
+    heli: { key: 'buzzard_rotor' },
+    buzzard: { key: 'buzzard_rotor' },
+    horn: { key: 'train_horn' },
+    whistle: { key: 'train_whistle' },
+    clack: { key: 'train_clack' },
+    bark: { key: 'hound_bark' },
+    growl: { key: 'hound_growl' },
+    hound_alert: { key: 'hound_bark' },
+    hound_leap: { key: 'hound_bark', detune: 200 },
+    mortar: { key: 'mortar_thump' },
+    mortar_fire: { key: 'mortar_thump' },
+    mortar_land: { key: 'explo_m' },
+    cannon: { key: 'loco_cannon' },
+    turret_cannon: { key: 'loco_cannon' },
+    steam_blast: { key: 'loco_steam' },
+    smokestack: { key: 'loco_steam' },
+    crack: { key: 'ice_crack' },
+    ice_break: { key: 'ice_shatter' },
+    shatter: { key: 'ice_shatter' },
+    snowcat_rev: { key: 'snowcat_engine' },
+    snowcat_charge: { key: 'snowcat_engine' },
+    engine: { key: 'snowcat_engine' },
+    tread: { key: 'snowcat_tread' },
+    radio: { key: 'radio_blip' },
+    static: { key: 'radio_static' },
+    part_clear: { key: 'part_clear_jingle' }
 };
 
 export interface MusicMeta { loop: boolean; durationMs: number }
@@ -172,8 +224,21 @@ export const MUSIC_META: Record<string, MusicMeta> = {
     music_boss: { loop: true, durationMs: 62609 },
     music_continue: { loop: true, durationMs: 8000 },
     jingle_complete: { loop: false, durationMs: 7000 },
-    jingle_gameover: { loop: false, durationMs: 6000 }
+    jingle_gameover: { loop: false, durationMs: 6000 },
+    // Phase E
+    music_m1p2: { loop: true, durationMs: 76800 },
+    music_m1p3: { loop: true, durationMs: 75000 },
+    music_midboss: { loop: true, durationMs: 43636 },
+    part_clear_jingle: { loop: false, durationMs: 4800 }
 };
+
+/** Phase E: which looping track a `boss:spawn` picks, by boss name (upper-cased, substring match). Default: the mid-boss theme. */
+export function bossMusicFor(name: string): string {
+    return /MOOSEZILLA|KING ANTLER/.test(name.toUpperCase()) ? 'music_boss' : 'music_midboss';
+}
+
+/** Phase E: loop keys the Audio layer counts as gameplay music (restored after a continue, left alone by part:start). */
+export const GAMEPLAY_MUSIC = /^music_(stage|boss|midboss|m\d+p\d+)/;
 
 /** Music keys other teams/maps may use (Levels prefixes trigger keys with `music_`). */
 export const MUSIC_ALIASES: Record<string, string> = {
@@ -181,7 +246,13 @@ export const MUSIC_ALIASES: Record<string, string> = {
     boss1: 'music_boss', boss: 'music_boss', music_boss1: 'music_boss', music_boss_1: 'music_boss',
     title: 'music_title', menu: 'music_title', music_menu: 'music_title',
     continue: 'music_continue', music_gameover: 'jingle_gameover', gameover: 'jingle_gameover', game_over: 'jingle_gameover',
-    complete: 'jingle_complete', music_complete: 'jingle_complete', clear: 'jingle_complete', music_clear: 'jingle_complete'
+    complete: 'jingle_complete', music_complete: 'jingle_complete', clear: 'jingle_complete', music_clear: 'jingle_complete',
+    // Phase E
+    music_m1p1: 'music_stage1', m1p1: 'music_stage1', m1p2: 'music_m1p2', m1p3: 'music_m1p3',
+    stage2: 'music_m1p2', music_stage2: 'music_m1p2', train: 'music_m1p2', music_train: 'music_m1p2',
+    stage3: 'music_m1p3', music_stage3: 'music_m1p3', lake: 'music_m1p3', lab: 'music_m1p3', music_lake: 'music_m1p3',
+    midboss: 'music_midboss', music_midboss1: 'music_midboss', boss_snowcat: 'music_midboss', boss_ironhorn: 'music_midboss',
+    music_snowcat: 'music_midboss', music_ironhorn: 'music_midboss', music_part_clear: 'part_clear_jingle', jingle_part_clear: 'part_clear_jingle'
 };
 
 export function isMusicKey(key: string): boolean {

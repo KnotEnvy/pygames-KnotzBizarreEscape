@@ -1,3 +1,79 @@
+# Effects and game feel — Phase E integration contract
+
+This section supersedes historical notes below. Implemented and verified in the existing camp/bridge map and boss fixtures; new Part II/III maps were not yet present during verification.
+
+All effects are cosmetic. Emit `fx:emit` with `{ effect, x, y, ...params }`; coordinates are world pixels, angles radians, durations milliseconds. Optional `scale` defaults to 1 (clamped .25–2). New optional fields are accepted by FX locally until Engine expands the shared event type. `durationMs` is an alias for `duration`.
+
+| Effect | Optional params / anchor | Behavior |
+|---|---|---|
+| `ice_skid` | feet `x,y`; `angle` = travel direction; `count=5`, `scale` | Cool powder and sliding ice chips; suppresses fallback brown movement dust. |
+| `ice_crack` | surface center `x,y`; `width=32`, `duration=600`, `scale` | Branching stepped fissure, grows through three stages, expires at duration. |
+| `ice_shatter` | waterline center `x,y`; `count=10`, `width=32`, `scale` | Ice chips, powder, water splash and ripple. Removes nearby crack decals. |
+| `steam` / `vent_steam` | vent socket `x,y`; `scale` | One capped rising steam puff. Repeat from owner for a continuous vent. |
+| `smoke_stack` | stack mouth `x,y`; `count=2`, `scale` | Dark drifting exhaust puffs; repeat from owner for continuous exhaust. |
+| `cinder` | ember center `x,y`; `angle=π/2`, `speed=55`, `duration=900`, `scale` | One glowing ochre falling ember, cosmetic only. Boss owns damaging projectile. |
+| `mortar_marker` / `ground_marker` | target surface center `x,y`; `width=28`, `duration=900`, `scale` | Bracket/ellipse target marker, pulse until expiry; steady with reduced flash. |
+| `boss_chain` | `x,y` = rect top-left; `width=112`, `height=64`, `count=7`, `duration=1400` | Bounded staggered M/L explosions across rect. No terminal defeat event or gameplay damage. |
+| `derail` | `x,y` = crash center; `width=220`, `height=80`, `count=10`, `duration=1800` | Multi-explosions, metal debris, steam, final XL and sustained decaying shake. |
+
+`fx:ambience { kind }` and existing `fx:zone { id, kind, x, y, width, height, active }` accept `train`, `tunnel`, `blizzard`, plus existing `snow`, `embers`, `fireflies`, `steam`, and null fallback. Levels: add new ids to your ambience-trigger whitelist. Train reads map `drift` (px/s), default 180; tunnel darkness/lamp sweeps composite over overlapping train weather. All darkness, lamp sweeps, snow and gust veils stay below actors and projectiles.
+
+`boss:phase` / `boss:defeated` distinguish `name` containing SNOWCAT / IRONHORN; terminal defeat supplies scaled hitstop, final burst, settings-gated flash and slow-mo. Keep defeated terminal (after boss-owned body choreography). An explicit `derail` supplies its own finale, so a following IRONHORN defeat will not duplicate it. `boss:stomp {x,y,power}` emits an expanding low dust ring and shake (power≈1 normal, 2+ heavy). `part:start` opens a brief in-Game wipe; UI still owns between-part scenes. Shake-off and reduced-flash settings are honored.
+
+Dev preview (or production with `debug=1`): `?scene=Game&fast=1&mute=1&god=1&seed=7&fxtest=train` (also `tunnel`, `blizzard`, `phasee`, `derail`). `fxtest=1` retains the original explosion gallery. `state().fx.weather` reports mode/drift/gust; `state().fx.campaign` reports live markers/cracks, scheduled bursts, reveal state and cumulative reveals/derails/stomps. `state().fx.ambience` remains the level fallback id; a gallery override is reported in `weather.mode`.
+
+## Implementation and budgets
+
+Changed paths: `game/src/fx/{campaign,weather,director,gallery,index}.ts`, `game/src/config/tuning/fx.ts`, and this document. Existing authored FX atlases are reused; no new dependencies, textures, asset-pack edits or git operations that change state.
+
+- Weather uses the existing 64 ambient slots, with at most 48 snow sprites. Train emits 22/s; blizzard 30/s. Gusts modulate wind speed; wheel sparks use the existing spark cap. Map `drift` is read from the published tilemap (cached map fallback), clamped −600…600 px/s, default 180. Negative drift reverses wind. Tunnel dark alpha .64; blizzard veil ≤.075 plus three sparse .035 gust bands. Three reusable Graphics objects cover weather, ground marks, and the entry wipe; no per-flake filters or Arcade bodies.
+- All weather, smoke, debris, ice chips and splash ripples render below actors/projectiles. The tunnel veil overscans viewport edges by 16 px for Engine's scroll-space shake and stays drawn during hitstop. The entry wipe alone covers the Game layer at depth 90; HUD stays separate. It opens in 380 real ms, or 160 ms with reduced flash/OS reduced motion. No camera flash/shake is added by part entry.
+- Fixed capacity: 20 combined markers/cracks, 32 delayed explosion jobs. Markers use 80–8000 ms durations, chain/derail 300–4000 ms and at most 16 bursts. Finale reservation may reclaim an optional scheduled burst. Repeated targets coalesce; excess optional requests drop. Markers keep their outline visible during the pulse and are steady under reduced flash. Crack decals grow in three steps; shatter removes nearby cracks. The 344 pooled-Image cap and .16 total / .08 cloud weighted coverage caps remain intact. Those coverage metrics describe pooled FX, not the explicitly bounded weather veil or short entry curtain.
+- SNOWCAT/IRONHORN use 90 ms terminal hitstop then .5× for 650 real ms; MOOSEZILLA retains 120 ms then .35× for 900 ms. Slow-mo starts after hitstop. Mid-boss phase stop is 45 ms, main boss 65 ms. A terminal XL remains large for both mid-bosses. `derail` has a 75 ms initial stop, delayed core finale and sustained decaying shake; normal chain sub-bursts do not repeatedly freeze combat. Explicit derail suppresses duplicate IRONHORN finale for 5 gameplay seconds. Boss names are case-insensitive. All FX camera flashes are suppressed by reducedFlash/OS reduced motion; shakes pass through the existing setting gate.
+- New spatial effects are visual-only. Ground markers have no hitboxes, cinders do not deal damage, and cracks do not modify tiles. Phase changes/defeat clear markers and cracks; continue/part entry/shutdown cancel delayed work. Gallery requires `ctx.debug.cheatsEnabled`.
+
+## Phase E verification
+
+`npm --prefix game run check` passes: TypeScript plus Phaser 4 scan, 90 files, zero errors/warnings. Phaser 4 Filters and FILL tint modes are preserved; no legacy FX APIs introduced.
+
+Chromium 156 / SwiftShader, 1152×648 capture of the 384×216 game. The representative full-combat workload holds the actual HMG at the bridge, adds three M/XL/M bursts every 850 gameplay ms, the gallery's burst sequence, and up to ten live enemy bullets. This is an explicit stress fixture, not an unassisted train playthrough. Train runs 30 s; tunnel/blizzard 6 s each. Final tunnel capture/measurement includes the overscan repair.
+
+| Ambience | Average FPS | p95 frame ms | FX cpuMs at end | Maximum observed cpuMs | cpuPeakMs | Peak pooled FX |
+|---|---:|---:|---:|---:|---:|---:|
+| train | 59.95 | 16.7 | .121 | .220 | 2.3 | 158 |
+| tunnel | 59.48 | 16.8 | .086 | .125 | 1.8 | 103 |
+| blizzard | 59.00 | 16.8 | .094 | .160 | 1.5 | 153 |
+
+All frame intervals ≤16.8 ms; no >50 ms spikes, browser errors, sample errors or depth violations. Train processed 116 explosions with 40 optional pool requests dropped by caps; tunnel/blizzard dropped 7 each. Damage/projectiles are independent of those caps. CPU values come from `state().fx`, include handler/update/presentation work, and exclude renderer/GPU time. `cpuPeakMs` includes setup/JIT/event spikes; these are software-renderer results, not hardware GPU timings.
+
+Evidence: `/tmp/kbe-fx/phase-e-verification.json`, `phase-e-tunnel-final.json`, `phase-e-contracts.json`, `phase-e-routing.json`, with their `.mjs` harnesses beside them. Contract checks pass for all new spatial effects; crack growth/removal, marker duration/alias, pause, splash/ice tint, power-scaled stomp, shake-off/reduced-flash, part reveal completion, map drift read, cancellation on continue, stable listener count on restart, real Snowcat/Ironhorn death lifecycle, and exactly one mid-boss slow-mo/finale with an explicit derail. Routing checks pass for fallback train → tunnel zone → hitstop → zone removal → blizzard → null. The initial restart assertion expected one listener, but Audio also owns an `fx:emit` listener; corrected verification checks the stable count across restart.
+
+Opened/inspected captures under `/tmp/kbe-fx/`:
+- `phase-e-train-combat.png`, `phase-e-tunnel-combat.png`, `phase-e-blizzard-combat.png`: live enemy bullets remain distinct through fire/smoke/weather.
+- `phase-e-tunnel-shake.png`, `phase-e-blizzard-ambience.png`: weather-only views; tunnel edge gutters repaired.
+- `phase-e-ice-marker.png`, `phase-e-ice-shatter.png`, `phase-e-steam-cinder-skid.png`, `phase-e-stomp.png`, `phase-e-part-reveal.png`.
+- `phase-e-snowcat-chain.png`, `phase-e-snowcat-finale.png`, `phase-e-ironhorn-chain.png` (explicit derail plus real boss death).
+- `phase-e-gallery.png`: documented Phase E gallery via the repository screenshot command.
+
+```sh
+node game/tools/shot.mjs --out /tmp/kbe-fx/phase-e-gallery.png \
+  --query 'scene=Game&fast=1&mute=1&god=1&seed=7&fxtest=phasee' --wait 3500
+# fxtest=train|tunnel|blizzard: weather plus explosion gallery.
+# fxtest=derail: repeated crash every 5200 gameplay ms; wait at least 6000 ms.
+```
+
+## Known issues and requests for other teams (Phase E)
+
+- **Engine:** extend `fx:ambience.kind` with `steam | train | tunnel | blizzard`; extend `fx:emit` with optional numeric `duration`, `durationMs`, `width`, `height`, `speed`. FX accepts these locally; no shared files edited. `part:start` and `boss:stomp` are already present and consumed.
+- **Levels:** add `train`, `tunnel`, `blizzard` to your ambience-trigger whitelist, publish existing `fx:zone` rectangles, and set map `drift`. Call `ice_crack` at surface center with the tile's remaining break duration, then `ice_shatter` at the waterline. The new maps were absent during this pass; verify the authored tunnel/bridge/train positions after they land.
+- **Enemies:** the named boss lifecycle already works. Integrate optional `smoke_stack`, `steam`, `cinder`, markers and `derail` at your sockets. Request `derail` near the beginning of IRONHORN's death so its default 1800 gameplay ms sequence completes before terminal `boss:defeated`/part transition. Keep your actual damaging shells/cinders. If adopting FX markers, remove equivalent boss-owned marker drawing to avoid duplicates. Use either your existing body chain or `boss_chain`, not both for the same bursts. FX supplies the terminal burst/stop/slow-mo.
+- **UI/audio:** boss fixtures currently log missing `snowcat_engine` and `loco_steam` audio keys. Please add/alias those keys. FX uses existing `explo_m/l/xl` sounds for its own scheduled chains; avoid duplicating those. `steam` aliases the FX art for `vent_steam`; Audio currently only handles the old spelling.
+- **Player:** emit `ice_skid` at the feet with travel `angle` instead of ordinary brown skid dust on ice.
+- **QA:** verify final train/lake maps and hardware GPU performance once those assets land. All authored-weather integration remains outside FX ownership.
+
+
+---
+
 # Effects and game feel — Phase D review fixes and polish
 
 This section supersedes the Phase B tuning and integration notes below. Edits are confined to FX source/tuning, FX art/exports/pack and this report. No installs, commits, staging, branches or other git mutations.

@@ -3,15 +3,17 @@
 //               → every member dead → next wave → after the last wave (release=clear) unlock (camera:unlock → "GO!").
 //               release=time unlocks after `time` seconds instead. Each wave start of a multi-wave arena shows a
 //               short ui:prompt ("WAVE 1/3", "FINAL WAVE!").
-//   boss arena: camera reaches it → the gate rumbles → gate bursts → ctx.spawn('boss', ...) with arenaX0/X1.
-//               Moosezilla locks the camera itself and unlocks on boss:defeated.
+//   boss arena: camera reaches it → its gate (prop gate, lock=<arena id>) rumbles → gate bursts → ctx.spawn('boss', kind)
+//               with arenaX0/X1 (snowcat, ironhorn, moosezilla). No gate: the boss spawns as the camera arrives.
+//               The boss locks the camera itself and unlocks on boss:defeated.
+//   A wave arena with a gate (Part III's lab gate) smashes it open when the arena is cleared.
 // If something else unlocks the camera mid-arena (warp cheat), the arena relocks while the player is still
 // inside it, otherwise it's abandoned.
 import Phaser from 'phaser';
 import type { GameContext } from '../core';
 import { LEVEL } from '../config/tuning/level';
 import { spawnObject } from './spawner';
-import { num, str, type LevelObject, type LevelRuntime } from './types';
+import { num, str, type GateHandle, type LevelObject, type LevelRuntime } from './types';
 
 type ArenaState = 'idle' | 'intro' | 'active' | 'boss' | 'releasing' | 'done' | 'skipped';
 
@@ -75,14 +77,16 @@ export class ArenaController {
             });
         }
         this.arenas.sort((a, b) => a.x0 - b.x0);
-        ctx.events.on('boss:spawn', () => { if (this.rt.gate && !this.rt.gate.smashed) this.rt.gate.smash(); });
+        ctx.events.on('boss:spawn', () => {
+            for (const a of this.arenas) if (a.boss && (a.state === 'intro' || a.state === 'boss')) this.smashGate(a);
+        });
         ctx.events.on('boss:defeated', () => {
             for (const a of this.arenas) {
                 if (!a.boss) continue;
                 if (a.state === 'boss' || a.state === 'intro') this.finish(a, false);
                 // A boss spawned outside the arena flow (?enemytest=boss) must not leave the arena to re-run its intro
                 // and spawn a second MOOSEZILLA after the clear.
-                else if (a.state === 'idle') { a.state = 'done'; if (this.rt.gate && !this.rt.gate.smashed) this.rt.gate.smash(); }
+                else if (a.state === 'idle') { a.state = 'done'; this.smashGate(a); }
             }
         });
     }
@@ -101,8 +105,9 @@ export class ArenaController {
         for (const a of this.arenas) {
             switch (a.state) {
                 case 'idle':
-                    // Boss arenas start once the gate is on screen (so its rumble is seen); wave arenas as the camera arrives.
-                    if (a.boss ? v.right < (this.rt.gate?.x ?? a.x0 + v.width) + LEVEL.boss.gateOnScreen : v.x < a.x0 - LEVEL.arena.lockLead) break;
+                    // Gated boss arenas start once the gate is on screen (so its rumble is seen); wave arenas and
+                    // gateless boss arenas (Ironhorn at the map's end) as the camera arrives.
+                    if (a.boss && this.gate(a) ? v.right < this.gate(a)!.x + LEVEL.boss.gateOnScreen : v.x < a.x0 - LEVEL.arena.lockLead) break;
                     if (v.x > a.x1 - v.width + LEVEL.arena.skipPast && !a.boss) { a.state = 'skipped'; break; }
                     this.begin(a, v.x);
                     break;
@@ -126,8 +131,11 @@ export class ArenaController {
     private begin(a: Arena, viewX: number): void {
         if (a.boss) {
             a.state = 'intro';
-            a.timer = this.rt.gate ? LEVEL.boss.rumbleMs : 0;
-            this.rt.gate?.rumble();
+            const gate = this.gate(a);
+            a.timer = gate && !gate.smashed ? LEVEL.boss.rumbleMs : 0;
+            gate?.rumble();
+            // No gate: lock now so the camera settles on the arena while the boss rolls in.
+            if (!gate && !this.ctx.camera.isLocked()) { a.lockX0 = Math.max(a.x0, Math.ceil(viewX)); this.ctx.camera.lock(a.lockX0, a.x1); }
             this.hooks.fire(a.id, true);
             return;
         }
@@ -140,7 +148,7 @@ export class ArenaController {
     }
 
     private spawnBoss(a: Arena): void {
-        this.rt.gate?.smash();
+        this.smashGate(a);
         const b = a.boss!;
         a.state = 'boss';
         spawnObject(this.ctx, { ...b, props: { ...b.props, arenaX0: a.x0, arenaX1: a.x1, facing: str(b.props.facing, 'left') } });
@@ -198,7 +206,7 @@ export class ArenaController {
         if (m.offMs >= pull + cull) { go.destroy(); return; }
         if (m.offMs < pull || m.offMs - dt >= pull) return;
         const x = Phaser.Math.Clamp(go.x, v.left + e * 2, v.right - e * 2);
-        const flying = go.kind === 'drone';
+        const flying = go.kind === 'drone' || go.kind === 'buzzard';
         const y = flying ? Phaser.Math.Clamp(go.y, v.top + 24, v.bottom - 48) : this.ctx.physics.groundBelow(x, Math.min(go.y, v.bottom) - 48, 200) ?? go.y;
         go.setPosition(x, y);
         // Drones patrol and recover around their spawn point: move it with them (private field, by design here).
@@ -217,6 +225,7 @@ export class ArenaController {
 
     private finish(a: Arena, unlock: boolean): void {
         a.state = 'done';
+        if (!a.boss) this.smashGate(a); // a gated wave arena (lab gate) blows its gate open on clear
         if (unlock && this.ctx.camera.isLocked()) this.ctx.camera.unlock();
         this.hooks.fire(a.id, false);
     }
@@ -249,6 +258,13 @@ export class ArenaController {
         this.hooks.fire(a.id, false);
     }
 
+    private gate(a: Arena): GateHandle | null { return this.rt.gates.get(a.id) ?? null; }
+
+    private smashGate(a: Arena): void {
+        const g = this.gate(a);
+        if (g && !g.smashed) g.smash();
+    }
+
     private nearestDoor(x: number): { x: number; open(): void } | null {
         let best: { x: number; open(): void } | null = null;
         for (const d of this.rt.doors) if (Math.abs(d.x - x) <= 48 && (!best || Math.abs(d.x - x) < Math.abs(best.x - x))) best = d;
@@ -266,7 +282,7 @@ export class ArenaController {
         if (x === o.x) return spawnObject(this.ctx, o);
         let y = o.y;
         const kind = str(o.props.kind);
-        if (kind !== 'drone' && kind !== 'paratrooper') y = this.ctx.physics.groundBelow(x, o.y - 48, 160) ?? o.y;
+        if (kind !== 'drone' && kind !== 'paratrooper' && kind !== 'buzzard') y = this.ctx.physics.groundBelow(x, o.y - 48, 160) ?? o.y;
         const patrol = Math.min(num(o.props.patrol, LEVEL.arena.edgePatrol), LEVEL.arena.edgePatrol);
         return spawnObject(this.ctx, { ...o, props: { ...o.props, patrol } }, x, y);
     }

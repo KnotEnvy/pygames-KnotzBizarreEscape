@@ -1,0 +1,42 @@
+[
+  {
+    "asset": "m1p2_sky",
+    "transparent_background": false,
+    "prompt": "Use case: stylized-concept. Production parallax artwork for Knotz Bizarre Escape, chunky hand-painted pixel-art run-and-gun background matching Metal Slug snowy mountains. Wide horizontal landscape strip, orthographic side view, no perspective foreground, no characters, no text, no outlines. Lighting top-left. Restrained low contrast slate blue, muted lavender and dusty steel ramps; avoid bright white/yellow/red reserved for gameplay. Large readable shapes, no noise or dithering. Opaque late-afternoon snowy mountain valley sky only, soft layered mauve-gray clouds with muted dusty peach light at upper left, subdued slate-blue below. No sun disc, terrain or mountains. Full canvas sky, horizontal repeat composition."
+  },
+  {
+    "asset": "m1p2_peaks",
+    "transparent_background": true,
+    "prompt": "Use case: stylized-concept. Production parallax artwork for Knotz Bizarre Escape, chunky hand-painted pixel-art run-and-gun background matching Metal Slug snowy mountains. Wide horizontal landscape strip, orthographic side view, no perspective foreground, no characters, no text, no outlines. Lighting top-left. Restrained low contrast slate blue, muted lavender and dusty steel ramps; avoid bright white/yellow/red reserved for gameplay. Large readable shapes, no noise or dithering. Transparent background. Long distant snowy alpine peak range seen from a logging train in a mountain valley late afternoon. Peaks occupy lower two thirds, fully transparent sky above. Snow muted lavender-gray, top-left dusty peach accents. Continuous solid mountain base to bottom edge, balanced similar height left and right for horizontal tiling. Wide 3:1 strip."
+  },
+  {
+    "asset": "m1p2_slopes",
+    "transparent_background": true,
+    "prompt": "Use case: stylized-concept. Production parallax artwork for Knotz Bizarre Escape, chunky hand-painted pixel-art run-and-gun background matching Metal Slug snowy mountains. Wide horizontal landscape strip, orthographic side view, no perspective foreground, no characters, no text, no outlines. Lighting top-left. Restrained low contrast slate blue, muted lavender and dusty steel ramps; avoid bright white/yellow/red reserved for gameplay. Large readable shapes, no noise or dithering. Transparent sky above a mid-distance snowy mountain valley slope band, clustered pine forests and tiny subdued river glint winding along lower valley. Seen sideways from roof of racing logging train. No train. Low-contrast dusty slate, muted blue-green pines, lavender snow. Solid terrain to bottom, irregular forest skyline in middle, tileable wide 3:1 strip."
+  },
+  {
+    "asset": "m1p2_near_pines",
+    "transparent_background": true,
+    "prompt": "Use case: stylized-concept. Production parallax artwork for Knotz Bizarre Escape, chunky hand-painted pixel-art run-and-gun background matching Metal Slug snowy mountains. Wide horizontal landscape strip, orthographic side view, no perspective foreground, no characters, no text, no outlines. Lighting top-left. Restrained low contrast slate blue, muted lavender and dusty steel ramps; avoid bright white/yellow/red reserved for gameplay. Large readable shapes, no noise or dithering. Transparent background above darker near pine treeline with visible trunks, snow at roots, as seen sideways from moving logging train. No train. Broad clustered pines, sparse trunk gaps, muted dark desaturated slate teal and blue-purple, subtle snowy top-left edges. Not black. Solid low forest base at bottom. Wide 3:1 horizontal repeat strip."
+  },
+  {
+    "asset": "m1p3_sky",
+    "transparent_background": false,
+    "prompt": "Use case: stylized-concept. Production parallax artwork for Knotz Bizarre Escape, chunky hand-painted pixel-art run-and-gun background matching Metal Slug snowy mountains. Wide horizontal landscape strip, orthographic side view, no perspective foreground, no characters, no text, no outlines. Lighting top-left. Restrained low contrast slate blue, muted lavender and dusty steel ramps; avoid bright white/yellow/red reserved for gameplay. Large readable shapes, no noise or dithering. Opaque stormy dusk blizzard sky only over frozen lake, broad layered slate violet storm clouds, subdued fading light upper left, calm dark blue-gray bottom. No terrain, snowflakes, stars, sun or lightning. Full canvas horizontally repeatable sky."
+  },
+  {
+    "asset": "m1p3_mountains",
+    "transparent_background": true,
+    "prompt": "Use case: stylized-concept. Production parallax artwork for Knotz Bizarre Escape, chunky hand-painted pixel-art run-and-gun background matching Metal Slug snowy mountains. Wide horizontal landscape strip, orthographic side view, no perspective foreground, no characters, no text, no outlines. Lighting top-left. Restrained low contrast slate blue, muted lavender and dusty steel ramps; avoid bright white/yellow/red reserved for gameplay. Large readable shapes, no noise or dithering. Transparent sky above long distant mountain range at dusk in a blizzard, very low-contrast desaturated lavender and slate-blue snowy peaks, atmospheric haze, no outlines. Continuous mountain base at bottom, wide 3:1 horizontally repeating strip."
+  },
+  {
+    "asset": "m1p3_lake_far",
+    "transparent_background": true,
+    "prompt": "Use case: stylized-concept. Production parallax artwork for Knotz Bizarre Escape, chunky hand-painted pixel-art run-and-gun background matching Metal Slug snowy mountains. Wide horizontal landscape strip, orthographic side view, no perspective foreground, no characters, no text, no outlines. Lighting top-left. Restrained low contrast slate blue, muted lavender and dusty steel ramps; avoid bright white/yellow/red reserved for gameplay. Large readable shapes, no noise or dithering. Transparent background above distant shoreline band of tiny hazy pine silhouettes, below is broad frozen lake ice expanse at dusk in a blizzard. Low-contrast horizontal muted blue-gray ice facets, sparse soft snow drifts, tiny far shoreline trees. No foreground rocks, no large cracks or bright highlights. Solid ice extends to bottom, wide 3:1 seamless horizontal strip."
+  },
+  {
+    "asset": "m1p3_lab_far",
+    "transparent_background": true,
+    "prompt": "Use case: stylized-concept. Production parallax artwork for Knotz Bizarre Escape, chunky hand-painted pixel-art run-and-gun background matching Metal Slug snowy mountains. Wide horizontal landscape strip, orthographic side view, no perspective foreground, no characters, no text, no outlines. Lighting top-left. Restrained low contrast slate blue, muted lavender and dusty steel ramps; avoid bright white/yellow/red reserved for gameplay. Large readable shapes, no noise or dithering. Transparent background. Across frozen lake at stormy dusk stands Dr Von Antler's remote lab compound: industrial alpine lodge, stepped snow roofs, squat factory annexes and chimneys, two antler-shaped branching antenna towers, tiny muted warm lit windows, two soft blue searchlight cones angled upward, hanging muted burgundy banners bearing pale spiral-eye emblems (no letters). Side elevation distant silhouette, low-contrast slate and lavender blue, industrial cartoon military pixel art, no black outlines. Entire compound visible with transparent margin around sides and above, solid building base along bottom. Wide composition."
+  }
+]

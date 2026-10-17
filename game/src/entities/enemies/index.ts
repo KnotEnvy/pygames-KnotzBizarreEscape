@@ -2,34 +2,41 @@ import type { RegisterContext, HitInfo } from '../../core/contracts';
 import { ENEMIES, type EnemyKind } from '../../config/tuning/enemies';
 import { Enemy } from './Enemy';
 import { registerEnemyAnimations } from './animations';
+import { MachineBoss } from '../bosses/MachineBoss';
+import { AssaultEnemy } from './AssaultEnemy';
 import { Moosezilla } from '../bosses/Moosezilla';
 
 export function registerEnemies(ctx: RegisterContext): void {
     registerEnemyAnimations(ctx);
-    const enemies = new Set<Enemy>();
-    let boss: Moosezilla | null = null;
-    const kinds: EnemyKind[] = ['grunt', 'grenadier', 'shield', 'turret', 'drone', 'paratrooper'];
+    const enemies = new Set<Enemy | AssaultEnemy>();
+    let boss: Moosezilla | MachineBoss | null = null;
+    const kinds: EnemyKind[] = ['grunt', 'grenadier', 'shield', 'turret', 'drone', 'paratrooper', 'leaper', 'hound', 'buzzard'];
     for (const kind of kinds) ctx.registry.register(`enemy:${kind}`, (c, x, y, props) => {
         if (enemies.size >= ENEMIES.maxEnemies) return;
-        const e = new Enemy(c, kind, x, y, props); enemies.add(e); e.once('destroy', () => enemies.delete(e)); return e;
+        const e = kind === 'hound' || kind === 'buzzard' ? new AssaultEnemy(c, kind, x, y, props) : new Enemy(c, kind, x, y, props); enemies.add(e); e.once('destroy', () => enemies.delete(e)); return e;
     });
     ctx.registry.register('boss:moosezilla', (c, x, y, props) => {
         if (boss?.active) return boss;
         boss = new Moosezilla(c, x, y, props); return boss;
+    });
+    for (const kind of ['snowcat', 'ironhorn'] as const) ctx.registry.register(`boss:${kind}`, (c, x, y, props) => {
+        if (boss?.active) return boss;
+        boss = new MachineBoss(c, kind, x, y, props); return boss;
     });
     ctx.debug.register('enemyAI', () => [...enemies].map(e => e.snapshot()));
     ctx.debug.register('bossPhase', () => boss?.active ? boss.phase : null);
     ctx.debug.register('boss', () => boss?.active ? boss.snapshot() : null);
     // Opt-in sandbox fixture. Delayed until level and player registration have completed.
     const test = new URLSearchParams(location.search).get('enemytest');
-    if (test && ctx.debug.cheatsEnabled && (test === 'boss' || kinds.includes(test as EnemyKind))) {
+    if (test && ctx.debug.cheatsEnabled && (test === 'boss' || test === 'snowcat' || test === 'ironhorn' || kinds.includes(test as EnemyKind))) {
         let spawned = false;
         const off = ctx.onUpdate(() => {
             const p = ctx.player(); if (spawned || !ctx.hasLevel() || !p) return;
             spawned = true;
-            const x = p.x + (test === 'boss' ? 210 : 110);
+            const isBoss = test === 'boss' || test === 'snowcat' || test === 'ironhorn';
+            const x = p.x + (isBoss ? 210 : 110);
             const ground = ctx.physics.groundBelow(x, p.y - 20, 300) ?? p.y;
-            ctx.spawn(test === 'boss' ? 'boss' : 'enemy', test === 'boss' ? 'moosezilla' : test, { facing: -1, patrol: 36 }, x, test === 'drone' ? ground - 75 : test === 'paratrooper' ? ground - 100 : ground);
+            ctx.spawn(isBoss ? 'boss' : 'enemy', test === 'boss' ? 'moosezilla' : test, { facing: -1, patrol: 36 }, x, test === 'buzzard' ? ground - 95 : test === 'drone' ? ground - 75 : test === 'paratrooper' ? ground - 100 : ground);
         });
         ctx.scene.events.once('shutdown', off);
         const observed = { kills: 0, score: 0, phases: [] as number[], defeated: 0 };

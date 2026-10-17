@@ -4,8 +4,9 @@ import { FX } from '../config/tuning/fx';
 import { FxPool } from './pool';
 import { FxFilters } from './filters';
 
-type Ambience = 'snow' | 'embers' | 'fireflies' | 'steam' | null;
-const MACHINE = /turret|drone|tank|moose|machine/;
+import { CampaignFx, ambience, type Ambience, type SpatialFx } from './campaign';
+import { FxWeather } from './weather';
+const MACHINE = /turret|drone|tank|moose|machine|snowcat|ironhorn/i;
 const MUZZLES: Record<string, readonly [string, string]> = {
     pistol: ['fx_muzzle_pistol_right', 'fx_muzzle_pistol_diag'], hmg: ['fx_muzzle_hmg_right', 'fx_muzzle_hmg_diag'],
     spread: ['fx_muzzle_spread_right', 'fx_muzzle_spread_diag'], rocket: ['fx_muzzle_rocket_right', 'fx_muzzle_rocket_diag'],
@@ -22,6 +23,8 @@ const SNOW = ['fx_snow_v1', 'fx_snow_v2', 'fx_snow_v3'];
 export class FxDirector {
     readonly pool: FxPool;
     readonly filters: FxFilters;
+    readonly campaign: CampaignFx;
+    readonly weather: FxWeather;
     private readonly impacts = Array.from({ length: FX.impactsPerFrame }, () => ({ x: 0, y: 0, material: 'flesh' as ImpactMaterial, primary: false }));
     private impactCount = 0;
     private frameCpu = 0;
@@ -33,11 +36,14 @@ export class FxDirector {
     private readonly stats = { active: 0, peak: 0, dropped: 0, cpuMs: 0, cpuPeakMs: 0, filters: 'plain', ambience: null as Ambience, popups: 0, impacts: 0, explosions: 0, splashes: 0, combat: null as FxPool['combatLive'] | null, coverage: 0, cloudCoverage: 0, cues: 0 };
     private readonly offUpdate: () => void;
     private ambience: Ambience = null;
+    private previewAmbience: Ambience | undefined;
     private ambientDebt = 0;
     private shake = 0; private stop = 0;
     private realClock = 0; private lastShake = -1000; private lastTier = 0; private lastFlash = -1000;
     private lastStop = -1000; private criticalStop = false;
     private lastCasing = -1000; private lastHmg = -1000; private lastFlameHurt = -1000;
+    private bossName = ''; private defeated = false;
+    private slowScale = 0.35; private slowMs = 900;
     private bossDying = false; private bossPhase = -1; private slowPending = false;
     private lastX = NaN; private lastY = NaN; private lastVx = 0; private lastDust = 0; private wasWater = false;
     private readonly reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -46,6 +52,11 @@ export class FxDirector {
         this.pool = new FxPool(ctx);
         this.stats.combat = this.pool.combatLive;
         this.filters = new FxFilters(ctx);
+        this.weather = new FxWeather(ctx, this.pool);
+        this.campaign = new CampaignFx(ctx, this.pool,
+            (x, y, size) => { this.explosion(x, y, size, false, true); this.ctx.audio.sfx(`explo_${size}`, { x }); },
+            (x, y) => this.finale(x, y, 'IRONHORN'),
+            (tier, stop) => this.feel(tier, stop), (x, y) => this.splash(x, y));
         for (let i = 0; i < FX.popup.cap; i++) {
             this.popups.push({ text: ctx.scene.add.text(0, 0, '', {
                 fontFamily: 'monospace', fontSize: '8px', color: '#ffe066', stroke: '#1a1220', strokeThickness: 2
@@ -98,29 +109,48 @@ export class FxDirector {
         on('pickup:collected', e => this.celebrate(e.x, e.y, e.kind === 'life' ? 10 : 6));
         on('pow:freed', e => this.celebrate(e.x, e.y - 16, 6));
         on('checkpoint', e => this.celebrate(e.x, e.y - 8, 4));
-        on('boss:spawn', e => { this.bossPhase = e.phase; this.bossDying = false; this.feel(3, 0); });
-        on('boss:phase', e => { if (this.bossPhase !== e.phase) { this.bossPhase = e.phase; this.clearCues(); this.feel(3, FX.feel.phase); } });
+        on('boss:spawn', e => { this.bossName = e.name; this.defeated = false; this.bossPhase = e.phase; this.bossDying = false; this.feel(this.midboss(e.name) ? 2 : 3, 0); });
+        on('boss:phase', e => { if (this.bossName !== e.name || this.bossPhase !== e.phase) { this.bossName = e.name; this.bossPhase = e.phase; this.clearCues(); this.campaign.clearCombat(); this.feel(this.midboss(e.name) ? 2 : 3, this.midboss(e.name) ? 45 : FX.feel.phase); } });
         on('boss:hp', e => { if (e.hp <= 0) { this.bossDying = true; this.clearCues(); } });
-        // Current boss emits defeated AFTER its destruction bursts. Start slow motion after the final stop.
         on('boss:defeated', e => {
-            // Body choreography remains boss-owned. One final core burst follows its chain.
-            if (e.x !== undefined && e.y !== undefined) this.explosion(e.x, e.y - 48, 'xl', true);
-            this.bossDying = false; this.slowPending = true;
+            if (this.defeated && this.bossName === e.name) return;
+            this.defeated = true; this.bossName = e.name; this.clearCues(); this.campaign.clearCombat();
+            if (!(/ironhorn/i.test(e.name) && this.campaign.derailRecent)) {
+                if (e.x !== undefined && e.y !== undefined) this.finale(e.x, e.y - (this.midboss(e.name) ? 32 : 48), e.name);
+                else this.finishFeel(e.name);
+            }
+            this.bossDying = false;
         });
+        on('boss:stomp', e => this.campaign.stomp(e.x, e.y, e.power));
+        on('part:start', () => { this.weather.readDrift(); this.campaign.startPart(); });
+        on('level:ready', () => this.weather.readDrift());
         on('fx:ambience', e => this.setAmbience(e.kind));
         on('ui:popup', e => this.popup(e));
         on('settings:changed', () => this.filters.applySettings());
         on('stage:clear', () => { this.setAmbience(null); this.ambientEnabled = false; });
-        on('game:over', () => { this.ambientEnabled = false; this.setAmbience(null); this.slowPending = false; this.shake = this.stop = 0; });
+        on('game:over', () => { this.ambientEnabled = false; this.setAmbience(null); this.slowPending = false; this.shake = this.stop = 0; this.campaign.reset(); });
         on('game:continue', () => this.reset());
         on('stage:start', () => { this.pool.clear(); this.impactCount = 0; this.ambientEnabled = true; });
         this.offUpdate = ctx.onUpdate((dt, rawDt) => this.update(dt, rawDt));
         // Flush after gameplay/projectiles, so damage and impact pairs coalesce within the same frame.
         ctx.scene.events.on(Phaser.Scenes.Events.POST_UPDATE, this.flush, this);
         ctx.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroy, this);
-        ctx.debug.register('fx', () => this.stats);
+        ctx.debug.register('fx', () => ({ ...this.stats, weather: this.weather.stats, campaign: this.campaign.stats }));
     }
 
+    private midboss(name: string): boolean { return /snowcat|ironhorn/i.test(name); }
+    private finishFeel(name: string): void {
+        const mid = this.midboss(name);
+        this.criticalStop = true;
+        this.feel(mid ? 3 : 4, mid ? FX.campaign.midbossStop : 120);
+        this.slowScale = mid ? FX.campaign.midbossSlowScale : 0.35;
+        this.slowMs = mid ? FX.campaign.midbossSlowMs : 900;
+        this.slowPending = true;
+    }
+    private finale(x: number, y: number, name: string): void {
+        this.explosion(x, y, 'xl', true, false, this.midboss(name) ? FX.campaign.midbossStop : 120);
+        this.finishFeel(name);
+    }
     private feel(shake: number, stop: number): void { this.shake = Math.max(this.shake, shake); this.stop = Math.max(this.stop, stop); }
     private queueImpact(x: number, y: number, material: ImpactMaterial, primary: boolean): void {
         for (let i = 0; i < this.impactCount; i++) {
@@ -198,7 +228,7 @@ export class FxDirector {
         if (weapon === 'flame') { this.scatter(e.x, e.y, EMBERS, 2, 45, 35, 220, false); this.glow(e.x, e.y, 0.6, 0.15); }
     }
 
-    explosion(x: number, y: number, size: ExplosionSize, finale = false): void {
+    explosion(x: number, y: number, size: ExplosionSize, finale = false, cinematic = false, finalStop = 120): void {
         if (size === 'xl' && this.pool.countTexture('fx_explosion_xl') >= 2) {
             if (!finale) size = 'l';
             else {
@@ -224,7 +254,7 @@ export class FxDirector {
             const decal = this.pool.spawn('decal', 'fx_scorch_round', x, ground, 0, recipe.scorch, true);
             if (decal) { decal.life = FX.decalMs; decal.alpha = 0.65; decal.fade = 1500; decal.image.setDepth(DEPTH.DECALS); }
         }
-        this.feel(recipe.shake, finale ? 120 : this.bossDying ? 0 : recipe.stop);
+        this.feel(recipe.shake, finale ? finalStop : this.bossDying || cinematic ? 0 : recipe.stop);
         if (finale) { this.criticalStop = true; this.ctx.audio.sfx('explo_xl', { x }); }
         if (size === 'xl' && (!this.bossDying || finale)) {
             // Engine also gates its camera flash; honor reduced motion for our own requests.
@@ -266,16 +296,19 @@ export class FxDirector {
         this.stats.splashes++;
         this.pool.spawn('dust', 'fx_water_splash_fall', x, y)?.image.setOrigin(0.5, 47 / 56);
         const ripple = this.pool.spawn('impact', 'fx_water_ripple_expand', x, y, 100, 1.8);
-        if (ripple) ripple.image.setDepth(DEPTH.FX);
+        if (ripple) ripple.image.setDepth(DEPTH.DECALS + 1);
     }
     private waterline(x: number, y: number): number {
         for (let dy = 0; dy < 64; dy += 2) if (this.ctx.physics.hazardAt(x, y - dy - 2) !== 'water') return y - dy;
         return y;
     }
     private celebrate(x: number, y: number, count: number): void { this.scatter(x, y, SPARKS, count, 30, -10, 450, false); }
-    setAmbience(kind: Ambience): void { this.ambience = kind; this.ambientDebt = 0; }
+    /** Dev gallery override; normal level events/zones remain authoritative outside the gallery. */
+    preview(kind: Ambience): void { this.previewAmbience = kind; this.weather.readDrift(); }
+    setAmbience(kind: Ambience): void { this.ambience = ambience(kind); this.ambientDebt = 0; }
     private emitAmbient(kind: Ambience, left: number, top: number, right: number, bottom: number): void {
         if (!kind) return;
+        if (this.weather.emit(kind, left, top, right, bottom)) return;
         const cap = kind === 'snow' ? 32 : kind === 'steam' ? 6 : 12;
         const texture = kind === 'snow' ? 'fx_snow' : kind === 'steam' ? 'fx_steam' : kind === 'fireflies' ? 'fx_firefly' : 'fx_embers';
         let count = 0;
@@ -302,10 +335,13 @@ export class FxDirector {
         if (!slot && e.active) for (const z of this.zones) if (!z.active) { slot = z; break; }
         if (!slot) return;
         slot.id = e.id; slot.active = e.active;
-        slot.kind = e.kind === 'snow' || e.kind === 'embers' || e.kind === 'fireflies' || e.kind === 'steam' ? e.kind : null;
+        slot.kind = ambience(e.kind);
         slot.x = e.x; slot.y = e.y; slot.width = e.width; slot.height = e.height; slot.debt = 0;
     }
-    private spatial(e: GameEvents['fx:emit']): void {
+    private spatial(e: SpatialFx): void {
+        if (!Number.isFinite(e.x) || !Number.isFinite(e.y)) return;
+        if (e.effect === 'ice_skid') this.explicitDustUntil = this.ctx.time.now + 250;
+        if (this.campaign.emit(e)) return;
         const scale = Math.max(0.25, Math.min(2, e.scale ?? 1));
         switch (e.effect) {
             case 'boss_cannon_charge': case 'boss_flame_reach': case 'boss_charge_lane':
@@ -314,7 +350,7 @@ export class FxDirector {
                 this.explicitDustUntil = this.ctx.time.now + 250;
                 this.dust(e.x, e.y, e.effect === 'dust_run' ? 'run' : e.effect === 'dust_skid' ? 'skid' : 'land', scale); break;
             case 'splash': case 'waterfall': this.splash(e.x, e.y); break;
-            case 'vent_steam': {
+            case 'steam': case 'vent_steam': {
                 let vents = 0;
                 for (const slot of this.pool.slots) if (slot.live && slot.clip?.texture === 'fx_steam') vents++;
                 if (vents >= 6) break;
@@ -403,23 +439,28 @@ export class FxDirector {
     private update(dt: number, rawDt: number): void {
         const start = performance.now();
         if (!this.ctx.time.paused) this.realClock += rawDt;
-        if (this.slowPending && this.stop === 0 && !this.ctx.time.frozen) { this.ctx.fx.slowmo(0.35, 900); this.slowPending = false; }
+        if (this.slowPending && this.stop === 0 && !this.ctx.time.frozen) { this.ctx.fx.slowmo(this.slowScale, this.slowMs); this.slowPending = false; }
         this.pool.update(dt);
+        this.campaign.update(dt, this.ctx.time.paused ? 0 : rawDt);
+        this.weather.begin(dt);
         this.observeMovement(dt);
         const view = this.ctx.camera.view();
         let hasZone = false;
-        if (this.ambientEnabled && dt > 0) for (const z of this.zones) {
+        if (this.ambientEnabled && this.previewAmbience === undefined) for (const z of this.zones) {
             if (!z.active || !z.kind) continue;
             const left = Math.max(z.x, view.left), right = Math.min(z.x + z.width, view.right);
             const top = Math.max(z.y, view.top), bottom = Math.min(z.y + z.height, view.bottom);
             if (left >= right || top >= bottom) { z.debt = 0; continue; }
             hasZone = true;
+            this.weather.region(z.kind, left, top, right, bottom);
             z.debt += dt * FX.ambientRate[z.kind] / 1000;
-            if (z.debt >= 1) { z.debt -= 1; this.emitAmbient(z.kind, left, top, right, bottom); }
+            if (dt > 0 && z.debt >= 1) { z.debt -= 1; this.emitAmbient(z.kind, left, top, right, bottom); }
         }
-        if (this.ambientEnabled && !hasZone && this.ambience && dt > 0) {
-            this.ambientDebt += dt * FX.ambientRate[this.ambience] / 1000;
-            if (this.ambientDebt >= 1) { this.ambientDebt -= 1; this.emitAmbient(this.ambience, view.left, view.top, view.right, view.bottom); }
+        const fallback = this.previewAmbience === undefined ? this.ambience : this.previewAmbience;
+        if (this.ambientEnabled && !hasZone && fallback) {
+            this.weather.region(fallback, view.left, view.top, view.right, view.bottom);
+            this.ambientDebt += dt * FX.ambientRate[fallback] / 1000;
+            if (dt > 0 && this.ambientDebt >= 1) { this.ambientDebt -= 1; this.emitAmbient(fallback, view.left, view.top, view.right, view.bottom); }
         }
         let popups = 0;
         for (const p of this.popups) if (p.age < FX.popup.life) {
@@ -433,13 +474,13 @@ export class FxDirector {
         this.frameCpu += elapsed;
     }
     private reset(): void {
-        this.pool.clear(); this.impactCount = 0; this.shake = this.stop = 0; this.bossDying = this.slowPending = this.criticalStop = false; this.lastStop = -1000;
+        this.pool.clear(); this.campaign.reset(); this.defeated = false; this.impactCount = 0; this.shake = this.stop = 0; this.bossDying = this.slowPending = this.criticalStop = false; this.lastStop = -1000;
         this.lastX = this.lastY = NaN; this.wasWater = false; this.ambientEnabled = true;
         for (const p of this.popups) { p.age = FX.popup.life; p.text.setVisible(false); }
     }
     private destroy(): void {
         this.offUpdate(); this.ctx.scene.events.off(Phaser.Scenes.Events.POST_UPDATE, this.flush, this);
-        this.filters.destroy(); this.pool.destroy();
+        this.campaign.destroy(); this.weather.destroy(); this.filters.destroy(); this.pool.destroy();
         for (const p of this.popups) p.text.destroy();
     }
 }

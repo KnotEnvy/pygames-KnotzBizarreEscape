@@ -1,49 +1,83 @@
 // Parallax backdrop: camera-fixed TileSprites (scrollFactor 0) driven from the final camera scroll each frame.
+// The set comes from the map's `parallax` property. A map `drift` (px/s, the moving train) adds drift * t to the
+// camera x every layer sees, so far layers crawl and near ones whip past at train speed (the world itself is static).
 // Updated at the scene's PRE_RENDER (after the engine camera runs at POST_UPDATE) so layers never lag the tiles,
 // and every offset is rounded so nothing shimmers at integer zoom.
 import Phaser from 'phaser';
 import { DEPTH, type GameContext } from '../core';
-import { LEVEL } from '../config/tuning/level';
+import { LEVEL, type ParallaxLayerDef } from '../config/tuning/level';
 
 interface Layer {
-    sprite: Phaser.GameObjects.TileSprite;
-    sfX: number;
-    sfY: number;
-    y: number;
+    def: ParallaxLayerDef;
+    sprite: Phaser.GameObjects.TileSprite | Phaser.GameObjects.Image;
     alpha: number;
-    fade?: 'in' | 'out';
 }
 
-export function createParallax(ctx: GameContext): { destroy(): void } {
+export interface Parallax {
+    destroy(): void;
+    /** 0..1: how much of the view a tunnel covers (layers flagged `tunnelHide` fade out). */
+    setTunnelCover(f: number): void;
+    /** Distance the train has travelled (px): drift * scaled seconds. */
+    readonly travelled: number;
+}
+
+const BAND: Record<NonNullable<ParallaxLayerDef['band']>, number> = {
+    far: DEPTH.BG_FAR,
+    near: DEPTH.BG_NEAR,
+    track: DEPTH.TILES_BACK + 0.5,
+    front: DEPTH.TILES_FRONT + 2
+};
+
+export function createParallax(ctx: GameContext, setId: string, drift: number): Parallax {
     const scene = ctx.scene;
     const cam = scene.cameras.main;
     const P = LEVEL.parallax;
+    const set = P.sets[setId] ?? P.sets.stage1;
+    if (!P.sets[setId]) console.warn(`[level] unknown parallax set '${setId}': using stage1`);
     const layers: Layer[] = [];
-    for (const def of P.layers) {
+    for (const def of set.layers) {
         if (!scene.textures.exists(def.key)) { console.warn(`[level] parallax texture '${def.key}' missing`); continue; }
         const src = scene.textures.get(def.key).getSourceImage() as { width: number; height: number };
-        const sprite = scene.add.tileSprite(0, 0, cam.width, src.height, def.key)
-            .setOrigin(0, 0).setScrollFactor(0).setDepth(DEPTH.BG_FAR + def.depth);
-        const alpha = 'alpha' in def ? def.alpha : 1;
+        const depth = BAND[def.band ?? 'far'] + def.depth;
+        const sprite = def.once !== undefined
+            ? scene.add.image(0, 0, def.key).setOrigin(0, 0)
+            : scene.add.tileSprite(0, 0, cam.width, src.height, def.key).setOrigin(0, 0);
+        sprite.setScrollFactor(0).setDepth(depth);
+        const alpha = def.alpha ?? 1;
         sprite.setAlpha(alpha);
-        layers.push({ sprite, sfX: def.sfX, sfY: def.sfY, y: def.y, alpha, fade: 'fade' in def ? def.fade : undefined });
+        layers.push({ def, sprite, alpha });
     }
 
+    let travelled = 0;
+    let cover = 0;
+    let last = ctx.time.now;
     const update = (): void => {
+        // Scaled gameplay clock: the drift stops during hitstop/pause like everything else.
+        const now = ctx.time.now;
+        travelled += drift * Math.max(0, now - last) / 1000;
+        last = now;
         const camX = cam.scrollX, camY = cam.scrollY;
-        const t = Phaser.Math.Clamp((camX - P.crossfade.from) / (P.crossfade.to - P.crossfade.from), 0, 1);
+        const cf = set.crossfade;
+        const t = cf ? Phaser.Math.Clamp((camX - cf.from) / (cf.to - cf.from), 0, 1) : 0;
         for (const l of layers) {
-            l.sprite.tilePositionX = Math.round(camX * l.sfX);
-            l.sprite.y = Math.round(l.y + (P.restScrollY - camY) * l.sfY);
-            if (l.fade) {
-                const a = l.fade === 'in' ? t : 1 - t;
-                l.sprite.setAlpha(a * l.alpha).setVisible(a > 0.001);
-            }
+            const d = l.def;
+            const x = camX + travelled * (d.drift ?? 1);
+            if (l.sprite instanceof Phaser.GameObjects.TileSprite) l.sprite.tilePositionX = Math.round(x * d.sfX);
+            else l.sprite.x = Math.round(d.once! - x * d.sfX);
+            l.sprite.y = Math.round(d.y + (P.restScrollY - camY) * d.sfY);
+            let a = l.alpha;
+            if (d.fade) a *= d.fade === 'in' ? t : 1 - t;
+            if (d.tunnelHide) a *= 1 - cover;
+            l.sprite.setAlpha(a).setVisible(a > 0.001);
         }
     };
     update();
     scene.events.on(Phaser.Scenes.Events.PRE_RENDER, update);
     const destroy = (): void => { scene.events.off(Phaser.Scenes.Events.PRE_RENDER, update); };
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, destroy);
-    return { destroy };
+    return {
+        destroy,
+        setTunnelCover: (f: number) => { cover = Phaser.Math.Clamp(f, 0, 1); },
+        get travelled() { return travelled; }
+    };
 }

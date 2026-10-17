@@ -514,5 +514,277 @@
     "destructible": false,
     "hp": null,
     "notes": "Razor wire coil on a snow drift (decor)."
+  },
+  {
+    "key": "prop_bogie",
+    "kind": "bogie",
+    "png": "assets/sprites/props/prop_bogie.png",
+    "json": "assets/sprites/props/prop_bogie.json",
+    "w": 48,
+    "h": 24,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_bogie_spin"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Train wheel truck (M1 Part II). Feet = wheel bottoms on the rail top (y 352); centre ~1.5 tiles in from each car end; top 8 px tucks under the underframe row. spin = 4f@45ms loop (6 spokes, 15 deg/frame, clockwise = train runs right)."
+  },
+  {
+    "key": "prop_coupling",
+    "kind": "coupling",
+    "png": "assets/sprites/props/prop_coupling.png",
+    "json": "assets/sprites/props/prop_coupling.json",
+    "w": 48,
+    "h": 16,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_coupling_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Coupler knuckles + air hoses bridging a 3-tile gap between car decks. Canvas bottom = deck bottom (y 320); shanks leave the canvas edges on rows 9-11, matching the coupler pockets in deck_l/deck_r of m1_train. idle = 4f@90ms loop (1 px bob, hose sway)."
+  },
+  {
+    "key": "prop_boxcar_door",
+    "kind": "boxcar_door",
+    "png": "assets/sprites/props/prop_boxcar_door.png",
+    "json": "assets/sprites/props/prop_boxcar_door.json",
+    "w": 32,
+    "h": 40,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_boxcar_door_closed",
+      "prop_boxcar_door_open"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Sliding boxcar door for the m1_train boxcar wall; bottom on the deck (y 304), top tucks under the roof eave. open = 6f@60ms, slides right behind the door stop, play once and hold the last frame (dark interior x3..28, y4..38); enemies can emerge from the opening."
+  },
+  {
+    "key": "prop_sign_duck",
+    "kind": "sign_duck",
+    "png": "assets/sprites/props/prop_sign_duck.png",
+    "json": "assets/sprites/props/prop_sign_duck.json",
+    "w": 32,
+    "h": 144,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_sign_duck_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Trackside DUCK! warning sign (yellow board in the top ~25 px on a thin post). Canvas bottom = trackside ground (y 352). Decor, warns of a low bridge."
+  },
+  {
+    "key": "prop_low_bridge",
+    "kind": "low_bridge",
+    "png": "assets/sprites/props/prop_low_bridge.png",
+    "json": "assets/sprites/props/prop_low_bridge.json",
+    "w": 64,
+    "h": 128,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_low_bridge_idle"
+    ],
+    "body": [
+      0,
+      114,
+      64,
+      14
+    ],
+    "destructible": false,
+    "hp": null,
+    "notes": "Overhead girder that sweeps across above the cars. Danger = bottom 14 px (y 114..127 of the canvas): riveted I-beam with a hazard-striped lower flange; truss lattice above is visual only."
+  },
+  {
+    "key": "prop_train_lamp",
+    "kind": "train_lamp",
+    "png": "assets/sprites/props/prop_train_lamp.png",
+    "json": "assets/sprites/props/prop_train_lamp.json",
+    "w": 16,
+    "h": 16,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_train_lamp_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Red marker lantern on a bracket (end of train). idle = 3f flicker loop (220/90/160 ms)."
+  },
+  {
+    "key": "prop_wreck_boxcar",
+    "kind": "wreck_boxcar",
+    "png": "assets/sprites/props/prop_wreck_boxcar.png",
+    "json": "assets/sprites/props/prop_wreck_boxcar.json",
+    "w": 160,
+    "h": 64,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_wreck_boxcar_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Derailed red Regime boxcar lying overturned in the snow, buckled in the middle; small fire in the breach. idle = 4f@120ms loop (fire flicker, embers, smoke wisp). Breach/fire centre ~ (81,43) from the canvas top-left. Scenery only (no collision); top sill y~20..30."
+  },
+  {
+    "key": "prop_wreck_engine",
+    "kind": "wreck_engine",
+    "png": "assets/sprites/props/prop_wreck_engine.png",
+    "json": "assets/sprites/props/prop_wreck_engine.json",
+    "w": 128,
+    "h": 96,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_wreck_engine_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Armored locomotive IRONHORN crashed nose-down into the lake ice (tilted 21 deg, nose to the right, buried in heaped ice chunks); cab end propped on a snow bank. idle = 4f@140ms loop (stack smoke drifting left, glowing boiler crack + sparks). Stack mouth ~ (102,52). Scenery only; anchor the canvas bottom on the lake line (the ice heap may overlap the ice row by a few px)."
+  },
+  {
+    "key": "prop_wreck_bogie",
+    "kind": "wreck_bogie",
+    "png": "assets/sprites/props/prop_wreck_bogie.png",
+    "json": "assets/sprites/props/prop_wreck_bogie.json",
+    "w": 48,
+    "h": 24,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_wreck_bogie_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Overturned wheel truck (wheels up) half-buried in snow. Scenery."
+  },
+  {
+    "key": "prop_log_spill",
+    "kind": "log_spill",
+    "png": "assets/sprites/props/prop_log_spill.png",
+    "json": "assets/sprites/props/prop_log_spill.json",
+    "w": 64,
+    "h": 24,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_log_spill_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Spilled logs from the wrecked train, snow-dusted. Scenery."
+  },
+  {
+    "key": "prop_sign_thin_ice",
+    "kind": "sign_thin_ice",
+    "png": "assets/sprites/props/prop_sign_thin_ice.png",
+    "json": "assets/sprites/props/prop_sign_thin_ice.json",
+    "w": 32,
+    "h": 40,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_sign_thin_ice_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Wooden warning sign 'THIN ICE!' with a cracked-ice icon (same style as sign_jump/sign_danger). Place before crack_m stretches."
+  },
+  {
+    "key": "prop_lab_sign",
+    "kind": "lab_sign",
+    "png": "assets/sprites/props/prop_lab_sign.png",
+    "json": "assets/sprites/props/prop_lab_sign.json",
+    "w": 64,
+    "h": 32,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_lab_sign_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Riveted steel plate 'PROJECT ANTLER' with antler emblem on two short posts; idle = 2f@400ms loop (weird5 lamp on top blinks on/off)."
+  },
+  {
+    "key": "prop_tesla_coil",
+    "kind": "tesla_coil",
+    "png": "assets/sprites/props/prop_tesla_coil.png",
+    "json": "assets/sprites/props/prop_tesla_coil.json",
+    "w": 24,
+    "h": 64,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_tesla_coil_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Lab tesla mast with antler-shaped prongs; idle = 4f@90ms loop (crackling weird5/white arcs, pulsing orb). Orb centre ~ (11,13). Pair with an additive glow if desired."
+  },
+  {
+    "key": "prop_ice_hole",
+    "kind": "ice_hole",
+    "png": "assets/sprites/props/prop_ice_hole.png",
+    "json": "assets/sprites/props/prop_ice_hole.json",
+    "w": 32,
+    "h": 16,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_ice_hole_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Decorative open hole in thick ice (dark water, snowy jagged rim) sitting on the ice surface; idle = 2f@300ms loop (water glint). Not a hazard by itself."
   }
 ]

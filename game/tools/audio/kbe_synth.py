@@ -478,6 +478,19 @@ def write_wav(path, x, sr=SR):
     sf.write(path, np.asarray(x, dtype=np.float32), sr, format="WAV", subtype="PCM_16")
 
 
+def merge_manifest(path, data, full=False):
+    """A partial render (named keys) updates the existing manifest instead of dropping the other entries."""
+    if full or not os.path.exists(path):
+        return data
+    try:
+        with open(path) as f:
+            old = json.load(f)
+    except (OSError, ValueError):
+        old = {}
+    old.update(data)
+    return old
+
+
 def save_manifest(path, data):
     with open(path, "w") as f:
         json.dump(data, f, indent=2, sort_keys=True)

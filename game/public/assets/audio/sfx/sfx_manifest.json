@@ -48,6 +48,13 @@
     "peak_db": -1.0,
     "rms_db": -13.9
   },
+  "buzzard_rotor": {
+    "duration": 0.9,
+    "file": "assets/audio/sfx/buzzard_rotor.ogg",
+    "loop": true,
+    "peak_db": -9.6,
+    "rms_db": -22.7
+  },
   "callout": {
     "duration": 0.47,
     "file": "assets/audio/sfx/callout.ogg",
@@ -68,6 +75,13 @@
     "loop": false,
     "peak_db": -4.1,
     "rms_db": -20.0
+  },
+  "cinder": {
+    "duration": 0.4,
+    "file": "assets/audio/sfx/cinder.ogg",
+    "loop": false,
+    "peak_db": -3.0,
+    "rms_db": -22.2
   },
   "continue_final": {
     "duration": 0.649,
@@ -223,6 +237,34 @@
     "peak_db": -8.2,
     "rms_db": -16.0
   },
+  "hound_bark": {
+    "duration": 0.32,
+    "file": "assets/audio/sfx/hound_bark.ogg",
+    "loop": false,
+    "peak_db": -3.2,
+    "rms_db": -15.3
+  },
+  "hound_growl": {
+    "duration": 0.8,
+    "file": "assets/audio/sfx/hound_growl.ogg",
+    "loop": false,
+    "peak_db": -7.8,
+    "rms_db": -18.7
+  },
+  "ice_crack": {
+    "duration": 0.475,
+    "file": "assets/audio/sfx/ice_crack.ogg",
+    "loop": false,
+    "peak_db": -1.4,
+    "rms_db": -20.0
+  },
+  "ice_shatter": {
+    "duration": 0.828,
+    "file": "assets/audio/sfx/ice_shatter.ogg",
+    "loop": false,
+    "peak_db": -1.2,
+    "rms_db": -19.1
+  },
   "impact_body": {
     "duration": 0.09,
     "file": "assets/audio/sfx/impact_body.ogg",
@@ -265,6 +307,27 @@
     "peak_db": -10.2,
     "rms_db": -21.0
   },
+  "laser": {
+    "duration": 0.3,
+    "file": "assets/audio/sfx/laser.ogg",
+    "loop": false,
+    "peak_db": -6.4,
+    "rms_db": -16.0
+  },
+  "loco_cannon": {
+    "duration": 0.851,
+    "file": "assets/audio/sfx/loco_cannon.ogg",
+    "loop": false,
+    "peak_db": -5.4,
+    "rms_db": -16.3
+  },
+  "loco_steam": {
+    "duration": 1.1,
+    "file": "assets/audio/sfx/loco_steam.ogg",
+    "loop": false,
+    "peak_db": -2.0,
+    "rms_db": -20.4
+  },
   "melee_hit": {
     "duration": 0.15,
     "file": "assets/audio/sfx/melee_hit.ogg",
@@ -292,6 +355,13 @@
     "loop": false,
     "peak_db": -1.0,
     "rms_db": -15.2
+  },
+  "mortar_thump": {
+    "duration": 0.495,
+    "file": "assets/audio/sfx/mortar_thump.ogg",
+    "loop": false,
+    "peak_db": -4.6,
+    "rms_db": -16.2
   },
   "one_up": {
     "duration": 0.51,
@@ -342,6 +412,20 @@
     "peak_db": -8.0,
     "rms_db": -18.0
   },
+  "radio_blip": {
+    "duration": 0.18,
+    "file": "assets/audio/sfx/radio_blip.ogg",
+    "loop": false,
+    "peak_db": -7.2,
+    "rms_db": -18.0
+  },
+  "radio_static": {
+    "duration": 0.6,
+    "file": "assets/audio/sfx/radio_static.ogg",
+    "loop": false,
+    "peak_db": -8.1,
+    "rms_db": -22.6
+  },
   "rank_stamp": {
     "duration": 0.422,
     "file": "assets/audio/sfx/rank_stamp.ogg",
@@ -384,6 +468,20 @@
     "peak_db": -1.0,
     "rms_db": -19.3
   },
+  "snowcat_engine": {
+    "duration": 1.2,
+    "file": "assets/audio/sfx/snowcat_engine.ogg",
+    "loop": false,
+    "peak_db": -10.9,
+    "rms_db": -17.6
+  },
+  "snowcat_tread": {
+    "duration": 0.7,
+    "file": "assets/audio/sfx/snowcat_tread.ogg",
+    "loop": true,
+    "peak_db": -9.8,
+    "rms_db": -22.3
+  },
   "spread": {
     "duration": 0.352,
     "file": "assets/audio/sfx/spread.ogg",
@@ -397,6 +495,27 @@
     "loop": false,
     "peak_db": -5.6,
     "rms_db": -24.9
+  },
+  "train_clack": {
+    "duration": 1.6,
+    "file": "assets/audio/sfx/train_clack.ogg",
+    "loop": true,
+    "peak_db": -11.6,
+    "rms_db": -25.3
+  },
+  "train_horn": {
+    "duration": 1.805,
+    "file": "assets/audio/sfx/train_horn.ogg",
+    "loop": false,
+    "peak_db": -3.6,
+    "rms_db": -15.2
+  },
+  "train_whistle": {
+    "duration": 2.023,
+    "file": "assets/audio/sfx/train_whistle.ogg",
+    "loop": false,
+    "peak_db": -6.7,
+    "rms_db": -17.3
   },
   "turret_fire": {
     "duration": 0.24,
@@ -460,5 +579,12 @@
     "loop": false,
     "peak_db": -1.0,
     "rms_db": -15.5
+  },
+  "wind": {
+    "duration": 2.4,
+    "file": "assets/audio/sfx/wind.ogg",
+    "loop": true,
+    "peak_db": -19.2,
+    "rms_db": -29.8
   }
 }

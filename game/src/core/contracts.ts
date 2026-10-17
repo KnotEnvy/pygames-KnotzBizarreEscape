@@ -2,6 +2,7 @@
 // Every cross-team type lives here. Implementations live in the sibling modules of src/core/.
 import type Phaser from 'phaser';
 import type { EventBus } from './events';
+import type { PartDef } from '../config/campaign';
 
 export type Team = 'player' | 'enemy' | 'neutral';
 
@@ -141,6 +142,10 @@ export interface LevelQuery {
     /** Level name/number, for stage:start. */
     stage?: number;
     name?: string;
+    /** Optional (Phase E): raw `material` tile property at the point, or null. Engine falls back to groundLayer. */
+    surfaceAt?(x: number, y: number): string | null;
+    /** Optional (Phase E): raw `material` tile property at the point, or null. Engine falls back to groundLayer. */
+    surfaceAt?(x: number, y: number): string | null;
     /** Optional: number of POWs placed in the level (Results rank uses it; falls back to UI's estimate when absent). */
     powTotal?: number;
 }
@@ -258,6 +263,11 @@ export interface LevelPhysics {
      * of the level), or null. Uses `LevelQuery.waterSurfaceAt` when the level provides it.
      */
     waterSurfaceAt(x: number): number | null;
+    /**
+     * Phase E: the raw `material` tile property at (x, y) on the ground/collision layer (e.g. 'ice'), or null when
+     * there's no tile or no property. Unlike materialAt it doesn't default to 'dirt'. Probe just under the feet: (x, bottom + 1).
+     */
+    surfaceAt(x: number, y: number): string | null;
 }
 
 export interface FlowService {
@@ -298,12 +308,18 @@ export interface UrlParams {
     seed?: number;
     difficulty?: Difficulty;
     fast: boolean;
+    /** Phase E: ?part=1-2 (dev or ?debug=1 only; validated against CAMPAIGN). */
+    part?: string;
+    /** Test only: ?turbo=8 runs 8 fixed 1000/60 ms steps per browser frame (dev or ?debug=1). See __KBE.sim. */
+    turbo?: number;
 }
 
 // ---------------------------------------------------------------- the context
 
 export interface GameContext {
     scene: Phaser.Scene;
+    /** Phase E: the campaign part being played (from scene data, ?part=, else '1-1'). The level loads `part.map`. */
+    part: PartDef;
     events: EventBus;
     /** Player 1 input. */
     input: InputState;

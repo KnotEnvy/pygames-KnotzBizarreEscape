@@ -16,7 +16,7 @@ import { applyMute } from '../core/audio';
 import { registerDebug } from '../core/debug/hooks';
 import { UI } from '../config/tuning/ui';
 import { getPrefs, onPrefsChange } from '../ui/prefs';
-import { MUSIC_ALIASES, MUSIC_META, SFX_ALIASES, SFX_META } from './catalog';
+import { GAMEPLAY_MUSIC, MUSIC_ALIASES, MUSIC_META, SFX_ALIASES, SFX_META } from './catalog';
 
 type WASound = Phaser.Sound.WebAudioSound;
 
@@ -135,7 +135,6 @@ interface Track {
 interface Hint extends SfxHint { until: number }
 
 const DEV = import.meta.env.DEV;
-const GAMEPLAY_MUSIC = /^music_(stage|boss)/;
 
 function pick<T>(arr: readonly T[]): T {
     return arr[Math.floor(Math.random() * arr.length)];

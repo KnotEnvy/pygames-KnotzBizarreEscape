@@ -9,12 +9,14 @@
 //                       wherever the player stands, so the climax never ends in an invisible-trigger hunt. It waits
 //                       while the player is dead/respawning, and briefly for them to land so the victory pose is grounded.
 import type Phaser from 'phaser';
-import type { GameContext } from '../core';
+import type { GameContext, GameEvents } from '../core';
 import { LEVEL } from '../config/tuning/level';
 import { str, type LevelObject } from './types';
 
-type Ambience = 'snow' | 'embers' | 'fireflies';
-const AMBIENCES = new Set(['snow', 'embers', 'fireflies']);
+/** Ambience ids FX understands (Phase E adds the train's speed weather, tunnel darkness and the lake blizzard). */
+type Ambience = 'snow' | 'embers' | 'fireflies' | 'steam' | 'train' | 'tunnel' | 'blizzard';
+const AMBIENCES = new Set<string>(['snow', 'embers', 'fireflies', 'steam', 'train', 'tunnel', 'blizzard']);
+type AmbiencePayload = GameEvents['fx:ambience']['kind'];
 
 export class TriggerSystem {
     private readonly fired = new Set<LevelObject>();
@@ -26,14 +28,18 @@ export class TriggerSystem {
     /** ms spent waiting for the player to land after the clear beat. */
     private landWait = 0;
     private cleared = false;
+    /** Set while a moving tunnel covers the player (train): wins over the map's ambience rects. */
+    private override: Ambience | null = null;
     lastCheckpoint = '';
 
-    constructor(private readonly ctx: GameContext, private readonly triggers: LevelObject[]) {
+    constructor(private readonly ctx: GameContext, private readonly triggers: LevelObject[], private readonly clearSfx = '') {
         this.ambience = triggers.filter(t => t.type === 'ambience' && AMBIENCES.has(str(t.props.fx)))
             .sort((a, b) => a.width * a.height - b.width * b.height);
         ctx.events.on('boss:defeated', () => {
             this.bossDown = true;
             if (this.clearTimer < 0) this.clearTimer = LEVEL.boss.clearDelayMs;
+            // Part I: a logging train's whistle blows in the distance after the Snowcat goes down.
+            if (this.clearSfx) ctx.scene.time.delayedCall(LEVEL.clearSfxDelayMs, () => ctx.audio.sfx(this.clearSfx));
         });
     }
 
@@ -76,11 +82,12 @@ export class TriggerSystem {
             }
         }
         // Innermost (smallest) ambience rect containing the player.
-        let kind: Ambience | null = null;
-        for (const t of this.ambience) if (x >= t.x && x <= t.x + t.width) { kind = str(t.props.fx) as Ambience; break; }
+        let kind: Ambience | null = this.override;
+        if (!kind) for (const t of this.ambience) if (x >= t.x && x <= t.x + t.width) { kind = str(t.props.fx) as Ambience; break; }
         if (kind !== this.currentAmbience) {
             this.currentAmbience = kind;
-            this.ctx.events.emit('fx:ambience', { kind });
+            // FX accepts the Phase E ids already; the shared event type may still list only the Phase B three.
+            this.ctx.events.emit('fx:ambience', { kind: kind as AmbiencePayload });
         }
     }
 
@@ -97,7 +104,8 @@ export class TriggerSystem {
         if (this.cleared) return;
         this.cleared = true;
         this.clearTimer = -1;
-        this.ctx.events.emit('stage:clear', { stage: this.ctx.level.stage ?? LEVEL.map.stage });
+        const part = (this.ctx as { part?: GameContext['part'] }).part;
+        this.ctx.events.emit('stage:clear', { stage: this.ctx.level.stage ?? LEVEL.map.stage, ...(part ? { part: part.id, final: part.final } : {}) });
     }
 
     private checkpoint(t: LevelObject, px: number, py: number): void {
@@ -112,6 +120,9 @@ export class TriggerSystem {
         if (!key) return;
         this.ctx.audio.music(key.startsWith(LEVEL.music.prefix) ? key : LEVEL.music.prefix + key);
     }
+
+    /** Ambience override (a tunnel passing over the player); null hands control back to the map's rects. */
+    setOverride(kind: Ambience | null): void { this.override = kind; }
 
     /** Checkpoint x by id (boss cheat). */
     checkpointX(id: string): number | null {

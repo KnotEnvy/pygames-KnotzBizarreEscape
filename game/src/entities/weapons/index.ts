@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { GameContext, Projectile } from '../../core';
+import { DEPTH, type GameContext, type Projectile } from '../../core';
 import { PLAYER as T, isWeapon, type Weapon } from '../../config/tuning/player';
 
 export class Weapons {
@@ -29,7 +29,7 @@ export class Weapons {
         const ctx = this.ctx;
         const w: Weapon = isWeapon(ctx.state.weapon) ? ctx.state.weapon : 'pistol';
         const interval = w === 'pistol' ? (tapped ? T.pistolTapMs : T.pistolHoldMs) :
-            w === 'hmg' ? T.hmgMs : w === 'spread' ? T.spreadMs : w === 'rocket' ? T.rocketMs : T.flameMs;
+            w === 'laser' ? T.laserMs : w === 'hmg' ? T.hmgMs : w === 'spread' ? T.spreadMs : w === 'rocket' ? T.rocketMs : T.flameMs;
         if (this.sinceShot < interval) return false;
         if (w !== 'pistol' && ctx.state.ammo <= 0) { this.equip('pistol'); return false; }
         let shotAngle = angle;
@@ -41,6 +41,7 @@ export class Weapons {
         this.lastAngle = shotAngle;
         this.sinceShot = 0;
         if (w === 'spread') for (let i = -2; i <= 2; i++) this.bullet(x, y, angle + i * Math.PI / 18, w);
+        else if (w === 'laser') this.laser(x, y, angle);
         else if (w === 'rocket') this.rocket(x, y, angle);
         else if (w === 'flame') { this.flameLeft = T.flameBurstMs; this.flameAngle = angle; this.flameTick = T.flameTickMs; this.flame(x, y, angle); }
         else this.bullet(x, y, shotAngle, w);
@@ -59,6 +60,19 @@ export class Weapons {
         const texture = weapon === 'hmg' ? 'hmg_bullet' : weapon === 'spread' ? 'spread_bullet' : 'pistol_bullet';
         this.ctx.projectiles.spawn({ x, y, vx: Math.cos(angle) * T.bulletSpeed, vy: Math.sin(angle) * T.bulletSpeed,
             team: 'player', damage: 1, weapon, texture, anim: `${texture}_fly`, lifetime: 1400 });
+    }
+    private flash(texture: 'laser_muzzle' | 'laser_impact', x: number, y: number, angle: number): void {
+        const spr = this.ctx.scene.add.sprite(x, y, texture).setDepth(DEPTH.PROJECTILES + 1).setRotation(angle);
+        spr.play(`${texture}_flash`);
+        this.ctx.scene.time.delayedCall(120, () => spr.destroy());
+    }
+    private laser(x: number, y: number, angle: number): void {
+        this.flash('laser_muzzle', x, y, angle);
+        this.ctx.projectiles.spawn({ x, y, vx: Math.cos(angle) * T.laserSpeed, vy: Math.sin(angle) * T.laserSpeed,
+            team: 'player', damage: T.laserDamage, weapon: 'laser', texture: 'laser_beam', anim: 'laser_beam_fly',
+            pierce: Infinity, radius: 2, lifetime: T.laserLifetimeMs,
+            onHit: (_p, hit) => this.flash('laser_impact', hit.x, hit.y, angle),
+            onImpact: (_p, hit) => { if (!hit.hurtbox) this.flash('laser_impact', hit.x, hit.y, angle); } });
     }
     private boom(x: number, y: number, radius: number, damage: number, weapon: string): void {
         this.ctx.damage.applyRadial(x, y, radius, damage, 'player', 'explosion', weapon);

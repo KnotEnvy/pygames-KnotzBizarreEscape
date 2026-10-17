@@ -74,6 +74,15 @@ export class LevelCollision implements LevelPhysics {
     hazardAt(x: number, y: number): HazardKind | null { return this.level?.hazardAt?.(x, y) ?? null; }
     materialAt(x: number, y: number): TerrainMaterial { return this.level?.materialAt?.(x, y) ?? 'dirt'; }
 
+    surfaceAt(x: number, y: number): string | null {
+        const level = this.level;
+        if (!level) return null;
+        if (level.surfaceAt) return level.surfaceAt(x, y);
+        const t = level.groundLayer?.getTileAtWorldXY(x, y, false);
+        const m = t && t.index >= 0 ? t.properties?.material : undefined;
+        return typeof m === 'string' && m !== '' ? m : null;
+    }
+
     groundBelow(x: number, fromY: number, maxDist = 2000): number | null {
         const tile = ENGINE.tile;
         const end = fromY + maxDist;
@@ -186,6 +195,11 @@ export function createTileLevelQuery(opts: TileLevelOptions): LevelQuery {
             const t = tileAt(x, y);
             const h = t && t.index >= 0 ? t.properties?.hazard : undefined;
             return h === 'water' || h === 'spikes' ? h : null;
+        },
+        surfaceAt(x, y) {
+            const t = tileAt(x, y);
+            const m = t && t.index >= 0 ? t.properties?.material : undefined;
+            return typeof m === 'string' && m !== '' ? m : null;
         },
         materialAt(x, y) {
             const t = tileAt(x, y);

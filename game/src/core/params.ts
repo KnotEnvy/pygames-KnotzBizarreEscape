@@ -1,5 +1,5 @@
-// URL params: ?scene=Title|Game&stage=1&x=<warpX>&god=1&debug=1&mute=1&seed=<n>&difficulty=casual&fast=1
-// Cheats (?god, ?x warp and the __KBE.cheats.* calls) only work in dev mode or with ?debug=1. A production build
+// URL params: ?scene=Title|Game&stage=1&part=1-2&x=<warpX>&god=1&debug=1&mute=1&seed=<n>&difficulty=casual&fast=1&turbo=<n>
+// Cheats (?god, ?x warp, ?part and the __KBE.cheats.* calls) only work in dev mode or with ?debug=1. A production build
 // without ?debug=1 ignores them; the read-only QA hooks (__KBE.state, __KBE.press, __KBE.ready) always stay.
 import type { UrlParams } from './contracts';
 
@@ -26,7 +26,9 @@ function parse(search: string): UrlParams {
         mute: flag('mute'),
         seed: num('seed'),
         difficulty: diff === 'casual' || diff === 'arcade' ? diff : undefined,
-        fast: flag('fast')
+        fast: flag('fast'),
+        part: cheats ? (q.get('part') ?? undefined) : undefined,
+        turbo: cheats ? num('turbo') : undefined
     };
 }
 

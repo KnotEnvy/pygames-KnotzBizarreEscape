@@ -4,5 +4,5 @@ import { installGallery } from './gallery';
 
 export function registerFx(ctx: RegisterContext): void {
     const director = new FxDirector(ctx);
-    if (new URLSearchParams(location.search).has('fxtest')) installGallery(ctx, director);
+    if (ctx.debug.cheatsEnabled && new URLSearchParams(location.search).has('fxtest')) installGallery(ctx, director);
 }

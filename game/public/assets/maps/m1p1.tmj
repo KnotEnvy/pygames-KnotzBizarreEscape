@@ -1797,6 +1797,11 @@
                          "value":"bridge"
                         }, 
                         {
+                         "name":"patrol",
+                         "type":"int",
+                         "value":16
+                        }, 
+                        {
                          "name":"wave",
                          "type":"int",
                          "value":1
@@ -1805,7 +1810,7 @@
                  "type":"enemy",
                  "visible":true,
                  "width":0,
-                 "x":3608,
+                 "x":3512,
                  "y":288
                 }, 
                 {
@@ -1836,6 +1841,11 @@
                          "value":"bridge"
                         }, 
                         {
+                         "name":"patrol",
+                         "type":"int",
+                         "value":16
+                        }, 
+                        {
                          "name":"wave",
                          "type":"int",
                          "value":1
@@ -1844,7 +1854,7 @@
                  "type":"enemy",
                  "visible":true,
                  "width":0,
-                 "x":3640,
+                 "x":3464,
                  "y":288
                 }, 
                 {
@@ -1948,6 +1958,11 @@
                          "value":"bridge"
                         }, 
                         {
+                         "name":"patrol",
+                         "type":"int",
+                         "value":16
+                        }, 
+                        {
                          "name":"wave",
                          "type":"int",
                          "value":2
@@ -1956,7 +1971,7 @@
                  "type":"enemy",
                  "visible":true,
                  "width":0,
-                 "x":3624,
+                 "x":3512,
                  "y":288
                 }, 
                 {
@@ -1987,6 +2002,11 @@
                          "value":"bridge"
                         }, 
                         {
+                         "name":"patrol",
+                         "type":"int",
+                         "value":16
+                        }, 
+                        {
                          "name":"wave",
                          "type":"int",
                          "value":2
@@ -1995,7 +2015,7 @@
                  "type":"enemy",
                  "visible":true,
                  "width":0,
-                 "x":3176,
+                 "x":3256,
                  "y":288
                 }, 
                 {
@@ -2026,6 +2046,11 @@
                          "value":"bridge"
                         }, 
                         {
+                         "name":"patrol",
+                         "type":"int",
+                         "value":8
+                        }, 
+                        {
                          "name":"wave",
                          "type":"int",
                          "value":2
@@ -2034,7 +2059,7 @@
                  "type":"enemy",
                  "visible":true,
                  "width":0,
-                 "x":3656,
+                 "x":3528,
                  "y":288
                 }, 
                 {
@@ -2060,6 +2085,11 @@
                          "value":"bridge"
                         }, 
                         {
+                         "name":"patrol",
+                         "type":"int",
+                         "value":16
+                        }, 
+                        {
                          "name":"wave",
                          "type":"int",
                          "value":3
@@ -2068,7 +2098,7 @@
                  "type":"enemy",
                  "visible":true,
                  "width":0,
-                 "x":3176,
+                 "x":3256,
                  "y":288
                 }, 
                 {
@@ -2107,7 +2137,7 @@
                  "type":"enemy",
                  "visible":true,
                  "width":0,
-                 "x":3624,
+                 "x":3496,
                  "y":192
                 }, 
                 {
@@ -2146,7 +2176,7 @@
                  "type":"enemy",
                  "visible":true,
                  "width":0,
-                 "x":3192,
+                 "x":3272,
                  "y":192
                 }, 
                 {
@@ -3084,6 +3114,11 @@
                          "value":"bunker"
                         }, 
                         {
+                         "name":"patrol",
+                         "type":"int",
+                         "value":8
+                        }, 
+                        {
                          "name":"wave",
                          "type":"int",
                          "value":2
@@ -3092,7 +3127,7 @@
                  "type":"enemy",
                  "visible":true,
                  "width":0,
-                 "x":5592,
+                 "x":5496,
                  "y":336
                 }, 
                 {
@@ -3123,6 +3158,11 @@
                          "value":"bunker"
                         }, 
                         {
+                         "name":"patrol",
+                         "type":"int",
+                         "value":8
+                        }, 
+                        {
                          "name":"wave",
                          "type":"int",
                          "value":2
@@ -3131,7 +3171,7 @@
                  "type":"enemy",
                  "visible":true,
                  "width":0,
-                 "x":5128,
+                 "x":5192,
                  "y":336
                 }, 
                 {
@@ -3730,14 +3770,14 @@
                 {
                  "height":0,
                  "id":136,
-                 "name":"moosezilla",
+                 "name":"snowcat",
                  "opacity":1,
                  "point":true,
                  "properties":[
                         {
                          "name":"kind",
                          "type":"string",
-                         "value":"moosezilla"
+                         "value":"snowcat"
                         }, 
                         {
                          "name":"lock",
@@ -4276,6 +4316,11 @@
  "orientation":"orthogonal",
  "properties":[
         {
+         "name":"clearSfx",
+         "type":"string",
+         "value":"train_whistle"
+        }, 
+        {
          "name":"music",
          "type":"string",
          "value":"music_stage1"
@@ -4293,7 +4338,12 @@
         {
          "name":"sections",
          "type":"string",
-         "value":"prison_camp:0-60,pine_forest:60-170,river_bridge:170-250,regime_outpost:250-360,moose_pen:360-420"
+         "value":"prison_camp:0-60,pine_forest:60-170,river_bridge:170-250,regime_outpost:250-360,warden_yard:360-420"
+        }, 
+        {
+         "name":"title",
+         "type":"string",
+         "value":"THE CAMP"
         }],
  "renderorder":"right-down",
  "tiledversion":"1.12.2",

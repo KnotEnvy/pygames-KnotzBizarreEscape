@@ -1,4 +1,4 @@
-"""KBE sound-effect library: every SFX is synthesized here (no samples) and written as OGG.
+"""KBE sound-effect library: every SFX is synthesized here (no samples) and written as OGG. Phase E adds the train, ice, laser, mid-boss, hound, Buzzard and radio keys.
 usage: uv run --with numpy,scipy,soundfile,pillow python3 -I tools/audio/sfx.py [--wav] [names...]
 Output: public/assets/audio/sfx/<key>.ogg + sfx_manifest.json (duration/peak/rms/loop per key).
 """
@@ -72,6 +72,13 @@ def loopify(x, xf=0.03):
     out = x[:-k].copy()
     out[:k] = head * w + tail * (1 - w)
     return out
+
+
+def periodic(events, dur, xf):
+    """Place `events` (offset, signal[, gain]) at t and t + dur over dur + xf seconds, so loopify(x, xf) yields an exact
+    `dur`-second loop whose crossfade blends matching content (the tail already contains the next period's head)."""
+    ev = list(events) + [(e[0] + dur, *e[1:]) for e in events]
+    return place(ev, total=dur + xf)[:n(dur + xf)]
 
 
 def vib(dur, rate, depth, delay=0.0):
@@ -531,6 +538,224 @@ def rank_stamp():
     return declick(reverb(x, 0.4, 0.15))
 
 
+# ----------------------------------------------------------------- Phase E: train (Part II)
+def _clack(gain=1.0):
+    """One rail-joint clack: metallic thud + short ring + click."""
+    x = mix(thump(0.07, 420, 170, 0.018, drive=1.6), ring(0.11, [880, 1350, 2100], 0.025, [1, 0.5, 0.3]) * 0.6,
+            burst(0.025, 0.004, hp=1800, lp=7000) * 0.7)
+    return declick(x) * gain
+
+
+def train_clack():
+    """Seamless 1.6 s loop (4 beats at 150 BPM): two bogies per car -> 'ka-CLACK ... ka-CLACK', rolling rumble, rail hiss."""
+    dur, xf = 1.6, 0.05
+    ev = []
+    for car in (0.0, 0.8):
+        ev.append((car, _clack(1.0)))
+        ev.append((car + 0.11, _clack(0.75)))
+    clacks = periodic(ev, dur, xf)
+    d = dur + xf
+    rumble = lowpass(noise(d, "brown"), 180) * (0.8 + 0.2 * sine(1.25, d))
+    hiss = bandpass(noise(d), 2600, 1.2) * (0.6 + 0.4 * sine(2.5, d) ** 2) * 0.25
+    body = lowpass(noise(d, "pink"), 500) * 0.4
+    x = mix(clacks * 1.2, rumble * 1.1, hiss, body)
+    return declick(loopify(x * 0.5, xf), 2)
+
+
+def train_horn():
+    """Two-tone diesel air horn, 1.4 s."""
+    dur = 1.4
+    env = lin(dur, [(0, 0), (0.06, 1), (1.05, 0.95), (dur, 0)])
+    x = np.zeros(n(dur))
+    for f, g in ((311.1, 1.0), (370.0, 0.8), (466.2, 0.55)):
+        fr = f * vib(dur, 5.2, 0.004, 0.2) * lin(dur, [(0, 0.985), (0.08, 1.0), (1.1, 1.0), (dur, 0.97)])
+        x += (saw(fr, dur) * 0.6 + square(fr, dur, 0.3) * 0.4) * g
+    x = formant(x, (450, 1100, 1900), 2.5, (1.0, 0.6, 0.25))
+    x = distort(x, 1.4)
+    breath = bandpass(noise(dur), 1500, 1.0) * 0.12
+    x = mix(x, breath) * env
+    return declick(reverb(x, 0.9, 0.3, 4000, 0.02))
+
+
+def train_whistle():
+    """Steam whistle with chiff, 1.6 s: fifth-stacked tone that sags as the steam drops."""
+    dur = 1.6
+    bend = lin(dur, [(0, 0.9), (0.07, 1.0), (1.25, 1.0), (dur, 0.93)])
+    env = lin(dur, [(0, 0), (0.05, 1), (1.2, 0.9), (dur, 0)])
+    x = np.zeros(n(dur))
+    for f, g in ((932.3, 1.0), (1396.9, 0.6), (1864.7, 0.3)):
+        fr = f * bend * vib(dur, 6.0, 0.006, 0.3)
+        x += (sine(fr, dur) * 0.6 + tri(fr, dur) * 0.4) * g
+    steam = bandpass(noise(dur), 1800, 0.8) * lin(dur, [(0, 1), (0.15, 0.25), (dur, 0.35)]) * 0.5
+    chiff = burst(0.12, 0.03, hp=1200, lp=8000) * 0.8
+    x = mix(x * env, steam * env, chiff)
+    return declick(reverb(x, 1.0, 0.32, 5000, 0.03))
+
+
+def wind():
+    """Blizzard bed, seamless 2.4 s loop: LFO rates are multiples of 1/2.4 Hz so the gusts are periodic."""
+    dur, xf = 2.4, 0.3
+    d = dur + xf
+    base = 1.0 / dur
+    gust = 0.55 + 0.45 * sine(base, d, 0.3) * sine(2 * base, d, 1.1)
+    low = lowpass(noise(d, "brown"), 260) * (0.7 + 0.3 * gust)
+    cut = 900 + 700 * (0.5 + 0.5 * sine(base, d, 2.0))
+    whistle = filter_sweep(noise(d), "bp", cut, 4.0) * gust * 0.9
+    mid = lowpass(noise(d, "pink"), 1400) * (0.5 + 0.5 * gust) * 0.6
+    x = mix(low, whistle, mid)
+    return declick(loopify(x * 0.5, xf), 3)
+
+
+# ----------------------------------------------------------------- Phase E: ice, laser (Part III, player)
+def ice_crack():
+    ev = []
+    for i, (dt, g) in enumerate(((0.0, 1.0), (0.045, 0.7), (0.085, 0.9), (0.14, 0.5), (0.22, 0.6), (0.3, 0.35))):
+        ev.append((dt, burst(0.05, 0.006, hp=700, lp=6500 - i * 400) * g))
+    creak = saw(expsweep(0.35, 160, 70) * vib(0.35, 23, 0.08), 0.35)
+    creak = formant(creak, (320, 760, 1500), 5.0) * perc(0.35, 0.01, 0.12) * 0.5
+    body = thump(0.28, 230, 55, 0.06) * 0.6
+    ev += [(0.0, creak), (0.02, body)]
+    return declick(reverb(place(ev), 0.6, 0.18))
+
+
+def ice_shatter():
+    ev = []
+    for i in range(18):
+        t0 = S._rng.uniform(0.0, 0.32) * (i / 18) ** 0.6
+        f = S._rng.uniform(1800, 6500)
+        ev.append((t0, ring(0.16, [f, f * 1.53, f * 2.21], 0.03, [1, 0.5, 0.25]) * S._rng.uniform(0.3, 0.9)))
+    crack = burst(0.06, 0.008, hp=900, lp=7000)
+    thud = thump(0.3, 150, 45, 0.08, drive=1.5) * 0.8
+    splash = burst(0.6, 0.18, lp_sweep=(3200, 500), color="pink", attack=0.01) * 0.6
+    bubbles = place([(0.3 + i * 0.07, blip(0.05, 500 + i * 90, 900 + i * 120, sine, 0.5, 0.02) * 0.25) for i in range(5)])
+    ev += [(0.0, crack), (0.0, thud), (0.1, splash), (0.0, bubbles)]
+    return declick(reverb(place(ev), 0.6, 0.2))
+
+
+def laser():
+    dur = 0.3
+    f = expsweep(dur, 2600, 320)
+    x = square(f, dur, 0.35) * 0.6 + saw(f * 1.01, dur) * 0.3 + sine(f * 0.5, dur) * 0.3
+    x = highpass(x, 250) * perc(dur, 0.002, 0.11)
+    zap = burst(0.025, 0.004, hp=3500) * 0.7
+    x = distort(mix(x, zap), 1.6)
+    return declick(biquad(x, "peak", 1800, 1.0, 3))
+
+
+# ----------------------------------------------------------------- Phase E: bosses and enemies
+def snowcat_engine():
+    """Diesel rev-up with exhaust puffs and tread rattle, 1.2 s (the plow-charge telegraph)."""
+    dur = 1.2
+    rpm = expsweep(dur, 28, 82)
+    eng = pulse(rpm, dur, 0.18) + pulse(rpm * 2.0, dur, 0.4) * 0.5
+    eng = filter_sweep(distort(eng, 2.5), "lp", expsweep(dur, 380, 1500), 1.2)
+    rattle = bandpass(noise(dur), 1900, 2.5) * (0.5 + 0.5 * square(expsweep(dur, 11, 26), dur, 0.3)) * 0.35
+    ev = [(0.0, eng * lin(dur, [(0, 0.5), (0.8, 1.0), (dur, 1.0)])), (0.0, rattle)]
+    for i, t0 in enumerate((0.0, 0.24, 0.44, 0.6, 0.73, 0.84, 0.94, 1.03)):
+        ev.append((t0, burst(0.09, 0.025, lp=1000, color="pink", attack=0.002) * (0.9 - i * 0.05)))
+    x = place(ev)[:n(dur)]
+    x = x * lin(dur, [(0, 0), (0.02, 1), (dur - 0.05, 1), (dur, 0)])
+    return declick(x)
+
+
+def snowcat_tread():
+    """Seamless 0.7 s loop: 7 tread clanks at 10 Hz over a mechanical whirr and snow crunch."""
+    dur, xf = 0.7, 0.04
+    d = dur + xf
+    ev = [(i * 0.1, mix(ring(0.08, [620, 940, 1500], 0.02, [1, 0.5, 0.3]), burst(0.02, 0.004, hp=2500) * 0.5) * (1.0 if i % 2 == 0 else 0.7)) for i in range(7)]
+    clanks = periodic(ev, dur, xf)
+    whirr = distort(lowpass(saw(70, d) * 0.6 + saw(140, d) * 0.3, 520), 1.8)
+    crunch = lowpass(noise(d, "pink"), 2600) * (0.4 + 0.6 * (0.5 + 0.5 * sine(10, d)) ** 2) * 0.6
+    x = mix(clanks * 0.7, whirr * 0.5, crunch)
+    return declick(loopify(x * 0.5, xf), 2)
+
+
+def mortar_thump():
+    tube = bandpass(noise(0.3), 300, 4.0) * perc(0.3, 0.001, 0.07)
+    thoomp = thump(0.4, 190, 55, 0.11, drive=1.8)
+    exhale = burst(0.35, 0.1, lp=1300, color="pink", attack=0.005) * 0.6
+    return declick(reverb(mix(tube * 1.2, thoomp, exhale), 0.5, 0.15))
+
+
+def loco_steam():
+    dur = 1.1
+    hiss = filter_sweep(highpass(noise(dur), 1200), "lp", expsweep(dur, 9500, 2600), 0.9)
+    hiss *= lin(dur, [(0, 0), (0.015, 1), (0.25, 0.75), (dur, 0)])
+    whump = thump(0.25, 130, 50, 0.07) * 0.8
+    return declick(mix(hiss, whump))
+
+
+def loco_cannon():
+    x = mix(thump(0.55, 115, 30, 0.14, drive=3.0), burst(0.45, 0.09, lp_sweep=(6000, 300), attack=0.001),
+            ring(0.4, [350, 520, 790], 0.1, [1, 0.6, 0.4]) * 0.5)
+    x = place([(0, x), (0.14, ring(0.12, [1200, 1900], 0.03) * 0.3)])
+    return declick(reverb(distort(x, 1.3), 0.7, 0.22))
+
+
+def cinder():
+    dur = 0.4
+    sizzle = bandpass(noise(dur), 5200, 1.5) * decay(dur, 0.12)
+    sparks = np.zeros(n(dur))
+    idx = S._rng.integers(0, n(dur), 18)
+    sparks[idx] = S._rng.uniform(0.3, 1.0, 18)
+    sparks = highpass(lowpass(sparks, 7000), 2000) * decay(dur, 0.15) * 0.6
+    thud = thump(0.08, 260, 110, 0.02) * 0.5
+    return declick(mix(sizzle, sparks, thud))
+
+
+def hound_bark():
+    dur = 0.32
+    f = np.concatenate([expsweep(0.06, 210, 330), expsweep(0.26, 330, 170)])
+    x = pulse(f * vib(dur, 30, 0.04), dur, 0.3)
+    x = formant(x, (520, 1250, 2500), 4.0, (1.0, 0.8, 0.35))
+    x = distort(x, 1.8) * adsr(dur, 0.004, 0.06, 0.6, 0.1)
+    breath = bandpass(noise(dur), 2200, 1.0) * perc(dur, 0.002, 0.06) * 0.4
+    return declick(mix(x, breath))
+
+
+def hound_growl():
+    dur = 0.8
+    f = expsweep(dur, 62, 78) * vib(dur, 13, 0.12, 0.05)
+    x = pulse(f, dur, 0.22) + saw(f * 2.01, dur) * 0.3
+    x = formant(x, (260, 640, 1150), 4.0, (1.0, 0.7, 0.3))
+    x = distort(x, 3.0) * (0.7 + 0.3 * square(26, dur, 0.5))
+    x *= lin(dur, [(0, 0), (0.08, 0.7), (0.6, 1.0), (dur, 0)])
+    return declick(lowpass(x, 3200))
+
+
+def buzzard_rotor():
+    """Seamless 0.9 s helicopter loop: 12 blade thumps (13.3 Hz) + turbine whine + wash."""
+    dur, xf = 0.9, 0.06
+    d = dur + xf
+    per = dur / 12
+    ev = [(i * per, mix(burst(0.05, 0.012, lp=420, attack=0.001), sine(58, 0.05) * perc(0.05, 0.001, 0.02) * 0.6)) for i in range(12)]
+    thumps = periodic(ev, dur, xf)
+    whine = lowpass(saw(1850, d) * 0.5 + saw(2780, d) * 0.3 + sine(925, d) * 0.4, 3500) * 0.12
+    wash = lowpass(noise(d, "pink"), 2400) * (0.55 + 0.45 * (0.5 + 0.5 * sine(12 / dur, d)) ** 1.5) * 0.7
+    x = mix(thumps, whine, wash)
+    return declick(loopify(x * 0.5, xf), 2)
+
+
+# ----------------------------------------------------------------- Phase E: radio / menus
+def radio_blip():
+    a = bandpass(square(1250, 0.07, 0.5), 1500, 1.5) * perc(0.07, 0.002, 0.03)
+    b = bandpass(square(1870, 0.09, 0.5), 1900, 1.5) * perc(0.09, 0.002, 0.035)
+    tick = bandpass(noise(0.03), 2500, 2.0) * perc(0.03, 0.0005, 0.008) * 0.5
+    return declick(place([(0, tick), (0.01, a), (0.09, b)]) * 0.9)
+
+
+def radio_static():
+    dur = 0.6
+    x = bandpass(noise(dur), 1900, 0.7)
+    crackle = np.zeros(n(dur))
+    idx = S._rng.integers(0, n(dur), 70)
+    crackle[idx] = S._rng.uniform(0.3, 1.0, 70) * np.sign(S._rng.standard_normal(70))
+    crackle = bandpass(crackle, 2600, 1.0) * 0.8
+    x = mix(x, crackle) * lin(dur, [(0, 0), (0.01, 1), (0.22, 1), (0.3, 0.35), (0.52, 0.3), (dur, 0)])
+    squelch = bandpass(noise(0.03), 3000, 2.0) * perc(0.03, 0.0005, 0.01) * 0.7
+    return declick(place([(0, x), (0.53, squelch)]))
+
+
 # ----------------------------------------------------------------- catalog: key -> (fn, loudness dBFS, loop)
 CATALOG = {
     # weapons
@@ -564,6 +789,16 @@ CATALOG = {
     "continue_tick": (continue_tick, -18, False), "continue_final": (continue_final, -12, False),
     "mission_start": (mission_start, -11, False), "mission_complete": (mission_complete, -11, False), "game_over": (game_over, -13, False),
     "callout": (callout, -14, False), "score_tally": (score_tally, -20, False), "rank_stamp": (rank_stamp, -12, False),
+    # Phase E: train (Part II)
+    "train_clack": (train_clack, -22, True), "train_horn": (train_horn, -13, False), "train_whistle": (train_whistle, -15, False), "wind": (wind, -26, True),
+    # Phase E: ice / laser
+    "ice_crack": (ice_crack, -18, False), "ice_shatter": (ice_shatter, -15, False), "laser": (laser, -16, False),
+    # Phase E: bosses and enemies
+    "snowcat_engine": (snowcat_engine, -16, False), "snowcat_tread": (snowcat_tread, -22, True), "mortar_thump": (mortar_thump, -14, False),
+    "loco_steam": (loco_steam, -16, False), "loco_cannon": (loco_cannon, -12, False), "cinder": (cinder, -21, False),
+    "hound_bark": (hound_bark, -15, False), "hound_growl": (hound_growl, -17, False), "buzzard_rotor": (buzzard_rotor, -22, True),
+    # Phase E: radio / menus
+    "radio_blip": (radio_blip, -18, False), "radio_static": (radio_static, -20, False),
 }
 
 
@@ -604,8 +839,7 @@ def main():
         manifest[k] = dict(file=f"assets/audio/sfx/{k}.ogg", duration=round(len(x) / S.SR, 3), loop=loop,
                            peak_db=round(S.db(S.peak(x)), 1), rms_db=round(S.db(S.rms(x)), 1))
         print(f"{k:18} {len(x)/S.SR:5.2f}s peak {S.db(S.peak(x)):6.1f} rms {S.db(S.rms(x)):6.1f}{'  LOOP' if loop else ''}")
-    if not args:
-        S.save_manifest(os.path.join(OUT, "sfx_manifest.json"), manifest)
+    S.save_manifest(os.path.join(OUT, "sfx_manifest.json"), S.merge_manifest(os.path.join(OUT, "sfx_manifest.json"), manifest, full=not args))
     print(f"wrote {len(keys)} sfx to {OUT}")
 
 

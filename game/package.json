@@ -13,7 +13,10 @@
     "art": "bash tools/build-art.sh",
     "test:e2e": "playwright test",
     "selftest": "node tools/engine-selftest.mjs",
-    "check": "npm run typecheck && npm run check:phaser4"
+    "check": "npm run typecheck && npm run check:phaser4",
+    "audit:arenas": "node tools/arena-audit.mjs --part all",
+    "audit:reach": "node tools/reach-check.mjs --part all",
+    "audit": "npm run audit:reach && npm run audit:arenas"
   },
   "dependencies": {
     "phaser": "4.2.1"

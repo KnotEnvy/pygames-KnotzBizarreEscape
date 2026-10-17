@@ -70,5 +70,32 @@ export function mmss(ms: number): string {
 }
 
 export const WEAPON_NAMES: Record<string, string> = {
-    hmg: 'HEAVY MACHINE GUN!', spread: 'SPREAD SHOT!', rocket: 'ROCKET LAUNCHER!', flame: 'FLAME SHOT!'
+    hmg: 'HEAVY MACHINE GUN!', spread: 'SPREAD SHOT!', rocket: 'ROCKET LAUNCHER!', flame: 'FLAME SHOT!', laser: 'LASER GUN!'
 };
+
+/** 1 → 'I', 2 → 'II', 3 → 'III', 4 → 'IV' (part numerals on title cards and tallies). */
+export function roman(n: number): string {
+    const table: [number, string][] = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+    let v = Math.max(0, Math.floor(n)), out = '';
+    for (const [k, s] of table) while (v >= k) { out += s; v -= k; }
+    return out || '0';
+}
+
+/** Greedy word wrap for the monospace bitmap fonts: lines of at most `cols` characters (long words are cut). */
+export function wrapText(text: string, cols: number): string[] {
+    const lines: string[] = [];
+    let line = '';
+    for (const word of text.split(/\s+/).filter(Boolean)) {
+        let w = word;
+        while (w.length > cols) {
+            if (line) { lines.push(line); line = ''; }
+            lines.push(w.slice(0, cols));
+            w = w.slice(cols);
+        }
+        if (!line) line = w;
+        else if (line.length + 1 + w.length <= cols) line += ' ' + w;
+        else { lines.push(line); line = w; }
+    }
+    if (line) lines.push(line);
+    return lines;
+}

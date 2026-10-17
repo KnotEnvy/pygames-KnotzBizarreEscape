@@ -145,9 +145,9 @@ uses `delta` from `update(time, delta)` and Phaser timers, so it respects time s
 - Map properties: `music`, `parallax` (background set id), `name`.
 
 ## Debug and test hooks (Engine implements; QA depends on them)
-URL params: `?scene=Title|Game&stage=1&x=<warpX>&god=1&debug=1&mute=1&seed=<n>&difficulty=casual&fast=1` (fast skips intros).
-`window.__KBE` = `{ ready: boolean, game, version, state(): {...snapshot}, cheats: { god(on), warp(x), give(weapon), kill(), bombs(n), boss() }, press(action, ms?) }`.
-`state()` returns `{ scene, fps, player:{x,y,alive,weapon,ammo,bombs,lives}, score, rescued, enemies, cameraX, bossHp, errors }`.
+URL params: `?scene=Title|Game&stage=1&part=1-2&x=<warpX>&god=1&debug=1&mute=1&seed=<n>&difficulty=casual&fast=1` (fast skips intros).
+`window.__KBE` = `{ ready: boolean, game, version, state(): {...snapshot}, cheats: { god(on), warp(x), give(weapon), kill(), killEnemies(), hurt(dmg?), bombs(n), boss(), part(id, keepRun?), clearPart() }, press(action, ms?) }`.
+`state()` returns `{ scene, part, fps, player:{x,y,alive,weapon,ammo,bombs,lives}, score, rescued, enemies, cameraX, bossHp, errors }`.
 Teams may add fields with `registerDebug(key, () => value)`.
 
 ## Rules for every agent
