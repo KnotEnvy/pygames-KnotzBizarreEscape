@@ -37,6 +37,7 @@ export class Knotz {
     private land = 0;
     private recoil = 0;
     private aimAngle = 0;
+    private aimLocked = false;
     private aimTag = 'aim_fwd';
     private metadata: Metadata;
     private muzzlePoint = { x: 0, y: 0 };
@@ -93,7 +94,7 @@ export class Knotz {
             if (ctx.player(index) === query) ctx.setPlayer(null, index);
         });
         ctx.debug.register('shotsFired', () => this.weapons.shotsFired);
-        ctx.debug.register('playerController', () => ({ state: this.state, hp: this.hp, crouch: this.crouch, aim: this.aimAngle, invulnerableMs: this.invulnerable, vx: this.body.velocity.x, vy: this.body.velocity.y, onIce: this.onIce, entry: this.entry, hurtboxTop: this.body.top, hurtboxHeight: this.body.height }));
+        ctx.debug.register('playerController', () => ({ state: this.state, hp: this.hp, crouch: this.crouch, aim: this.aimAngle, aimTag: this.aimTag, aimLocked: this.aimLocked, facing: this.facing, muzzle: { ...this.muzzle() }, invulnerableMs: this.invulnerable, vx: this.body.velocity.x, vy: this.body.velocity.y, onIce: this.onIce, entry: this.entry, hurtboxTop: this.body.top, hurtboxHeight: this.body.height }));
         ctx.debug.cheat('give', (w: string, ammo?: number) => this.weapons.equip(w, ammo));
         ctx.debug.cheat('kill', () => this.die());
         ctx.events.emit('player:spawn', { x, y, index });
@@ -148,6 +149,7 @@ export class Knotz {
         if (this.state === 'respawn' && this.elapsed > 240) this.change('ready');
         const ctx = this.ctx, input = ctx.inputFor(this.index), aim = input.aim();
         const ground = this.body.blocked.down || this.body.touching.down;
+        this.aimLocked = input.isDown('aimlock');
         if (ground && !this.wasGround) {
             this.land = 130; ctx.events.emit('player:land', { x: this.sprite.x, y: this.sprite.y, vy: this.lastVy, index: this.index }); ctx.audio.sfx('land');
         }
@@ -174,7 +176,7 @@ export class Knotz {
             this.body.updateCenter();
         }
         this.onIce = ground && (ctx.physics as { surfaceAt?(x: number, y: number): string | null }).surfaceAt?.(this.sprite.x, this.body.bottom + 1) === 'ice';
-        const target = (input.isDown('aimlock') ? 0 : aim.x) * (this.crouch ? T.crouchRun : T.run);
+        const target = (this.aimLocked ? 0 : aim.x) * (this.crouch ? T.crouchRun : T.run);
         if (target * this.body.velocity.x < 0) {
             if (ground && !this.onIce && this.skid <= 0) ctx.events.emit('fx:emit', { effect: 'dust_skid', x: this.sprite.x, y: this.sprite.y, material: ctx.physics.materialAt(this.sprite.x, this.sprite.y + 1), team: 'player' });
             this.skid = T.skidMs;
@@ -189,7 +191,7 @@ export class Knotz {
             this.dust = T.dustMs;
             ctx.events.emit('fx:emit', { effect: 'dust_run', x: this.sprite.x - this.facing * 4, y: this.sprite.y, material: ctx.physics.materialAt(this.sprite.x, this.sprite.y + 1), team: 'player', scale: this.crouch ? 0.6 : 1 });
         }
-        const vx = this.body.velocity.x, step = (this.onIce ? (input.isDown('aimlock') || this.crouch ? T.iceBrake : target === 0 ? T.iceDeceleration : T.iceAcceleration) : T.acceleration) * dt / 1000;
+        const vx = this.body.velocity.x, step = (this.onIce ? (this.aimLocked || this.crouch ? T.iceBrake : target === 0 ? T.iceDeceleration : T.iceAcceleration) : T.acceleration) * dt / 1000;
         this.body.setVelocityX(vx + Math.sign(target - vx) * Math.min(Math.abs(target - vx), step));
         if (this.buffer > 0 && this.coyote > 0) {
             this.buffer = this.coyote = 0;
@@ -201,9 +203,9 @@ export class Knotz {
         }
         if (!input.isDown('jump') && this.body.velocity.y < -T.jumpCut) this.body.setVelocityY(-T.jumpCut);
         let dx: number = this.facing, dy = 0;
-        if (aim.y < 0 || (aim.y > 0 && !ground)) { dx = aim.x; dy = aim.y; }
+        if (aim.y < 0 || (aim.y > 0 && (!ground || this.aimLocked))) { dx = aim.x; dy = aim.y; }
         this.aimAngle = Math.atan2(dy, dx);
-        this.aimTag = this.crouch ? 'crouch_fwd' : dy < 0 ? (dx ? 'aim_up45' : 'aim_up') : dy > 0 ? (dx ? 'aim_down45' : 'aim_down') : 'aim_fwd';
+        this.aimTag = this.crouch ? (dy > 0 ? (dx ? 'crouch_down45' : 'crouch_down') : 'crouch_fwd') : dy < 0 ? (dx ? 'aim_up45' : 'aim_up') : dy > 0 ? (dx ? 'aim_down45' : 'aim_down') : 'aim_fwd';
         if (this.state === 'knife' || this.state === 'throw') {
             const knife = this.state === 'knife';
             if (!this.actionDone && this.elapsed >= (knife ? T.knifeWindupMs : T.throwReleaseMs)) {
@@ -266,7 +268,7 @@ export class Knotz {
         if (variant !== this.lastVariant) { this.torso.stop(); this.torso.setTexture(`knotz_torso_${variant}`); this.lastVariant = variant; this.lastPose = ''; }
         let renderedAim = this.aimTag;
 
-        if (this.crouchEnter > 55) renderedAim = 'aim_fwd';
+        if (this.crouchEnter > 55 && renderedAim === 'crouch_fwd') renderedAim = 'aim_fwd';
         const firing = shooting || this.recoil > 0;
         if (!this.lastPose || renderedAim !== this.lastRenderedAim || this.state !== this.lastAction || firing !== this.lastShooting) {
             const pose = this.state === 'knife' ? 'knife' : this.state === 'throw' ? 'grenade_throw' : firing ? renderedAim + '_shoot' : renderedAim;

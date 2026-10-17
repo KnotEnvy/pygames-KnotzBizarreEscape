@@ -341,33 +341,113 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
     "sourceSize": { "w": 48, "h": 48 },
-    "duration": 55
+    "duration": 140
    },
    "knotz_torso_pistol#43": {
+    "frame": { "x": 98, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_pistol#44": {
+    "frame": { "x": 98, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_pistol#45": {
+    "frame": { "x": 98, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_pistol#46": {
     "frame": { "x": 147, "y": 98, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
     "sourceSize": { "w": 48, "h": 48 },
-    "duration": 55
+    "duration": 45
    },
-   "knotz_torso_pistol#44": {
+   "knotz_torso_pistol#47": {
+    "frame": { "x": 147, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_pistol#48": {
+    "frame": { "x": 98, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_pistol#49": {
     "frame": { "x": 196, "y": 98, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
     "sourceSize": { "w": 48, "h": 48 },
-    "duration": 55
+    "duration": 140
    },
-   "knotz_torso_pistol#45": {
+   "knotz_torso_pistol#50": {
+    "frame": { "x": 196, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_pistol#51": {
+    "frame": { "x": 196, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_pistol#52": {
+    "frame": { "x": 196, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_pistol#53": {
     "frame": { "x": 0, "y": 147, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
     "sourceSize": { "w": 48, "h": 48 },
-    "duration": 55
+    "duration": 45
    },
-   "knotz_torso_pistol#46": {
+   "knotz_torso_pistol#54": {
+    "frame": { "x": 0, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_pistol#55": {
+    "frame": { "x": 196, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_pistol#56": {
     "frame": { "x": 49, "y": 147, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
@@ -375,32 +455,64 @@
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 55
    },
-   "knotz_torso_pistol#47": {
+   "knotz_torso_pistol#57": {
     "frame": { "x": 98, "y": 147, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
     "sourceSize": { "w": 48, "h": 48 },
-    "duration": 75
+    "duration": 55
    },
-   "knotz_torso_pistol#48": {
+   "knotz_torso_pistol#58": {
     "frame": { "x": 147, "y": 147, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
     "sourceSize": { "w": 48, "h": 48 },
-    "duration": 75
+    "duration": 55
    },
-   "knotz_torso_pistol#49": {
+   "knotz_torso_pistol#59": {
     "frame": { "x": 196, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 55
+   },
+   "knotz_torso_pistol#60": {
+    "frame": { "x": 0, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 55
+   },
+   "knotz_torso_pistol#61": {
+    "frame": { "x": 49, "y": 196, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
     "sourceSize": { "w": 48, "h": 48 },
     "duration": 75
    },
-   "knotz_torso_pistol#50": {
-    "frame": { "x": 0, "y": 196, "w": 48, "h": 48 },
+   "knotz_torso_pistol#62": {
+    "frame": { "x": 98, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_torso_pistol#63": {
+    "frame": { "x": 147, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_torso_pistol#64": {
+    "frame": { "x": 196, "y": 196, "w": 48, "h": 48 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
@@ -428,8 +540,12 @@
    { "name": "knotz_pistol_aim_down_shoot", "from": 32, "to": 34, "direction": "forward", "color": "#000000ff" },
    { "name": "knotz_pistol_crouch_fwd", "from": 35, "to": 38, "direction": "forward", "color": "#000000ff" },
    { "name": "knotz_pistol_crouch_fwd_shoot", "from": 39, "to": 41, "direction": "forward", "color": "#000000ff" },
-   { "name": "knotz_pistol_knife", "from": 42, "to": 46, "direction": "forward", "color": "#000000ff" },
-   { "name": "knotz_pistol_grenade_throw", "from": 47, "to": 50, "direction": "forward", "color": "#000000ff" }
+   { "name": "knotz_pistol_crouch_down45", "from": 42, "to": 45, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_pistol_crouch_down45_shoot", "from": 46, "to": 48, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_pistol_crouch_down", "from": 49, "to": 52, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_pistol_crouch_down_shoot", "from": 53, "to": 55, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_pistol_knife", "from": 56, "to": 60, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_pistol_grenade_throw", "from": 61, "to": 64, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "main", "opacity": 255, "blendMode": "normal" }

@@ -121,9 +121,18 @@ export class Weapons {
             onExpire: p => this.boom(p.x, p.y, 20, 6, 'rocket') });
     }
     private flame(x: number, y: number, angle: number): void {
+        // The centered flame art starts 22 px past its emitter. Sweep that initial
+        // gap with the same solid query as projectiles so low shots cannot skip a floor.
+        for (let distance = 0; distance <= 22; distance += 1) {
+            const px = x + Math.cos(angle) * distance, py = y + Math.sin(angle) * distance;
+            if (this.ctx.physics.solidAt(px, py)) {
+                this.ctx.events.emit('projectile:impact', { x: px, y: py, material: this.ctx.physics.materialAt(px, py), weapon: 'flame', team: 'player' });
+                return;
+            }
+        }
         this.ctx.projectiles.spawn({ x: x + Math.cos(angle) * 22, y: y + Math.sin(angle) * 22, vx: Math.cos(angle) * 240, vy: Math.sin(angle) * 240,
             team: 'player', damage: 0.4, kind: 'flame', weapon: 'flame', texture: 'flame', anim: 'flame_flow',
-            pierce: Infinity, radius: 7, lifetime: (T.flameReach - 22) / 240 * 1000, silent: true });
+            pierce: Infinity, radius: 7, lifetime: (T.flameReach - 22) / 240 * 1000 });
     }
     grenade(x: number, y: number, facing: 1 | -1): void {
         const ctx = this.ctx;

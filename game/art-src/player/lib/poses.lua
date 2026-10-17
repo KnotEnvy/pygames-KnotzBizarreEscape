@@ -42,7 +42,7 @@ function P.torso(im,pose)
  K.rect(im,24,y+5,3,3,'sand3'); K.px(im,24,y+5,'sand5')
  if pose.noGun then K.outline(im,'outline'); return end
  local ang=pose.angle or 0; local dx,dy=math.cos(ang),math.sin(ang); local sx,sy=27-rx,y+4
- local len=pose.heavy and 15 or 12; local ex,ey=math.floor(sx+dx*len+.5),math.floor(sy+dy*len+.5)
+ local len=pose.barrelLength or (pose.heavy and 15 or 12); local ex,ey=math.floor(sx+dx*len+.5),math.floor(sy+dy*len+.5)
  -- Rear supporting arm.
  P.limb(im,{21,y+2},{25,y+7},{math.floor(sx+dx*5),math.floor(sy+dy*5)+2},3,'skin2','skin4')
  -- Weapon silhouette rotates around grip; layered parallel strokes preserve a metallic top edge.

@@ -32,8 +32,8 @@ Tag names are globally unique and become animation keys through `createFromAsepr
 | `hmg_bullet` | 16×6 | `hmg_bullet_fly` 1 |
 | `knotz_full` | 48×48 | `knotz_death` 12; `knotz_respawn_drop` 4; `knotz_victory` 6 |
 | `knotz_legs` | 48×48 | `knotz_legs_idle` 4; `knotz_legs_run` 8; `knotz_legs_skid` 2; `knotz_legs_jump_rise` 1; `knotz_legs_jump_fall` 1; `knotz_legs_land` 2; `knotz_legs_crouch_enter` 2; `knotz_legs_crouch_idle` 1; `knotz_legs_crouch_walk` 6 |
-| `knotz_torso_heavy` | 48×48 | `knotz_heavy_aim_fwd` 4; `knotz_heavy_aim_fwd_shoot` 3; `knotz_heavy_aim_up45` 4; `knotz_heavy_aim_up45_shoot` 3; `knotz_heavy_aim_up` 4; `knotz_heavy_aim_up_shoot` 3; `knotz_heavy_aim_down45` 4; `knotz_heavy_aim_down45_shoot` 3; `knotz_heavy_aim_down` 4; `knotz_heavy_aim_down_shoot` 3; `knotz_heavy_crouch_fwd` 4; `knotz_heavy_crouch_fwd_shoot` 3; `knotz_heavy_knife` 5; `knotz_heavy_grenade_throw` 4 |
-| `knotz_torso_pistol` | 48×48 | `knotz_pistol_aim_fwd` 4; `knotz_pistol_aim_fwd_shoot` 3; `knotz_pistol_aim_up45` 4; `knotz_pistol_aim_up45_shoot` 3; `knotz_pistol_aim_up` 4; `knotz_pistol_aim_up_shoot` 3; `knotz_pistol_aim_down45` 4; `knotz_pistol_aim_down45_shoot` 3; `knotz_pistol_aim_down` 4; `knotz_pistol_aim_down_shoot` 3; `knotz_pistol_crouch_fwd` 4; `knotz_pistol_crouch_fwd_shoot` 3; `knotz_pistol_knife` 5; `knotz_pistol_grenade_throw` 4 |
+| `knotz_torso_heavy` | 48×48 | `knotz_heavy_aim_fwd` 4; `knotz_heavy_aim_fwd_shoot` 3; `knotz_heavy_aim_up45` 4; `knotz_heavy_aim_up45_shoot` 3; `knotz_heavy_aim_up` 4; `knotz_heavy_aim_up_shoot` 3; `knotz_heavy_aim_down45` 4; `knotz_heavy_aim_down45_shoot` 3; `knotz_heavy_aim_down` 4; `knotz_heavy_aim_down_shoot` 3; `knotz_heavy_crouch_fwd` 4; `knotz_heavy_crouch_fwd_shoot` 3; `knotz_heavy_crouch_down45` 4; `knotz_heavy_crouch_down45_shoot` 3; `knotz_heavy_crouch_down` 4; `knotz_heavy_crouch_down_shoot` 3; `knotz_heavy_knife` 5; `knotz_heavy_grenade_throw` 4 |
+| `knotz_torso_pistol` | 48×48 | `knotz_pistol_aim_fwd` 4; `knotz_pistol_aim_fwd_shoot` 3; `knotz_pistol_aim_up45` 4; `knotz_pistol_aim_up45_shoot` 3; `knotz_pistol_aim_up` 4; `knotz_pistol_aim_up_shoot` 3; `knotz_pistol_aim_down45` 4; `knotz_pistol_aim_down45_shoot` 3; `knotz_pistol_aim_down` 4; `knotz_pistol_aim_down_shoot` 3; `knotz_pistol_crouch_fwd` 4; `knotz_pistol_crouch_fwd_shoot` 3; `knotz_pistol_crouch_down45` 4; `knotz_pistol_crouch_down45_shoot` 3; `knotz_pistol_crouch_down` 4; `knotz_pistol_crouch_down_shoot` 3; `knotz_pistol_knife` 5; `knotz_pistol_grenade_throw` 4 |
 | `pickup_b` | 20×20 | `pickup_b_shine` 4 |
 | `pickup_chicken` | 20×20 | `pickup_chicken_shine` 4 |
 | `pickup_f` | 20×20 | `pickup_f_shine` 4 |
@@ -119,6 +119,20 @@ Owned runtime files:
 ### Integration and controls
 
 Open `?scene=Game&mute=1&debug=1&god=1`. The player replaces Engine's placeholder automatically. Standard controls from GDD §11 apply; down+jump drops through a one-way platform. Shift/L holds aim-lock. `__KBE.cheats.give('hmg', 200)` equips weapons; `give('spread'|'rocket'|'flame'|'pistol')` also works. `kill()` is overridden to lose the current player life for QA, even during invulnerability; normal damage respects God mode and i-frames. `shotsFired` is monotonic within a player instance and counts weapon triggers, not spread pellets, flame ticks, knives, or grenades. `playerController` exposes action state, HP, crouch, angle, immunity and velocity.
+
+Current directional controls (2026-10-17): aim-lock is **Shift / L / gamepad RB**. Left/right changes facing while locked; horizontal movement brakes to zero as before. Mirroring supplies the other three directions.
+
+| Direction | Grounded with aim-lock | Grounded without aim-lock |
+|---|---|---|
+| Up | Standing, shoots up | Standing, shoots up |
+| Up + left/right | Standing, shoots up-diagonal; turns | Runs, shoots up-diagonal |
+| Left/right | Standing, shoots forward; turns | Runs, shoots forward |
+| Down + left/right | Crouched, shoots down-diagonal; turns | Crouch-walks, shoots forward |
+| Down | Crouched, shoots straight down | Crouched, shoots forward |
+| Neutral | Shoots forward in retained facing | Shoots forward in retained facing |
+| Air directions | Existing eight-way air aim | Existing eight-way air aim |
+
+Both downward locked ground poses use the **12×18 px crouched hurtbox** immediately. Standing still requires headroom. Down + jump retains one-way drop-through. Shoot is X; a nearby enemy still selects knife. Grenade is C and keeps its facing-based upward throw.
 
 Spawn contracts: `player_start`; `pickup:<kind>` or `pickup` with `props.kind`; `pow:<item>` or `pow` with `props.item`. Feet coordinates use bottom-center origins. Published `PlayerQuery.teleport` resets the Arcade body and composite position. Scene cleanup removes damage/collision registrations, subscriptions and display layers.
 
@@ -229,3 +243,27 @@ Implemented only in Player-owned paths. Existing dry-ground movement values rema
 `src/entities/weapons/index.ts` prewarms two muzzle and two impact sprites per Weapons instance and reuses each kind round-robin. Animation completion hides/deactivates a slot; replaying a busy slot restarts its animation. Scene SHUTDOWN destroys all four sprites and clears the pools. Firing and piercing hits create no flash sprites or delayed calls.
 
 Validation: `npm run check` passes (98 files, zero errors/warnings). Ran the requested three-second laser hold and inspected `/tmp/kbe-player-laser-pooled.png` (28 shots, clean console). A second shot-tool probe sampled the display list before firing and after each second: **524 → 524 → 524 → 524**, always four flash sprites. Injecting 100 impact callbacks reused those same slots with zero new flash sprites or 120 ms timers; all slots hid after completion. Restarted part 1-1 with an active impact: all old sprites were destroyed, their animation listeners removed, and exactly four fresh slots appeared, with no runtime errors. Probe steps: `/tmp/kbe-player-laser-pool-steps.json`; stress/restart PNGs: `/tmp/kbe-player-laser-pool-{stress,restart}.png`.
+
+
+## Owner playtest fix — grounded aim-lock (2026-10-17)
+
+Player-owned controller now accepts positive vertical aim on the ground while aim-lock is held. It resolves `crouch_down45` / `crouch_down`, keeps the crouched physics/hurtbox, and renders those torsos immediately rather than briefly borrowing the forward crouch-entry pose. Unlocked Down and Down+forward still shoot forward; air aim, braking, knife selection, and grenade release logic are unchanged. Debug `playerController` now includes `aimTag`, `aimLocked`, `facing`, and the current world `muzzle` alongside angle and hurtbox dimensions.
+
+The shared Aseprite Lua pipeline rebuilt both editable torso sources and PNG/JSON atlases: **65 frames each**, adding four tags per variant (4-frame idle and 3-frame shoot for each new direction). `lib/poses.lua` accepts an authored barrel length; heavy straight-down crouch uses 12 px so the tip/outline fit within the 48 px canvas and stay above the feet. New idle socket offsets from feet: pistol down-diagonal `(11,-7)`, heavy down-diagonal `(14,-4)`, both straight-down `(3,-3)`. Shoot sockets include the existing pistol 1/1/0 and heavy 2/1/0 px X recoil. Left-facing mirrors X. The Lua exporter creates all muzzle entries and refreshes torso inventory/tag ranges from the exported atlas; Aseprite JSON values are copied into ordinary Lua tables before editing so newly added keys persist.
+
+All six weapons receive those world sockets through the existing shared firing path, including HMG's shortest-angle sweep and spread's fan. Flame checks the 22 px emitter-to-centered-art gap with the existing `physics.solidAt` query before spawning, emitting the normal material impact if blocked; later flame terrain hits also use normal impacts. This prevents low/downward flame emission from starting below the floor. Rocket keeps its existing explosion impact. No one-way, bridge, or core projectile collision rules were changed.
+
+Verification used only the requested screenshot tool and fast checks, with the exact part 1-1 / x=200 query. Every PNG below was opened and visually inspected; capture logs report clean consoles and empty runtime errors. Required views (retaken after spawn blinking expired):
+
+- `/tmp/kbe-player/aim-up.png`
+- `/tmp/kbe-player/aim-up-forward.png`
+- `/tmp/kbe-player/aim-forward.png`
+- `/tmp/kbe-player/aim-down-forward.png`
+- `/tmp/kbe-player/aim-down.png`
+- `/tmp/kbe-player/aim-crouch-walk.png`
+- `/tmp/kbe-player/aim-hmg-down-forward.png`
+- `/tmp/kbe-player/aim-laser-down.png`
+
+Additional inspected captures: `/tmp/kbe-player/aim-{spread,rocket,flame}-{down-forward,down}.png`, `aim-down-left.png`, `aim-hmg-sweep.png`, `aim-knife.png`, `aim-grenade.png`, and `aim-weapons-final.png`. Also inspected `aim-unlocked-down.png`, `aim-air-down.png`, and `aim-air-unlocked-down.png`: unlocked grounded Down remains angle 0 / `crouch_fwd` with an 18 px body; locked and unlocked air Down remain π/2 / `aim_down` with a 30 px body. Matching `steps-aim-*.json` / `aim-*.log` files retain reproducible inputs and event telemetry. Pistol/HMG/spread/laser emit normal snow-floor impacts, rocket emits its normal explosion (two verified), and flame's gap check emits snow impacts at the floor. HMG sweeps across down-diagonal/down/back while held. Knife against a temporary registered in-range enemy hurtbox produces exactly one accepted 4-damage melee hit; grenade count changes 10→9 with normal `(facing*10,-33)` release.
+
+`npm run check` passes: strict TypeScript and Phaser 4 scanner, **98 files / zero errors / zero warnings**. `npm run audit` passes reachability and every arena for **all three parts**. Log: `/tmp/kbe-player/aim-audit.log`. Browser tools required running outside the filesystem sandbox to bind their local Vite port. No commits, index changes, branch operations, or other git state changes were performed.

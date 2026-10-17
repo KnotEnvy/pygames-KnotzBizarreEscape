@@ -31,13 +31,14 @@ leg('crouch_enter',2,65,function(i)return{crouch=i==2,stride=1}end)
 leg('crouch_idle',1,150,function()return{crouch=true,stride=1}end)
 leg('crouch_walk',6,100,function(i)return{crouch=true,stride=({0,2,3,0,-2,-3})[i],lift=i%2}end)
 build('knotz_legs',48,48,legs)
-local dirs={{'aim_fwd',0},{'aim_up45',-math.pi/4},{'aim_up',-math.pi/2},{'aim_down45',math.pi/4},{'aim_down',math.pi/2},{'crouch_fwd',0}}
+-- The crouched heavy down barrel is 12 px so its tip and outline fit above the feet.
+local dirs={{'aim_fwd',0},{'aim_up45',-math.pi/4},{'aim_up',-math.pi/2},{'aim_down45',math.pi/4},{'aim_down',math.pi/2},{'crouch_fwd',0},{'crouch_down45',math.pi/4},{'crouch_down',math.pi/2}}
 for _,variant in ipairs({'pistol','heavy'}) do
  local a={}; for _,d in ipairs(dirs) do
   for _,shoot in ipairs({false,true}) do
    local name='knotz_'..variant..'_'..d[1]..(shoot and '_shoot' or '')
    a[#a+1]=anim(name,shoot and 3 or 4,shoot and 45 or 140,function(im,i)
-    P.torso(im,{angle=d[2],heavy=variant=='heavy',crouch=d[1]=='crouch_fwd',bob=0,recoil=shoot and (variant=='pistol' and ({1,1,0})[i] or ({2,1,0})[i]) or 0})
+    P.torso(im,{angle=d[2],heavy=variant=='heavy',crouch=d[1]:match('^crouch_')~=nil,barrelLength=d[1]=='crouch_down' and 12 or nil,bob=0,recoil=shoot and (variant=='pistol' and ({1,1,0})[i] or ({2,1,0})[i]) or 0})
    end)
   end
  end
@@ -152,17 +153,37 @@ build('pow',32,40,pa)
 local metaPath=R..'/public/assets/sprites/player/knotz_meta.json'
 local file=io.open(metaPath,'r')
 if file then
- local meta=json.decode(file:read('*a')); file:close()
+ -- Aseprite JSON objects expose copies on lookup; use ordinary Lua tables while editing.
+ local function plain(value)
+  if type(value)~='table' and type(value)~='userdata' then return value end
+  local result={}; for key,item in pairs(value) do result[key]=plain(item) end; return result
+ end
+ local meta=plain(json.decode(file:read('*a'))); file:close()
  for _,variant in ipairs({'pistol','heavy'}) do for _,d in ipairs(dirs) do for _,shoot in ipairs({false,true}) do
   local tag='knotz_'..variant..'_'..d[1]..(shoot and '_shoot' or '')
-  local frames=meta.muzzles[tag].frames
+  meta.muzzles[tag]=meta.muzzles[tag] or {angleRadians=d[2],frames={},note='Coordinate is barrel end; spawn FX and projectile here. Recoil is already included.'}
+  local frames={}
+  meta.muzzles[tag].frames=frames
+  for i=1,(shoot and 3 or 4) do frames[i]={direction={math.cos(d[2]),math.sin(d[2])}} end
   for i,f in ipairs(frames) do
    local rx=shoot and (variant=='pistol' and ({1,1,0})[i] or ({2,1,0})[i]) or 0
-   local len=variant=='heavy' and 15 or 12
+   local len=variant=='heavy' and d[1]~='crouch_down' and 15 or 12
    local x=math.floor(27-rx+math.cos(d[2])*len+.5)
-   local y=math.floor(27+(d[1]=='crouch_fwd' and 6 or 0)+math.sin(d[2])*len+.5)
+   local y=math.floor(27+(d[1]:match('^crouch_') and 6 or 0)+math.sin(d[2])*len+.5)
    f.framePx={x,y}; f.offsetFromFeet={x-24,y-48}
   end
  end end end
+ -- Keep inventory frame ranges in sync when torso tags are added.
+ for _,variant in ipairs({'pistol','heavy'}) do
+  local key='knotz_torso_'..variant
+  local atlasFile=assert(io.open(R..'/public/assets/sprites/player/'..key..'.json','r'))
+  local atlas=json.decode(atlasFile:read('*a')); atlasFile:close()
+  local tags={}; local count=0
+  for _,tag in ipairs(atlas.meta.frameTags) do
+   tags[#tags+1]={name=tag.name,from=tag.from,to=tag.to,frames=tag.to-tag.from+1,loop=not (tag.name:match('_shoot$') or tag.name:match('_knife$') or tag.name:match('_grenade_throw$'))}
+   count=math.max(count,tag.to+1)
+  end
+  meta.inventory[key]={canvas={48,48},frameCount=count,tags=tags}
+ end
  local out=assert(io.open(metaPath,'w')); out:write(json.encode(meta)); out:close()
 end
