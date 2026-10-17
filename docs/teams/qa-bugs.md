@@ -2,6 +2,15 @@
 
 ## Release readiness
 
+> **Owner playtest P01 (fixed by Lead):** the bridge arena stalled after "FINAL WAVE!" in 5/5 owner runs. Its two wave-3
+> drones patrol ±48 px around spawns near the walls, drifted 33 px past the locked view (1 px past the 32 px activation
+> margin), froze off-screen forever, and kept the wave "alive". QA's playthrough missed it because it traverses with
+> `warp`, which abandons arenas, and `killEnemies` also kills frozen off-view members. Fix: enemies turn back at the
+> edges of a locked view (`ENEMIES.lockedViewInset`, drone home anchored on screen), and the arena controller pulls any
+> live member that stays off-view for 1.5 s back on screen, then culls it 4 s later as a last resort. Verified by a
+> no-warp, no-kill-cheat bot (`tools/arena-bot.mjs`): bridge clears 3/3 runs (about 30 s), versus stalling forever before.
+> **QA rule from now on:** every arena must be cleared by real shooting, with no warp and no `killEnemies`.
+
 > **Lead update (post-verification):** KBE-QA-E04 was fixed by Engine after this pass: pack/file loads retry with backoff, and persistent failures stop on a LOAD FAILED / retry screen with `ready=false` and `state().loadErrors`. Verified with QA's repro (blocked once → recovers; blocked permanently → error screen, retry works) and 4 new selftest checks (17/17). QA suite 19/19, flow ×5 15/15.
 
 **Ready for a supervised human playtest after a successful load; not a clean automated release sign-off.** All eight Phase C open findings are **RESOLVED**, and the Lead's mission-complete GO suppression passes. Healthy-load gameplay, boss completion/Results, production boot/audio/cheat gating, engine selftests and performance are solid. **One new conditional S1 remains open: E04, required-asset load failure can crash HUD creation and freeze the game.** Reloading is the current recovery. The three consecutive E2E runs and the flow repetition are retained as failures, not relabeled green: host `eth2` network notifications invalidated requests, with a resulting broken partial boot in the Continue repetition.

@@ -7,6 +7,8 @@ export const ENEMIES = {
     drone: { hp: 2, score: 150, speed: 44, sight: 144, windup: 320, cooldown: 1800 },
     paratrooper: { hp: 3, score: 150, speed: 28, sight: 160, windup: 420, cooldown: 1250 },
     boss: { hp: 400, score: 5000, antlerHp: 45, antlerScore: 500, recovery: 700, deathMs: 3000 },
-    bulletSpeed: 110, activationMargin: 32, corpseMs: 1400, maxEnemies: 24
+    bulletSpeed: 110, activationMargin: 32, corpseMs: 1400, maxEnemies: 24,
+    /** In a camera-locked arena enemies turn back this far inside the screen edges (off-view enemies freeze). */
+    lockedViewInset: 10
 } as const;
-export type EnemyKind = Exclude<keyof typeof ENEMIES, 'boss' | 'bulletSpeed' | 'activationMargin' | 'corpseMs' | 'maxEnemies'>;
+export type EnemyKind = Exclude<keyof typeof ENEMIES, 'boss' | 'bulletSpeed' | 'activationMargin' | 'corpseMs' | 'maxEnemies' | 'lockedViewInset'>;

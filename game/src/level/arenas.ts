@@ -15,7 +15,7 @@ import { num, str, type LevelObject, type LevelRuntime } from './types';
 
 type ArenaState = 'idle' | 'intro' | 'active' | 'boss' | 'releasing' | 'done' | 'skipped';
 
-interface Member { obj: LevelObject; delay: number; doorOpened: boolean; go: Phaser.GameObjects.GameObject | null; spawned: boolean }
+interface Member { obj: LevelObject; delay: number; doorOpened: boolean; go: Phaser.GameObjects.GameObject | null; spawned: boolean; offMs: number }
 
 interface Arena {
     id: string;
@@ -149,7 +149,7 @@ export class ArenaController {
 
     private startWave(a: Arena, i: number): void {
         a.wave = i;
-        a.members = (a.waves[i] ?? []).map(obj => ({ obj, delay: num(obj.props.delay, 0), doorOpened: false, go: null, spawned: false }));
+        a.members = (a.waves[i] ?? []).map(obj => ({ obj, delay: num(obj.props.delay, 0), doorOpened: false, go: null, spawned: false, offMs: 0 }));
         if (a.members.length === 0) { this.waveCleared(a); return; }
         // Wave progress for the player: "WAVE 1/3" ... "FINAL WAVE!" (the unlock then shows the UI's GO!).
         const n = a.waves.length;
@@ -177,9 +177,32 @@ export class ArenaController {
                 else m.delay = LEVEL.activation.retryMs; // enemy cap: try again shortly
                 continue;
             }
-            if (m.go && !isDead(m.go)) allDead = false;
+            if (m.go && !isDead(m.go)) { allDead = false; this.watchOffscreen(m, dt); }
         }
         if (allDead) this.waveCleared(a);
+    }
+
+    /**
+     * Safety net: off-view enemies freeze, so a live member that ends up off screen would stall the wave and the
+     * camera unlock forever. After `offscreenPullMs` it's pulled back just inside the view; if it is still off
+     * screen `offscreenCullMs` later (stuck in some odd state), it's removed so the fight always ends.
+     */
+    private watchOffscreen(m: Member, dt: number): void {
+        const go = m.go as unknown as Phaser.GameObjects.Sprite & { kind?: string; state?: string; startX?: number; startY?: number };
+        const v = this.ctx.camera.view();
+        const st = String(go.state ?? '');
+        const inView = go.x >= v.left && go.x <= v.right && go.y >= v.top - 24 && go.y <= v.bottom + 8;
+        if (inView || st === 'descent' || st === 'land' || st === 'dead') { m.offMs = 0; return; }
+        m.offMs += dt;
+        const { offscreenPullMs: pull, offscreenCullMs: cull, edgeInset: e } = LEVEL.arena;
+        if (m.offMs >= pull + cull) { go.destroy(); return; }
+        if (m.offMs < pull || m.offMs - dt >= pull) return;
+        const x = Phaser.Math.Clamp(go.x, v.left + e * 2, v.right - e * 2);
+        const flying = go.kind === 'drone';
+        const y = flying ? Phaser.Math.Clamp(go.y, v.top + 24, v.bottom - 48) : this.ctx.physics.groundBelow(x, Math.min(go.y, v.bottom) - 48, 200) ?? go.y;
+        go.setPosition(x, y);
+        // Drones patrol and recover around their spawn point: move it with them (private field, by design here).
+        if (flying) { (go as { startX?: number }).startX = x; (go as { startY?: number }).startY = y; }
     }
 
     private waveCleared(a: Arena): void {

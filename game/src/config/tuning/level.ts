@@ -36,7 +36,11 @@ export const LEVEL = {
         /** Door enemies step out this long after the door starts opening. */
         doorDelayMs: 260,
         /** "WAVE n/N" / "FINAL WAVE!" prompt time at each wave start. */
-        waveCallMs: 1600
+        waveCallMs: 1600,
+        /** A live wave member off screen this long is pulled back into view (off-view enemies freeze → stalled wave). */
+        offscreenPullMs: 1500,
+        /** ...and removed if it's still off screen this long after the pull, so an arena can never stall. */
+        offscreenCullMs: 4000
     },
 
     boss: {

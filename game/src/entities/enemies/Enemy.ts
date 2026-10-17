@@ -45,8 +45,8 @@ export class Enemy extends Phaser.GameObjects.Sprite {
     private deathCause = '';
     private alertedUntil = 0;
     private buzz: LoopHandle | null = null;
-    private readonly startX: number;
-    private readonly startY: number;
+    private startX: number;
+    private startY: number;
     private readonly patrol: number;
     private readonly rect = new Phaser.Geom.Rectangle();
     private readonly offs: Array<() => void> = [];
@@ -134,10 +134,26 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         }
         return true;
     }
+    /**
+     * In a camera-locked arena enemies must stay on screen: off-view enemies freeze, so one that wandered out
+     * would stall the wave (and the unlock) forever. Enemies outside the view may still walk in.
+     */
+    private leavesLockedView(nx: number): boolean {
+        if (!this.ctx.camera.isLocked()) return false;
+        const v = this.ctx.camera.view(), m = ENEMIES.lockedViewInset;
+        const inside = (x: number) => x >= v.left + m && x <= v.right - m;
+        return inside(this.x) && !inside(nx);
+    }
+    /** Patrol/recover anchor: the spawn point, pulled on screen while the camera is locked. */
+    private homeX(): number {
+        if (!this.ctx.camera.isLocked()) return this.startX;
+        const v = this.ctx.camera.view(), m = ENEMIES.lockedViewInset + 48;
+        return Phaser.Math.Clamp(this.startX, v.left + m, v.right - m);
+    }
     private move(speed: number, dt: number): void {
         const nx = this.x + speed * dt / 1000;
         const ground = this.ctx.physics.groundBelow(nx + Math.sign(speed) * 8, this.y - 12, 30);
-        if (ground === null || this.ctx.level.solidAt(nx + Math.sign(speed) * 10, this.y - 18) || this.ctx.physics.hazardAt(nx, this.y + 2)) { this.facing = this.facing === 1 ? -1 : 1; return; }
+        if (ground === null || this.ctx.level.solidAt(nx + Math.sign(speed) * 10, this.y - 18) || this.ctx.physics.hazardAt(nx, this.y + 2) || this.leavesLockedView(nx)) { this.facing = this.facing === 1 ? -1 : 1; return; }
         this.x = nx; this.y = ground;
     }
     private fire(): void {
@@ -201,8 +217,8 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         if (this.kind === 'drone') {
             if (this.state === 'windup' && this.clock <= 0) { this.enter('dive', 700); this.vx = Math.cos(this.aimAngle) * 125; this.vy = Math.sin(this.aimAngle) * 125; this.pose('dive'); }
             else if (this.state === 'dive') { this.x += this.vx * dt / 1000; this.y += this.vy * dt / 1000; this.ctx.damage.applyRadial(this.x, this.y, 9, 1, 'enemy', 'contact'); if (this.ctx.level.solidAt(this.x, this.y + 8)) this.hit({ damage: this.hp, source: 'neutral', x: this.x, y: this.y, dirX: this.facing, dirY: 1, kind: 'contact' }); else if (this.clock <= 0) this.enter('recover', 900); }
-            else if (this.state === 'recover') { this.x += (this.startX - this.x) * Math.min(1, dt / 600); this.y += (this.startY - this.y) * Math.min(1, dt / 300); if (this.clock <= 0) { this.enter('patrol', 0); this.cooldown = 1800; } }
-            else if (this.state !== 'windup') { this.pose('fly', true); this.y = this.startY + Math.sin(this.age / 1800 * Math.PI * 2) * 12; this.x += this.facing * 44 * dt / 1000; if (Math.abs(this.x - this.startX) > Math.max(48, this.patrol)) this.facing = this.x > this.startX ? -1 : 1; if (sees && this.cooldown <= 0) { this.aimAngle = Math.atan2(p!.centerY - this.y, dx); this.enter('windup', 320); this.pose('dive'); this.ctx.audio.sfx('drone_dive'); } }
+            else if (this.state === 'recover') { this.x += (this.homeX() - this.x) * Math.min(1, dt / 600); this.y += (this.startY - this.y) * Math.min(1, dt / 300); if (this.clock <= 0) { this.enter('patrol', 0); this.cooldown = 1800; } }
+            else if (this.state !== 'windup') { this.pose('fly', true); this.y = this.startY + Math.sin(this.age / 1800 * Math.PI * 2) * 12; this.x += this.facing * 44 * dt / 1000; const hx = this.homeX(); if (Math.abs(this.x - hx) > Math.max(48, this.patrol)) this.facing = this.x > hx ? -1 : 1; if (this.leavesLockedView(this.x + this.facing * 2)) this.facing = this.facing === 1 ? -1 : 1; if (sees && this.cooldown <= 0) { this.aimAngle = Math.atan2(p!.centerY - this.y, dx); this.enter('windup', 320); this.pose('dive'); this.ctx.audio.sfx('drone_dive'); } }
             return;
         }
         if (this.state === 'windup' && this.clock <= 0) {
