@@ -181,6 +181,12 @@ export interface CameraService {
     release(ms?: number): void;
     /** True while the auto boss-intro cinematic runs. */
     inCinematic(): boolean;
+    /**
+     * Boss framing: while the camera is locked, keep this object (its live hurtboxes, else its bounds) on screen
+     * together with the player. The engine sets it automatically on boss:spawn and clears it on boss:defeated /
+     * camera:unlock, so callers only need it for unusual bosses. null = normal follow.
+     */
+    frameTarget(obj: Phaser.GameObjects.GameObject | null): void;
 }
 
 export interface AudioService {

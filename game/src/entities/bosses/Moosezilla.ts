@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BossDebris } from './BossDebris';
+import { BossFlash } from './BossFlash';
 import { DEPTH, type GameContext, type HitInfo, type Hurtbox } from '../../core';
 import { ENEMIES } from '../../config/tuning/enemies';
 import { animate, visible } from '../enemies/Enemy';
@@ -22,7 +23,7 @@ export class Moosezilla extends Phaser.GameObjects.Container {
     private elapsed = 0;
     private cycle = 0;
     private fired = 0;
-    private flash = 0;
+    private readonly flash = new BossFlash();
     private tickDamage = 0;
     private readonly cue: Phaser.GameObjects.Graphics;
     private readonly boxes: Hurtbox[] = [];
@@ -84,7 +85,8 @@ export class Moosezilla extends Phaser.GameObjects.Container {
             };
             this.boxes.push(box); this.offs.push(ctx.damage.register(box));
         }
-        this.offs.push(ctx.onUpdate(dt => this.updateBoss(dt)));
+        this.offs.push(ctx.onUpdate((dt, rawDt) => { this.flash.update(rawDt); this.updateBoss(dt); }));
+        this.once('destroy', () => this.flash.clear());
         this.once('destroy', () => { this.heavyDebris.destroy(); for (const off of this.offs) off(); for (const d of this.debris) d.sprite.destroy(); for (const s of this.headAntlers) s.destroy(); this.cue.destroy(); });
         ctx.events.emit('boss:spawn', this.info()); ctx.audio.sfx('boss_roar');
         ctx.events.emit('fx:emit', { effect: 'debris', x, y: y - 12, material: 'stone', count: 12 });
@@ -103,7 +105,7 @@ export class Moosezilla extends Phaser.GameObjects.Container {
     }
     private detach(id: string): void {
         const s = this.parts.get(id); if (!s?.visible) return;
-        this.remove(s); s.setPosition(this.x + s.x * this.facing, this.y + s.y).setScale(this.facing, 1).setDepth(DEPTH.ENEMIES + .5); s.stop();
+        this.remove(s); s.clearTint().setPosition(this.x + s.x * this.facing, this.y + s.y).setScale(this.facing, 1).setDepth(DEPTH.ENEMIES + .5); s.stop();
         this.debris.push({ sprite: s, vx: this.ctx.rng.range(-90, 90), vy: this.ctx.rng.range(-220, -130), spin: this.ctx.rng.range(-3, 3), head: id === 'head', age: 0 });
         this.parts.delete(id);
     }
@@ -134,12 +136,12 @@ export class Moosezilla extends Phaser.GameObjects.Container {
             }
         }
         this.setHp(this.hp - h.damage * multiplier);
-        this.flash = 55; for (const s of this.parts.values()) s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
         return true;
     }
     /** Deterministic QA phase/damage control; exposed only through the enemytest hook. */
     setHp(value: number): void {
         if (this.hp <= 0) return;
+        const flashingParts = [...this.parts.values()];
         this.hp = Phaser.Math.Clamp(value, 0, ENEMIES.boss.hp);
         this.ctx.events.emit('boss:hp', this.info());
         const tier = this.hp <= ENEMIES.boss.hp / 3 ? 2 : this.hp <= ENEMIES.boss.hp * 2 / 3 ? 1 : 0;
@@ -160,14 +162,16 @@ export class Moosezilla extends Phaser.GameObjects.Container {
             this.heavyDebris.burst(this.x, this.y - 75, this.y, 14, true);
             this.enter('death', ENEMIES.boss.deathMs); this.ctx.projectiles.clear('enemy');
             for (const fly of this.flies) fly.destroy();
-            this.ctx.events.emit('fx:slowmo', { scale: .45, ms: 1000 }); this.ctx.events.emit('fx:flash', { color: 0xffffff, ms: 160 }); this.ctx.events.emit('fx:shake', { tier: 4 }); this.ctx.events.emit('fx:hitstop', { ms: 150 });
+            this.ctx.events.emit('fx:slowmo', { scale: .45, ms: 1000 }); this.ctx.events.emit('fx:flash', { color: 0xffffff, ms: 100 }); this.ctx.events.emit('fx:shake', { tier: 4 }); this.ctx.events.emit('fx:hitstop', { ms: 150 });
             this.ctx.audio.sfx('boss_death'); this.detach('armor'); this.detach('jaw'); this.detach('head'); this.detach('antler_l'); this.detach('antler_r');
             for (const key of ['moosezilla_antler_l', 'moosezilla_antler_r']) {
                 const part = this.rig.parts.find(p => p.key === key)!;
                 const s = this.ctx.scene.add.sprite(this.x, this.y, key).setOrigin(part.pivot[0] / part.sourceSize[0], part.pivot[1] / part.sourceSize[1]).setScale(this.facing, 1).setDepth(DEPTH.ENEMIES + .6);
                 animate(s, `${key}_broken`); this.headAntlers.push(s);
             }
+            flashingParts.push(...this.headAntlers);
         }
+        this.flash.start(flashingParts, this.hp <= 0);
     }
     private enter(state: string, ms: number): void { this.state = state; this.clock = ms; this.elapsed = 0; this.fired = 0; }
     private steam(): void {
@@ -205,7 +209,6 @@ export class Moosezilla extends Phaser.GameObjects.Container {
     private updateBoss(dt: number): void {
         if (!dt || !this.active) return;
         this.updateDebris(dt); this.heavyDebris.update(dt);
-        if (this.flash > 0 && (this.flash -= dt) <= 0) for (const s of this.parts.values()) s.clearTint();
         if (this.state === 'defeated') return;
         if (this.state !== 'death' && (!visible(this.ctx, this.x, this.y, 32) || !this.ctx.player()?.alive())) return;
         this.lifeMs += dt; this.introMs = Math.max(0, this.introMs - dt);

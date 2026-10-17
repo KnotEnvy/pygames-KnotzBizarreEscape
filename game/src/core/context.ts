@@ -62,7 +62,7 @@ export function createGameContext(scene: Phaser.Scene, part: PartDef = FIRST_PAR
     const players: Array<PlayerQuery | null> = [];
     const inputs: InputService[] = [new InputService(scene, 0)];
     const updaters: Array<(dt: number, rawDt: number) => void> = [];
-    const camera = new CameraController(scene, events, () => players[0] ?? null, on => { damage.playerShield = on; });
+    const camera = new CameraController(scene, events, () => players[0] ?? null, on => { damage.playerShield = on; }, damage);
 
     events.on('fx:hitstop', e => time.hitstop(e.ms));
     events.on('fx:slowmo', e => time.slowmo(e.scale, e.ms));

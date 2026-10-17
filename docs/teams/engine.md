@@ -275,7 +275,7 @@ Tuning lives in `src/config/tuning/engine.ts` under `camera` and `shake`.
 
 ```ts
 ctx.camera.letterbox(true, 400);     // black bars slide in (ENGINE.camera.letterboxPx = 14 px top and bottom); false = out
-ctx.camera.zoomPunch(0.08, 220);     // brief zoom in and back (peak 1 + amount, capped at zoomPunchMax 0.12). No-op when
+ctx.camera.zoomPunch(0.08, 220);     // brief zoom in and back (peak 1 + amount, capped at zoomPunchMax 0.06 and zoomPunchMaxMs 180). No-op when
                                      // the screen-shake option is off. A weaker punch never cuts a stronger one short
 ctx.camera.focus(x, y, 1200);        // ease the view toward a world point (capped at focusMaxPushX 96 / Y 32 px)
 ctx.camera.release(800);             // ease back to the normal follow
@@ -299,6 +299,15 @@ of the way toward `(x, y)` over 1.4 s (bars only when the shake option is off), 
 (the player keeps full control but takes no hits). On `boss:spawn`: hold 1 s, then release (900 ms), bars out, shield
 off. It also ends at once on `player:died`, `game:respawn` or any `snapTo()` (warp), and after a 9 s safety timeout if
 `boss:spawn` never comes. Tuning: `ENGINE.camera.bossIntro`.
+
+**Boss framing** (no caller needed). While the camera is locked and a boss is alive, the follow camera keeps the boss's
+live hurtbox union (`bossFrame.pad` 8 px inside) and the player (`bossFrame.playerMargin` 48 px inside) on screen
+together, moving as little as possible from the normal follow and always inside the lock. The player wins if both
+can't fit; a boss wider than the view is centered. While framing, `clampX()` also keeps the player 48 px from the
+screen edges (so walking left doesn't drag the boss off screen). The boss is found on `boss:spawn` as the enemy hurtbox
+owner at the event's `x, y`; framing eases in and releases on `boss:defeated` or `camera:unlock` (700 ms each).
+`ctx.camera.frameTarget(obj | null)` sets or clears it by hand for unusual bosses. Unlike focus, this moves the
+follow camera, so `view()` and the edges include it. A `focus()` push never shows outside a locked arena (F4).
 
 **Run lead.** On top of the facing look-ahead (36 px), the follow target leads `runLead` (10 px) in the direction the
 player is actually moving (|vx| > 30 px/s), eased at `runLeadRate`. It is part of the follow position, so it is clamped

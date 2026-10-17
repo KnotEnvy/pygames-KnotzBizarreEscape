@@ -257,6 +257,16 @@ function checkFile(file, index) {
     const winRe = /\b(?:window|document)\s*\.\s*addEventListener\s*\(/g;
     for (let m; (m = winRe.exec(code));) once(m.index, 'window-listener-no-remove', W, 'window/document listener with no removeEventListener( in this file: survives scene shutdown / part restart and stacks', "scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => window.removeEventListener('keydown', handler, true));  // or guard a once-per-page install and add // phaser4-ok: once per page");
   }
+  // createCanvas() returns null when the key already exists (a part restart re-runs create()): the usual `!` then crashes on the 2nd part.
+  if (!/\btextures\s*\.\s*exists\s*\(|\btextures\s*\.\s*remove\s*\(/.test(code)) {
+    const cvRe = /\btextures\s*\.\s*(?:createCanvas|addCanvas)\s*\(/g;
+    for (let m; (m = cvRe.exec(code));) once(m.index, 'canvas-texture-no-exists-guard', W, 'textures.createCanvas() with no textures.exists()/remove() in this file: the key survives scene restart, createCanvas then returns null (v4 warns "already exists") and a `!` deref crashes on the next part', 'if (!scene.textures.exists(KEY)) { const t = scene.textures.createCanvas(KEY, w, h)!; ... }');
+  }
+  // Fractional camera zoom shimmers pixel art (nearest-neighbour sampling at 1.07x etc). Only the engine camera controller may zoom (transient punch).
+  if (!/[\\/]core[\\/]camera\.ts$/.test(file)) {
+    const zRe = /\.(?:setZoom|zoomTo)\s*\(|\b(?:cam|camera|cameras\.main|cameras\.\w+)\.zoom\s*=(?!=)/g;
+    for (let m; (m = zRe.exec(code));) once(m.index, 'camera-zoom-outside-controller', W, 'camera zoom outside core/camera.ts: non-integer zoom shimmers/swims pixel art and bypasses the zoom-punch bookkeeping and reduced-motion check', 'ctx.camera.zoomPunch(amount, ms); for a deliberate integer zoom add // phaser4-ok: <reason>');
+  }
   // Per-frame hazards inside update-like function bodies (lexical scan, so helper calls are not flagged).
   const updHead = /(?:^|[\s;{}])(?:(?:private|public|protected|static|async)\s+)*(update\w*|tick\w*|preUpdate|postUpdate|step\w*|on\w*Update)\s*\([^()]*\)\s*(?::\s*[^{;=()]+)?\{|\bonUpdate\s*\(\s*(?:\([^()]*\)|\w+)\s*(?::\s*\w+)?=>\s*\{/g;
   const BODY_RULES = [
@@ -293,6 +303,8 @@ if (opts.list) {
   console.log(`warn  world-timescale-inverted   physics.world.timeScale assigned something other than 1 / x`);
   console.log(`warn  scene-events-no-off        scene.events.on(...) with no .events.off( / SHUTDOWN handler in the file`);
   console.log(`warn  window-listener-no-remove   window/document.addEventListener( in a file with no removeEventListener(`);
+  console.log(`warn  canvas-texture-no-exists-guard   textures.createCanvas/addCanvas in a file with no textures.exists()/remove()`);
+  console.log(`warn  camera-zoom-outside-controller   setZoom/zoomTo/cam.zoom= outside core/camera.ts`);
   console.log(`warn  update-new-phaser-object   new Phaser.Geom/Math.Vector/... inside update/tick/onUpdate`);
   console.log(`warn  update-creates-gameobject  add.sprite/text/graphics/... inside update/tick/onUpdate`);
   console.log(`warn  update-adds-collider       add.collider/overlap inside update/tick/onUpdate`);

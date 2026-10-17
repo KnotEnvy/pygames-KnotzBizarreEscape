@@ -17,6 +17,10 @@ import { takePendingPart, uiDebug } from '../../ui';
 
 interface Popup { t: Phaser.GameObjects.BitmapText; wx: number; wy: number; age: number }
 
+/** HUD flashes never use a white FILL tint: the fonts' and icons' outlines are opaque, so FILL paints a solid white box. */
+const ICON_FLASH = 0x707070; // ADD tint: the icon brightens toward white, its outline only lifts to grey
+const BOSS_FLASH = 0xffc0a8; // FILL on the boss fill (cropped to the HP width): a light-red blink on a phase change
+
 export class HudScene extends Phaser.Scene {
     private ctx!: GameContext;
     private clock = 0;
@@ -55,6 +59,9 @@ export class HudScene extends Phaser.Scene {
     private bossGhostHp = 0;
     private bossShown = false;
     private bossFlash = 0;
+    /** Flash-clear timers (F8): cancelled before a new pop so two quick pops never stack a stale clear. */
+    private iconTimer?: Phaser.Time.TimerEvent;
+    private powTimer?: Phaser.Time.TimerEvent;
     // callout / popups / prompt
     private callout!: Callout;
     private popups: Popup[] = [];
@@ -168,7 +175,7 @@ export class HudScene extends Phaser.Scene {
         this.promptText = text(this, 0, 0, '', F.hud, [0.5, 0.5]);
         this.promptBox.add([this.promptPanel, this.promptText]);
         this.card = new TitleCard(this, 44);
-        // Phase F: WARNING banner and the multi-kill callout (small, below the weapon callout line).
+        // Phase F: WARNING banner and the multi-kill callout (small, in the upper third under the radio strip, clear of the banner band).
         this.warning = new WarningBanner(this, 48);
         this.combo = new Callout(this, UI.hud.combo.y, 45);
     }
@@ -214,13 +221,14 @@ export class HudScene extends Phaser.Scene {
         if (announce && changed) this.iconPop();
     }
 
-    /** Phase F: the weapon icon drops in from above and bounces into place, white for its first frames. */
+    /** Phase F: the weapon icon drops in from above and bounces into place, brightened (ADD tint) for its first frames. */
     private iconPop(): void {
         const P = UI.hud.iconPop;
         this.tweens.killTweensOf(this.weaponIcon);
-        this.weaponIcon.setY(3 + P.fromDy).setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+        this.weaponIcon.setY(3 + P.fromDy).setTint(ICON_FLASH).setTintMode(Phaser.TintModes.ADD);
         this.tweens.add({ targets: this.weaponIcon, y: 3, duration: P.ms, ease: 'Bounce.easeOut' });
-        this.time.delayedCall(P.flashMs, () => this.weaponIcon.clearTint());
+        this.iconTimer?.remove(false);
+        this.iconTimer = this.time.delayedCall(P.flashMs, () => this.weaponIcon.clearTint());
     }
 
     private setRescued(n: number): void {
@@ -234,9 +242,10 @@ export class HudScene extends Phaser.Scene {
         const fresh = this.powIcons[shown - 1];
         if (fresh && shown > before && this.ctx) {
             const P = UI.hud.powThanks;
-            fresh.setY(3 + P.iconFromDy).setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+            fresh.setY(3 + P.iconFromDy).setTint(ICON_FLASH).setTintMode(Phaser.TintModes.ADD);
             this.tweens.add({ targets: fresh, y: 3, duration: P.iconMs, ease: 'Bounce.easeOut' });
-            this.time.delayedCall(70, () => { if (fresh.active) fresh.clearTint(); });
+            this.powTimer?.remove(false);
+            this.powTimer = this.time.delayedCall(70, () => { if (fresh.active) fresh.clearTint(); });
         }
     }
 
@@ -379,7 +388,7 @@ export class HudScene extends Phaser.Scene {
         if (!this.ctx) return;
         const dt = Math.min(100, delta);
         this.clock += dt;
-        // score tally (Phase F: the counter bumps up a pixel while it rolls and blinks white as it locks in)
+        // score tally (Phase F: the counter bumps up a pixel while it rolls and blinks to the white font as it locks in)
         if (this.shownScore !== this.score) {
             const diff = this.score - this.shownScore;
             const step = Math.abs(diff) < 1.5 ? diff : diff * Math.min(1, UI.hud.tallyRate * dt / 16);
@@ -389,9 +398,10 @@ export class HudScene extends Phaser.Scene {
         } else if (this.scoreRolling) {
             this.scoreRolling = false;
             this.scoreLock = UI.hud.scoreRoll.lockFlashMs;
-            this.scoreText.setY(this.scoreBaseY).setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+            // White font variant (same dark outline), never a FILL tint: the glyph outlines are opaque, so FILL paints a white slab.
+            this.scoreText.setY(this.scoreBaseY).setFont(F.hud);
         }
-        if (this.scoreLock > 0) { this.scoreLock -= dt; if (this.scoreLock <= 0) this.scoreText.clearTint(); }
+        if (this.scoreLock > 0) { this.scoreLock -= dt; if (this.scoreLock <= 0) this.scoreText.setFont(F.gold); }
         // lives flash
         if (this.livesFlash > 0) {
             this.livesFlash -= dt;
@@ -422,9 +432,10 @@ export class HudScene extends Phaser.Scene {
             if (this.bossFlash > 0) {
                 this.bossFlash -= dt;
                 const on = Math.floor(this.bossFlash / 65) % 2 === 0;
-                this.bossFrame.setTint(on ? C.white : 0xffffff).setTintMode(on ? Phaser.TintModes.FILL : Phaser.TintModes.MULTIPLY);
+                // The frame is opaque, so it is never FILL-tinted (that read as a long white slab); the fill lights up instead.
+                if (on) this.bossFill.setTint(BOSS_FLASH).setTintMode(Phaser.TintModes.FILL); else this.bossFill.clearTint();
                 this.bossName.setTint(on ? C.white : C.red5);
-                if (this.bossFlash <= 0) { this.bossFrame.clearTint(); this.bossName.setTint(C.red5); }
+                if (this.bossFlash <= 0) { this.bossFill.clearTint(); this.bossName.setTint(C.red5); }
             }
         }
         // callout, title card (shoot/jump while Hazel types reveals the page; the card never blocks play)

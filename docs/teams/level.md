@@ -390,7 +390,7 @@ enemies 11 grunts, 14 hounds (packs of 2–3), 4 shields, 5 drones, 2 grenadiers
 
 ### Art (new)
 - Actors (Aseprite, `art-src/backgrounds/actors/*.lua` → `public/assets/sprites/bg/bg_*.png/json`, pack section `level_bg`):
-  `bg_zeppelin` 80×28, `bg_plane` 72×24, `bg_crow` 8×6, `bg_beam` 24×150, `bg_tower` 20×56 (off/on), `bg_waterfall` 40×112,
+  `bg_zeppelin` 80×28, `bg_plane` 72×24, `bg_crow` 12×8, `bg_beam` 24×150, `bg_tower` 20×56 (off/on), `bg_waterfall` 40×112,
   `bg_plume` 48×96, `bg_armtrain` 224×36, `bg_buzzard` 24×12, `bg_aurora` 128×56, `bg_arc` 24×40, `bg_moosezilla` 112×88
   (walk/roar), `bg_fissure` 160×10, `bg_avalanche` 96×64, `bg_flak` 16×16. Tags `<key>_<anim>`. Drawn by helpers from my
   contract; previews `/tmp/kbe-level/art-bg/contact_a.png`, `contact_b.png`.
@@ -413,9 +413,8 @@ with them. No ground tiles, spawns or arenas changed.
   `p3_ice_fissure`, `p3_lab_shore`, `p3_moosezilla_roar`, `p3_tesla`. Console clean except Audio's two "no sound" warnings below.
 
 ### Known issues
-- Crows are tiny (8×6) and read only in motion. Outpost flak shows only where the outpost facades leave sky.
-- Sky actors at y 40–66 can pass behind the radio strip while it's open.
-- The yard smoke sits right of the watchtower; recheck its spot after any yard layout change.
+- Outpost flak shows only where the outpost facades leave sky.
+- The yard smoke anchor is tuned to the current stockade/bunker layout; recheck it after any yard layout change.
 
 ### Requests (Phase F)
 - **UI/Audio:** the zone announcements `lab_searchlights` and `lab_tesla` have no sound mapped (the per-arc `tesla` id does). Map
@@ -423,3 +422,16 @@ with them. No ground tiles, spawns or arenas changed.
 - **Engine:** optionally add a `bg` slot to `__KBE.cheats` so QA can use `__KBE.cheats.bg(id)` (Levels registers `ctx.debug.cheat('bg')`-style
   behaviour today through `window.__KBE_LEVEL`).
 - **FX:** `fx:emit` background effects work as used here (screen point + camX·sf). Nothing blocking.
+
+### Phase F tidy-ups
+- **Sky flyers stay below the HUD and radio strip.** Hazel's strip covers screen y 31–54 when open (measured), so the flyers now
+  keep to screen y ~62–110: zeppelin y 58→84, plane 40→76, far buzzard 66→86 (orbit ±12), flak `yMin` 54→64. They no longer need
+  to wait for the strip to close. Tuning comment in `LEVEL.bg`.
+- **Crows:** redrawn at 12×8 (was 8×6), 13 birds (was 8), life 4.2 s. New motion: the flock splits to both sides, launches
+  fast and eases into level flight (rise 26–48 px, `burstS` 0.55), with a slight bob. Flapping starts 2.4× fast and slows to a glide.
+  Launch times are staggered up to 220 ms. They stay at FAR+2.5 and finish around screen y 70–90.
+- **Yard smoke:** the old anchor (ax 3109) put it off-screen right at x=6100 and over the bunker wall in the arena. It's now at
+  ax 3020: above the stockade as you reach the yard, and above the fence left of the bunker during the Snowcat fight. New
+  `tint` actor option darkens it (0x5c606c) so it reads against pale clouds.
+- Screenshots `/tmp/kbe-level/f2/`: `p1_zeppelin` (with the radio strip open), `p1_flyers_a` (plane), `p1_crows_a/b/c/d` (burst sequence),
+  `p2_buzzard2` (with the radio strip open), `p1_yard_smoke3` (x=6100), `p1_yard_arena2` (arena, pre-tint).

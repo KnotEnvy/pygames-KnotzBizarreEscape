@@ -35,10 +35,13 @@ export const UI = {
         lowAmmoBlinkMs: 250, lowAmmoClick: 'ammo_click',
         /** Weapon icon pop on a weapon change: drop from above with a bounce, white flash for the first frames. */
         iconPop: { fromDy: -7, ms: 420, flashMs: 70 },
-        /** Multi-kill callouts: chain length → word; one callout per `minGapMs`, only when the tier rises within a chain. */
+        /**
+         * Multi-kill callouts: chain length → word; one callout per `minGapMs`, only when the tier rises within a chain.
+         * `y` 66 sits in the upper third under the radio strip (y 30..55), above the walking lane and clear of the WARNING band (92..132).
+         */
         combo: {
             tiers: [[2, 'NICE!'], [3, 'GREAT!'], [5, 'EXCELLENT!']] as ReadonlyArray<readonly [number, string]>,
-            minGapMs: 1400, holdMs: 620, y: 128, sfx: 'combo_sting', detunePerTier: 250
+            minGapMs: 1400, holdMs: 620, y: 66, sfx: 'combo_sting', detunePerTier: 250
         },
         /** POW rescue flourish: "THANK YOU!" popup over the POW, the new face icon drops into the tally with a bounce. */
         powThanks: { text: 'THANK YOU!', riseY: 30, iconFromDy: -9, iconMs: 480 }
@@ -186,6 +189,7 @@ export const UI = {
             ironhorn_plume: { key: 'bg_loco' }, buzzard_circle: { key: 'bg_buzzard' }, armored_train: { key: 'bg_train_pass' }, gorge: { key: 'bg_gorge' },
             avalanche: { key: 'bg_avalanche' }, aurora: { key: 'bg_aurora' }, tesla: { key: 'bg_tesla' }, towers: { key: 'bg_searchlight' }, ice_fissure: { key: 'bg_fissure' },
             moosezilla_roar: { key: 'bg_roar' }, moosezilla: { key: 'bg_stomp' },
+            lab_searchlights: { key: 'bg_searchlight' }, lab_tesla: { key: 'bg_tesla' },
             /** Ambience zones that are visual only (key '' = known, silent). */
             tunnel: { key: '' }, phaser: { key: '' },
             // Part I, "The Camp"

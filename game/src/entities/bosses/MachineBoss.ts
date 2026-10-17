@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BossDebris } from './BossDebris';
+import { BossFlash } from './BossFlash';
 import { DEPTH, type GameContext, type HitInfo, type Hurtbox } from '../../core';
 import { MIDBOSSES } from '../../config/tuning/enemies';
 import { animate } from '../enemies/Enemy';
@@ -28,7 +29,7 @@ export class MachineBoss extends Phaser.GameObjects.Container {
     private readonly heavyDebris: BossDebris;
     private cycle = 0;
     private fired = 0;
-    private flash = 0;
+    private readonly flash = new BossFlash();
     private contactMs = 0;
     private smokeMs = 0;
     private direction = -1;
@@ -75,7 +76,8 @@ export class MachineBoss extends Phaser.GameObjects.Container {
             // Register the two independent turrets last so direct shots prefer them over the hull.
             for (let i = 0; i < 2; i++) this.box(IRON_GUNS[i].x - 12, IRON_GUNS[i].y - 24, 27, 22, `turret${i}`);
         }
-        this.offs.push(ctx.onUpdate(dt => this.tick(dt)));
+        this.offs.push(ctx.onUpdate((dt, rawDt) => { this.flash.update(rawDt); this.tick(dt); }));
+        this.once('destroy', () => this.flash.clear());
         this.once('destroy', () => { this.heavyDebris.destroy(); for (const off of this.offs) off(); this.clearShells(); this.cue.destroy(); for (const s of this.scraps) s.destroy(); });
         ctx.events.emit('boss:spawn', this.info());
         ctx.audio.sfx(kind === 'snowcat' ? 'snowcat_engine' : 'loco_steam');
@@ -118,7 +120,6 @@ export class MachineBoss extends Phaser.GameObjects.Container {
             if (this.turretHp[i] <= 0 && damage > 0) { animate(this.turrets[i], 'ironhorn_turret_broken'); this.boom(this.x + IRON_GUNS[i].x, this.y + IRON_GUNS[i].y - 14, 'm'); }
         } else if (this.phase === 3 && Math.abs(h.x - this.x - IRON_CORE.x) < 13 && Math.abs(h.y - this.y - IRON_CORE.y) < 13) damage *= 2;
         this.setHp(this.hp - damage);
-        this.flash = 60; this.hull.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
         return damage > 0;
     }
     setHp(value: number): void {
@@ -145,6 +146,7 @@ export class MachineBoss extends Phaser.GameObjects.Container {
                 for (let i = 0; i < 2; i++) { const s = this.ctx.scene.add.sprite(this.x + (i ? 25 : -25), this.y - 6, 'snowcat_tread').setDepth(DEPTH.ENEMIES + 1); animate(s, 'snowcat_tread_roll', true); this.scraps.push(s); }
             }
         }
+        this.flash.start([this.hull, this.operator, ...this.turrets, ...this.scraps], this.hp <= 0);
     }
     private enter(state: string, ms: number): void { this.state = state; this.duration = ms; this.elapsed = 0; this.fired = 0; this.marks.length = 0; }
     private boom(x: number, y: number, size: 's' | 'm' | 'l' | 'xl' = 's'): void { this.ctx.events.emit('explosion', { x, y, size, team: 'enemy' }); }
@@ -228,7 +230,6 @@ export class MachineBoss extends Phaser.GameObjects.Container {
                 this.ctx.events.emit('fx:emit', { effect: 'smoke_stack', x: this.x + IRON_STACK.x, y: this.y + IRON_STACK.y, count: 2, scale: .8 });
             }
         }
-        if (this.flash > 0 && (this.flash -= dt) <= 0) this.hull.clearTint();
         if (this.state === 'death') {
             if (this.elapsed >= this.fired * 240 && this.fired < 13) { this.boom(this.x + this.ctx.rng.range(-47, 47), this.y - this.ctx.rng.range(5, 55), this.fired++ % 3 ? 'm' : 'l'); }
             if (this.kind === 'snowcat') {

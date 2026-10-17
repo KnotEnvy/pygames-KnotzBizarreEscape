@@ -607,7 +607,7 @@ id Levels' director announces (`src/level/background.ts`), the four layered weap
 | Path | What |
 |---|---|
 | `src/ui/warning.ts` | **`WarningBanner`**: dark strip y 92..132 (between the HUD rows and the boss bar, clear of the engine's 14 px letterbox bars), red/black hazard stripes (a 24×6 canvas tile, `TileSprite`s on the top and bottom edges sweeping opposite ways at 90 px/s), "WARNING!" (`font_callout_white`) slamming in from above, white ↔ red strobe with the stripes flashing bright ↔ dark every 110 ms, the boss name typed in at 650 ms (`font_hud`, gold), fade-out at 1.9 s (2.2 s total). **Reduced flash**: no strobe, steady dim red stripes, the word settles red. Never blocks input |
-| `src/scenes/ui/HudScene.ts` | `boss:intro` → cuts the title card/callout and shows the banner; **score roll** (the counter rides 1 px up while it rolls and blinks white FILL for 70 ms when it locks); **low-ammo blink** (250 ms phases) with `ammo_click` on each red phase; **weapon icon pop** on a weapon change (drops 7 px with `Bounce.easeOut` over 420 ms, white FILL for its first 70 ms); **multi-kill callouts** (chain 2 NICE! / 3 GREAT! / 5 EXCELLENT!, a second small `Callout` at y 128: sand font, fire from GREAT!; one per 1.4 s, but a bigger word within the same chain replaces the one showing; yields to a weapon callout or the banner; `combo_sting` detuned +250 cents per tier); **POW thank-you**: "THANK YOU!" popup rising over the POW (`pow:freed`) and the new rescue face dropping into the tally with a bounce. `__KBE.state().hud` adds `warning {name, t}`, `combo`, `chain` |
+| `src/scenes/ui/HudScene.ts` | `boss:intro` → cuts the title card/callout and shows the banner; **score roll** (the counter rides 1 px up while it rolls and swaps to the white `font_hud` for 70 ms when it locks; never a FILL tint, see the review note below); **low-ammo blink** (250 ms phases) with `ammo_click` on each red phase; **weapon icon pop** on a weapon change (drops 7 px with `Bounce.easeOut` over 420 ms, brightened with an ADD tint 0x707070 for its first 70 ms; the clear timer is cancelled before a new pop); **multi-kill callouts** (chain 2 NICE! / 3 GREAT! / 5 EXCELLENT!, a second small `Callout` at y 66, in the upper third under the radio strip (y 30..55) and clear of the WARNING band (92..132): sand font, fire from GREAT!; one per 1.4 s, but a bigger word within the same chain replaces the one showing; yields to a weapon callout or the banner; `combo_sting` detuned +250 cents per tier); **POW thank-you**: "THANK YOU!" popup rising over the POW (`pow:freed`) and the new rescue face dropping into the tally with a bounce. `__KBE.state().hud` adds `warning {name, t}`, `combo`, `chain` |
 | `src/audio/events.ts` | `boss:intro` → `warning_siren` + music duck 0.45 for 1.9 s; **`bg:event {id, x?}`** → `UI.audio.bgEvents[id]` (also tries the id without a `bg_` prefix, then a catalog key/alias of the same name) → `sfx(key, { pan })`: panned by x (`bgPanRange` 384 px, max ±0.45), **no distance falloff**; `key: ''` = known and silent; unmapped ids land in `audio.bgUnknown` (dev console warns once). **Weapon layers** on `player:shoot` (`UI.audio.weaponLayers`). **Section beds**: the camera centre is polled every 250 ms against `UI.audio.sections[partId]`; a section change fades the old `amb_*` loop out and the new one in over 1.8 s (`LoopHandle.setVolume` ramp); `arena:start` ducks the bed to 0.5, `arena:clear` restores it; beds stop on `stage:clear`/`game:over` and restart on `game:continue`/`part:start`. `audio.bed` shows the current one |
 | `src/audio/engine.ts` | `SfxOptions.pan` (fixed pan, no falloff; `loop()` honours it too), `has(key)`, `noteBg()` + `bgUnknown`/`bg`/`bed` in `debugState()` |
 | `src/audio/catalog.ts` | meta for the 29 new keys; aliases `warning boss_warning klaxon` → `warning_siren`, `combo multikill` → `combo_sting`, `bg_buzzard` → `buzzard_rotor` ×0.35 −250 ¢ as a 2.5 s loop, `bg_gorge` → `amb_river` ×0.5 −200 ¢ for 6 s, `bg_stomp` → `boss_stomp` ×0.3 −400 ¢, `thunder`/`bg_thunder` → `bg_artillery` −300 ¢, `far_roar distant_roar` → `bg_roar` |
@@ -617,7 +617,7 @@ id Levels' director announces (`src/level/background.ts`), the four layered weap
 ### bg:event lookup (Levels' ids → sound). Mismatches are one line in `UI.audio.bgEvents`.
 | Levels id (announced by `background.ts`) | Plays | Synonyms also mapped |
 |---|---|---|
-| `camp_searchlights`, `towers` | `bg_searchlight` | searchlight(s), lab_searchlight, searchlight_sweep |
+| `camp_searchlights`, `towers`, `lab_searchlights` | `bg_searchlight` | searchlight(s), lab_searchlight, searchlight_sweep |
 | `tower_lights` | `bg_siren` (far air-raid wail) | watchtower, watchtower_lights, far_siren, siren |
 | `zeppelin` | `bg_zeppelin` | airship, blimp |
 | `crows` | `bg_crows` | birds, bg_birds, crow_burst |
@@ -632,7 +632,7 @@ id Levels' director announces (`src/level/background.ts`), the four layered weap
 | `gorge` | `bg_gorge` (river far below, 6 s) | trestle, valley |
 | `avalanche` | `bg_avalanche` | bg_avalanche |
 | `aurora` | `bg_aurora` (6 s pad, one at a time: `minMs` 4000) | aurora_shimmer |
-| `tesla` | `bg_tesla` | tesla_coil, tesla_arc, arc, lightning, bg_lightning |
+| `tesla`, `lab_tesla` (zone enter) | `bg_tesla` | tesla_coil, tesla_arc, arc, lightning, bg_lightning |
 | `ice_fissure` | `bg_fissure` | fissure, ice_boom |
 | `moosezilla_roar` | `bg_roar` | moose_roar, roar, boss_silhouette, silhouette |
 | `moosezilla` (the walk) | `bg_stomp` (far `boss_stomp`) | |
@@ -676,6 +676,20 @@ background moment never competes with the gameplay layer; beds sit at -26…-28 
 share the shot's `burst` fatigue so a held HMG settles at 0.55×. The limiter (-3 dB, 20:1) and bus structure are unchanged.
 Section beds by camera x (`UI.audio.sections`): `1-1` camp 0 / forest 960 / river 2720 / outpost 4000 / yard 5760 (outpost ×0.55);
 `1-3` lake 0 / lab 2416; `1-2` keeps the Phase E `train_clack` + `wind` pair (no extra loop).
+
+### Lead integration review tidy-ups (2026-10-17)
+- **No white FILL tints on HUD art.** The HUD fonts and icons carry an opaque 0x1a1220 outline and `ui_bossbar_frame` is 99.9 % opaque, so
+  `TintModes.FILL` white painted solid white boxes (the score at lock, the boss bar on a phase change: rules-review F1). Now: the score lock swaps
+  `font_hud_gold` → `font_hud` (same metrics, white glyphs, dark outline); the weapon icon pop and the POW tally icon use `ADD` 0x707070 (glyph
+  brightens toward white, the outline only lifts to grey, transparent cells stay clear: the shader keeps texture alpha); the boss phase flash FILL-tints
+  **the fill only** (cropped to the HP width) with 0xffc0a8 while the name goes white, the frame is never tinted. The ammo/lives/rescued texts only use
+  MULTIPLY tints (white ↔ red), which cannot slab. Flash-clear timers (`iconTimer`, `powTimer`) are cancelled before a new pop (F8).
+- **Multi-kill callout** moved from y 128 (the walking lane, next to Knotz) to y 66.
+- **`lab_searchlights` → `bg_searchlight`, `lab_tesla` → `bg_tesla`** (Levels' Part III zone ids); `audio.bgUnknown` is `[]` after a warp sweep of
+  `part=1-3` x 2300..4500 (`bg`: aurora, lab_searchlights, lab_tesla, tesla ×3; bed `amb_lab`).
+- Frames (SwiftShader 3×, `scene=Game&part=1-3&x=3690&debug=1`): `/tmp/kbe-ui/f2_scorelock.png` (lock frame, captured by sleeping the loop and
+  stepping `game.step` until `scoreLock > 0`), `f2_bossdmg.png` (ghost trail after `damageBoss(60)`), `f2_bossphase.png` (phase blink "on" frame),
+  `f2_combo.png` (EXCELLENT! at y 66 beside the boss). Steps: `/tmp/kbe-ui/f2_steps_a3.json`, `f2_steps_b.json`.
 
 ### Screenshots (SwiftShader, 3×)
 `f_warn2_strip.png` (four frames of the banner: slam, strobe phases, name typing), `f_warn2_c.png` (full frame, WARDEN'S SNOWCAT at the

@@ -5,7 +5,7 @@
 // and exposed flat background strips at the level edges, KBE-QA-E02). An offset that would leave the world bounds
 // is reflected back inside, so the shake keeps its full amplitude even when the camera sits against an edge.
 import Phaser from 'phaser';
-import type { CameraService, PlayerQuery, ShakeTier } from './contracts';
+import type { CameraService, Hurtbox, PlayerQuery, ShakeTier } from './contracts';
 import type { EventBus } from './events';
 import { settings } from './settings';
 import { createRng } from './rng';
@@ -93,9 +93,17 @@ export class CameraController implements CameraService {
     /** Boss-intro cinematic: 'off' | 'intro' (waiting for boss:spawn) | 'hold' (counting down to release). */
     private cine: 'off' | 'intro' | 'hold' = 'off';
     private cineLeft = 0;
+    /** Boss framing: the framed object (explicit or found from boss:spawn), its last known bounds and the blend. */
+    private frameObj: Phaser.GameObjects.GameObject | null = null;
+    /** boss:spawn position while the boss object isn't resolved yet (its hurtboxes may register a frame later). */
+    private framePending: { x: number; y: number } | null = null;
+    private readonly frameRect = new Phaser.Geom.Rectangle();
+    private frameHave = false;
+    private readonly frameW = new Ramp();
 
     constructor(scene: Phaser.Scene, private readonly events: EventBus, private readonly playerQuery: () => PlayerQuery | null,
-        private readonly onCinematic: (on: boolean) => void = () => {}) {
+        private readonly onCinematic: (on: boolean) => void = () => {},
+        private readonly damage: { forEach(fn: (h: Hurtbox) => void): void } | null = null) {
         this.cam = scene.cameras.main;
         this.cam.setRoundPixels(true);
         // Bars are screen-fixed rects drawn above every gameplay band (the HUD scene still renders on top of them).
@@ -106,7 +114,12 @@ export class CameraController implements CameraService {
         events.on('fx:shake', e => this.shake(e.tier));
         events.on('fx:flash', e => this.flash(e.color, e.ms));
         events.on('boss:intro', e => this.bossIntro(e.x, e.y));
-        events.on('boss:spawn', () => {
+        events.on('boss:spawn', e => {
+            // Boss framing: find the boss from its hurtboxes near the spawn point (resolved lazily in update()).
+            if (!this.frameObj) {
+                this.framePending = { x: e.x ?? NaN, y: e.y ?? NaN };
+                this.frameHave = false;
+            }
             if (this.cine !== 'intro') return;
             this.cine = 'hold';
             this.cineLeft = T.bossIntro.holdAfterSpawnMs;
@@ -114,6 +127,9 @@ export class CameraController implements CameraService {
         // Death, respawn or a warp ends it at once (no dangling bars or shield).
         events.on('player:died', () => this.endCinematic(0));
         events.on('game:respawn', () => this.endCinematic(0));
+        // Release the boss framing after the death chain (boss:defeated) or whenever the arena opens.
+        events.on('boss:defeated', () => this.frameTarget(null));
+        events.on('camera:unlock', () => this.frameTarget(null));
     }
 
     // ---- Phase F camera API ------------------------------------------------------------------------------------
@@ -125,6 +141,7 @@ export class CameraController implements CameraService {
     zoomPunch(amount: number, ms = 220): void {
         if (!settings.get().shake || !(amount > 0) || !(ms > 0)) return;
         const a = Math.min(amount, T.zoomPunchMax);
+        ms = Math.min(ms, T.zoomPunchMaxMs);
         // A weaker punch never cuts a stronger running one short.
         if (this.punchLeft > 0 && a <= this.punchAmt * this.punchEnv()) return;
         this.punchAmt = a;
@@ -142,6 +159,65 @@ export class CameraController implements CameraService {
     }
 
     inCinematic(): boolean { return this.cine !== 'off'; }
+
+    frameTarget(obj: Phaser.GameObjects.GameObject | null): void {
+        this.framePending = null;
+        this.frameObj = obj;
+        this.frameHave = false;
+        if (!obj) this.frameW.set(0, T.bossFrame.easeOutMs);
+    }
+
+    /** Resolve a pending boss:spawn to the enemy hurtbox owner nearest the spawn point. */
+    private resolveFrame(): void {
+        const pend = this.framePending;
+        if (!pend || !this.damage) return;
+        let best: Phaser.GameObjects.GameObject | null = null, bestD = Infinity;
+        this.damage.forEach(h => {
+            if (h.team !== 'enemy' || !h.owner || !h.alive()) return;
+            const o = h.owner as unknown as { x?: number; y?: number };
+            if (typeof o.x !== 'number' || typeof o.y !== 'number') return;
+            const d = Number.isFinite(pend.x) ? Math.abs(o.x - pend.x) + Math.abs(o.y - pend.y) : 0;
+            if (d < bestD) { bestD = d; best = h.owner!; }
+        });
+        // Only accept the boss itself (its origin is the spawn point), not a grunt that happens to be nearby.
+        if (best && bestD <= 4) { this.frameObj = best; this.framePending = null; }
+    }
+
+    /** Union of the framed object's live hurtboxes (else its display bounds) into frameRect; keeps the last one. */
+    private measureFrame(): void {
+        const obj = this.frameObj;
+        if (!obj) return;
+        if (!obj.active) { this.frameTarget(null); return; }
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        this.damage?.forEach(h => {
+            if (h.owner !== obj || !h.alive()) return;
+            const b = h.body;
+            const r = typeof b === 'function' ? b() : b instanceof Phaser.Geom.Rectangle ? b : null;
+            const bx = r ? r.x : (b as Phaser.Physics.Arcade.Body).x, by = r ? r.y : (b as Phaser.Physics.Arcade.Body).y;
+            const bw = r ? r.width : (b as Phaser.Physics.Arcade.Body).width, bh = r ? r.height : (b as Phaser.Physics.Arcade.Body).height;
+            x0 = Math.min(x0, bx); y0 = Math.min(y0, by); x1 = Math.max(x1, bx + bw); y1 = Math.max(y1, by + bh);
+        });
+        if (x1 < x0) {
+            const g = obj as unknown as { getBounds?: () => Phaser.Geom.Rectangle };
+            // No live hurtbox (dying, invulnerable phase): keep the last bounds rather than snapping away.
+            if (this.frameHave || typeof g.getBounds !== 'function') return;
+            const r = g.getBounds();
+            x0 = r.x; y0 = r.y; x1 = r.right; y1 = r.bottom;
+        }
+        this.frameRect.setTo(x0, y0, x1 - x0, y1 - y0);
+        if (!this.frameHave) this.frameW.set(1, T.bossFrame.easeInMs);
+        this.frameHave = true;
+    }
+
+    /** Scroll x that keeps the boss rect and the player on screen, as close to `x` as possible (player wins). */
+    private framedX(x: number, px: number | null): number {
+        const w = this.cam.width, F = T.bossFrame, r = this.frameRect;
+        let lo = r.right + F.pad - w, hi = r.x - F.pad;
+        if (lo > hi) lo = hi = (r.x + r.right) / 2 - w / 2; // wider than the view: center it
+        x = Phaser.Math.Clamp(x, lo, hi);
+        if (px !== null) x = Phaser.Math.Clamp(x, px + F.playerMargin - w, px - F.playerMargin);
+        return Phaser.Math.Clamp(x, this.lockX0, this.lockX1 - w);
+    }
 
     /** Boss intro: bars in, slow push toward the boss/gate, shield the player; released 1 s after boss:spawn. */
     private bossIntro(x: number, y: number): void {
@@ -255,8 +331,15 @@ export class CameraController implements CameraService {
     rightEdge(): number { return this.locked ? Math.min(this.x + this.cam.width, this.lockX1) : this.x + this.cam.width; }
 
     clampX(x: number, halfW = 8): number {
-        const l = this.leftEdge() + halfW;
-        const r = this.rightEdge() - halfW;
+        let l = this.leftEdge() + halfW;
+        let r = this.rightEdge() - halfW;
+        // Boss framing pins the view, so the player keeps the framing margin from the screen edges instead of the
+        // camera following them out (eased with the framing blend; never past the arena walls).
+        const fw = this.locked && this.frameHave ? this.frameW.value : 0;
+        if (fw > 0) {
+            const m = (T.bossFrame.playerMargin - halfW) * fw;
+            if (m > 0 && r - l > 2 * m) { l = Math.max(l, this.x + halfW + m); r = Math.min(r, this.x + this.cam.width - halfW - m); }
+        }
         return x < l ? l : x > r ? r : x;
     }
 
@@ -296,8 +379,15 @@ export class CameraController implements CameraService {
 
         if (this.locked) {
             desiredX = Phaser.Math.Clamp(desiredX, this.lockX0, this.lockX1 - w);
-        } else if (T.forwardOnly) {
-            desiredX = Math.max(desiredX, this.minScroll);
+            // Boss framing: blend toward a scroll that keeps both the boss and the player on screen.
+            if (this.framePending) this.resolveFrame();
+            this.measureFrame();
+            this.frameW.step(dt * 1000);
+            const fw = this.frameW.value;
+            if (fw > 0 && this.frameHave) desiredX = Phaser.Math.Linear(desiredX, this.framedX(desiredX, t ? t.x : null), fw);
+        } else {
+            this.frameW.step(dt * 1000);
+            if (T.forwardOnly) desiredX = Math.max(desiredX, this.minScroll);
         }
         desiredX = this.clampScrollX(desiredX);
 
@@ -335,6 +425,8 @@ export class CameraController implements CameraService {
                 const m = T.focusPlayerMargin;
                 rx = Phaser.Math.Clamp(rx, Math.min(this.x, p.x + m - w), Math.max(this.x, p.x - m));
             }
+            // Never show outside a locked arena (rules review F4); the follow camera itself may still be blending in.
+            if (this.locked) rx = Phaser.Math.Clamp(rx, Math.min(this.x, this.lockX0), Math.max(this.x, this.lockX1 - w));
             rx = this.clampScrollX(rx);
             ry = this.clampScrollY(ry);
         }
@@ -402,9 +494,10 @@ export class CameraController implements CameraService {
     }
 
     /** Debug info for the overlay / __KBE.state(). */
-    debugInfo(): { x: number; minScroll: number; locked: boolean; x0: number; x1: number; blend: number; rx: number; ry: number; focus: number; bars: number; zoom: number; cine: string } {
+    debugInfo(): { x: number; minScroll: number; locked: boolean; x0: number; x1: number; blend: number; rx: number; ry: number; focus: number; bars: number; zoom: number; cine: string; frame: number; frameRect: { x: number; y: number; width: number; height: number } | null } {
         return { x: this.x, minScroll: this.minScroll, locked: this.locked, x0: this.lockX0, x1: this.lockX1, blend: this.blend,
-            rx: this.rx, ry: this.ry, focus: this.focusW.value, bars: this.bars.value, zoom: this.cam.zoom, cine: this.cine };
+            rx: this.rx, ry: this.ry, focus: this.focusW.value, bars: this.bars.value, zoom: this.cam.zoom, cine: this.cine,
+            frame: this.frameW.value, frameRect: this.frameHave ? { x: this.frameRect.x, y: this.frameRect.y, width: this.frameRect.width, height: this.frameRect.height } : null };
     }
 }
 

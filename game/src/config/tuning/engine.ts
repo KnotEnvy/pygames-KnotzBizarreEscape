@@ -51,8 +51,18 @@ export const ENGINE = {
         focusPlayerMargin: 64,
         /** Cinematic bar height (px, top and bottom). Kept at about 14 so the HUD's top and bottom rows stay clear. */
         letterboxPx: 14,
-        /** zoomPunch amount cap (1 + amount is the peak zoom). */
-        zoomPunchMax: 0.12,
+        /** zoomPunch amount cap (1 + amount is the peak zoom) and longest punch. Nearest-neighbour sampling
+         *  shimmers at non-integer zoom, so punches stay small and short (rules review F3). */
+        zoomPunchMax: 0.06,
+        zoomPunchMaxMs: 180,
+        /** Boss framing (while locked in a boss arena): keep the boss's hurtbox union `pad` px inside the view and
+         *  the player at least `playerMargin` px inside it (the player wins when both can't fit). Eased in/out. */
+        bossFrame: {
+            pad: 8,
+            playerMargin: 48,
+            easeInMs: 700,
+            easeOutMs: 700
+        },
         /** Auto boss-intro cinematic (on boss:intro). Runs on real time; it never blocks input. */
         bossIntro: {
             letterboxMs: 450,

@@ -15,6 +15,9 @@ import { LEVEL } from '../config/tuning/level';
 import type { Parallax } from './parallax';
 import { bool, num, str, type LevelObject } from './types';
 
+/** Shared zero offset for actors without an orbit/bob (no per-frame allocation). */
+const NO_OFFSET: readonly [number, number] = [0, 0];
+
 const B = LEVEL.bg;
 const FAR = DEPTH.BG_FAR, NEAR = DEPTH.BG_NEAR;
 
@@ -33,6 +36,8 @@ interface ActorOpts {
     depth: number;
     alpha?: number;
     add?: boolean;
+    /** Multiplies the sprite colour (e.g. darken a grey plume into black smoke). */
+    tint?: number;
     flip?: boolean;
     origin?: [number, number];
     life?: number;
@@ -45,7 +50,7 @@ interface ActorOpts {
     zone?: Zone;
     tick?: (a: Actor, dt: number) => void;
     /** Extra screen offset applied after the parallax position (orbits, bobbing). */
-    offset?: (a: Actor) => [number, number];
+    offset?: (a: Actor) => readonly [number, number];
 }
 
 class Actor {
@@ -182,8 +187,8 @@ export class BackgroundDirector {
             const x = a.ax - eff * o.sf + (o.vx ?? 0) * a.age / 1000;
             const y = a.ay + (LEVEL.parallax.restScrollY - camY) * (o.sfY ?? 0) + (o.vy ?? 0) * a.age / 1000;
             const s = a.sprite;
-            const [ox, oy] = o.offset ? o.offset(a) : [0, 0];
-            s.setPosition(Math.round(x + ox), Math.round(y + oy));
+            const off = o.offset ? o.offset(a) : NO_OFFSET;
+            s.setPosition(Math.round(x + off[0]), Math.round(y + off[1]));
             if (o.exitOff && a.age > 300) {
                 const vx = o.vx ?? 0, half = s.displayWidth;
                 if ((vx > 0 && x - half > w + 8) || (vx < 0 && x + half < -8)) { this.kill(i); continue; }
@@ -210,6 +215,7 @@ export class BackgroundDirector {
         s.setOrigin(...(o.origin ?? [0.5, 1]));
         if (o.flip) s.setFlipX(true);
         if (o.add) s.setBlendMode(Phaser.BlendModes.ADD);
+        if (o.tint !== undefined) s.setTint(o.tint);
         if (o.anim) {
             if (hasAnim(this.scene, o.anim)) {
                 s.play(o.anim);
@@ -321,12 +327,22 @@ const SHOTS: Record<string, (d: BackgroundDirector, o?: LevelObject, at?: { sx: 
         d.announce('plane', 60, P.y);
     },
     crows: (d, _o, at) => {
+        // A flock bursts up out of the trees, fans out, climbs, then levels off and glides away to both sides.
         const C = B.crows;
         const sx = at?.sx ?? 192, n = C.count;
         for (let i = 0; i < n; i++) {
-            const dir = d.rnd() < 0.5 ? -1 : 1;
-            d.actor({ key: 'bg_crow', origin: [0.5, 0.5], anim: 'bg_crow_flap', sf: C.sf, sfY: 0.08, sx: sx + d.rand(-30, 30), sy: C.y + d.rand(-6, 6),
-                vx: dir * d.rand(18, 52), vy: -d.rand(22, 46), flip: dir < 0, depth: FAR + 2.5, alpha: C.alpha, life: C.lifeMs, fadeOut: 800 });
+            const dir = i % 2 ? -1 : 1;
+            const spd = d.rand(C.speed[0], C.speed[1]), rise = d.rand(C.rise[0], C.rise[1]);
+            const k = 1 / (C.burstS * d.rand(0.8, 1.25)), ph = d.rand(0, 6.28), delay = d.rand(0, 220);
+            d.actor({ key: 'bg_crow', origin: [0.5, 0.5], anim: 'bg_crow_flap', sf: C.sf, sfY: 0.08, sx: sx + d.rand(-14, 14), sy: C.y + d.rand(-4, 4),
+                flip: dir < 0, depth: FAR + 2.5, alpha: C.alpha, life: C.lifeMs, fadeIn: 120, fadeOut: 900,
+                // frantic flapping in the burst, slowing to a glide
+                tick: a => { a.sprite.anims.timeScale = 1 + 1.4 * Math.exp(-a.age / 700); },
+                offset: a => {
+                    const t = Math.max(0, a.age - delay) / 1000, e = 1 - Math.exp(-t * k);
+                    // fast launch that eases into level flight, plus a slight bob
+                    return [dir * (spd * 0.45 * e / k * 2 + spd * 0.55 * t), -rise * e + Math.sin(t * 5 + ph) * 1.5];
+                } });
         }
         d.announce('crows', sx, C.y);
     },
@@ -478,8 +494,8 @@ const ZONES: Record<string, ZoneImpl> = {
     yard_smoke: {
         enter: (d, z) => {
             const Y = B.yardSmoke;
-            d.actor({ key: 'bg_plume', anim: 'bg_plume_rise', sf: Y.sf, sfY: 0.4, ax: Y.ax, sy: Y.y, depth: NEAR + 3, alpha: Y.alpha, zone: z, fadeIn: 1200 });
-            d.actor({ key: 'bg_plume', anim: 'bg_plume_rise', sf: Y.sf, sfY: 0.4, ax: Y.ax + 26, sy: Y.y + 6, depth: NEAR + 3, alpha: Y.alpha * 0.8, zone: z, fadeIn: 1600 });
+            d.actor({ key: 'bg_plume', anim: 'bg_plume_rise', sf: Y.sf, sfY: 0.4, ax: Y.ax, sy: Y.y, depth: NEAR + 3, alpha: Y.alpha, tint: Y.tint, zone: z, fadeIn: 1200 });
+            d.actor({ key: 'bg_plume', anim: 'bg_plume_rise', sf: Y.sf, sfY: 0.4, ax: Y.ax + 26, sy: Y.y + 6, depth: NEAR + 3, alpha: Y.alpha * 0.8, tint: Y.tint, zone: z, fadeIn: 1600 });
         }
     },
 

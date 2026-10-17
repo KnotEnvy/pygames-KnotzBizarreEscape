@@ -97,16 +97,18 @@ export const LEVEL = {
         beam: { alpha: 0.26, sweepDeg: 16, periodMs: 5200 },
         // Part I
         campBeams: { sf: 0.18, y: 118, anchors: [130, 290, 470] },
-        zeppelin: { sf: 0.06, y: 58, speed: 12, alpha: 0.92 },
-        plane: { sf: 0.5, y: 40, speed: 125, alpha: 1 },
-        crows: { sf: 0.18, y: 110, count: 8, lifeMs: 3600, cooldownMs: 7000, alpha: 0.95 },
+        // Sky flyers keep to screen y ~62-110: above that sit the HUD row and Hazel's radio strip (y ~30-55).
+        zeppelin: { sf: 0.06, y: 84, speed: 12, alpha: 0.92 },
+        plane: { sf: 0.5, y: 76, speed: 125, alpha: 1 },
+        crows: { sf: 0.18, y: 116, count: 13, lifeMs: 4200, cooldownMs: 7000, alpha: 0.95, rise: [26, 48], speed: [34, 70], burstS: 0.55 },
         waterfall: { sf: 0.29, ax: 1100, y: 150, alpha: 0.8, mistEveryMs: 1400, cliffKey: 'bg1_waterfall_cliff' },
         towers: { sf: 0.18, y: 128, anchors: [636, 746, 876], lampUp: 50, staggerMs: 260, alpha: 1 },
-        flak: { sf: 0.23, yMin: 54, yMax: 82, minMs: 700, maxMs: 2000, alpha: 0.9, fxChance: 0.25 },
-        yardSmoke: { sf: 0.45, ax: 3109, y: 150, alpha: 0.85 },
+        flak: { sf: 0.23, yMin: 64, yMax: 82, minMs: 700, maxMs: 2000, alpha: 0.9, fxChance: 0.25 },
+        // ax: over the stockade as you reach the yard (x~6100), above the fence left of the bunker in the arena. tint: dark engine smoke.
+        yardSmoke: { sf: 0.45, ax: 3020, y: 150, alpha: 0.9, tint: 0x5c606c },
         // Part II
         gorge: { ms: 8000, fadeMs: 700 },
-        buzzard: { sf: 0.2, y: 66, alpha: 0.9, periodS: 2.6, rx: 40, ry: 12, lifeMs: 6500 },
+        buzzard: { sf: 0.2, y: 86, alpha: 0.9, periodS: 2.6, rx: 40, ry: 12, lifeMs: 6500 },
         armTrain: { y: 128, speed: 170, alpha: 0.9 },
         avalanche: { sx: 270, y: 100, alpha: 0.9, lifeMs: 3600 },
         ironPlume: { x0: 360, x1: 296, y0: 150, y1: 122, alpha: 0.85 },

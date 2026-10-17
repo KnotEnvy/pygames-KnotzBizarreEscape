@@ -504,3 +504,21 @@ Final validation:
 - Art validation: **31 assets, 733 frames, 175 unique tags**, pack/atlas/rig bounds and original attack anticipation timings pass; **1,490,310 opaque source pixels** checked against `K.PAL`, no exceptions (`f-art-audit.log`).
 - Final screenshot runs have no page exceptions. Part II logged two concurrent Levels/parallax warnings: missing textures **`bg2_gorge` / `bg2_trestle`**. Snowcat and MOOSEZILLA consoles were clean. T3 preview itself could not start because host browser libraries were missing; the repository Chromium workflow already supplies its own library path. No packages installed.
 - These are targeted visual and simulation checks; no sustained GPU/60-FPS benchmark is claimed. No git operations or non-Enemies source edits were made.
+
+## Boss flash cleanup — 2026-10-17
+
+Fixed the Phase F partial white silhouette: machine bosses flashed only their hull; MOOSEZILLA applied its hit flash after lethal damage detached the head, and detached parts could leave the map used for tint cleanup. New Enemies-owned `game/src/entities/bosses/BossFlash.ts` owns the affected sprite references through separation. Both boss implementations now start one synchronized flash after damage/phase/death setup, including the operator, turrets, newly detached rig parts, replacement head antlers and Snowcat tread scraps. Detachment clears inherited tint; the shared flash clears every affected surviving sprite and releases references on expiry/destruction. Cosmetic heavy debris starts untinted.
+
+Hit flashes last **50 raw ms**, death flashes **100 raw ms**. Cleanup runs even during hitstop and slow motion, before the scaled gameplay update can return. `settings.get().reducedFlash` selects a soft `0xb8c8d8` multiplicative tint that preserves sprite detail instead of white fill. MOOSEZILLA's accompanying screen-flash request is shortened to 100 ms; existing FX accessibility handling remains in charge of that overlay.
+
+Verification used the repository `tools/shot.mjs` Vite/Chromium setup, adapted to frozen fixed-step captures in `/tmp/kbe-enemies/flash-capture.mjs`. All three real arenas were checked with normal and reduced flashes, **21 captures per run / 126 total**, including 0/33/67 ms hit samples, threshold separation, 0/50/117 ms death samples and then every 100 ms through 1117 ms. Runtime probes verify identical tint/mode across affected parts, no lingering tint after expiry, and no white-filled debris after expiry. Hit flashes are cleared at 67 ms; death flashes are cleared at 117 ms, including MOOSEZILLA's hitstop/slowmo. Initial captures that put MOOSEZILLA offscreen were replaced with captures keeping the player inside the locked arena.
+
+Visually inspected all six contact sheets (left-to-right, top-to-bottom: idle, hit 0/33/67, threshold 0/100, death 0/50/117/217/517/1017 ms):
+
+- `/tmp/kbe-enemies/flash-review-moosezilla-{normal,soft}.png`
+- `/tmp/kbe-enemies/flash-review-snowcat-{normal,soft}.png`
+- `/tmp/kbe-enemies/flash-review-ironhorn-{normal,soft}.png`
+
+Full-resolution source captures: `/tmp/kbe-enemies/flash-<boss>-<normal|soft>-<sample>.png`. Probe report: `/tmp/kbe-enemies/flash-captures.json`; runner log: `/tmp/kbe-enemies/flash-captures.log`.
+
+`npm run check` **PASS**: TypeScript plus Phaser checker, **103 files, zero errors/warnings**. `npm run audit` **PASS**: every reach target and arena; Snowcat/Ironhorn phases 1/2/3 → PartClear, MOOSEZILLA phases 1/2/3 → Results, zero boss off-view time (`/tmp/kbe-enemies/flash-audit.log`). The first sandboxed audit could not bind its loopback server; the approved local-server rerun passed. Capture runs had no page exceptions; Part III reported existing unmapped background-audio events `lab_searchlights` / `lab_tesla`. Only Enemies source/notes were edited; no git commands or git state changes.
