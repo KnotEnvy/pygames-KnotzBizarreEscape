@@ -1,3 +1,25 @@
+# Effects and game feel — real-map ambience polish (2026-10-17)
+
+This pass supersedes the tunnel and train presentation values below. Edited only `game/src/fx/weather.ts`, `game/src/config/tuning/fx.ts`, and this report. No git state operations.
+
+- Replaced full-height grey lamp rectangles with additive amber/orange cones, soft lateral/vertical falloff, ceiling fixtures/halos and broad deck pools. One 160×216 canvas texture is baked once and reused across scene restarts; five fixed weather Images are separate from the unchanged 344 pooled FX slots. No per-frame texture uploads or filters.
+- Lamps move right to left at the real map's **260 px/s** drift, spaced 192 px apart. Each brightens locally for roughly 140 ms while passing Knotz (alpha .72 → 1); `reducedFlash` and OS reduced motion suppress that pulse. `fx.weather.lamps` and `lampPulse` expose the presentation. Tunnel veil changed from purple/.64 to near-black blue/.84. Veil depth 38 and light depth 38.5 preserve characters (40+) and fully visible projectiles (60).
+- Train snow streaks now occupy 55% of emissions, are 8–17 px long, use a pale ice tint and .78 opacity; other train flakes use .62. Existing 22/s emission and 48-flake/64-ambient caps remain. Sideways snow is visible against the mountains without covering combat. Part III blizzard tuning is unchanged; inspected at the real lake x=1200 with readable ice and actors.
+
+Verification used only `node tools/shot.mjs` from `game/`, short input steps and read-only/debug-setting sampling. Tunnel 1 is the trigger at **x=1712**, width 64, duration 6000 ms in `m1p2.tmj`. Spawn x=1690 is behind stacked crates: hold right, hold Z for 450 ms, continue right for 450 ms, release, then wait 1500 ms. A tap jump does not clear those crates. Wait 8500 ms before entry so the title/radio has mostly cleared. Open track uses x=400; lake uses part=1-3, x=1200 (11500 ms wait clears its radio).
+
+All generated PNGs were opened and inspected. Evidence:
+- Tunnel before: `/tmp/kbe-level/final/p2_tunnel.png` (Lead reference). Final: `/tmp/kbe-fx/polish/final-tunnel-pulse.png`, `final-tunnel-reduced.png`. Warm pools and bright enemy bullets remain distinct. Captured normal `lampPulse=.922`; reduced-flash samples retain alpha .72 and pulse 0.
+- Open track before: `/tmp/kbe-fx/polish/before-track.png` (title/radio still visible). After: `after-track-motion.png`, `after-track.png` in the same directory, separated by 140 ms to inspect leftward travel.
+- Lake before: `/tmp/kbe-fx/polish/before-lake.png` (title/radio visible). After: `final-lake.png` in the same directory (clear view).
+- Intermediate captures in that directory include the blocked entry attempts and `after-tunnel-shot.png` with muzzle flashes; they are not the final tunnel evidence.
+
+`__KBE.state().fx` on Chromium/SwiftShader: tunnel normal 62-frame sample mean **.101 ms**, maximum moving average **.125 ms**, `cpuPeakMs` **1.50 ms**; reduced-flash final **.076 ms**. Open-track final **.069 ms**, peak **1.60 ms**. Lake final **.049 ms**, peak **1.20 ms**. Final state FPS 60–61, no dropped FX, runtime/load errors or console problems. CPU excludes renderer/GPU work; these are short map captures, not a sustained hardware performance claim. Full output: `/tmp/kbe-fx/polish/{final-tunnel,after-track,final-lake}.log`.
+
+Final `npm run check` passes: TypeScript and Phaser 4 scan, **98 files, zero errors/warnings** (`/tmp/kbe-fx/polish/check.log`). Shared files changed by other teams were left alone.
+
+---
+
 # Effects and game feel — Phase E integration contract
 
 This section supersedes historical notes below. Implemented and verified in the existing camp/bridge map and boss fixtures; new Part II/III maps were not yet present during verification.

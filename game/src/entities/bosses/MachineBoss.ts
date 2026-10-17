@@ -45,6 +45,8 @@ export class MachineBoss extends Phaser.GameObjects.Container {
     constructor(private readonly ctx: GameContext, kind: Kind, x: number, y: number, props: Record<string, unknown>) {
         super(ctx.scene, x, y);
         this.kind = kind; this.hp = MIDBOSSES[kind].hp;
+        // The train map spawns enemies on the 304px deck; the engine runs on the rails below it.
+        if (kind === 'ironhorn' && ctx.part.map === 'm1p2') this.y = 352;
         ctx.scene.add.existing(this); this.setDepth(DEPTH.ENEMIES);
         this.arena0 = Number(props.arenaX0 ?? ctx.camera.leftEdge());
         this.arena1 = Number(props.arenaX1 ?? this.arena0 + ctx.camera.view().width);
@@ -127,8 +129,12 @@ export class MachineBoss extends Phaser.GameObjects.Container {
     private enter(state: string, ms: number): void { this.state = state; this.duration = ms; this.elapsed = 0; this.fired = 0; this.marks.length = 0; }
     private boom(x: number, y: number, size: 's' | 'm' | 'l' | 'xl' = 's'): void { this.ctx.events.emit('explosion', { x, y, size, team: 'enemy' }); }
     private clearShells(): void { for (const s of this.shells) s.sprite.destroy(); this.shells.length = 0; }
+    private attackFloor(target: number): number {
+        // Look above the flatcar deck even when the locomotive's wheels are on the rails.
+        return this.ctx.physics.groundBelow(target, this.y - (this.kind === 'ironhorn' ? 96 : 16), 120) ?? this.y;
+    }
     private arc(x: number, y: number, target: number, ms: number, lift: number, radius: number, texture = 'enemy_grenade'): void {
-        const floor = this.ctx.physics.groundBelow(target, this.y - 16, 120) ?? this.y;
+        const floor = this.attackFloor(target);
         const sprite = this.ctx.scene.add.sprite(x, y, texture).setDepth(DEPTH.PROJECTILES); animate(sprite, `${texture}_fuse`, true);
         this.shells.push({ sprite, x0: x, y0: y, x1: target, y1: floor - 2, age: 0, ms, lift, radius });
     }
@@ -159,7 +165,10 @@ export class MachineBoss extends Phaser.GameObjects.Container {
     private draw(): void {
         const g = this.cue; g.clear(); if (this.hp <= 0) return;
         g.lineStyle(1, Math.floor(this.elapsed / 100) % 2 ? 0xffe066 : 0xf07a5a, 1);
-        for (const x of this.marks) g.strokeEllipse(x, this.y - 2, 24, 6).lineBetween(x, this.y - 11, x, this.y - 5);
+        for (const x of this.marks) {
+            const floor = this.kind === 'ironhorn' ? this.attackFloor(x) : this.y;
+            g.strokeEllipse(x, floor - 2, 24, 6).lineBetween(x, floor - 11, x, floor - 5);
+        }
         for (const s of this.shells) g.strokeEllipse(s.x1, s.y1, s.radius * 2, 6);
         if (this.state === 'mg' && this.elapsed < MIDBOSSES.snowcat.mgCue) { const [a, b] = this.limits(6); g.lineBetween(a, this.y - 24, b, this.y - 24); }
         if (this.state === 'charge' && this.elapsed < MIDBOSSES.snowcat.chargeCue) { const [a, b] = this.limits(48); for (let x = a; x < b; x += 18) g.lineBetween(x, this.y - 3, x + 9, this.y - 3); }
@@ -214,7 +223,13 @@ export class MachineBoss extends Phaser.GameObjects.Container {
             this.shoot(this.x + this.direction * 55, this.y - 24, this.direction * 155, 0);
         }
         if (this.state === 'cannon' && this.fired < 2 && this.elapsed >= MIDBOSSES.ironhorn.cannonCue + this.fired * 250) {
-            const i = this.fired++; if (this.turretHp[i] > 0) { animate(this.turrets[i], 'ironhorn_turret_fire'); this.shoot(this.x + IRON_GUNS[i].x - 22, this.y + IRON_GUNS[i].y - 14, -100, 30); this.ctx.audio.sfx('loco_cannon'); }
+            const i = this.fired++; if (this.turretHp[i] > 0) {
+                animate(this.turrets[i], 'ironhorn_turret_fire');
+                const x = this.x + IRON_GUNS[i].x - 22, y = this.y + IRON_GUNS[i].y - 14;
+                const target = this.target(0), targetY = this.ctx.player()?.centerY ?? this.attackFloor(target) - 20;
+                const angle = Math.atan2(targetY - y, target - x);
+                this.shoot(x, y, Math.cos(angle) * 104, Math.sin(angle) * 104); this.ctx.audio.sfx('loco_cannon');
+            }
         }
         if (this.state === 'cinder' && this.fired < 4 && this.elapsed >= MIDBOSSES.ironhorn.cinderCue + this.fired * 200) {
             this.arc(this.x + IRON_STACK.x, this.y + IRON_STACK.y, this.marks[this.fired++], 900, 40, 16, 'cinder'); this.ctx.audio.sfx('cinder');

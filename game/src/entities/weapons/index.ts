@@ -10,7 +10,26 @@ export class Weapons {
     private flameTick = 0;
     private flameAngle = 0;
     private seekRect = new Phaser.Geom.Rectangle();
-    constructor(private ctx: GameContext) {}
+    private flashes: Record<'laser_muzzle' | 'laser_impact', Phaser.GameObjects.Sprite[]> = {
+        laser_muzzle: [], laser_impact: [],
+    };
+    private flashNext = { laser_muzzle: 0, laser_impact: 0 };
+    constructor(private ctx: GameContext) {
+        for (const texture of ['laser_muzzle', 'laser_impact'] as const) {
+            for (let i = 0; i < 2; i++) {
+                const spr = ctx.scene.add.sprite(0, 0, texture)
+                    .setDepth(DEPTH.PROJECTILES + 1).setActive(false).setVisible(false);
+                spr.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => spr.setActive(false).setVisible(false));
+                this.flashes[texture].push(spr);
+            }
+        }
+        ctx.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            for (const pool of Object.values(this.flashes)) {
+                for (const spr of pool) spr.destroy();
+                pool.length = 0;
+            }
+        });
+    }
     equip(name: string, ammo?: number): void {
         if (!isWeapon(name)) return;
         this.flameLeft = 0;
@@ -62,9 +81,13 @@ export class Weapons {
             team: 'player', damage: 1, weapon, texture, anim: `${texture}_fly`, lifetime: 1400 });
     }
     private flash(texture: 'laser_muzzle' | 'laser_impact', x: number, y: number, angle: number): void {
-        const spr = this.ctx.scene.add.sprite(x, y, texture).setDepth(DEPTH.PROJECTILES + 1).setRotation(angle);
+        const pool = this.flashes[texture];
+        if (!pool.length) return;
+        const spr = pool[this.flashNext[texture]];
+        this.flashNext[texture] = (this.flashNext[texture] + 1) % pool.length;
+        // Replaying also restarts a live slot when a piercing pulse exhausts the pool.
+        spr.setPosition(x, y).setRotation(angle).setActive(true).setVisible(true);
         spr.play(`${texture}_flash`);
-        this.ctx.scene.time.delayedCall(120, () => spr.destroy());
     }
     private laser(x: number, y: number, angle: number): void {
         this.flash('laser_muzzle', x, y, angle);

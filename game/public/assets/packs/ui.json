@@ -172,6 +172,13 @@
       },
       {
         "type": "audio",
+        "key": "bridge_whoosh",
+        "url": [
+          "assets/audio/sfx/bridge_whoosh.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "buzzard_rotor",
         "url": [
           "assets/audio/sfx/buzzard_rotor.ogg"

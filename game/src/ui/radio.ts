@@ -1,6 +1,7 @@
-// Hazel's radio box (Phase E): a thin panel in the lower-left with the radio icon (signal animation + static
-// flicker), a speaker label and typewriter briefing lines. Non-blocking: it slides over gameplay, pages through
-// long briefings, and closes by itself. `skip()` reveals the current page (the HUD calls it on shoot/jump).
+// Hazel's radio box (Phase E): a slim one-row strip in the sky band under the HUD (UI.radio) with the radio icon
+// (signal animation + static flicker), the speaker label and a typewriter briefing row. Non-blocking: it fades in
+// over the sky (never the walking lane), pages through long briefings one row at a time, and closes by itself.
+// `skip()` reveals the current page (the HUD calls it on shoot/jump).
 import Phaser from 'phaser';
 import { TEX, hasAnim, tagFrame } from '../core';
 import { getAudio } from '../audio';
@@ -29,17 +30,17 @@ export class RadioBox {
         const R = UI.radio;
         this.container = scene.add.container(R.x, R.y + R.hiddenDy).setDepth(depth).setVisible(false);
         const bg = panel(scene, 0, 0, R.w, R.h, true);
-        this.radio = scene.add.sprite(6, 9, 'ui_radio').setOrigin(0, 0);
+        this.radio = scene.add.sprite(R.iconX, R.iconY, 'ui_radio').setOrigin(0, 0);
         const off = tagFrame(scene, 'radio_off');
         if (off !== undefined) this.radio.setFrame(off);
-        this.label = text(scene, 36, 5, 'HAZEL', F.gold);
+        this.label = text(scene, R.labelX, R.labelY, 'HAZEL', F.gold);
         this.container.add([bg, this.radio, this.label]);
         for (let i = 0; i < R.maxLines; i++) {
-            const row = text(scene, 36, 15 + i * 10, '', F.plain).setTint(C.ink5);
+            const row = text(scene, R.textX, R.textY + i * 10, '', F.plain).setTint(C.ink5);
             this.rows.push(row);
             this.container.add(row);
         }
-        this.cursor = text(scene, 36, 15, '_', F.plain).setTint(C.fire5).setVisible(false);
+        this.cursor = text(scene, R.textX, R.textY, '_', F.plain).setTint(C.fire5).setVisible(false);
         this.container.add(this.cursor);
         for (let i = 0; i < R.staticPixels; i++) {
             const px = scene.add.image(0, 0, TEX.px).setOrigin(0, 0).setVisible(false);
@@ -69,11 +70,12 @@ export class RadioBox {
         this.scene.tweens.killTweensOf(this.container);
         this.container.setVisible(true);
         if (this.phase === 'closed' || this.phase === 'closing') {
-            this.container.y = R.y + R.hiddenDy;
+            this.container.setPosition(R.x, R.y + R.hiddenDy).setAlpha(0);
             this.phase = 'opening';
             getAudio(this.scene).sfx('radio_static');
-            this.scene.tweens.add({ targets: this.container, y: R.y, duration: R.openMs, ease: 'Back.easeOut', onComplete: () => { if (this.phase === 'opening') this.startPage(); } });
-        } else this.startPage();
+            // A short drop + fade from the HUD band, so the strip never sweeps across the HUD or the playfield.
+            this.scene.tweens.add({ targets: this.container, y: R.y, alpha: 1, duration: R.openMs, ease: 'Quad.easeOut', onComplete: () => { if (this.phase === 'opening') this.startPage(); } });
+        } else { this.container.setAlpha(1); this.startPage(); }
         if (hasAnim(this.scene, 'radio_on')) this.radio.play({ key: 'radio_on', repeat: -1 }, true);
         this.burst();
     }
@@ -94,16 +96,17 @@ export class RadioBox {
     }
 
     private layout(): void {
+        const R = UI.radio;
         const rows = this.pages[this.page] ?? [];
         let left = this.typed;
-        let cy = 15, cx = 36;
+        let cy = R.textY, cx = R.textX;
         rows.forEach((r, i) => {
             const k = Math.max(0, Math.min(r.length, left));
             left -= k;
             this.rows[i].setText(r.slice(0, k));
-            if (k > 0 || i === 0) { cy = 15 + i * 10; cx = 36 + this.rows[i].width + (k > 0 ? 1 : 0); }
+            if (k > 0 || i === 0) { cy = R.textY + i * 10; cx = R.textX + this.rows[i].width + (k > 0 ? 1 : 0); }
         });
-        this.cursor.setPosition(Math.min(cx, UI.radio.w - 8), cy);
+        this.cursor.setPosition(Math.min(cx, R.w - 8), cy);
     }
 
     private burst(ms: number = UI.radio.staticMs): void {
@@ -136,8 +139,8 @@ export class RadioBox {
         getAudio(this.scene).sfx('radio_blip', { volume: 0.5, detune: -400 });
         this.scene.tweens.killTweensOf(this.container);
         this.scene.tweens.add({
-            targets: this.container, y: UI.radio.y + UI.radio.hiddenDy, duration: UI.radio.closeMs, ease: 'Quad.easeIn',
-            onComplete: () => { this.phase = 'closed'; this.container.setVisible(false); this.radio.stop(); const f = tagFrame(this.scene, 'radio_off'); if (f !== undefined) this.radio.setFrame(f); }
+            targets: this.container, y: UI.radio.y + UI.radio.hiddenDy, alpha: 0, duration: UI.radio.closeMs, ease: 'Quad.easeIn',
+            onComplete: () => { this.phase = 'closed'; this.container.setVisible(false).setAlpha(1); this.radio.stop(); const f = tagFrame(this.scene, 'radio_off'); if (f !== undefined) this.radio.setFrame(f); }
         });
     }
 
@@ -152,7 +155,7 @@ export class RadioBox {
                 px.setVisible(on);
                 if (!on) continue;
                 const w = 1 + Math.floor(Math.random() * 3);
-                px.setPosition(4 + Math.floor(Math.random() * (R.w - 8 - w)), 3 + Math.floor(Math.random() * (R.h - 6)))
+                px.setPosition(R.labelX + Math.floor(Math.random() * (R.w - R.labelX - 4 - w)), 3 + Math.floor(Math.random() * (R.h - 6)))
                     .setDisplaySize(w, 1).setTint(Math.random() < 0.5 ? C.white : C.ink5).setAlpha(0.35 + Math.random() * 0.5);
             }
         }

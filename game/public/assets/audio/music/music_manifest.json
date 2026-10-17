@@ -41,8 +41,8 @@
     "duration": 76.8,
     "file": "assets/audio/music/music_m1p2.ogg",
     "loop": true,
-    "peak_db": -1.9,
-    "rms_db": -14.6
+    "peak_db": -4.0,
+    "rms_db": -14.3
   },
   "music_m1p3": {
     "bars": 40,

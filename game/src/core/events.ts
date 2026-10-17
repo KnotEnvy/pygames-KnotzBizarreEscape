@@ -79,14 +79,14 @@ export interface GameEvents {
     'fx:flash': { color: number; ms: number };
     'fx:slowmo': { scale: number; ms: number };
     /** Ambient particles requested by a level trigger (null = stop). FX listens. */
-    'fx:ambience': { kind: 'snow' | 'embers' | 'fireflies' | null };
+    'fx:ambience': { kind: 'snow' | 'embers' | 'fireflies' | 'train' | 'tunnel' | 'blizzard' | null; drift?: number };
     /**
      * Generic spatial one-shot effect (Phase B). Anyone emits; FX listens and maps `effect` to a recipe.
      * Suggested effect ids: 'dust_run', 'dust_skid', 'dust_land', 'splash', 'waterfall', 'vent_steam', 'debris',
      * 'shield_spark', 'shockwave', 'muzzle_enemy', 'casing', 'scorch'. Unknown ids are ignored by FX.
      * `angle` in radians, `count` = intensity hint, `scale` = size multiplier.
      */
-    'fx:emit': { effect: string; x: number; y: number; angle?: number; count?: number; scale?: number; material?: ImpactMaterial; team?: Team };
+    'fx:emit': { effect: string; x: number; y: number; angle?: number; count?: number; scale?: number; material?: ImpactMaterial; team?: Team; width?: number; height?: number; duration?: number; speed?: number };
     /**
      * Ambient zone add/remove (Phase B). Levels emit `active: true` when a zone exists (usually at load) and
      * `active: false` to remove it; FX keeps a registry keyed by `id` and runs the zone while it's on camera.

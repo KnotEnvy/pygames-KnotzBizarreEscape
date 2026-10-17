@@ -606,6 +606,18 @@ def wind():
     return declick(loopify(x * 0.5, xf), 3)
 
 
+def bridge_whoosh():
+    """Low-bridge girder sweeping past overhead, 0.6 s: a doppler air rush (band-pass centre falls as it passes) over a
+    short low thrum that pitches down, plus a brown-noise pressure wave at the closest point."""
+    dur = 0.6
+    env = lin(dur, [(0, 0), (0.1, 0.4), (0.22, 1.0), (0.3, 0.75), (dur, 0)])
+    rush = filter_sweep(noise(dur), "bp", expsweep(dur, 2800, 380), 1.5) * env
+    pressure = lowpass(noise(dur, "brown"), 240) * lin(dur, [(0, 0.1), (0.2, 1.0), (0.34, 0.5), (dur, 0)]) * 1.1
+    thrum = (saw(expsweep(dur, 300, 150), dur) * 0.5 + sine(expsweep(dur, 150, 75), dur) * 0.5) * env * 0.22
+    x = lowpass(mix(rush, pressure, thrum), 7000)
+    return declick(x * 0.8)
+
+
 # ----------------------------------------------------------------- Phase E: ice, laser (Part III, player)
 def ice_crack():
     ev = []
@@ -791,6 +803,7 @@ CATALOG = {
     "callout": (callout, -14, False), "score_tally": (score_tally, -20, False), "rank_stamp": (rank_stamp, -12, False),
     # Phase E: train (Part II)
     "train_clack": (train_clack, -22, True), "train_horn": (train_horn, -13, False), "train_whistle": (train_whistle, -15, False), "wind": (wind, -26, True),
+    "bridge_whoosh": (bridge_whoosh, -14, False),
     # Phase E: ice / laser
     "ice_crack": (ice_crack, -18, False), "ice_shatter": (ice_shatter, -15, False), "laser": (laser, -16, False),
     # Phase E: bosses and enemies

@@ -520,7 +520,7 @@ Routing the Audio layer does on its own (no calls needed):
 | `buzzard_rotor` | 0.90 s | -9.6 | -22.7 | loop (seam 0.001) |
 | `radio_blip` | 0.18 s | -7.2 | -18.0 |  |
 | `radio_static` | 0.60 s | -8.1 | -22.6 |  |
-| `music_m1p2` | 76.8 s (48 bars @ 150 BPM) | -1.9 (-1.0 after Vorbis) | -14.6 | seamless (seam 0.025; `music_stage1` is 0.052) |
+| `music_m1p2` | 76.8 s (48 bars @ 150 BPM) | -4.0 (-2.7 after Vorbis; see §12) | -14.3 (-14.4 encoded) | seamless (seam 0.025; `music_stage1` is 0.052) |
 | `music_m1p3` | 75.0 s (40 bars @ 128 BPM) | -3.2 | -15.5 | seamless (seam 0.003) |
 | `music_midboss` | 43.6 s (32 bars @ 176 BPM) | -2.1 | -13.5 | seamless (seam 0.014) |
 | `part_clear_jingle` | 4.8 s (2 bars @ 150 BPM) | -1.9 | -14.5 | one-shot |
@@ -555,7 +555,7 @@ node game/tools/shot.mjs --out /tmp/kbe-ui/pc.png --query "scene=Title&mute=1" -
   never closes the box, so a trigger-happy player still sees the full line. Pages close by timeout (1.7 s / 2.4 s last).
 - Rank POW totals for `1-2`/`1-3` are estimates (`powTotalByPart` 4 / 3) until those levels report `powTotal`.
 - The Knotz map marker stands on the pictogram it has reached (by design); the radio icon's signal arcs are 1 px and subtle at 1×.
-- Nobody has heard the new audio; levels are numeric. `music_m1p2` peaks at -1.0 dBFS after Vorbis (limiter ceiling 0.80 pre-encode).
+- Nobody has heard the new audio; levels are numeric. (`music_m1p2`'s hot encoded peak was trimmed in §12.)
 
 ### Requests for other teams (Phase E)
 - **Engine**: done, thanks: `part:start`, `stage:clear {part, final}`, PartClear data, `progress.ts`, `cheats.clearPart()`. One wish: a
@@ -572,3 +572,28 @@ node game/tools/shot.mjs --out /tmp/kbe-ui/pc.png --query "scene=Title&mute=1" -
   `weapon:changed { weapon: 'laser' }` arrives (verified through the HUD; `cheats.give('laser')` currently reverts to the pistol on your side).
 - **QA**: `__KBE.state().hud.card` (title/location/radio phase + text), `__KBE.state().partClear` (phase, tallyDone, arrived) and
   `ui.log` entries `partclear:open`, `partclear:next`, `title:start <part>` are there for flow assertions.
+
+## 12. Phase E polish (Lead's 30-minute pass + rules-review P1/P3)
+
+Scratch: `/tmp/kbe-ui/p_*.png`. `npm run check` clean, `audio.unknown` `[]` on `part=1-2` and `part=1-3` with the new keys called directly.
+
+- **`bridge_whoosh` (new SFX, 0.60 s, tier -14).** The low-bridge girder passing overhead for Levels' `hazard_sweep`: a band-passed air rush
+  whose centre falls 2.8 kHz → 380 Hz (doppler), a brown-noise pressure wave at the closest point and a short thrum pitching 300 → 150 Hz.
+  Catalog: `vol 0.9, vary ±50, max 2, minMs 120`, positional (`{ x }`). `ice_break` already resolved to `ice_shatter` through `SFX_ALIASES`
+  (`crack` → `ice_crack`, `ice_break`/`shatter` → `ice_shatter`). Every other `sfx(` key in `src/level/**` (`train_horn`, `ice_crack`, `door_open`,
+  `boss_stomp`, `gate_smash`, the prop `sfx` fields, the map `clearSfx`) is a catalog key or alias.
+- **`music_m1p2` trimmed.** It rode the 0.80 limiter ceiling and Vorbis overshoot put the encoded peak at -1.0 dBFS. `music.py` now takes an
+  optional per-song ceiling (`SONGS[key] = (fn, loud, ceiling)`; `music_m1p2` uses 0.63) and re-trims the RMS after limiting (≤ 3 passes, so the
+  loudness target holds on a dense mix). Encoded: peak **-2.7 dBFS**, RMS **-14.4** (`music_stage1`: -1.3 / -14.1). Only `music_m1p2.ogg`
+  was re-rendered; other songs move by ≤ 0.3 dB if they are ever re-rendered with the re-trim.
+- **PartClear right panel.** Under the map: `NEXT <title>` / location, a rule, then **HAZEL** and a one-liner about the next part
+  (`UI.partClear.teaser[partId]`, else the first sentence of the part's briefing; ≤ 2 rows × 25 chars). Fades in with the NEXT lines when the
+  marker arrives. `p_partclear_23.png`.
+- **Hazel's radio box is a slim strip** (`UI.radio`: 368×25 at y 30, under the HUD's lives/RESCUED row, in the sky band): radio icon, HAZEL,
+  one typewriter row of up to 49 chars per page; it fades/drops in from the HUD band instead of sliding over the playfield. It now opens as the
+  title card leaves (`delayMs` 2650 ≈ `titleAt + holdMs`), so the card and the strip never stack. Verify with
+  `node tools/shot.mjs --out /tmp/kbe-ui/radio.png --query "scene=Game&fast=1&mute=1&part=1-2" --wait 5000` (at 3500 ms the card is still up
+  and the strip hasn't opened yet). `p_radio_strip.png`.
+- **Rules review P1** (`routemap.ts` / `PartClearScene.ts`): `RouteMap` keeps its travel tween and `finish()` stops it (it keys on `arrived`,
+  not `travelled`), and `PartClearScene.onArrive()` is idempotent (`ready`/`leaving` return early), so a confirm mid-travel can't restart the
+  auto-advance timer. **P3** (`ResultsScene.ts`): the `music:ended` handler is kept and `off`'d on SHUTDOWN.

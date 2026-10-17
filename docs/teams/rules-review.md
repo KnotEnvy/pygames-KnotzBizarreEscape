@@ -178,3 +178,47 @@ All new rules are `warn`, lexical, suppressible with `// phaser4-ok: <reason>`, 
 | `update-adds-filter` | `filters.*.add*`, `Actions.AddEffect*`, `new Filters.Controller` in the same bodies |
 Also: the `tint-fill` message is corrected (it `console.error`s and does nothing; it is not silent).
 Not automatable without false positives (left to review): re-entrant mutation of a pool during iteration (E1), repair of Aseprite animations (E2), per-frame string/closure allocations.
+
+---
+
+# Phase E review (`9e0ce80..HEAD`, 63 files in `game/src`, 3563+ / 342-)
+
+Method: `npm --prefix game run check` (tsc + `check-phaser4`: **clean, 0 errors**, 98 files), then a read of every new/changed file for listeners, timers, tweens, pooling and Phaser 4 API use, checked against `node_modules/phaser/src`. Static read only; nothing was run in a browser.
+
+Verified OK (no action):
+- No preFX/postFX, `setTintFill`, pipelines, masks, `createEmitter`, `textures.generate` or `Phaser.CANVAS` in the diff. All flashes use `setTint(c).setTintMode(Phaser.TintModes.FILL)` and reset with `clearTint()` (v4 `clearTint` also restores `MULTIPLY`, `Tint.js:154`). `fx/pool.ts:106` resets tint, origin, depth, flip and blend on reuse, so the FILL tints and `setOrigin`/`setDepth` overrides in `fx/campaign.ts:95,111,120` don't leak between pool users.
+- Arcade `world.timeScale = 1 / s` stays correct in `core/time.ts:85`. The new code adds no other `timeScale` writes.
+- Aseprite anim keys for the laser (`laser_muzzle_flash`, `laser_impact_flash`, `laser_beam_fly`) exist as frame tags in the sprite JSON.
+- `ctx.events` is a fresh `EventBus` per `createGameContext` and `teardown()` calls `ctx.events.destroy()`. So every `ctx.events.on(...)` without an `off` (`level/triggers.ts:38`, `level/arenas.ts:80,83`, `level/ice.ts:39`, `core/flow.ts:43`, `core/state.ts:38-42`, `fx/director.ts` `on(...)`, `core/debug/hooks.ts:74-77`) dies with the part, so there is no part-restart leak. `HudScene` uses `ctx.events.scoped(this)`, which is auto-removed on SHUTDOWN.
+- Scene-level hooks are all removed: `parallax.ts:75-77`, `train.ts:46,174-175,206-215` (PRE_RENDER draw is off'd in `endTunnel` and on SHUTDOWN), `fx/director.ts:136-137,482`, `GameScene.ts:78,99-100,150-151`, `Enemy.ts:101-102`, `AssaultEnemy.ts:38-39`, `PartClearScene.ts:95`, `level/props.ts:135` (fall tween is now `.stop()`ped, which closes L1 from the Phase C review).
+- `core/debug/sim.ts` patches `game.loop.callback` and `Date.now` page-globally. `headlessStep`, `loop.sleep/wake/resetDelta/frame` and `renderer.preRender/postRender` all exist in 4.2.1 (`Game.js:523`, `TimeStep.js`, `WebGLRenderer.js:1960,2027`). It is dev/cheats-only (`CHEATS_ENABLED`), so it doesn't ship.
+- `level/ice.ts` mutates `tile.index` plus `setCollision(l,r,u,d,recalc)` / `resetCollision(true)`. Both signatures match `Tile.js:647,708`, and the CPU `TilemapLayer` re-reads `tile.index` on render. There is no GPU layer in use (`level/map.ts:68` uses `createLayer`).
+
+## Findings
+
+| # | Sev | Where | Owner | Finding | Fix |
+|---|---|---|---|---|---|
+| P1 | W | `ui/routemap.ts:106-109` with `scenes/ui/PartClearScene.ts:128-133` | UI | Pressing confirm *while the marker is travelling*: `skipAll()` calls `map.finish()`, which returns immediately because `travelled` is already true, then `onArrive()`. The travel tween keeps running and its `onComplete` fires `onArrive()` a second time: `readyAt` is reset (the auto-advance timer restarts), the NEXT-line tween is re-added, and the pin, `map_pin` anim and `radio_blip` sfx replay. The knotz marker visibly keeps crawling under the PRESS START prompt. | Store the tween in `travel()` (`this.tw = this.scene.tweens.add(...)`). In `finish()`: `this.tw?.stop(); this.tw = null;` and drop the `if (this.travelled) return` guard, or guard only the pin and dot work. Make `onArrive()` idempotent: `if (this.phase === 'ready' || this.phase === 'leaving') return;`. |
+| P2 | W | `entities/weapons/index.ts` (new `flash()` / `laser()`, about lines 40-60) | Player | Each laser shot allocates a sprite via `scene.add.sprite` + `delayedCall(120, destroy)`, and `onHit` does the same for every enemy pierced (`pierce: Infinity`). At `laserMs: 100` that is 10+ GameObjects and timers per second, more when it pierces a crowd, all garbage. The project pools everything else (`ctx.pools`, `fx/pool.ts`). | Route the muzzle/impact flashes through FX (`ctx.events.emit('fx:emit', …)` with the existing pooled clips) or `ctx.pools`. Failing that, keep 2 pre-made sprites per kind and `play()`/`setVisible(false)` on `ANIMATION_COMPLETE`. A time-based cap (≤4 live flashes) also works. |
+| P3 | W | `scenes/ui/ResultsScene.ts:117` | UI | `audio.events.once('music:ended', …)` is registered on the *game-level* audio emitter and never removed. If the player leaves Results before the jingle ends, the stale listener fires later on a new run's Results visit (`this.scene.isActive()` is true again) and double-starts `music_title`. | Keep the handler and remove it on SHUTDOWN: `const h = () => {…}; audio.events.once('music:ended', h); this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => audio.events.off('music:ended', h));`. |
+| P4 | W | `ui/titlecard.ts:67-84`, `ui/radio.ts:75,138`, `scenes/ui/IntroScene.ts:41-59` | UI | Tweens and delayed calls are scene-owned, so they die with the scene (OK). The risk is the in-run overlays: `TitleCard.hide()` kills the mission-line/location tweens but not the Radio's `open`/`close` tween callbacks. `radio.close()` kills tweens on the container before re-adding, so that case is fine. `radio.ts:75`'s `onComplete` checks `phase === 'opening'`, which is correct. No leak; this is a note that the guards are load-bearing, so keep them if the class is refactored. | None. |
+| P5 | I | `core/debug/hooks.ts:362-363` | Engine | `window.addEventListener('error' / 'unhandledrejection')` with no remove. It is guarded by `globalTapped` (once per page), so no stacking. The new lint rule `window-listener-no-remove` flags the two lines as warnings. | Append `// phaser4-ok: once per page, guarded by globalTapped` to both lines to silence the warning. |
+| P6 | I | `core/debug/sim.ts:90` | Engine | `Date.now = …` is replaced globally and never restored (there is no `disengage`). Fine for a QA kit gated on `CHEATS_ENABLED`; just keep that gate, since a shipped build must never replace `Date.now`. | Optionally add `sim.release()` that restores `realDateNow` and the original `loop.callback`. |
+| P7 | I | `fx/director.ts:222-237` (Phase C F1) | FX | Still open: `scatter()` re-counts live slots per call. The new `pool.combatLive.debris/embers` counters used in `fx/campaign.ts:81,106` show the counter approach already exists. | Reuse `combatLive` in `scatter()`. |
+| P8 | I | `level/triggers.ts:42`, `core/flow.ts:65-67,168`, `ui/radio.ts`, `HudScene.ts:237,312` | Level / Engine / UI | `scene.time.delayedCall` callbacks are cancelled on scene shutdown. They don't outlive a part restart. | None. |
+
+No E (will-break) findings: nothing in the Phase E diff crashes, and nothing uses a removed/hallucinated Phaser 4 API. Part-restart listener hygiene is clean; the only sticky global (`window` error taps, `Date.now` in sim) is deliberate and guarded.
+
+## Linter change
+
+`game/tools/check-phaser4.mjs` gained one rule (warn, suppressible with `// phaser4-ok: <reason>`):
+
+| Rule | Catches |
+|---|---|
+| `window-listener-no-remove` | `window.addEventListener(` / `document.addEventListener(` in a file with no `removeEventListener(`. The listener outlives scene shutdown, and each part restart that re-runs `create()` stacks another copy. |
+
+Tests: `/tmp/kbe-rules/e-bad` (1 warning expected) and `/tmp/kbe-rules/e-good` (clean: add+remove pair, plus a `phaser4-ok`-suppressed once-per-page install). On the current tree it reports 2 warnings, both `core/debug/hooks.ts` (P5, guarded; Engine can suppress them). The pre-existing `ui/keys.ts` and `OptionsScene.ts` pair their listeners with removes, so they stay clean.
+Not automatable without false positives (left to review): `audio.events.once` handlers without SHUTDOWN removal (P3), per-shot `add.sprite` + `delayedCall` (P2), idempotency of tween `onComplete` callbacks (P1).
+
+## Counts
+E: 0 · W: 4 (P1–P4; P4 is a note with no change needed) · I: 4 (P5–P8). Linter: 1 new rule; `npm run check` passes (0 errors, 2 warnings, both P5).

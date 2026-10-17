@@ -359,8 +359,8 @@ export function installKbe(game: Phaser.Game, version: string): KbeHandle {
     if (!globalTapped) {
         globalTapped = true;
         (window as unknown as { __KBE_TAPPED?: boolean }).__KBE_TAPPED = true;
-        window.addEventListener('error', e => { noteError(String(e.message)); });
-        window.addEventListener('unhandledrejection', e => { noteError(`unhandledrejection: ${String(e.reason)}`); });
+        window.addEventListener('error', e => { noteError(String(e.message)); }); // phaser4-ok: once per page
+        window.addEventListener('unhandledrejection', e => { noteError(`unhandledrejection: ${String(e.reason)}`); }); // phaser4-ok: once per page
         const origError = console.error.bind(console);
         console.error = (...args: unknown[]) => { noteError(args.map(String).join(' ').slice(0, 300)); origError(...args); };
     }

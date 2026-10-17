@@ -19,6 +19,7 @@ export class RouteMap {
     private readonly cum: number[] = [];
     private readonly total: number;
     private travelled = false;
+    private tween: Phaser.Tweens.Tween | null = null;
 
     constructor(private readonly scene: Phaser.Scene, x: number, y: number, private readonly from: number, private readonly to: number, parts: number[]) {
         const M = UI.partClear;
@@ -88,7 +89,7 @@ export class RouteMap {
         const a = M.routeIndex[this.from] ?? 0, b = M.routeIndex[this.to] ?? M.route.length - 1;
         const d0 = this.cum[a], d1 = this.cum[b];
         const prog = { t: 0 };
-        this.scene.tweens.add({
+        this.tween = this.scene.tweens.add({
             targets: prog, t: 1, duration: M.travelMs, ease: 'Sine.easeInOut',
             onUpdate: () => {
                 const p = this.pointAt(d0 + (d1 - d0) * prog.t);
@@ -104,10 +105,13 @@ export class RouteMap {
         });
     }
 
-    /** Jump straight to the arrived state (tally skipped). */
+    /** Jump straight to the arrived state (tally skipped, or confirm while the marker is still travelling). */
     finish(): void {
-        if (this.travelled) return;
+        if (this.arrived) return;
         this.travelled = true;
+        // A running travel tween would otherwise complete later and fire onArrive a second time.
+        this.tween?.stop();
+        this.tween = null;
         const M = UI.partClear;
         const end = this.pointAt(this.cum[M.routeIndex[this.to] ?? M.route.length - 1]);
         this.knotz.setPosition(Math.round(end.x), Math.round(end.y) - 1);
@@ -119,6 +123,8 @@ export class RouteMap {
     get arrived(): boolean { return this.pin.visible; }
 
     destroy(): void {
+        this.tween?.stop();
+        this.tween = null;
         this.container.destroy(true);
     }
 }

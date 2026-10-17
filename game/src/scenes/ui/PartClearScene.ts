@@ -7,7 +7,7 @@ import { registerDebug } from '../../core';
 import { getAudio, type LoopHandle } from '../../audio';
 import { UI } from '../../config/tuning/ui';
 import { FIRST_PART, nextPart, partById, type CarryState, type PartClearData, type PartDef, type PartResult } from '../../config/campaign';
-import { C, F, H, W, bar, mmss, pad, panel, roman, text } from '../../ui/widgets';
+import { C, F, H, W, bar, mmss, pad, panel, roman, text, wrapText } from '../../ui/widgets';
 import { Callout } from '../../ui/callout';
 import { MenuInput } from '../../ui/input';
 import { Tally } from '../../ui/tally';
@@ -29,6 +29,8 @@ export class PartClearScene extends Phaser.Scene {
     private nextTitle!: Phaser.GameObjects.BitmapText;
     private nextLabel!: Phaser.GameObjects.BitmapText;
     private nextLoc!: Phaser.GameObjects.BitmapText;
+    /** Below the NEXT lines: a rule, HAZEL and her one-liner about the next part (fade in with the NEXT lines). */
+    private teaser: Phaser.GameObjects.GameObject[] = [];
     private press!: Phaser.GameObjects.BitmapText;
     private wind: LoopHandle | null = null;
     private phase: Phase = 'tally';
@@ -84,10 +86,19 @@ export class PartClearScene extends Phaser.Scene {
         panel(this, 200, 44, 174, 150);
         const parts = (partById(this.from.id) && this.missionParts()) || [this.from.part, this.next.part];
         this.map = new RouteMap(this, P.map.x, P.map.y, this.from.part, this.next.part, parts);
-        const ny = P.map.y + P.map.h + 14;
+        const ny = P.nextY;
         this.nextLabel = text(this, 212, ny, 'NEXT', F.gold).setAlpha(0);
         this.nextTitle = text(this, 244, ny, this.next.title.toUpperCase(), F.hud).setTint(C.fire5).setAlpha(0);
         this.nextLoc = text(this, 212, ny + 11, this.next.location.toUpperCase(), F.plain).setTint(C.ink5).setAlpha(0);
+        // Hazel's teaser for the next part (tuning line, else the first sentence of its briefing), two rows at most.
+        const line = P.teaser[this.next.id] ?? (this.next.briefing?.[0] ?? '').split(/(?<=[.!?])\s/)[0] ?? '';
+        const rows = wrapText(line.toUpperCase(), P.teaserChars).slice(0, 2);
+        if (rows.length) {
+            this.teaser.push(bar(this, 212, P.teaserY - 4, 150, 1, C.sand3, 0.5));
+            this.teaser.push(text(this, 212, P.teaserY, 'HAZEL', F.gold));
+            rows.forEach((r, i) => this.teaser.push(text(this, 212, P.teaserY + 10 + i * 10, r, F.plain).setTint(C.ink5)));
+            for (const t of this.teaser) (t as Phaser.GameObjects.Image).setAlpha(0);
+        }
         this.press = text(this, W / 2, 204, 'PRESS START', F.hud, [0.5, 0.5]).setTint(C.sand5).setVisible(false);
         this.menuInput = new MenuInput(this);
         const audio = getAudio(this);
@@ -111,11 +122,12 @@ export class PartClearScene extends Phaser.Scene {
         this.time.delayedCall(UI.partClear.travelDelayMs, () => { if (this.phase === 'travel') this.map.travel(() => this.onArrive()); });
     }
 
+    /** Idempotent: the map's travel tween and a confirm during the travel can both land here. */
     private onArrive(): void {
-        if (this.phase === 'leaving') return;
+        if (this.phase === 'ready' || this.phase === 'leaving') return;
         this.phase = 'ready';
         this.readyAt = this.clock;
-        this.tweens.add({ targets: [this.nextLabel, this.nextTitle, this.nextLoc], alpha: 1, duration: 220 });
+        this.tweens.add({ targets: [this.nextLabel, this.nextTitle, this.nextLoc, ...this.teaser], alpha: 1, duration: 220 });
         this.press.setVisible(true);
     }
 

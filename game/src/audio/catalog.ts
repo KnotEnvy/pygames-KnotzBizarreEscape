@@ -102,6 +102,8 @@ export const SFX_META: Record<string, SfxMeta> = {
     train_clack: { vol: 0.9, loop: true, max: 1 },
     train_horn: { vol: 1, max: 1, minMs: 400 },
     train_whistle: { vol: 0.9, max: 1, minMs: 400 },
+    /** Low-bridge girder passing overhead (Levels `hazard_sweep`), positional; two can overlap on a tight gap. */
+    bridge_whoosh: { vol: 0.9, vary: 50, max: 2, minMs: 120 },
     wind: { vol: 0.8, loop: true, max: 1 },
     // Phase E: ice / laser
     ice_crack: { vol: 0.8, vary: 80, max: 3, minMs: 60 },

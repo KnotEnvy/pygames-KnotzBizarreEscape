@@ -46,15 +46,17 @@ export const UI = {
         lineMs: 260, titleAt: 240, locationAt: 520, holdMs: 2600, outMs: 220
     },
 
-    /** Phase E: Hazel's radio box (bottom-left, under the HUD, over gameplay). */
+    /** Phase E: Hazel's radio box: a slim one-row strip in the sky band under the HUD's lives/RESCUED row (y 30..55), clear of the walking lane. */
     radio: {
-        x: 8, y: 146, w: 240, h: 42, hiddenDy: 60, openMs: 240, closeMs: 180,
-        /** Opens this long after the title card starts. */
-        delayMs: 900,
+        x: 8, y: 30, w: 368, h: 25, hiddenDy: -12, openMs: 240, closeMs: 180,
+        /** Icon / speaker label / text columns inside the strip (the 24×24 radio art is drawn at frame x 3..22). */
+        iconX: -1, iconY: 1, labelX: 26, labelY: 8, textX: 66, textY: 9,
+        /** Opens this long after the title card starts: as the card's title leaves (titleAt + holdMs = 2840), so it never stacks with it. */
+        delayMs: 2650,
         /** Typewriter speed and how long a fully typed page stays before the next one / the box closes. */
         charMs: 26, pageHoldMs: 1700, lastPageHoldMs: 2400,
-        /** Text area: characters per row and rows per page (longer briefing lines paginate). */
-        lineChars: 33, maxLines: 2,
+        /** Text area: characters per row and rows per page (one row at a time; longer briefing lines paginate). */
+        lineChars: 49, maxLines: 1,
         /** Static flicker when the box opens and between pages. */
         staticMs: 420, staticPixels: 14
     },
@@ -71,7 +73,13 @@ export const UI = {
         route: [[25, 44], [38, 47], [50, 44], [62, 40], [74, 36], [86, 34], [98, 36], [108, 40], [116, 44], [124, 46], [134, 42], [141, 38]] as ReadonlyArray<readonly [number, number]>,
         /** Where each part's marker sits on the polyline (index into `route`). */
         routeIndex: { 1: 0, 2: 5, 3: 11 } as Record<number, number>,
-        dotEvery: 2
+        dotEvery: 2,
+        /** Below the map: NEXT title / location, a rule, then Hazel's one-liner about the next part (≤ 2 rows × `teaserChars`). */
+        nextY: 132, teaserY: 157, teaserChars: 25,
+        teaser: {
+            '1-2': 'Heads down on the deck. Low bridges ahead.',
+            '1-3': "Cross the lake fast. The ice won't hold."
+        } as Record<string, string>
     },
 
     /** Phase E: Title → PART SELECT panel. */

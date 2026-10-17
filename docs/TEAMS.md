@@ -25,4 +25,7 @@
 - **Phase E (now): Mission 1 in 3 parts** ([CAMPAIGN.md](CAMPAIGN.md)). E1, in parallel: Engine campaign system; Levels Part I
   re-end plus Parts II and III; Enemies' Snowcat, Ironhorn, leaper, Buzzard and hound; Player's ice, laser and part entrances; FX train speed,
   tunnels, ice and transitions; UI PartClear, title cards, part select and new music; Imagegen Part II/III backgrounds.
-  E2: integration, then QA (no-warp) and the rules review, then fix rounds.
+  E2 ✅: fast test kit (`npm run audit`, about 4 s for all parts; it replaces bot playthroughs), Ironhorn on the rails, tunnel lamps,
+  missing SFX and mix trim, the slim radio strip, rules review (0 E) plus fixes. **Next:** owner playtest of the full 3-part Mission 1.
+- **Testing rule:** verify with `npm run audit` + `check` + `selftest` + targeted screenshots. No real-time bot playthroughs; every
+  verification attempt is time-boxed (about 10 min).

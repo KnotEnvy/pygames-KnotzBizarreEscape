@@ -912,8 +912,9 @@ SONGS = {
     "jingle_complete": (song_complete, -14.0),
     "jingle_gameover": (song_gameover, -16.0),
     "music_continue": (song_continue, -16.0),
-    # Phase E
-    "music_m1p2": (song_m1p2, -14.6),
+    # Phase E. A third value overrides the pre-encode limiter ceiling (default 0.80 = -1.9 dBFS): Vorbis adds ~0.9 dB of
+    # overshoot, and the dense chug of music_m1p2 rides the ceiling, so it gets a lower one to land near -2.5 dBFS encoded.
+    "music_m1p2": (song_m1p2, -14.0, 0.63),
     "music_m1p3": (song_m1p3, -15.5),
     "music_midboss": (song_midboss, -13.5),
     "part_clear_jingle": (song_part_clear, -14.0),
@@ -927,14 +928,21 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     manifest = {}
     for k in keys:
-        fn, loud = SONGS[k]
+        fn, loud, *rest = SONGS[k]
+        ceiling = rest[0] if rest else 0.80
         S.seed(99)
         song, tracks = fn()
         print(f"rendering {k}: {song.bars} bars @ {song.bpm} BPM = {song.bars * song.bar_s:.1f} s")
         x = song.render(tracks)
         mono = x.mean(axis=1)
         x = x * (10 ** (loud / 20) / max(S.rms(mono), 1e-9))
-        x = S.limiter(x, 0.80, 0.003, 0.1)
+        x = S.limiter(x, ceiling, 0.003, 0.1)
+        # The limiter takes RMS off a dense mix; re-trim (and re-limit) so the loudness target holds after limiting.
+        for _ in range(3):
+            gap = loud - S.db(S.rms(x.mean(axis=1)))
+            if abs(gap) < 0.15:
+                break
+            x = S.limiter(x * (10 ** (gap / 20)), ceiling, 0.003, 0.1)
         path = os.path.join(OUT, k + ".ogg")
         S.write_ogg(path, x.astype(np.float32), quality=0.45)
         if wav:

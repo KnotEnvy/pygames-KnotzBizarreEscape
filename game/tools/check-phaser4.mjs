@@ -252,6 +252,11 @@ function checkFile(file, index) {
     const evRe = /\b(?:scene|sys)\s*\.\s*events\s*\.\s*on\s*\(|\bthis\s*\.\s*events\s*\.\s*on\s*\(\s*Phaser\s*\.\s*Scenes\s*\.\s*Events\s*\./g;
     for (let m; (m = evRe.exec(code));) once(m.index, 'scene-events-no-off', W, 'scene.events listeners are NOT cleared on shutdown/restart and no .events.off( / SHUTDOWN handler exists in this file', 'scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.events.off(EVENT, handler, ctx));');
   }
+  // window/document listeners survive scene.restart(); a part restart re-runs create() and stacks another copy.
+  if (!/\.removeEventListener\s*\(/.test(code)) {
+    const winRe = /\b(?:window|document)\s*\.\s*addEventListener\s*\(/g;
+    for (let m; (m = winRe.exec(code));) once(m.index, 'window-listener-no-remove', W, 'window/document listener with no removeEventListener( in this file: survives scene shutdown / part restart and stacks', "scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => window.removeEventListener('keydown', handler, true));  // or guard a once-per-page install and add // phaser4-ok: once per page");
+  }
   // Per-frame hazards inside update-like function bodies (lexical scan, so helper calls are not flagged).
   const updHead = /(?:^|[\s;{}])(?:(?:private|public|protected|static|async)\s+)*(update\w*|tick\w*|preUpdate|postUpdate|step\w*|on\w*Update)\s*\([^()]*\)\s*(?::\s*[^{;=()]+)?\{|\bonUpdate\s*\(\s*(?:\([^()]*\)|\w+)\s*(?::\s*\w+)?=>\s*\{/g;
   const BODY_RULES = [
@@ -287,6 +292,7 @@ if (opts.list) {
   console.log(`warn  anims-exists-zero-frame   anims.exists() true for zero-frame Aseprite tags; play() throws`);
   console.log(`warn  world-timescale-inverted   physics.world.timeScale assigned something other than 1 / x`);
   console.log(`warn  scene-events-no-off        scene.events.on(...) with no .events.off( / SHUTDOWN handler in the file`);
+  console.log(`warn  window-listener-no-remove   window/document.addEventListener( in a file with no removeEventListener(`);
   console.log(`warn  update-new-phaser-object   new Phaser.Geom/Math.Vector/... inside update/tick/onUpdate`);
   console.log(`warn  update-creates-gameobject  add.sprite/text/graphics/... inside update/tick/onUpdate`);
   console.log(`warn  update-adds-collider       add.collider/overlap inside update/tick/onUpdate`);

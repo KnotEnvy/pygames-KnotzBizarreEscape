@@ -114,7 +114,12 @@ export class ResultsScene extends Phaser.Scene {
                 this.clock = 0;
                 text(this, 298, y + 34, `${rankPoints(this.res)} PTS`, F.plain, [0.5, 0]).setAlpha(0.6);
                 if (audio.musicKey !== 'jingle_complete') audio.music('music_title', { fade: 1500, volume: 0.7 });
-                else audio.events.once('music:ended', () => { if (this.scene.isActive()) audio.music('music_title', { fade: 1200, volume: 0.7 }); });
+                else {
+                    // Removed on SHUTDOWN: leaving early must not leave a stale handler that double-starts the title music on a later visit.
+                    const onEnded = () => { if (this.scene.isActive()) audio.music('music_title', { fade: 1200, volume: 0.7 }); };
+                    audio.events.once('music:ended', onEnded);
+                    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => audio.events.off('music:ended', onEnded));
+                }
             }
         });
     }

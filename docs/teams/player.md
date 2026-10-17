@@ -223,3 +223,9 @@ Implemented only in Player-owned paths. Existing dry-ground movement values rema
 - **Audio:** add **`laser`** SFX, called once per accepted pulse at up to 10 Hz. Current catalog reports this unknown key; no audio files changed here.
 - **FX:** consume `ice_skid` at body feet (100 ms spacing while braking). Laser's Player-owned muzzle/impact art is already rendered; consider the generic player:shoot muzzle fallback when wiring laser-specific FX to avoid a duplicate orange flash.
 - **Bosses/Levels:** use the Heights section above. Standing-height sweeps should clear the 18 px crouch hurtbox with margin.
+
+## Phase E rules review P2 — pooled laser flashes (2026-10-17)
+
+`src/entities/weapons/index.ts` prewarms two muzzle and two impact sprites per Weapons instance and reuses each kind round-robin. Animation completion hides/deactivates a slot; replaying a busy slot restarts its animation. Scene SHUTDOWN destroys all four sprites and clears the pools. Firing and piercing hits create no flash sprites or delayed calls.
+
+Validation: `npm run check` passes (98 files, zero errors/warnings). Ran the requested three-second laser hold and inspected `/tmp/kbe-player-laser-pooled.png` (28 shots, clean console). A second shot-tool probe sampled the display list before firing and after each second: **524 → 524 → 524 → 524**, always four flash sprites. Injecting 100 impact callbacks reused those same slots with zero new flash sprites or 120 ms timers; all slots hid after completion. Restarted part 1-1 with an active impact: all old sprites were destroyed, their animation listeners removed, and exactly four fresh slots appeared, with no runtime errors. Probe steps: `/tmp/kbe-player-laser-pool-steps.json`; stress/restart PNGs: `/tmp/kbe-player-laser-pool-{stress,restart}.png`.

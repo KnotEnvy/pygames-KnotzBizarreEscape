@@ -320,3 +320,9 @@ lists, so a later `remove()` of a retained controller is a harmless no-op. `Phas
 - `getPaddingWrapper` usage (it typechecks; behavior unread), JSON-format bitmap font data, and the in-game feel of the drop-through and `checkCollision.up` tricks (static source reading + typecheck only).
 - `Phaser.Types.Actions.AddMaskShapeConfig` and `AddEffectShine` option details (see the type definitions at ~`phaser.d.ts:94886` and `:94976`).
 - `Phaser.Scale.FIT`/`Phaser.Scale.CENTER_BOTH` are runtime aliases declared as `const` in `Phaser.Scale`; other `Phaser.*` constants not listed here may be declared differently from how they are used at runtime. The checker only verifies the namespace path, not enum members.
+
+### Added in the Phase E rules review
+- **Listener scope.** `ctx.events` is rebuilt per run (`createGameContext`) and destroyed in `GameScene.teardown`, so `ctx.events.on` needs no `off`. Everything on a longer-lived emitter does: `game.events`, `audio.events`, `window`/`document`, `scene.input`. Remove it on `Phaser.Scenes.Events.SHUTDOWN`. Lint: `window-listener-no-remove`, `scene-events-no-off`.
+- **Tween/timer callbacks must be idempotent.** `onComplete` can fire after a skip path has already advanced the state machine (see PartClear P1). Guard on phase, and `stop()` the stored tween when you jump ahead.
+- **`clearTint()` resets the tint mode to MULTIPLY** (`Tint.js:154`), so `setTint(c).setTintMode(FILL)` ... `clearTint()` is a complete flash cycle. Pools must still call it on reuse.
+- **No per-shot `scene.add.sprite` + `delayedCall(destroy)`** for muzzle/impact flashes. Pool them or go through FX.

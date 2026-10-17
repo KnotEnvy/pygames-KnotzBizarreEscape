@@ -48,6 +48,13 @@
     "peak_db": -1.0,
     "rms_db": -13.9
   },
+  "bridge_whoosh": {
+    "duration": 0.6,
+    "file": "assets/audio/sfx/bridge_whoosh.ogg",
+    "loop": false,
+    "peak_db": -2.9,
+    "rms_db": -16.5
+  },
   "buzzard_rotor": {
     "duration": 0.9,
     "file": "assets/audio/sfx/buzzard_rotor.ogg",
