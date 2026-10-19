@@ -40,7 +40,7 @@ spPx('prop', 13 * 16, G * 16, { kind: 'queen_wreck', layer: 'back' });
 sp('player_start', 8, G, {}, 'player_start');
 bank(16, 29);
 pow('hmg', 24, G);
-enemy('lurker', 19, G);
+enemy('lurker', 28, G);                                     // Lead: was 19 (+176 px from the start, fired within ~2 s); Mission 1 keeps first threats 224+ px out
 enemy('grunt', 27, G, { patrol: 16 });
 prop('fuel_drum', 22, G);
 deep(30, 35);

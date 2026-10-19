@@ -1393,7 +1393,7 @@
    </properties>
    <point/>
   </object>
-  <object id="4" type="enemy" x="312" y="336">
+  <object id="4" type="enemy" x="456" y="336">
    <properties>
     <property name="kind" value="lurker"/>
     <property name="facing" value="left"/>
