@@ -949,3 +949,21 @@ still compiles and behaves the same, except the two deliberate fixes marked ⚠.
   - 2-3 → Results without `next`;
   - the material mapping.
 - The campaign section now expects `2-1` unlocked after 1-3.
+
+## Phase G fix round: rules review G3 (mission-mode load errors)
+- **BACK TO TITLE:** when a mission pack still fails, Preload's mission-mode error screen now shows `ESC / B: BACK TO TITLE` below the panel.
+  - Esc or pad B (button index 1) clears `loadErrors`, starts `Title` and sets ready on its create. The progress unlock was already saved.
+  - Enter, click and any other pad button still RETRY, then RELOAD after 3 manual retries.
+  - The boot-mode error screen is unchanged: it has no Title to go back to.
+- **Resume after reload** (`core/missionPacks.ts`):
+  - Before the RELOAD, `stashMissionResume()` writes the pending Game `{ part, carry }` plus a timestamp to `sessionStorage['kbe.missionResume.v1']`. Infinity ammo is stored as -1.
+  - After the reload, boot-mode `Preload.finish()` calls `takeMissionResume()` before routing. It reads and removes the stash (one use) and starts `Game` with it. Game then re-enters mission mode for the packs.
+  - The stash is ignored if it's stale (more than 10 min old, either direction), malformed or names an unknown part.
+  - Every storage access is try-guarded. With storage blocked, the stash is a no-op and the reload cold-boots as before.
+- **Selftest** (`--only missions`, +5 checks):
+  - With `fx.m2.json` always aborted, the error screen shows BACK TO TITLE and Esc reaches the Title (ready, no loadErrors).
+  - From the Title, 3 retries turn the prompt into RELOAD. After un-blocking, Enter reloads and 2-1 resumes with the carried score, lives, bombs, weapon and ammo, and the stash is cleared.
+  - An 11-minute-old stash is ignored and cleared.
+  - Blocked `sessionStorage` doesn't throw.
+  - Shot: `selftest-mission-error.png`.
+- **Gates:** `check` (0 errors, the same 6 warnings from other teams), `audit` and the full `selftest` all pass.

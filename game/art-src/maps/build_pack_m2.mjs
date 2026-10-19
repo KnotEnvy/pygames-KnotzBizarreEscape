@@ -33,7 +33,7 @@ const ACTORS = ['bg_heron', 'bg_patrolboat', 'bg_wisp', 'bg_gator_sil', 'bg_shel
 for (const a of ACTORS) add({ type: 'aseprite', key: a, textureURL: `assets/sprites/bg/${a}.png`, atlasURL: `assets/sprites/bg/${a}.json` },
   `assets/sprites/bg/${a}.png`, `assets/sprites/bg/${a}.json`);
 
-const STRIPS = { m2p1: ['wade', 'wade_crest', 'wade_edge', 'haze'], m2p2: ['river_front', 'river_wake', 'fg_speed', 'haze'], m2p3: ['channel', 'channel_glint', 'haze', 'rain_sheet'] };
+const STRIPS = { m2p1: ['wade', 'wade_crest', 'wade_edge', 'haze'], m2p2: ['river_front', 'river_wake', 'fg_speed', 'fg_reeds', 'fg_trunks', 'haze'], m2p3: ['channel', 'channel_glint', 'haze', 'rain_sheet'] };
 for (const [m, list] of Object.entries(STRIPS)) for (const n of list) {
   const url = `assets/backgrounds/${m}/${n}.png`;
   add({ type: 'image', key: `${m}_${n}`, url }, url);

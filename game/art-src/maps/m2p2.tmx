@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="338" height="24" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#12234a" nextlayerid="7" nextobjectid="100">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="338" height="24" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#12234a" nextlayerid="7" nextobjectid="107">
  <properties>
   <property name="name" value="Bayou Blackout"/>
   <property name="title" value="RIVER RUN"/>
@@ -1658,7 +1658,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,118,119,119,119,119,119,119,119,119,119,119,119,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,118,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,121,123,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,118,119,119,119,119,119,119,119,119,119,119,119,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,118,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42,46,45,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,47,51,50,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,37,41,40,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42,46,45,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,74,78,77,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,79,83,82,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,69,73,72,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,74,78,77,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,458,459,459,459,459,459,459,459,459,459,461,0,112,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,114,121,122,122,122,122,122,122,122,122,122,122,122,122,122,122,122,122,122,123,112,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,114,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -1781,14 +1781,14 @@
    </properties>
    <point/>
   </object>
-  <object id="13" type="enemy" x="728" y="208">
+  <object id="13" type="enemy" x="728" y="240">
    <properties>
     <property name="kind" value="gnat"/>
     <property name="facing" value="left"/>
    </properties>
    <point/>
   </object>
-  <object id="14" type="enemy" x="744" y="192">
+  <object id="14" type="enemy" x="744" y="224">
    <properties>
     <property name="kind" value="gnat"/>
     <property name="facing" value="left"/>
@@ -1796,7 +1796,7 @@
    </properties>
    <point/>
   </object>
-  <object id="15" type="enemy" x="760" y="224">
+  <object id="15" type="enemy" x="760" y="240">
    <properties>
     <property name="kind" value="gnat"/>
     <property name="facing" value="left"/>
@@ -1804,11 +1804,11 @@
    </properties>
    <point/>
   </object>
-  <object id="16" type="enemy" x="920" y="240">
+  <object id="16" type="enemy" x="888" y="272">
    <properties>
     <property name="kind" value="grenadier"/>
     <property name="facing" value="left"/>
-    <property name="patrol" type="int" value="8"/>
+    <property name="patrol" type="int" value="0"/>
    </properties>
    <point/>
   </object>
@@ -1860,11 +1860,11 @@
    </properties>
    <point/>
   </object>
-  <object id="23" type="enemy" x="1368" y="240">
+  <object id="23" type="enemy" x="1336" y="272">
    <properties>
     <property name="kind" value="grenadier"/>
     <property name="facing" value="left"/>
-    <property name="patrol" type="int" value="8"/>
+    <property name="patrol" type="int" value="0"/>
    </properties>
    <point/>
   </object>
@@ -1892,7 +1892,7 @@
    </properties>
    <point/>
   </object>
-  <object id="27" type="enemy" x="1608" y="192">
+  <object id="27" type="enemy" x="1608" y="240">
    <properties>
     <property name="kind" value="drone"/>
     <property name="facing" value="left"/>
@@ -1925,7 +1925,7 @@
    </properties>
    <point/>
   </object>
-  <object id="31" type="enemy" x="2120" y="240">
+  <object id="31" type="enemy" x="2072" y="272">
    <properties>
     <property name="kind" value="grenadier"/>
     <property name="facing" value="left"/>
@@ -2115,7 +2115,7 @@
    </properties>
    <point/>
   </object>
-  <object id="53" type="enemy" x="3256" y="208">
+  <object id="53" type="enemy" x="3320" y="256">
    <properties>
     <property name="kind" value="grunt"/>
     <property name="facing" value="left"/>
@@ -2123,13 +2123,34 @@
    </properties>
    <point/>
   </object>
-  <object id="54" type="pow" x="3288" y="256">
+  <object id="54" type="pickup" x="3144" y="192">
+   <properties>
+    <property name="kind" value="points"/>
+    <property name="float" type="bool" value="true"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="55" type="pickup" x="3208" y="192">
+   <properties>
+    <property name="kind" value="points"/>
+    <property name="float" type="bool" value="true"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="56" type="pickup" x="3272" y="192">
+   <properties>
+    <property name="kind" value="points"/>
+    <property name="float" type="bool" value="true"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="57" type="pow" x="3288" y="256">
    <properties>
     <property name="item" value="laser"/>
    </properties>
    <point/>
   </object>
-  <object id="55" type="enemy" x="3432" y="304">
+  <object id="58" type="enemy" x="3432" y="304">
    <properties>
     <property name="kind" value="grunt"/>
     <property name="facing" value="left"/>
@@ -2137,7 +2158,7 @@
    </properties>
    <point/>
   </object>
-  <object id="56" type="enemy" x="3608" y="304">
+  <object id="59" type="enemy" x="3608" y="304">
    <properties>
     <property name="kind" value="shield"/>
     <property name="facing" value="left"/>
@@ -2145,7 +2166,7 @@
    </properties>
    <point/>
   </object>
-  <object id="57" type="enemy" x="3784" y="256">
+  <object id="60" type="enemy" x="3784" y="256">
    <properties>
     <property name="kind" value="grunt"/>
     <property name="facing" value="left"/>
@@ -2153,7 +2174,7 @@
    </properties>
    <point/>
   </object>
-  <object id="58" type="enemy" x="4200" y="208">
+  <object id="61" type="enemy" x="4168" y="256">
    <properties>
     <property name="kind" value="turret"/>
     <property name="facing" value="left"/>
@@ -2161,7 +2182,7 @@
    </properties>
    <point/>
   </object>
-  <object id="59" type="enemy" x="3944" y="208">
+  <object id="62" type="enemy" x="3976" y="256">
    <properties>
     <property name="kind" value="grenadier"/>
     <property name="facing" value="left"/>
@@ -2169,7 +2190,35 @@
    </properties>
    <point/>
   </object>
-  <object id="60" type="enemy" x="4088" y="304">
+  <object id="63" type="pickup" x="3912" y="192">
+   <properties>
+    <property name="kind" value="points"/>
+    <property name="float" type="bool" value="true"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="64" type="pickup" x="3976" y="192">
+   <properties>
+    <property name="kind" value="points"/>
+    <property name="float" type="bool" value="true"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="65" type="pickup" x="4264" y="192">
+   <properties>
+    <property name="kind" value="points"/>
+    <property name="float" type="bool" value="true"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="66" type="pickup" x="4488" y="192">
+   <properties>
+    <property name="kind" value="points"/>
+    <property name="float" type="bool" value="true"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="67" type="enemy" x="4088" y="304">
    <properties>
     <property name="kind" value="grunt"/>
     <property name="facing" value="left"/>
@@ -2177,14 +2226,14 @@
    </properties>
    <point/>
   </object>
-  <object id="61" type="enemy" x="4136" y="176">
+  <object id="68" type="enemy" x="4072" y="224">
    <properties>
     <property name="kind" value="gnat"/>
     <property name="facing" value="left"/>
    </properties>
    <point/>
   </object>
-  <object id="62" type="enemy" x="4168" y="192">
+  <object id="69" type="enemy" x="4104" y="240">
    <properties>
     <property name="kind" value="gnat"/>
     <property name="facing" value="left"/>
@@ -2192,7 +2241,7 @@
    </properties>
    <point/>
   </object>
-  <object id="63" type="enemy" x="4200" y="160">
+  <object id="70" type="enemy" x="4136" y="224">
    <properties>
     <property name="kind" value="gnat"/>
     <property name="facing" value="left"/>
@@ -2200,7 +2249,7 @@
    </properties>
    <point/>
   </object>
-  <object id="64" type="enemy" x="3912" y="344">
+  <object id="71" type="enemy" x="3912" y="344">
    <properties>
     <property name="kind" value="airboat"/>
     <property name="facing" value="left"/>
@@ -2209,7 +2258,7 @@
    </properties>
    <point/>
   </object>
-  <object id="65" type="enemy" x="4520" y="344">
+  <object id="72" type="enemy" x="4520" y="344">
    <properties>
     <property name="kind" value="airboat"/>
     <property name="facing" value="left"/>
@@ -2218,7 +2267,7 @@
    </properties>
    <point/>
   </object>
-  <object id="66" type="enemy" x="4328" y="256">
+  <object id="73" type="enemy" x="4328" y="256">
    <properties>
     <property name="kind" value="shield"/>
     <property name="facing" value="left"/>
@@ -2226,7 +2275,7 @@
    </properties>
    <point/>
   </object>
-  <object id="67" type="enemy" x="4456" y="208">
+  <object id="74" type="enemy" x="4504" y="256">
    <properties>
     <property name="kind" value="grunt"/>
     <property name="facing" value="left"/>
@@ -2234,7 +2283,7 @@
    </properties>
    <point/>
   </object>
-  <object id="68" type="enemy" x="4584" y="304">
+  <object id="75" type="enemy" x="4584" y="304">
    <properties>
     <property name="kind" value="grunt"/>
     <property name="facing" value="left"/>
@@ -2242,41 +2291,41 @@
    </properties>
    <point/>
   </object>
-  <object id="69" type="prop" x="4712" y="304">
+  <object id="76" type="prop" x="4712" y="304">
    <properties>
     <property name="kind" value="crate"/>
     <property name="contains" value="bombs"/>
    </properties>
    <point/>
   </object>
-  <object id="70" type="pow" x="4776" y="304">
+  <object id="77" type="pow" x="4776" y="304">
    <properties>
     <property name="item" value="bombs"/>
    </properties>
    <point/>
   </object>
-  <object id="71" type="prop" x="5000" y="288">
+  <object id="78" type="prop" x="5000" y="288">
    <properties>
     <property name="kind" value="bell"/>
     <property name="layer" value="back"/>
    </properties>
    <point/>
   </object>
-  <object id="72" type="prop" x="5096" y="304">
+  <object id="79" type="prop" x="5096" y="304">
    <properties>
     <property name="kind" value="rope_coil"/>
     <property name="layer" value="back"/>
    </properties>
    <point/>
   </object>
-  <object id="73" type="prop" x="5288" y="304">
+  <object id="80" type="prop" x="5288" y="304">
    <properties>
     <property name="kind" value="rope_coil"/>
     <property name="layer" value="back"/>
    </properties>
    <point/>
   </object>
-  <object id="74" name="skeeter" type="boss" x="5224" y="304">
+  <object id="81" name="skeeter" type="boss" x="5224" y="304">
    <properties>
     <property name="kind" value="skeeter"/>
     <property name="lock" value="skeeter"/>
@@ -2288,34 +2337,34 @@
   </object>
  </objectgroup>
  <objectgroup id="6" name="triggers">
-  <object id="75" type="prompt" x="352" y="96" width="80" height="240">
+  <object id="82" type="prompt" x="352" y="96" width="80" height="240">
    <properties>
     <property name="text" value="GAPS: JUMP! THE RIVER KILLS"/>
    </properties>
   </object>
-  <object id="76" type="checkpoint" x="96" y="0" width="32" height="384">
+  <object id="83" type="checkpoint" x="96" y="0" width="32" height="384">
    <properties>
     <property name="id" value="cp_skiff"/>
    </properties>
   </object>
-  <object id="77" type="music" x="0" y="0" width="32" height="384">
+  <object id="84" type="music" x="0" y="0" width="32" height="384">
    <properties>
     <property name="key" value="music_m2p2"/>
    </properties>
   </object>
-  <object id="78" type="hazard_sweep" x="1232" y="0" width="48" height="384">
+  <object id="85" type="hazard_sweep" x="1232" y="0" width="48" height="384">
    <properties>
     <property name="kind" value="branch"/>
     <property name="y" type="int" value="282"/>
     <property name="count" type="int" value="1"/>
    </properties>
   </object>
-  <object id="79" type="fog" x="1584" y="0" width="48" height="384">
+  <object id="86" type="fog" x="1584" y="0" width="48" height="384">
    <properties>
     <property name="ms" type="int" value="7000"/>
    </properties>
   </object>
-  <object id="80" type="hazard_sweep" x="1968" y="0" width="48" height="384">
+  <object id="87" type="hazard_sweep" x="1968" y="0" width="48" height="384">
    <properties>
     <property name="kind" value="branch"/>
     <property name="y" type="int" value="282"/>
@@ -2323,34 +2372,34 @@
     <property name="gap" type="int" value="1500"/>
    </properties>
   </object>
-  <object id="81" type="checkpoint" x="1152" y="0" width="32" height="384">
+  <object id="88" type="checkpoint" x="1152" y="0" width="32" height="384">
    <properties>
     <property name="id" value="cp_containers"/>
    </properties>
   </object>
-  <object id="82" type="checkpoint" x="1504" y="0" width="32" height="384">
+  <object id="89" type="checkpoint" x="1504" y="0" width="32" height="384">
    <properties>
     <property name="id" value="cp_fog"/>
    </properties>
   </object>
-  <object id="83" type="checkpoint" x="1888" y="0" width="32" height="384">
+  <object id="90" type="checkpoint" x="1888" y="0" width="32" height="384">
    <properties>
     <property name="id" value="cp_crane"/>
    </properties>
   </object>
-  <object id="84" type="camera_lock" x="2240" y="0" width="384" height="384">
+  <object id="91" type="camera_lock" x="2240" y="0" width="384" height="384">
    <properties>
     <property name="id" value="crane"/>
     <property name="release" value="clear"/>
     <property name="waves" type="int" value="3"/>
    </properties>
   </object>
-  <object id="85" type="prompt" x="2752" y="96" width="80" height="240">
+  <object id="92" type="prompt" x="2752" y="96" width="80" height="240">
    <properties>
     <property name="text" value="DON'T FALL IN THE WHEEL!"/>
    </properties>
   </object>
-  <object id="86" type="hazard_sweep" x="4256" y="0" width="48" height="384">
+  <object id="93" type="hazard_sweep" x="4256" y="0" width="48" height="384">
    <properties>
     <property name="kind" value="branch"/>
     <property name="y" type="int" value="234"/>
@@ -2358,69 +2407,69 @@
     <property name="gap" type="int" value="1400"/>
    </properties>
   </object>
-  <object id="87" type="ambience" x="3360" y="256" width="304" height="64">
+  <object id="94" type="ambience" x="3360" y="256" width="304" height="64">
    <properties>
     <property name="fx" value="tunnel"/>
    </properties>
   </object>
-  <object id="88" type="prompt" x="3296" y="272" width="64" height="32">
+  <object id="95" type="prompt" x="3296" y="272" width="64" height="32">
    <properties>
     <property name="text" value="BOILER ROOM: STAY LOW"/>
    </properties>
   </object>
-  <object id="89" type="checkpoint" x="2688" y="0" width="32" height="384">
+  <object id="96" type="checkpoint" x="2688" y="0" width="32" height="384">
    <properties>
     <property name="id" value="cp_queen"/>
    </properties>
   </object>
-  <object id="90" type="checkpoint" x="3680" y="0" width="32" height="384">
+  <object id="97" type="checkpoint" x="3680" y="0" width="32" height="384">
    <properties>
     <property name="id" value="cp_decks"/>
    </properties>
   </object>
-  <object id="91" type="checkpoint" x="4800" y="0" width="32" height="384">
+  <object id="98" type="checkpoint" x="4800" y="0" width="32" height="384">
    <properties>
     <property name="id" value="cp_boss"/>
    </properties>
   </object>
-  <object id="92" type="music" x="4864" y="0" width="16" height="384">
+  <object id="99" type="music" x="4864" y="0" width="16" height="384">
    <properties>
     <property name="key" value="music_boss_m2"/>
    </properties>
   </object>
-  <object id="93" type="camera_lock" x="4928" y="0" width="480" height="384">
+  <object id="100" type="camera_lock" x="4928" y="0" width="480" height="384">
    <properties>
     <property name="id" value="skeeter"/>
     <property name="release" value="clear"/>
     <property name="waves" type="int" value="1"/>
    </properties>
   </object>
-  <object id="94" type="stage_end" x="4928" y="0" width="464" height="384">
+  <object id="101" type="stage_end" x="4928" y="0" width="464" height="384">
    <properties>
     <property name="requires" value="boss"/>
    </properties>
   </object>
-  <object id="95" type="ambience" x="0" y="0" width="5408" height="384">
+  <object id="102" type="ambience" x="0" y="0" width="5408" height="384">
    <properties>
     <property name="fx" value="river"/>
    </properties>
   </object>
-  <object id="96" type="bg_event" x="0" y="0" width="5408" height="384">
+  <object id="103" type="bg_event" x="0" y="0" width="5408" height="384">
    <properties>
     <property name="id" value="riverbank"/>
    </properties>
   </object>
-  <object id="97" type="bg_event" x="480" y="0" width="32" height="384">
+  <object id="104" type="bg_event" x="480" y="0" width="32" height="384">
    <properties>
     <property name="id" value="gator_pod"/>
    </properties>
   </object>
-  <object id="98" type="bg_event" x="1760" y="0" width="32" height="384">
+  <object id="105" type="bg_event" x="1760" y="0" width="32" height="384">
    <properties>
     <property name="id" value="burning_barge"/>
    </properties>
   </object>
-  <object id="99" type="bg_event" x="3840" y="0" width="32" height="384">
+  <object id="106" type="bg_event" x="3840" y="0" width="32" height="384">
    <properties>
     <property name="id" value="skeeter_swarm"/>
    </properties>

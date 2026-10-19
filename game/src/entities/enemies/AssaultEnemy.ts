@@ -23,6 +23,7 @@ export class AssaultEnemy extends Phaser.GameObjects.Sprite {
     private flash = 0;
     private contact = 0;
     private buzz: LoopHandle | null = null;
+    private buzzRetryMs = 0;
     private readonly cue: Phaser.GameObjects.Graphics;
     private readonly rect = new Phaser.Geom.Rectangle();
     private readonly offs: Array<() => void> = [];
@@ -33,7 +34,7 @@ export class AssaultEnemy extends Phaser.GameObjects.Sprite {
         this.cue = ctx.scene.add.graphics().setDepth(DEPTH.ENEMIES - 1);
         this.offs.push(ctx.damage.register({ team: 'enemy', material: kind === 'hound' ? 'flesh' : 'metal', kind, owner: this,
             body: () => this.rect.setTo(this.x - (kind === 'hound' ? 15 : 33), this.y - (kind === 'hound' ? 18 : 13), kind === 'hound' ? 30 : 66, kind === 'hound' ? 18 : 26),
-            alive: () => this.active && this.hp > 0, hit: h => this.hit(h) }), ctx.onUpdate(dt => this.tick(dt)));
+            alive: () => this.active && this.hp > 0, hit: h => this.hit(h) }), ctx.onUpdate((dt, raw) => this.tick(dt, raw)));
         const stop = () => { this.buzz?.stop(0); this.buzz = null; };
         ctx.scene.events.once('shutdown', stop);
         this.once('destroy', () => { stop(); ctx.scene.events.off('shutdown', stop); this.cue.destroy(); for (const off of this.offs) off(); });
@@ -63,7 +64,8 @@ export class AssaultEnemy extends Phaser.GameObjects.Sprite {
             this.startY = this.y; this.targetY = this.y;
         }
     }
-    private tick(dt: number): void {
+    private tick(dt: number, raw: number): void {
+        this.buzzRetryMs = Math.max(0, this.buzzRetryMs - raw);
         if (!dt || !this.active) return;
         this.lockedBounds();
         if (this.state !== 'death' && this.x < this.ctx.camera.leftEdge() - 96) { this.destroy(); return; }
@@ -75,7 +77,9 @@ export class AssaultEnemy extends Phaser.GameObjects.Sprite {
         this.setFlipX(this.kind === 'hound' ? this.facing < 0 : this.facing > 0);
         const p = this.ctx.player(); this.cue.clear();
         if (this.kind === 'buzzard') {
-            const audio = getAudio(this.ctx.scene); if (!this.buzz && !audio.locked) this.buzz = audio.loop('buzzard_rotor', { x: this.x }); this.buzz?.setX(this.x);
+            const audio = getAudio(this.ctx.scene);
+            if (!this.buzz?.active && this.buzzRetryMs <= 0 && !audio.locked) { this.buzz = audio.loop('buzzard_rotor', { x: this.x }); this.buzzRetryMs = 500; }
+            if (this.buzz?.active) this.buzz.setX(this.x);
             // A free pass takes eight seconds, then exits. A locked arena retains the ship until shot down.
             if (!this.ctx.camera.isLocked() && this.age > 8000) { this.x += this.facing * dt * .12; if (!visible(this.ctx, this.x, this.y, 28)) this.destroy(); return; }
             this.y = this.startY + Math.sin(this.age / 650) * 4;

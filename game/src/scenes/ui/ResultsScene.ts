@@ -47,6 +47,8 @@ export class ResultsScene extends Phaser.Scene {
     private carry: CarryState | null = null;
     private choice: Menu | null = null;
     private breakMap: RouteMap | null = null;
+    /** Seconds left on the idle auto-continue as last drawn (the CONTINUE row re-renders when it changes). */
+    private countdownShown = -1;
 
     constructor() { super('Results'); }
 
@@ -66,7 +68,7 @@ export class ResultsScene extends Phaser.Scene {
     create(): void {
         const d = this.res;
         const R = UI.results;
-        this.clock = 0; this.blink = 0; this.done = false; this.leaving = false; this.partsShown = 0; this.partRows = []; this.choice = null; this.breakMap = null;
+        this.clock = 0; this.blink = 0; this.done = false; this.leaving = false; this.partsShown = 0; this.partRows = []; this.choice = null; this.breakMap = null; this.countdownShown = -1;
         this.rank = computeRank(d);
         this.cameras.main.setBackgroundColor(C.dim);
         if (this.textures.exists('ui_keyart_title')) this.add.image(0, 0, 'ui_keyart_title').setOrigin(0, 0).setAlpha(0.3);
@@ -113,7 +115,7 @@ export class ResultsScene extends Phaser.Scene {
             this.choice = new Menu(this, {
                 x: W / 2, y: 196, rowHeight: 10, center: true, silent: false,
                 rows: [
-                    { label: `${R.continueText} ${this.next.mission}`, onSelect: () => this.continueMission() },
+                    { label: () => this.continueLabel(), onSelect: () => this.continueMission() },
                     { label: R.quitText, onSelect: () => this.leave() }
                 ]
             });
@@ -199,6 +201,20 @@ export class ResultsScene extends Phaser.Scene {
         }, R.breakFadeMs);
     }
 
+    /** Phase G fix round: the idle auto-continue is visible: "CONTINUE TO MISSION 2 IN 18" counts down while the choice is up. */
+    private continueLabel(): string {
+        const R = UI.results;
+        const base = `${R.continueText} ${this.next?.mission ?? ''}`;
+        const left = this.countdownLeft();
+        return left >= 0 && left <= R.countdownFromS ? `${base} IN ${left}` : base;
+    }
+
+    /** Whole seconds until the idle auto-continue fires (-1 before the choice is up or once leaving). */
+    private countdownLeft(): number {
+        if (!this.done || this.leaving || !this.choice?.container.visible) return -1;
+        return Math.max(0, Math.ceil((UI.results.autoAdvanceMs - this.clock) / 1000));
+    }
+
     private skipAll(): void {
         this.tally.skip();
         while (this.partsShown < this.partRows.length) this.showPart(this.partsShown++);
@@ -228,6 +244,8 @@ export class ResultsScene extends Phaser.Scene {
             if (this.menuInput.back) { this.leave(); return; }
             if (this.menuInput.justDown('pause') && !this.menuInput.confirm) { this.continueMission(); return; }
             this.choice.update(dt, this.menuInput);
+            const left = this.countdownLeft();
+            if (left !== this.countdownShown) { this.countdownShown = left; this.choice.refresh(); }
             if (this.clock > R.autoAdvanceMs) this.continueMission();
             return;
         }

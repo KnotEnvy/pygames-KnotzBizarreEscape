@@ -819,3 +819,69 @@ zero dropped FX and zero runtime errors. Details: `{before,after}.json` and
 measurement, not a whole-mission performance certification. All fixture
 servers/browsers closed in `finally`. No git state changes; no requests for other
 teams. Initial sandbox approval capacity failures cleared on the authorized retry.
+
+## Phase G fix round — precipitation + shared lightning gate (2026-10-19)
+
+Changed FX-owned `src/fx/{director,weather,pool,background,lightning}.ts` only,
+plus this note. No git state changes.
+
+- **KBE-QA-G03:** global rain/storm/snow/blizzard renders independently of local
+  river, swamp, fog and tunnel zones. Precipitation renders first and reserves
+  the rain/storm mote budget; an overfull old ambient pool releases excess
+  motes only when necessary. Local foam, mist and lamps retain the remaining
+  budget. This implementation allows precipitation in tunnels too (suppression
+  was optional). `weather.precipitation` identifies the overlay while
+  `weather.mode` can still identify the local river; `rainStreaks` counts actual
+  drawn streaks. No doubled rendering for a zone matching global precipitation.
+- **G4, FX side:** one `FxLightning` instance gates storm ambience and every
+  `BackgroundFx` `bg_lightning` request. Minimum gap 1500 ms, with an explicit
+  previous-two check excluding three events even on the inclusive 3000 ms
+  boundary. Reduced flash/reduced motion uses 4000 ms and strength **0.14**;
+  double strikes are disabled there. Accepted events emit `fx:lightning`
+  `{x?, y?, strength, double}` once; rejected requests emit nothing. Both visual
+  renderers honor the accepted strength. The gate survives FX reset calls,
+  preventing resets from reopening the budget, and uses the scene clock.
+- **G5:** `FxPool.ambientLive` increments/decrements on successful spawn/release
+  (including reclaim, expiry and clear). Weather reads the counter rather than
+  scanning every slot each frame.
+- **G11:** near rain is explicitly at `DEPTH.FX_TOP`, above the player torso.
+
+**Integration dependency:** at verification time, `level/background.ts:202`
+`BackgroundDirector.strike()` still directly starts its sky flash and bolt,
+only requesting `bg_lightning` when the bolt texture is absent. Levels must
+always request through FX and start its sky crossfade/bolt/thunder only on
+`fx:lightning`, consuming the already-dimmed strength. That file is outside FX
+ownership and was not edited. Thus the shared **FX** cadence is verified; the
+whole-game lightning guarantee awaits the Levels consumer conversion. Audio
+may consume the same event; avoid duplicating the storm thunder currently
+played by FX if migrating thunder ownership.
+
+Verification artifacts: `/tmp/kbe-fx/phase-g-fix/`.
+
+- `check.log`: `npm --prefix game run check` passes, zero errors / zero FX
+  warnings (three unrelated Levels warnings in this shared checkout).
+- `audit-final.log`: `npm --prefix game run audit` **PASS**, all six parts for
+  reachability and arenas. Sandbox initially denied local listening; the
+  authorized local-server retry succeeded.
+- `river-storm-front.png`, `river-storm-front-clear.png`: real 2-2 start x2310,
+  `__KBE.cheats.bg('storm_front')`, then `cheats.warp(4200)`, without `fxtest`.
+  Rain is visible above the boat roof with river foam retained; final sample
+  records 27 actual rain streaks and 56 analytic weather motes.
+- `boss-rain.png`: real 2-3 x4000, live GATORGEDDON phase 1, storm precipitation
+  (42 streaks in the final sample). Screenshots were opened and inspected.
+- `final-report.json`: 10-second stationary Chromium/SwiftShader measurements,
+  1152×648: **2-2 60.06 FPS**, **2-3 boss rain 59.99 FPS**, both **16.7 ms p95**.
+  Maximum sampled moving-average FX CPU .184 / .420 ms respectively. All 16
+  precipitation × river/swamp/fog/tunnel combinations retained the requested
+  overlay. Zero browser runtime errors. These are bounded stationary samples,
+  not whole-mission performance certification.
+- `lightning-cadence.txt` and `report.json`: timestamps for 30 seconds each of
+  normal/reduced mode with storm ambience plus director-style requests every
+  100 ms. Normal accepted gaps **1500–1600 ms**; reduced **4099.7–4100 ms**,
+  strength .14, no doubles. No three accepted events within 3 seconds.
+- `gate-test.mjs`: exact 1499/1500/3000/3001 and 3999/4000 ms boundaries,
+  reduced dimming, double suppression, and rejected-request silence pass.
+  `verify.mjs` / `verify-final.mjs` reproduce the stationary browser fixtures.
+
+No bot traversal/playthroughs; only debug warp/background requests and the
+explicitly requested standard arena audit. All fixture servers/browsers closed.

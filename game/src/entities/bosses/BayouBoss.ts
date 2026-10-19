@@ -45,7 +45,11 @@ export class BayouBoss extends Phaser.GameObjects.Container {
     private readonly offs: Array<() => void> = [];
     private loop: LoopHandle | null = null;
     private loopKey = '';
-    private poseKey = '';
+    private loopRetryMs = 0;
+    private poseTag = '';
+    private posePhase = 0;
+    private headPoseTag = '';
+    private headPosePhase = 0;
     private areaFrame = -1;
     private readonly areaShapes = new Set<number>();
     constructor(private readonly ctx: GameContext, readonly kind: Kind, x: number, y: number, props: Record<string, unknown>) {
@@ -66,7 +70,7 @@ export class BayouBoss extends Phaser.GameObjects.Container {
             egg.off = ctx.damage.register({ team: 'enemy', kind: kind === 'shellshock' ? 'egg' : 'larva', material: 'metal', body: () => egg.rect.setTo(egg.sprite.x - 6, egg.sprite.y - 8, 12, 16), alive: () => egg.live && this.hp > 0, hit: h => { if (!egg.live) return false; this.disarm(egg); ctx.events.emit('explosion', { x: h.x, y: h.y, size: 's', team: 'player' }); ctx.events.emit('enemy:killed', { kind: 'egg', x: h.x, y: h.y, score: 25, cause: h.kind }); return true; } });
             this.eggs.push(egg);
         }
-        this.offs.push(ctx.onUpdate((dt, raw) => { this.flash.update(raw); this.tick(dt); }));
+        this.offs.push(ctx.onUpdate((dt, raw) => { this.flash.update(raw); this.tick(dt, raw); }));
         const stop = () => this.stopLoop(); ctx.scene.events.once('shutdown', stop);
         this.once('destroy', () => { this.stopLoop(); this.flash.clear(); this.debris.destroy(); this.clearOrdnance(); this.cue.destroy(); for (const e of this.eggs) { e.off(); e.sprite.destroy(); } for (const off of this.offs) off(); ctx.scene.events.off('shutdown', stop); });
         this.pose('intro'); ctx.events.emit('boss:spawn', this.info());
@@ -75,11 +79,18 @@ export class BayouBoss extends Phaser.GameObjects.Container {
         else for (let i = 0; i < 3; i++) this.spawnGnat(this.x - 45 + i * 32, this.y - 16);
     }
     private info() { return { name: this.kind === 'shellshock' ? 'SHELLSHOCK' : 'MEGA-SKEETER', hp: this.hp, maxHp: BAYOU_BOSSES[this.kind].hp, phase: this.phase, x: this.x, y: this.y }; }
-    private enter(state: string, duration: number): void { this.state = state; this.duration = duration; this.elapsed = 0; this.fired = 0; this.poseKey = ''; this.cue.clear(); }
+    private enter(state: string, duration: number): void { this.state = state; this.duration = duration; this.elapsed = 0; this.fired = 0; this.cue.clear(); }
     private pose(tag: string): void {
         const tier = this.phase === 3 ? '_critical' : this.phase === 2 ? '_damaged' : '';
-        const key = `${this.kind}_${tag}${tier}`; if (key !== this.poseKey) { animate(this.hull, key, true); this.poseKey = key; }
-        if (this.head) animate(this.head, `shellshock_head_${this.state === 'snap' ? 'snap' : this.state === 'snap_cue' ? this.high ? 'cue_high' : 'cue_low' : this.state === 'intro' ? 'hiss' : this.state === 'death' ? 'death' : 'idle'}${tier}`, true);
+        if (tag !== this.poseTag || this.phase !== this.posePhase) {
+            animate(this.hull, `${this.kind}_${tag}${tier}`, true); this.poseTag = tag; this.posePhase = this.phase;
+        }
+        if (this.head) {
+            const headTag = this.state === 'snap' ? 'snap' : this.state === 'snap_cue' ? this.high ? 'cue_high' : 'cue_low' : this.state === 'intro' ? 'hiss' : this.state === 'death' ? 'death' : 'idle';
+            if (headTag !== this.headPoseTag || this.phase !== this.headPosePhase) {
+                animate(this.head, `shellshock_head_${headTag}${tier}`, true); this.headPoseTag = headTag; this.headPosePhase = this.phase;
+            }
+        }
     }
     private box(part: 'hull' | 'head' | 'tank'): void {
         const r = new Phaser.Geom.Rectangle(), shape = this.boxes.length;
@@ -105,7 +116,7 @@ export class BayouBoss extends Phaser.GameObjects.Container {
         if (this.hp <= 0) return;
         this.hp = Phaser.Math.Clamp(value, 0, BAYOU_BOSSES[this.kind].hp); this.ctx.events.emit('boss:hp', this.info());
         const next = this.hp <= BAYOU_BOSSES[this.kind].hp / 3 ? 3 : this.hp <= BAYOU_BOSSES[this.kind].hp * 2 / 3 ? 2 : 1;
-        while (this.phase < next) { this.phase++; this.debris.burst(this.x, this.y - 30, this.floor, 4); this.poseKey = ''; this.ctx.events.emit('boss:phase', this.info()); }
+        while (this.phase < next) { this.phase++; this.debris.burst(this.x, this.y - 30, this.floor, 4); this.ctx.events.emit('boss:phase', this.info()); }
         if (this.hp <= 0) {
             this.enter('death', BAYOU_BOSSES[this.kind].deathMs); this.clearOrdnance(); this.ctx.projectiles.clear('enemy'); this.stopLoop(); this.debris.burst(this.x, this.y - 30, this.floor, 12); this.ctx.events.emit('fx:shake', { tier: 4 }); this.ctx.events.emit('fx:slowmo', { scale: .45, ms: 450 }); this.fromX = this.x; this.fromY = this.y;
         }
@@ -115,11 +126,16 @@ export class BayouBoss extends Phaser.GameObjects.Container {
         const a = this.ctx.spawn('enemy', 'gnat', { patrol: 28, graceMs: this.state === 'intro' ? 1600 : 900 }, x, y);
         if (a instanceof Phaser.GameObjects.GameObject) { this.adds.add(a); a.once('destroy', () => this.adds.delete(a)); }
     }
-    private stopLoop(): void { this.loop?.stop(0); this.loop = null; this.loopKey = ''; }
-    private updateLoop(): void {
+    private stopLoop(): void { this.loop?.stop(0); this.loop = null; this.loopKey = ''; this.loopRetryMs = 0; }
+    private updateLoop(raw: number): void {
         const key = this.hp <= 0 ? '' : this.kind === 'skeeter' ? 'skeeter_whine' : this.state === 'spin' || this.state === 'spin_cue' ? 'shell_spin' : '';
         if (key !== this.loopKey) this.stopLoop();
-        if (key) { const audio = getAudio(this.ctx.scene); if (!this.loop && !audio.locked) { this.loop = audio.loop(key, { x: this.x }); this.loopKey = key; } this.loop?.setX(this.x); }
+        this.loopKey = key; this.loopRetryMs = Math.max(0, this.loopRetryMs - raw);
+        if (key) {
+            const audio = getAudio(this.ctx.scene);
+            if (!this.loop?.active && this.loopRetryMs <= 0 && !audio.locked) { this.loop = audio.loop(key, { x: this.x }); this.loopRetryMs = 500; }
+            if (this.loop?.active) this.loop.setX(this.x);
+        }
     }
     private clamp(): void {
         const v = this.ctx.camera.view(); const left = Math.max(this.arena0, v.left), right = Math.min(this.arena1, v.right);
@@ -158,8 +174,8 @@ export class BayouBoss extends Phaser.GameObjects.Container {
         for (const b of this.ctx.damage.queryRect(r, 'enemy')) this.ctx.damage.deal(b, { x: r.centerX, y: r.centerY, damage: 1, source: 'enemy', kind: 'contact', dirX: this.direction, dirY: 0 });
         this.contactMs = 130;
     }
-    private tick(dt: number): void {
-        if (!this.active) return; this.updateLoop(); if (!dt) return;
+    private tick(dt: number, raw: number): void {
+        if (!this.active) return; this.updateLoop(raw); if (!dt) return;
         this.elapsed += dt; this.life += dt; this.contactMs -= dt; this.ventMs -= dt; this.debris.update(dt); this.cue.clear();
         if (this.state === 'death') {
             this.pose('death');

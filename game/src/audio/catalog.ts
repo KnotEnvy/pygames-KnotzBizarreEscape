@@ -212,7 +212,8 @@ export const SFX_META: Record<string, SfxMeta> = {
     branch_whoosh: { vol: 0.9, vary: 50, max: 2, minMs: 120 },
     paddlewheel: { vol: 0.8, loop: true, max: 1 },
     mill_wheel: { vol: 0.8, loop: true, max: 1 },
-    thunder: { vol: 1, vary: 80, max: 2, minMs: 600 },
+    /** One clap per flash: FX accepts flashes ≥ 1.5 s apart, so a direct call and the event-driven delayed clap never both play. */
+    thunder: { vol: 1, vary: 80, max: 2, minMs: 1400 },
     plank_break: { vol: 0.9, vary: 60, max: 3, minMs: 60 },
     warning_major: { vol: 1, max: 1, minMs: 1500 },
     // Phase G: Mission 2 background moments (distant tiers)

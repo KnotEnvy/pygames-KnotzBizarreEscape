@@ -324,52 +324,47 @@ MAT.bank = {
   end,
 }
 
--- Mud: glossy bog mud flats. Surface at y 1-2 (feet sink in a little), wet sheen, puddles, footprints.
-local MUD_T = { -- surface y per x (edges fixed at 0): lumpy, sagging goop
-  [0] = { 0, 0, 1, 1, 2, 2, 1, 0, 0, 1, 1, 2, 2, 1, 1, 0 },
-  [1] = { 0, 1, 2, 2, 1, 0, 0, 0, 1, 2, 2, 1, 0, 0, 1, 0 },
-  [2] = { 0, 0, 1, 2, 2, 2, 1, 1, 0, 0, 1, 1, 2, 1, 0, 0 },
-  [3] = { 0, 1, 1, 0, 0, 1, 2, 2, 2, 1, 0, 0, 1, 2, 1, 0 },
+-- Mud (KBE-QA-G07 redraw): soft wet bog mud, not dirt or gravel. A rounded, lumpy top (rising lumps between sags, seams at
+-- y 1) with a cool bluish wet sheen on the crowns, glossy puddles reflecting the sky in the sags, an occasional bubble
+-- dome, and a dark chocolate goop below with soft slumped folds. No neutral grey flecks, pebbles or bones.
+local MUD_T = { -- surface y per x (seams at 2): 0 = lump crown, 4 = deepest sag
+  [0] = { 2, 1, 0, 0, 0, 1, 2, 3, 3, 3, 2, 1, 0, 0, 1, 2 },
+  [1] = { 2, 1, 1, 2, 3, 4, 4, 4, 3, 1, 0, 0, 0, 1, 1, 2 },
+  [2] = { 2, 2, 1, 0, 0, 0, 0, 1, 2, 3, 3, 2, 1, 1, 1, 2 },
+  [3] = { 2, 3, 3, 2, 1, 0, 0, 0, 1, 2, 1, 0, 0, 1, 2, 2 },
 }
-local MUD_PUDDLE = { [0] = { 4, 3 }, [1] = { 2, 3 }, [2] = { 3, 4 }, [3] = { 6, 3 } }   -- {x, width}: sits in a dip
-local MUD_PRINT = { [0] = nil, [1] = { 9 }, [2] = nil, [3] = nil }                   -- footprint dimples x
+local MUD_PUDDLE = { [0] = { 7, 3 }, [1] = { 4, 5 }, [2] = { 8, 3 }, [3] = { 1, 3 } }   -- {x, width}: lies in a sag
+local MUD_BUBBLE = { [2] = 5, [3] = 5 }                                   -- x of a small bubble dome on a crown
 local MUD_BOT = { 14, 15, 15, 14, 14, 13, 14, 15, 14, 14, 13, 14, 15, 15, 14, 14 }
--- glossy lumps per fill variant (kept 1 px off the edges): {cx, cy, rx, ry}
+-- slumped wet folds in the goop per fill variant: {cx, cy, rx, ry}
 local MUD_LUMPS = {
-  [0] = { { 11, 11, 3, 1 } },
-  [1] = { { 9, 5, 4, 2 }, { 4, 12, 2, 1 } },
-  [2] = { { 5, 9, 3, 2 }, { 12, 4, 2, 1 }, { 11, 12, 2, 1 } },
-  [3] = { { 8, 8, 4, 2 } },
+  [0] = {},   -- the fill under every top tile: plain, so no fold repeats along a flat
+  [1] = { { 8, 6, 5, 2 } },
+  [2] = { { 5, 9, 4, 2 }, { 12, 13, 2, 1 } },
+  [3] = { { 9, 8, 5, 2 } },
 }
 local function mudLump(t, cx, cy, rx, ry, deep)
-  -- a slumped fold in the goop: soft wet highlight arc on top, a dark sag under it
+  -- a soft fold: a dim wet sheen along its top arc (brown, a cool glint at the crown), a dark sag under it
   for x = cx - rx, cx + rx do
     local k = (x - cx) / (rx + 0.5)
     local y = cy - math.floor(ry * math.sqrt(math.max(0, 1 - k * k)) + 0.5)
-    P(t, x, y, (x < cx) and (deep and "dirt1" or "dirt2") or (deep and "ink1" or "dirt1"))
-    if x == cx - rx + 1 then P(t, x, y, deep and "dirt2" or "ink2") end
-    P(t, x, cy + 1, deep and "outline" or "ink1")
+    if (x + cy) % 3 ~= 0 then P(t, x, y, "dirt1") end
+    P(t, x, y + 1, "outline")
   end
-  if not deep then P(t, cx - rx + 2, cy - ry, "ink3") end
+  if not deep then P(t, cx - 1, cy - ry, "dirt2") end
 end
 MAT.mud = {
   material = "mud",
   fill = function(t, v, deep)
     v = v or 0
     for y = 0, TS - 1 do for x = 0, TS - 1 do
-      local n = vnoise(x, y, 111, 8) * 0.65 + vnoise(x, y, 113, 4) * 0.35
-      P(t, x, y, shade(deep and { "outline", "dirt1", "dirt1", "dirt1", "ink1" } or { "ink1", "dirt1", "dirt1", "dirt1", "dirt2" }, n, x, y, 7))
+      local n = vnoise(x, y, 111, 8) * 0.7 + vnoise(x, y, 113, 4) * 0.3
+      P(t, x, y, shade(deep and { "outline", "outline", "dirt1", "dirt1", "ink1" } or { "dirt1", "dirt1", "dirt1", "dirt1", "dirt2" }, n, x, y, 7))
     end end
     for _, lp in ipairs(MUD_LUMPS[v % 4]) do mudLump(t, lp[1], lp[2], lp[3], lp[4], deep) end
-    -- oily glints (shared, interior)
-    for y = 1, 14 do for x = 1, 14 do if H(x, y, 112 + v) < 0.012 then P(t, x, y, deep and "ink1" or "ink2") end end end
-    if v == 1 then -- sunken twig
-      L(t, 2, 9, 7, 7, deep and "dirt2" or "dirt3"); L(t, 2, 10, 7, 8, "ink1"); P(t, 5, 7, deep and "dirt2" or "dirt4")
-    elseif v == 3 then -- an old bone in the goop
-      if deep then L(t, 3, 12, 7, 11, "ink2") else
-        L(t, 3, 12, 7, 11, "ink4"); L(t, 3, 13, 7, 12, "ink2"); P(t, 2, 12, "ink5"); P(t, 8, 11, "ink5"); P(t, 2, 13, "ink3"); P(t, 8, 12, "ink3")
-      end
-    elseif v == 2 and not deep then pebble(t, 9, 10, 2, false) end
+    if v == 1 then -- a sunken twig, dark
+      L(t, 2, 11, 7, 9, deep and "ink1" or "dirt2"); L(t, 2, 12, 7, 10, "outline")
+    end
   end,
   top = function(t, mask, v)
     v = v % 4
@@ -377,35 +372,41 @@ MAT.mud = {
     for x = 0, TS - 1 do
       local y0 = mt[x + 1]
       for y = 0, y0 - 1 do P(t, x, y, nil) end
-      -- glossy wet crust: bright sheen dashes, then the dark goop shows through
-      local sh = H(x // 2, 0, v + 41)
-      P(t, x, y0, (sh < 0.55) and "ink3" or ((sh < 0.8) and "steel3" or "dirt2"))
-      P(t, x, y0 + 1, (H(x // 3, 1, v + 42) < 0.45) and "steel2" or "dirt2")
-      P(t, x, y0 + 2, (H(x // 4, 2, v + 43) < 0.4) and "ink2" or "dirt1")
-      P(t, x, y0 + 3, (H(x // 2, 3, v + 44) < 0.3) and "steel1" or "dirt1")
-      P(t, x, y0 + 4, "ink1")
-      -- slumping lip: where the surface rises, a darker sag right under it
-      if x > 0 and mt[x] > y0 then P(t, x, y0 + 1, "ink3") end
+      local l, r = mt[math.max(1, x)], mt[math.min(16, x + 2)]
+      local crown = y0 <= l and y0 <= r and y0 <= 1
+      local sag = y0 >= 3
+      -- a thick glossy rim: wet brown lumps whose crowns catch the sky (cool sheen), dark wet sags between them
+      P(t, x, y0, crown and "steel3" or (sag and "dirt2" or "dirt3"))
+      P(t, x, y0 + 1, crown and "dirt3" or (sag and "dirt1" or "dirt2"))
+      P(t, x, y0 + 2, crown and "dirt2" or "dirt1")
+      P(t, x, y0 + 3, "dirt1")
+      -- below the rim the goop darkens on a fixed line (not following the lumps), so sags don't draw dark teeth
+      for y = y0 + 4, 7 do P(t, x, y, "dirt1") end
     end
-    for x = 1, 14 do if H(x // 2, 0, v + 41) < 0.2 and x % 2 == 0 then P(t, x, mt[x + 1], "ink4") end end
+    -- one soft pinpoint highlight on the biggest crown
+    for x = 2, 13 do if mt[x + 1] == 0 and mt[x] == 0 then P(t, x - 1, 0, "steel4"); P(t, x, 1, "steel2"); break end end
     local pd = MUD_PUDDLE[v]
     if pd then
       local px, pw = pd[1], pd[2]
-      local py = 2
+      local py = 0
+      for i = 0, pw - 1 do py = math.max(py, mt[px + i + 1]) end
       for i = 0, pw - 1 do
         for y = 0, py - 1 do P(t, px + i, y, nil) end
-        P(t, px + i, py, (i == 0) and "steel3" or "steel2"); P(t, px + i, py + 1, "steel1"); P(t, px + i, py + 2, "ink1")
+        -- a glossy pool of water on the mud: the sky's reflection, a bright glint, a wet brown rim under it
+        P(t, px + i, py, (i == 1) and "steel4" or ((i == 0 or i == pw - 1) and "steel2" or "sky2")); P(t, px + i, py + 1, (i % 2 == 0) and "sky1" or "steel1"); P(t, px + i, py + 2, "dirt2")
       end
-      P(t, px - 1, py, "ink3"); P(t, px - 1, py - 1, "dirt2"); P(t, px + pw, py, "sand2"); P(t, px + pw, py - 1, "dirt2")
-      P(t, px + 1, py, "sky3"); if pw > 2 then P(t, px + 2, py, "weird2") end
+      P(t, px - 1, py, "dirt3"); P(t, px + pw, py, "dirt3")
     end
-    for _, fx in ipairs(MUD_PRINT[v] or {}) do
-      local y0 = mt[fx + 1]
-      P(t, fx, y0, "dirt1"); P(t, fx + 1, y0, "dirt1"); P(t, fx + 2, y0, "dirt2"); P(t, fx, y0 + 1, "dirt1"); P(t, fx + 1, y0 + 1, "dirt2")
-      P(t, fx + 3, y0, "sand2"); P(t, fx + 2, y0 + 1, "sand2"); P(t, fx + 3, y0 + 1, "dirt3")
+    local bx = MUD_BUBBLE[v]
+    if bx then
+      local y0 = mt[bx + 1]
+      if y0 >= 1 then
+        P(t, bx - 1, y0 - 1, "dirt2"); P(t, bx, y0 - 1, "steel2"); P(t, bx + 1, y0 - 1, "dirt2")
+        P(t, bx - 1, y0, "dirt1"); P(t, bx, y0, "dirt2"); P(t, bx + 1, y0, "dirt1")
+      end
     end
-    if mask & W ~= 0 then for y = mt[1] + 1, mt[1] + 4 do P(t, 0, y, "dirt1") end; P(t, 0, mt[1], nil); P(t, 1, mt[1], "ink3") end
-    if mask & E ~= 0 then for y = mt[16] + 1, mt[16] + 4 do P(t, 15, y, "ink1") end; P(t, 15, mt[16], nil); P(t, 14, mt[16], "steel3") end
+    if mask & W ~= 0 then for y = mt[1] + 1, mt[1] + 4 do P(t, 0, y, "dirt1") end; P(t, 0, mt[1], nil); P(t, 1, mt[1], "steel2") end
+    if mask & E ~= 0 then for y = mt[16] + 1, mt[16] + 4 do P(t, 15, y, "ink1") end; P(t, 15, mt[16], nil); P(t, 14, mt[16], "steel2") end
   end,
   west = function(t)
     for y = 0, TS - 1 do
@@ -665,9 +666,11 @@ local function siltFill(t, v)
     if y >= 12 then c = shade({ "ink1", "dirt1", "leaf1" }, n * 0.8 + (15 - y) * 0.06, x, y) end
     P(t, x, y, c)
   end end
+  -- the floor line, dim and irregular (KBE-QA-G06: seen through the fading bottom of the wading face; no bright dotted line)
   for x = 0, TS - 1 do
-    P(t, x, 0, (H(x // 2, 0, 233 + v) < 0.3) and "olive3" or "olive2")
-    P(t, x, 1, ((x + v) % 3 == 0) and "olive1" or "leaf2")
+    local r = H(x // 2, 0, 233 + v)
+    P(t, x, 0, (r < 0.2) and "olive2" or ((r < 0.6) and "leaf2" or "olive1"))
+    P(t, x, 1, ((x + v) % 3 == 0) and "olive1" or "leaf1")
     if H(x, 2, 234) < 0.35 then P(t, x, 2, "leaf2") end
   end
   if v == 0 then -- sunken twig + pebble
@@ -678,8 +681,6 @@ local function siltFill(t, v)
     L(t, 8, 10, 13, 9, "olive1"); P(t, 10, 8, "olive2"); P(t, 11, 9, "olive2")
     P(t, 2, 4, "steel2"); P(t, 13, 5, "steel2")
   end
-  -- a glint where light catches the silt
-  P(t, 6 + v * 3, 0, "steel3")
 end
 local function shallowEdge(side)
   local t = T()
@@ -907,7 +908,7 @@ for _, stage in ipairs({ "", "_bob", "_s1", "_s2" }) do
   end
 end
 
--- mud bubble rising and popping on an m1-style mud top (a little basin at x 6..11 gives the dome headroom)
+-- mud bubble rising and popping on a mud top (a little basin at x 6..11 gives the dome headroom)
 local MUDP = { collides = true, material = "mud" }
 local mb = {}
 for f = 0, 3 do
@@ -916,9 +917,9 @@ for f = 0, 3 do
   -- basin: surface pushed down to y 2 around the vent so the dome has headroom
   for x = 4, 12 do
     for y = 0, 1 do P(t, x, y, nil) end
-    P(t, x, 2, (x < 7) and "ink3" or "dirt2"); P(t, x, 3, (x % 3 == 0) and "steel2" or "dirt1"); P(t, x, 4, "dirt1"); P(t, x, 5, "ink1")
+    P(t, x, 2, (x < 7) and "steel2" or "dirt2"); P(t, x, 3, (x % 3 == 0) and "steel1" or "dirt1"); P(t, x, 4, "dirt1"); P(t, x, 5, "outline")
   end
-  P(t, 3, 1, "ink3"); P(t, 13, 1, "dirt2")
+  P(t, 3, 1, "dirt2"); P(t, 13, 1, "dirt2")
   local y0 = 2
   -- concentric wet rings around the vent
   if f >= 1 then P(t, cx - 3, y0, "steel3"); P(t, cx + 4, y0, "steel2") end

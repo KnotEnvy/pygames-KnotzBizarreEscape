@@ -139,11 +139,15 @@ export const LEVEL = {
         // vx is on top of the drift (bank layers slide left at drift × sf): these slide past slower than the bank
         gatorPod: { sf: 0.36, y: 146, count: 4, vx: 30, alpha: 0.85 },
         burningBarge: { sf: 0.23, y: 138, vx: 16, blastMs: 4200, alpha: 0.9, lifeMs: 15000 },
-        skeeters: { sf: 0.03, count: 30, y: 78, spread: [70, 16] as [number, number], speed: -38, lifeMs: 11000, alpha: 0.85 },
+        // KBE-QA-G08: every opaque pixel at screen y >= 62 (6×4 frames, centre origin): 86 - 10 - bob 3 - 2 = 71 .. 101
+        skeeters: { sf: 0.03, count: 30, y: 86, spread: [70, 10] as [number, number], bob: 3, speed: -38, lifeMs: 11000, alpha: 0.85 },
         storm: { fadeMs: 4000, boltSx: 300, lightningAfterMs: 2500 },
         airboatRace: { sf: 0.23, y: 139, count: 3, speed: 150, alpha: 0.85 },
         // 2-3 GATOR'S DEN (and 2-2 after the storm front)
-        lightning: { minMs: 3500, maxMs: 8000, peak: 1, reducedPeak: 0.3, upMs: 50, holdMs: 70, downMs: 520, boltAlpha: 0.8, boltSf: 0.05, boltY: 22, thunderMs: 350 },
+        // Requested from FX (the single lightning gate); the crossfade runs on fx:lightning with its strength. A rejected request
+        // retries `retries` times every retryMs; if FX never answers in a scene, a dim fallback (no bolt) at most every fallbackMs.
+        lightning: { minMs: 3500, maxMs: 8000, peak: 1, upMs: 50, holdMs: 70, downMs: 520, boltAlpha: 0.8, boltSf: 0.05, boltY: 22, thunderMs: 350,
+            fxScale: 0.8, retryMs: 1600, retries: 3, fallbackMs: 4000, fallbackPeak: 0.3, doubleMs: 300, doublePeak: 0.6 },
         // bg_millwheel_big's hub sits on the painted wheel's hub: pixel (152, 74) of gen_mill_far (once 228, y 60)
         millWheel: { sf: 0.2, sfY: 0.1, ax: 228 + 152, y: 60 + 74, alpha: 1, creakMs: 4200 },
         denGlow: { sf: 0.24, ax: 1119, y: 150, alpha: 0.5, rattleMs: 6500 },
@@ -251,8 +255,13 @@ export const LEVEL = {
                     // Wake foam under the hulls (world speed, behind the tiles) and the foam line over the waterline (front)
                     { key: 'm2p2_river_wake', sfX: 1, sfY: 1, y: 174, depth: 0, band: 'track' },
                     { key: 'm2p2_river_front', sfX: 1, sfY: 1, y: 162, depth: 0, band: 'front' },
-                    // Foreground speed layer: cypress trunks, moss and reeds whipping past in front of the boat
-                    { key: 'm2p2_fg_speed', sfX: 1.6, sfY: 0, y: 0, depth: 1, band: 'front', tunnelHide: true }
+                    // Near-bank cypress trunks whipping past BEHIND the boat and the actors (KBE-QA-G02; M1's poles are the model)
+                    { key: 'm2p2_fg_trunks', sfX: 0.9, sfY: 0, y: 0, depth: 6, band: 'near', tunnelHide: true },
+                    // Foreground speed layers, in front, outside the combat band so they never cover an enemy, a cue or a bullet:
+                    // a canopy fringe in the top margin (screen y <= 28) and near-bank reeds anchored below the airboat lane
+                    // (world y 352+, = screen y 200+ from the main deck)
+                    { key: 'm2p2_fg_speed', sfX: 1.6, sfY: 0, y: 0, depth: 1, band: 'front', tunnelHide: true },
+                    { key: 'm2p2_fg_reeds', sfX: 1.6, sfY: 1, y: 352 - 168, depth: 1.1, band: 'front', tunnelHide: true }
                 ] as ParallaxLayerDef[],
                 crossfade: null
             },
@@ -332,6 +341,10 @@ export const LEVEL = {
         stompSpacing: 72,
         /** Never crack within this distance of the arena walls (the player always has a corner to stand in). */
         wallMargin: 40,
+        /** Per map (KBE-QA-G04): `offset` replaces stompOffset; `nearest` > 0 (tiles) moves a hole that would fall outside
+         *  the wall margin or off the crackable planks onto the nearest crackable columns instead of skipping it.
+         *  GATORGEDDON's stomp x is already its committed, marked tail target: lead 0, holes open at the marker. */
+        perMap: { m2p3: { offset: 0, nearest: 4 } } as Record<string, { offset: number; nearest: number }>,
         /** Map property `crack_style`: sounds and effects of the cracking tiles. */
         styles: {
             ice: { crackFx: 'ice_crack', breakFx: 'ice_shatter', crackSfx: 'ice_crack', breakSfx: 'ice_break', splash: false },
@@ -342,7 +355,9 @@ export const LEVEL = {
     /** Mission 2 water (src/level/water.ts). */
     water: {
         /** Wading surface over `material=shallow` runs: drawn over the legs (above actors, under bullets and FX). */
-        wade: { key: 'm2p1_wade', crest: 'm2p1_wade_crest', edge: 'm2p1_wade_edge', above: 14, alpha: 0.55, crestAlpha: 0.85, speed: 6, crestSpeed: -10 },
+        //  KBE-QA-G06: murky face (alpha .72) fading into the riverbed, dim broken ripples, soft dithered ends with foam
+        //  (wade_edge = 2 frames of edgeW px, swapped every foamMs).
+        wade: { key: 'm2p1_wade', crest: 'm2p1_wade_crest', edge: 'm2p1_wade_edge', edgeW: 12, foamMs: 450, above: 14, alpha: 0.72, crestAlpha: 0.6, speed: 6, crestSpeed: -10 },
         /** 2-3 den channel (trigger `channel`): opaque water strip at TILES_BACK + 1, top at the rect's y (326; water line 328). */
         channel: { key: 'm2p3_channel', glint: 'm2p3_channel_glint', speed: 9, glintSpeed: -16, glintAlpha: 0.8 },
         /** Sinking logs (tile sink=true): standing time to sink (decays at half speed off the log), bob frame period,

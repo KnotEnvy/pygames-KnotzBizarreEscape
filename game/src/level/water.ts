@@ -1,7 +1,8 @@
 // Mission 2 water (docs/MISSION2.md):
 //   Wading:        every horizontal run of `material=shallow` ground tiles gets a translucent water surface drawn over the
-//                  legs (TileSprites above actors, under bullets and FX), with a brighter crest scrolling the other way and
-//                  end caps. The Player reads the material itself (speed/jump, step splashes); this is only the look.
+//                  legs (TileSprites above actors, under bullets and FX): a murky face, dim ripples scrolling the other way,
+//                  soft dithered ends with alternating foam frames. The Player reads the material itself (speed/jump, step
+//                  splashes); this is only the look.
 //   Sinking logs:  contiguous runs of `sink=true` tiles are one log. Standing on it bobs it (bob frames, `log_bob`); after
 //                  LEVEL.water.sink.standMs of standing (decaying at half speed while off it) it sinks: s1 → s2 → open water
 //                  (hazard=water, no collision; the engine's hazard check drowns whoever is still on it), `log_sink` and a
@@ -31,6 +32,10 @@ export class WaterSystem {
     private readonly layer: Phaser.Tilemaps.TilemapLayer;
     private readonly ts: number;
     private clock = 0;
+    /** Wading end images whose foam frame alternates (pairs: left starts on f0, right on f1). */
+    private readonly edges: Phaser.GameObjects.Image[] = [];
+    private foamT = 0;
+    private foamF = 0;
     stats = { logs: 0, shallowRuns: 0, sunk: 0, resurfaced: 0, channel: 0 };
 
     constructor(private readonly ctx: GameContext, private readonly built: BuiltMap, triggers: LevelObject[]) {
@@ -39,7 +44,7 @@ export class WaterSystem {
         this.readGids();
         this.scan();
         for (const t of triggers) if (t.type === 'channel') this.channel(t);
-        ctx.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { this.strips.length = 0; });
+        ctx.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { this.strips.length = 0; this.edges.length = 0; });
     }
 
     get active(): boolean { return this.logs.length > 0 || this.strips.length > 0; }
@@ -80,11 +85,15 @@ export class WaterSystem {
         if (!scene.textures.exists(W.key)) return;
         const top = ty * this.ts - W.above;
         let x0 = tx0 * this.ts, x1 = (tx1 + 1) * this.ts;
-        // End caps (the crest curls down into the bank) replace the outer 8 px of the body at both ends.
+        // Soft ends (KBE-QA-G06): the face dissolves toward the bank with foam flecks against it (two frames, alternating),
+        // replacing the outer edgeW px of the body at both ends. No bright cap.
         if (scene.textures.exists(W.edge) && x1 - x0 >= 32) {
-            const ew = scene.textures.get(W.edge).getSourceImage().width;
-            scene.add.image(x0, top, W.edge).setOrigin(0, 0).setDepth(WADE_DEPTH).setAlpha(W.alpha);
-            scene.add.image(x1 - ew, top, W.edge).setOrigin(0, 0).setDepth(WADE_DEPTH).setAlpha(W.alpha).setFlipX(true);
+            const tex = scene.textures.get(W.edge), ew = W.edgeW, eh = tex.getSourceImage().height;
+            const frames = Math.max(1, Math.floor(tex.getSourceImage().width / ew));
+            for (let f = 0; f < frames; f++) if (!tex.has(`f${f}`)) tex.add(`f${f}`, 0, f * ew, 0, ew, eh);
+            const l = scene.add.image(x0, top, W.edge, 'f0').setOrigin(0, 0).setDepth(WADE_DEPTH).setAlpha(W.alpha);
+            const r = scene.add.image(x1 - ew, top, W.edge, frames > 1 ? 'f1' : 'f0').setOrigin(0, 0).setDepth(WADE_DEPTH).setAlpha(W.alpha).setFlipX(true);
+            if (frames > 1) this.edges.push(l, r);
             x0 += ew; x1 -= ew;
         }
         const h = scene.textures.get(W.key).getSourceImage().height;
@@ -126,6 +135,11 @@ export class WaterSystem {
         for (const st of this.strips) {
             st.body.tilePositionX += st.speed * s;
             if (st.crest) st.crest.tilePositionX += st.crestSpeed * s;
+        }
+        if (this.edges.length && (this.foamT += dt) >= LEVEL.water.wade.foamMs) {
+            this.foamT = 0;
+            this.foamF ^= 1;
+            for (let i = 0; i < this.edges.length; i++) this.edges[i].setFrame((i & 1) ^ this.foamF ? 'f1' : 'f0');
         }
         if (!this.logs.length || !this.gids.water) return;
         const under = this.logUnderPlayer();

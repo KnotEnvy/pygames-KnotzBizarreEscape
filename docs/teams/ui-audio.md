@@ -843,3 +843,43 @@ node tools/shot.mjs --out /tmp/kbe-ui/g1_card.png --query "scene=Game&fast=1&par
 # fog bed only
 uv run --with numpy,scipy,soundfile,pillow python3 -I tools/audio/sfx.py amb_fog
 ```
+
+### Phase G fix round (KBE-QA-G05 prompts off the boss bar, Results countdown, thunder on `fx:lightning`)
+Scratch: `/tmp/kbe-ui/g05-gatling.png`, `g05-flame.png` (real 2-3 den, `cheats.boss()` + 3 s right, then frozen fixed-step sim:
+`damageBoss(25)` to phases 2/3, `sim.advance` until `hud.prompt` is the cue, +420/450 ms, `sim.render`), `g10-results-a/b.png`,
+`thunder-probe3.png`. `npm run check` clean (the 3 warnings are Levels' `background.ts`).
+
+- **KBE-QA-G05 — prompts never cover the boss bar.** One prompt box serves every `ui:prompt` (boss cues, Levels' trigger hints, train
+  prompts, `WAVE n/N` / `FINAL WAVE!`), so the fix is one rule in `HudScene`: `promptY()` is `UI.hud.prompt.y` (200) normally and
+  `UI.hud.prompt.bossY` (**178**) while the boss bar is up; `placePrompt()` slides it there on show, on `boss:spawn` (a prompt already up
+  moves) and when the bar leaves after `boss:defeated`. The panel (18 px) then sits at y 169..187: one row above the boss name (188..195,
+  frame from 198), one row under the pier's walking lane (feet y 168 in the den), far from Hazel's strip (30..55) and the top HUD.
+  `__KBE.state().hud.promptY` reports the resting row. Verified in the real den: `DUCK!` at 300/450 and `JUMP THE FLAME!` at 150/450,
+  fill fully visible (`g05-gatling.png`, `g05-flame.png`).
+- **Rules G10 — visible auto-continue.** `ResultsScene`'s CONTINUE row is now a live label: `CONTINUE TO MISSION 2 IN 20` … `IN 0`,
+  counting the same `UI.results.autoAdvanceMs` (22 s) clock that fires the continue; it appears once the stamp is down and the seconds
+  are at or below `UI.results.countdownFromS` (20) and re-renders through `Menu.refresh()` only when the number changes (the cursor
+  re-centres with the width). `g10-results-a.png` (IN 20) / `g10-results-b.png` (IN 15, 5 s later).
+- **Thunder follows FX's flashes (`fx:lightning`).** `src/audio/events.ts`: the clap trails the flash by distance when the flash has an x
+  (`UI.audio.thunder`: 300 ms at the camera centre → 1200 ms at 900 px), else by a random beat in that range; volume `0.9 × strength`
+  (reduced flash → .14, a far rumble) less 35 % at full distance, panned like a `bg:event`; a `double` flash adds `bg_thunder` at
+  55 % 280 ms later. Scheduled with `engine.after` (engine clock, cleared on `endRun`).
+  **No doubling:** one `claimThunder()` gate (`gapMs` 1800) is shared with the `bg:event` path for `thunder` / `bg_thunder` keys
+  (Levels' `lightning` announce maps to `bg_thunder`; the id is still noted in `audio.bg`), so a strike Levels both flashes and
+  announces claps once; and the catalog's `thunder.minMs` goes 600 → **1400** (FX's flash spacing) as the backstop for any direct
+  `sfx('thunder')`. Probe on 2-1 (`thunder-probe3`): flash at +300 px → clap at 641 ms; a `cheats.bg('lightning')` 1.5 s later →
+  silent; one at 3.0 s → `bg_thunder`; a flash at −40 px → clap at 347 ms; a bare `fx:lightning {double}` → clap + `bg_thunder` 280 ms later.
+- **For FX:** `weather.ts` still plays `thunder` directly at the flash (`.45`); while it stays, the catalog `minMs` means that immediate
+  clap wins and the delayed one is dropped (never both). Remove the direct call and the distance-delayed clap takes over by itself.
+  **For Levels:** the `bg:event lightning` announce can stay (it is gated), but a strike that goes through `fx:emit bg_lightning` no
+  longer needs it.
+
+```bash
+# KBE-QA-G05: both cues in the real den, frozen sim (steps JSON = /tmp/kbe-ui/g05-steps.json: cheats.boss(), hold right 3.2 s,
+# sim.freeze(), damageBoss(25)+advance(50) to the phase, advance until hud.prompt matches, +420/450 ms, render, shot)
+node tools/shot.mjs --out /tmp/kbe-ui/g05-final.png --query "scene=Game&part=2-3&debug=1&fast=1&god=1&mute=1&seed=731&x=3700" --wait 2500 --size 1152x648 --steps "$(cat /tmp/kbe-ui/g05-steps.json)"
+# Results countdown (Title → Results with a next mission)
+node tools/shot.mjs --out /tmp/kbe-ui/g10-results-c.png --query "scene=Title&debug=1&fast=1&mute=1" --wait 2500 --size 1152x648 --steps "$(cat /tmp/kbe-ui/g10-steps.json)"
+# thunder timing/gate (in-page poller diffs audio.played / audio.recent every 40 ms)
+node tools/shot.mjs --out /tmp/kbe-ui/thunder-probe3.png --query "scene=Game&part=2-1&debug=1&fast=1&god=1&x=600" --wait 3000 --steps "$(cat /tmp/kbe-ui/thunder-steps3.json)"
+```

@@ -45,3 +45,18 @@
   sinking logs, gas vents, branches and fog, lazy mission packs, mission chaining, 72 SFX plus 5 songs, and 18 parallax layers.
   `npm run audit` PASSes all six parts, and the selftest passes 44/44. **G2 (now):** QA review, Phaser 4 rules review, and polish
   (UI bg ids, FX fog edges, mid-boss detail pass). The fix round follows from the QA and rules findings.
+- **Phase G2/G3 ✅:**
+  - QA: 8 findings, all fixed.
+    - Roof threats moved below the HUD and radio.
+    - The speed foreground no longer covers combat.
+    - Storm rain shows over the river.
+    - GATORGEDDON's slam holes open at the marker.
+    - Boss prompts sit above the HP bar.
+    - Murky wading water and wet mud.
+    - The sky swarm is lowered.
+  - Rules review: 0 E, 2 W, 9 N. Warnings fixed, plus four new lint rules.
+  - One FX lightning gate (`fx:lightning`), with Audio's thunder delayed by distance.
+  - A Back to Title option on a mission load error, and the carried run survives a reload.
+  - A detail pass on SHELLSHOCK and MEGA-SKEETER.
+  - `check`: 0 warnings. `audit`: all six parts PASS. `selftest`: 49/49.
+  - **Next:** owner playtest of Mission 2.

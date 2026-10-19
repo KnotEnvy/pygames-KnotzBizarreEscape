@@ -6,6 +6,7 @@ import { FxFilters } from './filters';
 
 import { CampaignFx, ambience, type Ambience, type SpatialFx } from './campaign';
 import { FxWeather } from './weather';
+import { FxLightning } from './lightning';
 import { BayouFx } from './bayou';
 import { BackgroundFx } from './background';
 import type { Projectile } from '../core/projectiles';
@@ -61,8 +62,9 @@ export class FxDirector {
         this.bayou = new BayouFx(ctx, this.pool);
         this.stats.combat = this.pool.combatLive;
         this.filters = new FxFilters(ctx);
-        this.weather = new FxWeather(ctx, this.pool);
-        this.background = new BackgroundFx(ctx);
+        const lightning = new FxLightning(ctx);
+        this.weather = new FxWeather(ctx, this.pool, lightning);
+        this.background = new BackgroundFx(ctx, lightning);
         this.campaign = new CampaignFx(ctx, this.pool,
             (x, y, size) => { this.explosion(x, y, size, false, true); this.ctx.audio.sfx(`explo_${size}`, { x }); },
             (x, y) => this.finale(x, y, 'IRONHORN'),
@@ -577,12 +579,22 @@ export class FxDirector {
             this.ctx.projectiles.forEach(this.projectileTrail);
         }
         this.campaign.update(dt, this.ctx.time.paused ? 0 : rawDt);
+        const fallback = this.previewAmbience === undefined ? this.ambience : this.previewAmbience;
+        const precipitation = fallback === 'rain' || fallback === 'storm' || fallback === 'snow' || fallback === 'blizzard';
+        if (this.ambientEnabled && (fallback === 'rain' || fallback === 'storm')) this.pool.reserveWeather(fallback === 'storm' ? 48 : 32);
         this.weather.begin(dt);
         this.observeMovement(dt);
         const view = this.ctx.camera.view();
+        // Global precipitation gets its mote budget first; local banks/foam/lights layer with it.
+        if (this.ambientEnabled && precipitation) {
+            this.weather.region(fallback, view.left, view.top, view.right, view.bottom);
+            this.weather.stats.precipitation = fallback;
+            this.ambientDebt += dt * FX.ambientRate[fallback] / 1000;
+            if (dt > 0 && this.ambientDebt >= 1) { this.ambientDebt -= 1; this.emitAmbient(fallback, view.left, view.top, view.right, view.bottom); }
+        }
         let hasZone = false;
         if (this.ambientEnabled && this.previewAmbience === undefined) for (const z of this.zones) {
-            if (!z.active || !z.kind) continue;
+            if (!z.active || !z.kind || (precipitation && z.kind === fallback)) continue;
             const left = Math.max(z.x, view.left), right = Math.min(z.x + z.width, view.right);
             const top = Math.max(z.y, view.top), bottom = Math.min(z.y + z.height, view.bottom);
             // Keep near-offscreen fog alive for its wisps; never substitute a clipped camera edge for a bank edge.
@@ -595,8 +607,7 @@ export class FxDirector {
             z.debt += dt * FX.ambientRate[z.kind] / 1000;
             if (dt > 0 && z.debt >= 1) { z.debt -= 1; this.emitAmbient(z.kind, left, top, right, bottom); }
         }
-        const fallback = this.previewAmbience === undefined ? this.ambience : this.previewAmbience;
-        if (this.ambientEnabled && !hasZone && fallback) {
+        if (this.ambientEnabled && !precipitation && !hasZone && fallback) {
             this.weather.region(fallback, view.left, view.top, view.right, view.bottom);
             this.ambientDebt += dt * FX.ambientRate[fallback] / 1000;
             if (dt > 0 && this.ambientDebt >= 1) { this.ambientDebt -= 1; this.emitAmbient(fallback, view.left, view.top, view.right, view.bottom); }

@@ -26,7 +26,11 @@ export const UI = {
         go: { x: 384 - 68, y: 88, showMs: 2200 },
         bossBar: { x: 90, y: 198, hiddenY: 232, slideMs: 420, ghostLagMs: 220, fillW: 198, fillH: 6 },
         popup: { life: 820, rise: 22, cap: 12 },
-        prompt: { y: 200, hiddenY: 236, defaultMs: 3500, slideMs: 220 },
+        /**
+         * Level prompts (DUCK!, WAVE 2/3, trigger hints) rest at `y` over the lower band. While a boss bar is up they move to
+         * `bossY`, the row just above the boss name (name y 188..195, frame from 198), so a cue never covers the HP fill (KBE-QA-G05).
+         */
+        prompt: { y: 200, bossY: 178, hiddenY: 236, defaultMs: 3500, slideMs: 220 },
         multiKill: { windowMs: 700, bonusPerExtra: 50 },
         clearFadeAtMs: 2800,
         /** Phase F juice: the score counter bumps while it rolls and blinks white when it locks in. */
@@ -168,6 +172,8 @@ export const UI = {
          * (black, the next mission's route map and name, Hazel's teaser, a radio blip) holds `breakMs` before Game starts.
          */
         continueText: 'CONTINUE TO MISSION', quitText: 'QUIT TO TITLE', breakMs: 3200, breakFadeMs: 500,
+        /** Idle auto-continue is visible: the CONTINUE row carries a seconds countdown (`autoAdvanceMs`), shown once it is at or below this. */
+        countdownFromS: 20,
         /** Per-part breakdown rows appear one by one after the totals. */
         partRowMs: 260,
         /** Rank points: accuracy 0..40, rescues 0..40, deaths 0..20. */
@@ -299,6 +305,13 @@ export const UI = {
         } as Record<string, { key: string; volume?: number; detune?: number }>,
         /** Background pan: pan = clamp(dx / bgPanRange) × bgPanMax (gentler than gameplay sounds). */
         bgPanRange: 384, bgPanMax: 0.45,
+        /**
+         * Phase G fix round: thunder follows FX's accepted flashes (`fx:lightning`). The clap is delayed by distance when the flash
+         * has an x (`nearMs` at the camera centre, `farMs` at `farPx` away or beyond), else a random delay in that range; its volume is
+         * `volume` × strength (reduced flash dims the strength to .14, so the clap is a far rumble). One clap per `gapMs` across every
+         * thunder path (the delayed clap, Levels' `bg:event lightning`), so a flash that both report never doubles.
+         */
+        thunder: { nearMs: 300, farMs: 1200, farPx: 900, volume: 0.9, doubleGapMs: 280, doubleVolume: 0.55, gapMs: 1800 },
         /** Phase F: weapon layers played under the weapon's own shot (`player:shoot`), positional. */
         weaponLayers: {
             hmg: { key: 'hmg_punch', volume: 1 },

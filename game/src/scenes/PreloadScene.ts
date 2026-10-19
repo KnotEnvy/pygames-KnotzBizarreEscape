@@ -6,13 +6,16 @@
 // non-empty on that screen (automatic retries in progress don't count as an error yet).
 // Phase G mission mode (core/missionPacks.ts): started by Game with { missions, next }, it fetches and loads the
 // `<team>.m<N>.json` packs the same way (same bar, retries and error screen), then starts `next` instead of routing.
+// Its error screen also offers ESC / pad B: BACK TO TITLE (rules review G3), and before its RELOAD the pending
+// Game { part, carry } is stashed in sessionStorage; the boot-mode Preload after the reload resumes it once.
 import Phaser from 'phaser';
 import { fetchPack, LOAD_ATTEMPTS, LOAD_BACKOFF, type LoadedPack, type PackError } from './BootScene';
 import { PAL } from '../core/textures';
 import { PARAMS } from '../core/params';
 import { registerDebug, setReady } from '../core/debug/hooks';
 import { createAsepriteAnims } from '../core/anims';
-import { markMissionLoaded, missionPackNames, type MissionLoadData } from '../core/missionPacks';
+import { markMissionLoaded, missionPackNames, stashMissionResume, takeMissionResume, type MissionLoadData } from '../core/missionPacks';
+import type { GameStartData } from '../config/campaign';
 import { CAMPAIGN } from '../config/campaign';
 
 interface PackFileEntry { type?: string; key?: string; url?: unknown; textureURL?: unknown; fontDataURL?: unknown; atlasURL?: unknown }
@@ -40,6 +43,8 @@ export class PreloadScene extends Phaser.Scene {
     private status!: Phaser.GameObjects.Text;
     private errorUi: Phaser.GameObjects.GameObject[] = [];
     private onRetry: (() => void) | null = null;
+    private onTitle: (() => void) | null = null;
+    private onPad: ((pad: Phaser.Input.Gamepad.Gamepad, button: Phaser.Input.Gamepad.Button) => void) | null = null;
     /** Mission mode: the missions being loaded and the scene to start afterwards (null = boot mode). */
     private mission: MissionLoadData | null = null;
 
@@ -205,6 +210,14 @@ export class PreloadScene extends Phaser.Scene {
         }
         // Readiness = "the requested scene booted and (for Game) every team registered". Game sets it at the end of
         // its own create(); any other target (Title, ...) flips it once its create() has run.
+        // G3: a mission load that failed and reloaded the page resumes its { part, carry } once (Game re-enters
+        // Preload's mission mode for the packs). Stale, malformed or missing stashes fall through to the route.
+        const resume = this.has('Game') ? takeMissionResume() : null;
+        if (resume) {
+            console.info(`[preload] resuming part ${resume.part} after a reload${resume.carry ? ' (carried run)' : ''}`);
+            this.scene.start('Game', resume);
+            return;
+        }
         const target = this.route();
         if (target !== 'Game') this.scene.get(target).events.once(Phaser.Scenes.Events.CREATE, () => setReady(true));
         this.scene.start(target);
@@ -230,6 +243,7 @@ export class PreloadScene extends Phaser.Scene {
         panel.fillStyle(PAL.red2, 0.5).fillRect(24, cy - 20, width - 48, 58);
         panel.lineStyle(1, PAL.red3).strokeRect(24, cy - 20, width - 48, 58);
         const prompt = text(cy + 28, reload ? 'PRESS ENTER / CLICK TO RELOAD' : 'PRESS ENTER / CLICK TO RETRY', PAL.white);
+        const toTitle = this.mission !== null && this.has('Title');
         this.tweens.add({ targets: prompt, alpha: 0.35, duration: 500, yoyo: true, repeat: -1 });
         this.errorUi = [
             panel,
@@ -238,21 +252,44 @@ export class PreloadScene extends Phaser.Scene {
             text(cy + 13, names, PAL.ink5),
             prompt
         ];
-        this.onRetry = () => { if (reload) window.location.reload(); else this.retryFromError(); };
+        if (toTitle) this.errorUi.push(text(cy + 44, 'ESC / B: BACK TO TITLE', PAL.sand5));
+        this.onRetry = () => { if (reload) this.reloadPage(); else this.retryFromError(); };
+        this.onTitle = toTitle ? () => this.backToTitle() : null;
+        this.onPad = (_pad, button) => { if (button?.index === 1 && this.onTitle) this.onTitle(); else this.onRetry?.(); };
         this.input.keyboard?.on('keydown-ENTER', this.onRetry);
+        if (this.onTitle) this.input.keyboard?.on('keydown-ESC', this.onTitle);
         this.input.on(Phaser.Input.Events.POINTER_DOWN, this.onRetry);
-        this.input.gamepad?.on(Phaser.Input.Gamepad.Events.BUTTON_DOWN, this.onRetry);
+        this.input.gamepad?.on(Phaser.Input.Gamepad.Events.BUTTON_DOWN, this.onPad);
     }
 
     private clearErrorUi(): void {
         if (this.onRetry) {
             this.input.keyboard?.off('keydown-ENTER', this.onRetry);
             this.input.off(Phaser.Input.Events.POINTER_DOWN, this.onRetry);
-            this.input.gamepad?.off(Phaser.Input.Gamepad.Events.BUTTON_DOWN, this.onRetry);
             this.onRetry = null;
         }
+        if (this.onTitle) { this.input.keyboard?.off('keydown-ESC', this.onTitle); this.onTitle = null; }
+        if (this.onPad) { this.input.gamepad?.off(Phaser.Input.Gamepad.Events.BUTTON_DOWN, this.onPad); this.onPad = null; }
         for (const o of this.errorUi) { this.tweens.killTweensOf(o); o.destroy(); }
         this.errorUi = [];
+    }
+
+    /** The RELOAD choice. Mission mode stashes the pending Game { part, carry } first (resumed once after the reload). */
+    private reloadPage(): void {
+        const next = this.mission?.next;
+        if (next?.scene === 'Game' && next.data) stashMissionResume(next.data as GameStartData);
+        window.location.reload();
+    }
+
+    /** Mission mode: give up on the mission and go to the Title (the progress unlock is already saved). */
+    private backToTitle(): void {
+        if (this.busy) return;
+        this.busy = true;
+        this.clearErrorUi();
+        loadErrors = [];
+        console.info(`[preload] mission ${this.mission?.missions.join(', ')} load abandoned: back to Title`);
+        this.scene.get('Title').events.once(Phaser.Scenes.Events.CREATE, () => setReady(true));
+        this.scene.start('Title');
     }
 
     /** Re-attempt only what failed: re-fetch failed packs, then re-load missing files (a fresh set of rounds). */
@@ -301,8 +338,10 @@ export class PreloadScene extends Phaser.Scene {
         }
     }
 
+    private has(k: string): boolean { return this.scene.manager.keys[k] !== undefined; }
+
     private route(): string {
-        const has = (k: string) => this.scene.manager.keys[k] !== undefined;
+        const has = (k: string) => this.has(k);
         if (PARAMS.scene && has(PARAMS.scene)) return PARAMS.scene;
         if (PARAMS.scene) console.info(`[preload] ?scene=${PARAMS.scene} is not registered`);
         return has('Title') ? 'Title' : 'Game';

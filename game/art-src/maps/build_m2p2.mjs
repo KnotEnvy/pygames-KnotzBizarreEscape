@@ -84,11 +84,11 @@ prop('drum_rack', 38, D, { layer: 'back' });
 fuelTank(40, D - 2);
 enemy('grunt', 44, D, { idle: 'crouch' });
 airboat(42);
-enemy('gnat', 45, 13); enemy('gnat', 46, 12, { delay: 300 }); enemy('gnat', 47, 14, { delay: 600 });
+enemy('gnat', 45, 15); enemy('gnat', 46, 14, { delay: 300 }); enemy('gnat', 47, 15, { delay: 600 });
 tow(47, 48);
 barge(49, 68);
 container(55, 58, D - 2, 'cr'); container(56, 58, D - 4, 'cs');
-enemy('grenadier', 57, D - 4, { patrol: 8 });
+enemy('grenadier', 55, D - 2, { patrol: 0 });   // the step, not the stack top (G01: y >= 62 from the deck)
 enemy('shield', 62, D, { patrol: 16 });
 put('back', 51, D - 2, T('cnet_top')); put('back', 51, D - 1, T('cnet_a')); put('back', 52, D - 2, T('cnet_top')); put('back', 52, D - 1, T('cnet_b'));
 prop('fuel_drum', 65, D);
@@ -109,7 +109,7 @@ container(74, 76, D - 2, 'cs');
 container(83, 86, D - 2, 'cr'); container(84, 86, D - 4, 'co');
 prop('container_door', 81, D, { layer: 'back', spawns: 'grunt', count: 2, interval: 2600 });   // an end-on container beside the stack
 enemy('grunt', 78, D, { patrol: 16 });
-enemy('grenadier', 85, D - 4, { patrol: 8 });
+enemy('grenadier', 83, D - 2, { patrol: 0 });
 tr('hazard_sweep', 77, 79, 0, H - 1, { kind: 'branch', y: 282, count: 1 });    // deck standing height: get off the containers
 tow(91, 92);
 barge(93, 114);
@@ -118,7 +118,7 @@ container(103, 107, D - 2, 'cs'); container(104, 106, D - 4, 'cr');
 prop('container_door', 101, D, { layer: 'back', spawns: 'grunt', count: 2, interval: 2400 });
 pow('spread', 105, D - 4);
 enemy('shield', 111, D, { patrol: 16 });
-enemy('drone', 100, 12);
+enemy('drone', 100, 15);
 airboat(108, { delay: 300 });
 tr('fog', 99, 101, 0, H - 1, { ms: 7000 });
 tow(115, 116);
@@ -127,7 +127,7 @@ container(120, 122, D - 2, 'cr');
 container(129, 133, D - 2, 'co'); container(131, 133, D - 4, 'cs');
 prop('container_door', 127, D, { layer: 'back', spawns: 'grunt', count: 1 });
 enemy('grunt', 123, D, { patrol: 16 });
-enemy('grenadier', 132, D - 4, { patrol: 8 });
+enemy('grenadier', 129, D - 2, { patrol: 8 });
 enemy('leaper', 125, D);
 tr('hazard_sweep', 123, 125, 0, H - 1, { kind: 'branch', y: 282, count: 2, gap: 1500 });
 tow(137, 138);
@@ -235,24 +235,27 @@ for (let x = 270; x <= 276; x++) for (let y = 10; y <= 11; y++) {
 prop('wheelhouse_light', 273, 10, { layer: 'back' });
 prop('queen_board', 200, PROM + 3, { layer: 'back' });
 prop('life_ring', 236, PROM + 2, { layer: 'back' }); prop('life_ring', 262, D - 1, { layer: 'back' });
-// Regime steel gun mounts on the roof
-for (const x of [262, 263]) put('ground', x, ROOF, T(x === 262 ? 'qsteel_l' : 'qsteel_r'));
-// enemies on several decks
+// Enemies on the main deck and the promenade only (KBE-QA-G01). The camera follows the floor the player stands on
+// (feet at screen ~y152); anything standing more than ~44 px above the lowest floor of a stretch has its body under the
+// HUD / radio strip (y < 62). The promenade (48 px up) is the highest threat deck; the hurricane roof is a quiet high
+// route with points (from the promenade its deck is at screen ~y96, too high for a threat).
 enemy('grunt', 192, D, { patrol: 16 });
 enemy('grenadier', 198, PROM, { patrol: 16 });
-enemy('grunt', 203, ROOF, { patrol: 8 });
+enemy('grunt', 207, PROM, { patrol: 8 });
+for (const x of [196, 200, 204]) pickup('points', x, ROOF - 1, { float: true });
 pow('laser', 205, PROM);
 enemy('grunt', 214, D, { idle: 'crouch' });                                   // in the boiler passage (dark)
 enemy('shield', 225, D, { patrol: 8 });
 enemy('grunt', 236, PROM, { patrol: 24 });
-enemy('turret', 262, ROOF, { mount: 'pedestal' });
-enemy('grenadier', 246, ROOF, { patrol: 16 });
+enemy('turret', 260, PROM, { mount: 'pedestal' });
+enemy('grenadier', 248, PROM, { patrol: 16 });
+for (const x of [244, 248, 266, 280]) pickup('points', x, ROOF - 1, { float: true });
 enemy('grunt', 255, D, { patrol: 24 });
-enemy('gnat', 258, 11); enemy('gnat', 260, 12, { delay: 250 }); enemy('gnat', 262, 10, { delay: 500 });
+enemy('gnat', 254, 14); enemy('gnat', 256, 15, { delay: 250 }); enemy('gnat', 258, 14, { delay: 500 });
 airboat(244, { delay: 200 });
 airboat(282, { delay: 200 });
 enemy('shield', 270, PROM, { patrol: 16 });
-enemy('grunt', 278, ROOF, { patrol: 16 });
+enemy('grunt', 281, PROM, { patrol: 16 });
 enemy('grunt', 286, D, { patrol: 16 });
 prop('crate', 294, D, { contains: 'bombs' });
 pow('bombs', 298, D);

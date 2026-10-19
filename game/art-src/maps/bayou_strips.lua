@@ -1,8 +1,8 @@
 -- Mission 2 "BAYOU BLACKOUT": runtime water / foam / foreground / haze strips (plain PNGs, binary alpha, palette only).
 -- Build: bash tools/build-art.sh art-src/maps/bayou_strips.lua
 -- Writes (never touches the gen_* layers in the same folders):
---   m2p1/ wade.png 64x18, wade_crest.png 64x3, wade_edge.png 8x18, haze.png 384x40
---   m2p2/ river_front.png 256x14, river_wake.png 256x10, fg_speed.png 768x216, haze.png 384x40
+--   m2p1/ wade.png 64x18, wade_crest.png 64x3, wade_edge.png 24x18 (2 frames of 12), haze.png 384x40
+--   m2p2/ river_front.png 256x14, river_wake.png 256x10, fg_speed.png 768x30, fg_reeds.png 768x24, fg_trunks.png 768x216, haze.png 384x40
 --   m2p3/ channel.png 128x12, channel_glint.png 128x3, haze.png 384x40, rain_sheet.png 192x216
 -- Every strip is drawn periodic in x, then "sealed": column W-1 is a copy of column 0 (identical wrap columns).
 local K = dofile(app.params.kbe)
@@ -66,85 +66,103 @@ local function wave(x, W, terms)
 end
 
 ---------------------------------------------------------------------------------------------------
--- m2p1 WADING WATER (dusk tea-green). Body rows 2-17, crest rows 0-1.
-local function wadeBody(img, x, y, seed)
-  -- y is the strip row (2..17)
-  local cols
-  if y <= 3 then cols = { { "leaf2", 0.42 }, { "steel2", 0.42 }, { "steel3", 0.10 }, { "leaf3", 0.06 } }
-  elseif y <= 9 then cols = { { "leaf2", 0.48 }, { "steel2", 0.32 }, { "leaf1", 0.20 } }
-  elseif y <= 13 then cols = { { "leaf1", 0.45 }, { "leaf2", 0.30 }, { "steel2", 0.15 }, { "steel1", 0.10 } }
-  else cols = { { "leaf1", 0.55 }, { "steel1", 0.35 }, { "leaf2", 0.10 } } end
-  return cols
+-- m2p1 WADING WATER (KBE-QA-G06 redraw: murky tea-brown swamp water, not a glass trough).
+-- wade.png 64x18: row 0 a soft, broken surface line (short dull glints, no long or white highlights), row 1 a dark
+-- meniscus, rows 2-13 a murky face that darkens with depth (the legs read dimly through it), rows 14-17 (over the riverbed) dither into
+-- the riverbed so the bottom has no hard edge. Drawn at alpha ~0.7 over the legs.
+local WADE_ROWS = {
+  -- { colours by weight } per depth band
+  { 2, 4,  { { "olive2", 0.40 }, { "leaf2", 0.34 }, { "dirt2", 0.16 }, { "olive3", 0.10 } } },
+  { 5, 8,  { { "olive2", 0.34 }, { "leaf2", 0.26 }, { "dirt2", 0.24 }, { "leaf1", 0.16 } } },
+  { 9, 12, { { "leaf1", 0.38 }, { "dirt1", 0.26 }, { "olive1", 0.24 }, { "dirt2", 0.12 } } },
+  { 13, 17, { { "leaf1", 0.42 }, { "dirt1", 0.36 }, { "olive1", 0.22 } } },
+}
+local function wadeCols(y)
+  for _, r in ipairs(WADE_ROWS) do if y >= r[1] and y <= r[2] then return r[3] end end
+  return WADE_ROWS[#WADE_ROWS][3]
 end
-local function drawWadeBody(img, x0, x1, topOf)
-  for y = 2, 17 do
-    local cols = wadeBody(img, 0, y)
-    -- per-row runs
-    local x, k = 0, 0
-    while x < 64 do
-      local len = 3 + math.floor(H(k, y, 1100) * 9)
-      local c = pick(cols, H(k, y, 1101))
-      for i = 0, len - 1 do
-        local xx = x + i
-        if xx < 64 and xx >= x0 and xx <= x1 and y >= topOf(xx) then P(img, xx, y, c) end
-      end
-      x = x + len; k = k + 1
-    end
-  end
-  -- faint ripple bands (short lighter dashes on rows 5, 9, 13)
-  for _, rb in ipairs({ { 5, "steel3", 0.30, 1110 }, { 9, "steel2", 0.35, 1111 }, { 13, "leaf2", 0.35, 1112 } }) do
-    local y, c, p, s = rb[1], rb[2], rb[3], rb[4]
+-- fade of the face toward the riverbed: 1 = solid, 0 = gone (Bayer dithered)
+-- rows 0-13 are above the riverbed (only the parallax is behind them): solid; rows 14-17 overlap the riverbed tile
+local function wadeFade(y) if y <= 13 then return 1 end return math.max(0, 1 - (y - 13) * 0.24) end
+local function wadeFace(img, x, y)
+  local cols = wadeCols(y)
+  -- short horizontal runs so the murk has texture without banding
+  local k = math.floor((x + math.floor(H(y, 0, 1100) * 7)) / (3 + math.floor(H(math.floor(x / 4), y, 1102) * 4)))
+  return pick(cols, H(k, y, 1101))
+end
+local function drawWade(img)
+  for y = 1, 17 do
     for x = 0, 63 do
-      local band = H(math.floor((x + y * 7) / 5), y, s) < p
-      if band and (x % 5) ~= 4 and x >= x0 and x <= x1 and y >= topOf(x) then P(img, x, y, c) end
+      if y == 1 then P(img, x, y, H(x, 1, 1103) < 0.7 and "leaf1" or "olive1")
+      elseif dither(x, y, wadeFade(y)) then P(img, x, y, wadeFace(img, x, y)) end
     end
   end
+  -- gentle ripple dashes on the face (short, broken, dim): rows 4, 7, 10
+  for _, rb in ipairs({ { 4, "olive3", 0.22, 1110 }, { 7, "leaf3", 0.16, 1111 }, { 10, "leaf2", 0.20, 1112 } }) do
+    local y, c, p, sd = rb[1], rb[2], rb[3], rb[4]
+    local x = 0
+    while x < 64 do
+      local len = 1 + math.floor(H(x, y, sd) * 3)
+      if H(x, y, sd + 7) < p then for i = 0, len - 1 do P(img, x + i, y, c) end end
+      x = x + len + 2 + math.floor(H(x, y, sd + 9) * 5)
+    end
+  end
+  -- surface line: dull and broken (leaf3 / olive3 / steel3 runs of 1-4 px with gaps), a rare single steel4 glint
+  local x = 0
+  while x < 64 do
+    local len = 1 + math.floor(H(x, 0, 1120) * 4)
+    local r = H(x, 0, 1121)
+    local c = r < 0.38 and "leaf3" or r < 0.66 and "olive3" or r < 0.86 and "steel3" or "_"
+    for i = 0, len - 1 do P(img, x + i, 0, c) end
+    x = x + len + math.floor(H(x, 0, 1122) * 2)
+  end
+  for xx = 0, 63 do if A(img, xx, 0) and H(xx, 0, 1123) < 0.04 then P(img, xx, 0, "steel4") end end
 end
-local CREST0 = { { "ink5", 0.22 }, { "sky4", 0.22 }, { "steel4", 0.14 }, { "_", 0.42 } }
-local CREST1 = { { "steel4", 0.40 }, { "sky4", 0.18 }, { "steel3", 0.30 }, { "_", 0.12 } }
 do
   local img = newImg(64, 18)
-  drawWadeBody(img, 0, 63, function() return 2 end)
-  streakRow(img, 1, CREST1, 1120, 2, 7)
-  streakRow(img, 0, CREST0, 1121, 2, 6)
-  -- a few bright pinpoint glints on the crest
-  for x = 0, 63 do if A(img, x, 0) and H(x, 0, 1122) < 0.06 then P(img, x, 0, "white") end end
-  -- under the crest: a darker line so the crest reads against the legs
-  for x = 0, 63 do if H(x, 2, 1123) < 0.55 then P(img, x, 2, "steel2") end end
+  drawWade(img)
   save(img, "m2p1", "wade.png")
 end
+-- wade_crest.png 64x3: slow ripples sliding the other way over the surface: sparse short dim dashes.
 do
   local img = newImg(64, 3)
-  streakRow(img, 1, { { "sky4", 0.25 }, { "steel4", 0.25 }, { "_", 0.50 } }, 1130, 2, 6)
-  streakRow(img, 0, { { "ink5", 0.18 }, { "sky5", 0.10 }, { "_", 0.72 } }, 1131, 1, 4)
-  streakRow(img, 2, { { "steel3", 0.20 }, { "_", 0.80 } }, 1132, 2, 5)
-  for x = 0, 63 do if A(img, x, 0) and H(x, 0, 1133) < 0.12 then P(img, x, 0, "white") end end
+  for y = 0, 2 do
+    local x = math.floor(H(y, 0, 1130) * 6)
+    while x < 64 do
+      local len = (y == 0) and 1 + math.floor(H(x, y, 1131) * 2) or 2 + math.floor(H(x, y, 1131) * 3)
+      local c = (y == 0) and (H(x, y, 1132) < 0.5 and "olive4" or "steel3") or (y == 1 and "olive3" or "leaf3")
+      for i = 0, len - 1 do P(img, x + i, y, c) end
+      x = x + len + 5 + math.floor(H(x, y, 1133) * 9)
+    end
+  end
   save(img, "m2p1", "wade_crest.png")
 end
--- wade_edge.png 8x18: left end cap. Column 7 matches the body; going left the crest curls down and the body ends.
+-- wade_edge.png 24x18 = two 12 px frames of the left end (the runtime flips it for the right end). Column 11 matches the
+-- body; toward the bank the face dissolves (Bayer dither) instead of ending in a cap, the surface line breaks up and
+-- grey-green foam flecks collect against the bank (they shift between the two frames, ~2.2 Hz).
 do
-  local img = newImg(8, 18)
-  local TOP = { [0] = 15, 11, 8, 5, 3, 2, 1, 0 }     -- crest top row per column
-  local BOT = { [0] = 17, 17, 17, 17, 17, 17, 17, 17 }
-  for x = 0, 7 do
-    local t = TOP[x]
-    for y = t + 2, BOT[x] do
-      local cols = wadeBody(img, x, y)
-      P(img, x, y, pick(cols, H(x, y, 1140)))
+  local img = newImg(24, 18)
+  for f = 0, 1 do
+    local ox = f * 12
+    for x = 0, 11 do
+      local d = math.min(1, (x - 1) / 8)   -- face density: 0 at the bank, 1 by column 9
+      for y = 1, 17 do
+        local fade = (y == 1) and math.min(1, d * 1.4) or d * wadeFade(y)
+        if fade > 0 and dither(x + y, y, fade) then
+          P(img, ox + x, y, (y == 1) and "leaf1" or wadeFace(img, x, y))
+        end
+      end
+      -- broken surface line, thinning toward the bank
+      if H(x, f, 1141) < 0.25 + d * 0.6 then P(img, ox + x, 0, H(x, 0, 1142) < 0.5 and "olive3" or "leaf3") end
     end
-    -- thin to nothing: dither away the lower-left corner
-    for y = t + 2, 17 do
-      if x <= 2 and dither(x, y, 0.5 - x * 0.15) then P(img, x, y, nil) end
+    -- foam flecks against the bank: rows 0-3, densest at columns 0-4
+    for x = 0, 6 do
+      for y = 0, 3 do
+        local p = (0.5 - x * 0.07) * (1 - y * 0.22)
+        if H(x * 3 + f * 17, y, 1143) < p then P(img, ox + x, y, (H(x, y + f, 1144) < 0.35) and "ink4" or ((y == 0) and "steel4" or "ink3")) end
+      end
     end
-    P(img, x, t, (x >= 5) and ((x % 2 == 0) and "ink5" or "sky4") or "steel4")
-    P(img, x, t + 1, (x >= 4) and "steel4" or "steel3")
   end
-  -- curl: fill the step between columns so the crest reads as one continuous curved line
-  for x = 0, 6 do
-    local t, tn = TOP[x], TOP[x + 1]
-    for y = tn + 1, t - 1 do P(img, x, y, (y < t - 1) and "steel3" or "steel4") end
-  end
-  P(img, 7, 0, "ink5"); P(img, 6, 1, "sky4")
   save(img, "m2p1", "wade_edge.png", true)
 end
 
@@ -271,14 +289,18 @@ do
 end
 
 ---------------------------------------------------------------------------------------------------
--- m2p2 FOREGROUND SPEED LAYER 768x216: near-black silhouettes. Canopy clumps + moss curtains from the top,
--- two thin cypress trunks, knees, reeds and cattails from the bottom. Middle band y 40-170 nearly clear.
+-- m2p2 FOREGROUND SPEED LAYERS (front band, in front of gameplay). KBE-QA-G02: they may only hold scenery outside the
+-- combat band, so they can never hide an enemy, a muzzle cue or a bullet.
+--   fg_speed.png 768x30: a canopy fringe for the top margin (screen-fixed, y <= 28: behind the HUD, above the radio strip).
+--   fg_reeds.png 768x24: a low muck/reed fringe of the near bank, world-anchored below the airboat lane (top at world
+--                        y 352; hulls end at ~348), so it shows at the bottom edge from the main deck and never meets an actor.
+-- The trunks that crossed the decks moved to fg_trunks.png, behind the gameplay layers.
+local FG_TOP = 28
 do
-  local W, Hh = 768, 216
+  local W, Hh = 768, 30
   local img = newImg(W, Hh)
   local DARK = { { "outline", 0.6 }, { "ink1", 0.25 }, { "leaf1", 0.15 } }
-  -- canopy clumps hanging from the top edge
-  local CLUMPS = { { 120, 70, 24 }, { 205, 40, 30 }, { 300, 34, 12 }, { 470, 64, 22 }, { 575, 36, 28 }, { 690, 44, 16 } }
+  local CLUMPS = { { 120, 70, 14 }, { 205, 40, 18 }, { 300, 34, 9 }, { 470, 64, 13 }, { 575, 36, 17 }, { 690, 44, 11 } }
   local canopyBot = {}
   for x = 0, W - 1 do canopyBot[x] = -1 end
   for ci, cl in ipairs(CLUMPS) do
@@ -286,8 +308,7 @@ do
     for i = -hw, hw do
       local t = i / hw
       local q = math.sqrt(math.max(0, 1 - t * t))
-      local b = dep * q + (3 * math.sin(i * 0.37 + ci) + 2 * math.sin(i * 0.91 + ci * 2)) * q
-      b = math.floor(b)
+      local b = math.floor(dep * q + (2 * math.sin(i * 0.37 + ci) + 1.5 * math.sin(i * 0.91 + ci * 2)) * q)
       local x = (cx + i) % W
       if b > canopyBot[x] then canopyBot[x] = b end
     end
@@ -295,43 +316,68 @@ do
   for x = 0, W - 1 do
     for y = 0, canopyBot[x] do
       local c = pick(DARK, H(math.floor(x / 3), math.floor(y / 2), 1700))
-      -- moonlit leaf tufts on the lower-left of the clump edge
       if y >= canopyBot[x] - 1 and H(x, y, 1701) < 0.18 then c = "ink2" end
       P(img, x, y, c)
     end
-    -- ragged leafy lower fringe
     if canopyBot[x] >= 0 and H(x, 0, 1702) < 0.4 then P(img, x, canopyBot[x] + 1, "leaf1") end
   end
-  -- Spanish-moss beards: solid and lumpy near the branch, stringy toward the tips
-  local CURT = { { 100, 26, 34 }, { 212, 18, 50 }, { 300, 14, 22 }, { 455, 24, 38 }, { 580, 16, 54 }, { 692, 22, 34 } }
+  -- short Spanish-moss tassels, every pixel above FG_TOP
+  local CURT = { { 100, 22 }, { 212, 16 }, { 455, 20 }, { 580, 14 }, { 692, 18 } }
   for ci, cu in ipairs(CURT) do
-    local cx, hw, maxL = cu[1], cu[2], cu[3]
+    local cx, hw = cu[1], cu[2]
     for i = -hw, hw do
-      if H(i, ci, 1710) < 0.62 then
+      if H(i, ci, 1710) < 0.55 then
         local x0 = cx + i
-        local t = math.abs(i) / hw
-        local len = math.floor(maxL * (1 - 0.75 * t * t) * (0.45 + 0.55 * H(i, ci, 1712)))
         local y0 = math.max(0, canopyBot[x0 % W] - 1)
+        local len = math.floor((FG_TOP - y0) * (1 - 0.7 * (i / hw) ^ 2) * (0.4 + 0.6 * H(i, ci, 1712)))
         for k = 0, len do
           local y = y0 + k
-          local sway = math.floor(1.5 * math.sin(k * 0.12 + ci) + 0.5)
-          local x = x0 + sway
+          if y > FG_TOP then break end
           local f = k / math.max(1, len)
-          if f < 0.55 or H(x, y, 1713) > (f - 0.55) * 1.6 then
-            local c = (H(math.floor(x / 2), math.floor(y / 3), 1714) < 0.55) and "leaf1" or "ink1"
-            if i < -hw * 0.3 and (k + i) % 6 == 0 then c = "ink2" end
-            if i > hw * 0.4 then c = "outline" end
-            P(img, x, y, c)
+          if f < 0.5 or H(x0, y, 1713) > (f - 0.5) * 1.6 then
+            P(img, x0 + math.floor(math.sin(k * 0.2 + ci) + 0.5), y, (H(math.floor(x0 / 2), math.floor(y / 3), 1714) < 0.55) and "leaf1" or "ink1")
           end
         end
       end
     end
   end
-  -- trunks (full height, thin) with flared buttress bases and a moonlit left rim
+  save(img, "m2p2", "fg_speed.png")
+end
+do
+  local W, Hh = 768, 24
+  local img = newImg(W, Hh)
+  local REEDS = { { 40, 50 }, { 150, 38 }, { 340, 46 }, { 470, 30 }, { 620, 44 }, { 730, 34 } }
+  for ri, rc in ipairs(REEDS) do
+    local cx, hw = rc[1], rc[2]
+    for i = -hw, hw do
+      local t = i / hw
+      local h = math.floor(5 * math.sqrt(math.max(0, 1 - t * t)) + H(i, ri, 1750) * 2)
+      for y = Hh - h, Hh - 1 do P(img, cx + i, y, (y == Hh - h) and "ink1" or "outline") end
+    end
+    for i = -hw + 3, hw - 3, 3 do
+      if H(i, ri, 1751) < 0.7 then
+        local t = math.abs(i) / hw
+        local h = math.min(Hh - 2, math.floor((8 + 10 * (1 - t)) * (0.6 + 0.4 * H(i, ri, 1752))))
+        local lean = (H(i, ri, 1753) - 0.5) * 0.5
+        for k = 0, h do
+          local x = cx + i + math.floor(lean * k * k / math.max(1, h) + 0.5)
+          P(img, x, Hh - 1 - k, (k > h - 2) and "leaf1" or ((H(x, k, 1754) < 0.5) and "outline" or "leaf1"))
+        end
+      end
+    end
+  end
+  save(img, "m2p2", "fg_reeds.png")
+end
+-- m2p2 NEAR-BANK TRUNKS 768x216 (near band, BEHIND the boat and every actor): three thin cypress trunks with a moonlit
+-- rim and a moss tuft, passing at near world speed (sfX 0.9 + drift) like Mission 1's telegraph poles. The boat's tiles
+-- and the actors draw over them, so they read as speed without ever covering combat.
+do
+  local W, Hh = 768, 216
+  local img = newImg(W, Hh)
   local function trunk(cx, hw, seed)
     for y = 0, Hh - 1 do
       local flare = 0
-      if y > Hh - 46 then flare = ((y - (Hh - 46)) / 46) ^ 2 * hw * 2.2 end
+      if y > Hh - 60 then flare = ((y - (Hh - 60)) / 60) ^ 2 * hw * 2 end
       local wob = math.floor(0.8 * math.sin(y * 0.05 + seed) + 0.5)
       local l = math.floor(cx - hw - flare * 1.1 + wob)
       local r = math.floor(cx + hw + flare + wob)
@@ -339,70 +385,20 @@ do
         local c = "outline"
         local u = (x - l) / math.max(1, r - l)
         if u < 0.45 and H(x, math.floor(y / 6), seed) < 0.35 then c = "ink1" end
-        if u > 0.25 and u < 0.6 and H(math.floor(x / 2), math.floor(y / 9), seed + 1) < 0.25 then c = "leaf1" end
+        if u > 0.3 and u < 0.6 and H(math.floor(x / 2), math.floor(y / 9), seed + 1) < 0.2 then c = "steel1" end
         P(img, x, y, c)
       end
-      P(img, l, y, (H(l, y, seed + 2) < 0.75) and "ink2" or "ink1")
-      if H(l + 1, y, seed + 3) < 0.25 then P(img, l + 1, y, "ink2") end
+      P(img, l, y, (H(l, y, seed + 2) < 0.7) and "steel2" or "ink1")
     end
+    -- a stub branch with a moss tuft high up
+    local by = 30 + math.floor(H(cx, 0, seed + 4) * 20)
+    for i = 1, 10 do P(img, cx + hw + i, by - math.floor(i / 3), "outline"); P(img, cx + hw + i, by + 1 - math.floor(i / 3), "ink1") end
+    for i = 3, 10, 2 do for k = 0, 4 + math.floor(H(i, cx, seed + 5) * 8) do P(img, cx + hw + i, by + 2 - math.floor(i / 3) + k, (k % 3 == 0) and "leaf1" or "ink1") end end
   end
-  trunk(212, 6, 1720)
-  trunk(588, 4, 1730)
-  -- cypress knees at the bottom
-  local function knee(cx, h, hw, seed)
-    for y = Hh - h, Hh - 1 do
-      local f = (y - (Hh - h)) / h
-      local w = 1 + hw * f ^ 0.8
-      for x = math.floor(cx - w), math.ceil(cx + w) do
-        local c = (x < cx - w * 0.3) and "ink1" or "outline"
-        if x == math.floor(cx - w) then c = "ink2" end
-        if y == Hh - h then c = "ink2" end
-        P(img, x, y, c)
-      end
-    end
-  end
-  knee(330, 26, 5, 1740); knee(344, 16, 4, 1741); knee(612, 20, 4, 1742); knee(40, 30, 6, 1743)
-  -- dark bank of muck along the bottom under reed clumps
-  local REEDS = { { 40, 50 }, { 150, 38 }, { 340, 46 }, { 470, 30 }, { 620, 44 }, { 730, 34 } }
-  for ri, rc in ipairs(REEDS) do
-    local cx, hw = rc[1], rc[2]
-    for i = -hw, hw do
-      local t = i / hw
-      local h = math.floor(6 * math.sqrt(math.max(0, 1 - t * t)) + H(i, ri, 1750) * 2)
-      for y = Hh - h, Hh - 1 do P(img, cx + i, y, (y == Hh - h) and "ink1" or "outline") end
-    end
-    -- reed blades
-    for i = -hw + 3, hw - 3, 2 do
-      if H(i, ri, 1751) < 0.8 then
-        local t = math.abs(i) / hw
-        local h = math.floor((20 + 26 * (1 - t) ) * (0.6 + 0.4 * H(i, ri, 1752)))
-        local lean = (H(i, ri, 1753) - 0.5) * 0.35
-        for k = 0, h do
-          local x = cx + i + math.floor(lean * k * k / h + 0.5)
-          local y = Hh - 1 - k
-          local c = (k > h - 3) and "leaf1" or ((H(x, y, 1754) < 0.5) and "outline" or "leaf1")
-          if k > h * 0.5 and lean < -0.05 and H(x, y, 1755) < 0.3 then c = "ink2" end
-          P(img, x, y, c)
-          if k < h * 0.45 then P(img, x + 1, y, "outline") end
-        end
-      end
-    end
-    -- cattails: taller stalk with a dark seed head, moonlit on the left
-    for j = 0, 1 do
-      if H(j, ri, 1760) < 0.8 then
-        local x = cx + math.floor((H(j, ri, 1761) - 0.5) * hw)
-        local h = 42 + math.floor(H(j, ri, 1762) * 10)
-        for k = 0, h do P(img, x, Hh - 1 - k, "outline") end
-        local hy = Hh - 1 - h + 3
-        for y = hy, hy + 6 do
-          P(img, x - 1, y, (y < hy + 5) and "ink2" or "ink1"); P(img, x, y, "dirt1"); P(img, x + 1, y, "outline")
-        end
-        P(img, x, hy - 1, "ink1"); P(img, x, hy - 2, "outline"); P(img, x, hy - 3, "outline")
-      end
-    end
-  end
-  -- keep the wrap seam column clear-ish is not needed: everything is drawn periodic in x
-  save(img, "m2p2", "fg_speed.png")
+  trunk(150, 3, 1720)
+  trunk(420, 2, 1730)
+  trunk(640, 4, 1740)
+  save(img, "m2p2", "fg_trunks.png")
 end
 
 ---------------------------------------------------------------------------------------------------

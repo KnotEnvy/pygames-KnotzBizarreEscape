@@ -15,8 +15,8 @@ import { LEVEL } from '../config/tuning/level';
 import type { Parallax } from './parallax';
 import { bool, num, str, type LevelObject } from './types';
 
-/** Shared zero offset for actors without an orbit/bob (no per-frame allocation). */
-const NO_OFFSET: readonly [number, number] = [0, 0];
+/** Scratch screen offset handed to `offset` callbacks (written in place: no per-frame allocation, Rules F2/G1). */
+interface Offset { x: number; y: number }
 
 const B = LEVEL.bg;
 const FAR = DEPTH.BG_FAR, NEAR = DEPTH.BG_NEAR;
@@ -51,8 +51,8 @@ interface ActorOpts {
     once?: boolean;
     zone?: Zone;
     tick?: (a: Actor, dt: number) => void;
-    /** Extra screen offset applied after the parallax position (orbits, bobbing). */
-    offset?: (a: Actor) => readonly [number, number];
+    /** Extra screen offset applied after the parallax position (orbits, bobbing): write it into `out` (starts at 0, 0). */
+    offset?: (a: Actor, out: Offset) => void;
 }
 
 class Actor {
@@ -105,6 +105,13 @@ export class BackgroundDirector {
     /** Small per-moment scratch state (counters for moments that wait for the camera). */
     readonly state: Record<string, number> = {};
     private crowCool = 0;
+    private readonly off: Offset = { x: 0, y: 0 };
+    /** Lightning request waiting for FX's gate (`fx:lightning`): bolt x, request time, retries, callbacks on the flash. */
+    private pending: { sx: number; at: number; tries: number; then: (() => void)[] } | null = null;
+    /** FX answered at least once in this scene (else the dim fallback below runs, at most once per fallbackMs). */
+    private fxSeen = false;
+    private lastFallback = -1e9;
+    readonly lightningStats = { requests: 0, flashes: 0, fallbacks: 0, dropped: 0 };
     gorgeLeft = 0;
     gorgeF = 0;
     /** Mission 2 lightning: flash pulse time (ms since the strike, -1 idle) and its peak (reduced flash dims it). */
@@ -130,6 +137,7 @@ export class BackgroundDirector {
         this.offs.push(ev.on('arena:wave', e => this.hook(`wave:${e.id}:${e.wave}`)));
         this.offs.push(ev.on('arena:clear', e => this.hook(`clear:${e.id}`)));
         this.offs.push(ev.on('explosion', e => this.explosion(e.x, e.y)));
+        this.offs.push(ev.on('fx:lightning', e => this.onLightning(e.strength, !!e.double)));
         this.offs.push(ev.on('fx:zone', e => {
             if (e.kind !== 'tunnel') return;
             if (e.active) { this.tunnels.add(e.id); return; }
@@ -175,6 +183,7 @@ export class BackgroundDirector {
         if (this.gorgeLeft > 0 && !this.inTunnel) this.gorgeLeft -= dt;
         else if (this.inTunnel) this.gorgeLeft = Math.min(this.gorgeLeft, 0);
         this.tickWeather(dt);
+        this.tickPending();
         const target = this.gorgeLeft > 0 ? 1 : 0;
         if (this.gorgeF !== target) {
             this.gorgeF = Phaser.Math.Clamp(this.gorgeF + (target ? dt : -dt) / B.gorge.fadeMs, 0, 1);
@@ -198,15 +207,58 @@ export class BackgroundDirector {
         }
     }
 
-    /** One lightning strike: sky flash (dimmed with reduced flash), a bolt on the horizon, thunder (bg:event). */
-    strike(sx?: number): void {
-        const L = B.lightning;
-        const reduced = this.reducedFlash;
-        this.flashT = 0;
-        this.flashPeak = reduced ? L.reducedPeak : L.peak;
+    /**
+     * Requests one lightning strike from FX, the single lightning gate (global rate limit, reduced flash). Nothing flashes
+     * here: the sky crossfade, the bolt and the thunder id run in `onLightning` when FX accepts a flash (`fx:lightning`).
+     * `then` runs on that accepted flash (gator_glimpse reveals its silhouette with it). A rejected request is retried
+     * through the gate a few times, so a moment waits for the next allowed flash instead of flashing on its own.
+     */
+    strike(sx?: number, then?: () => void): void {
         const x = sx ?? this.rand(40, 344);
-        this.actor({ key: 'bg_bolt', anim: 'bg_bolt_strike', once: true, sf: L.boltSf, sx: x, sy: L.boltY, origin: [0.5, 0], depth: FAR + 1.2, alpha: reduced ? 0.35 : L.boltAlpha, add: true, life: 260, flip: this.rnd() < 0.5 });
-        if (!this.scene.textures.exists('bg_bolt')) this.fx('bg_lightning', x, L.boltY + 30, L.boltSf, { scale: 0.8 });
+        if (this.pending) { this.pending.sx = x; if (then) this.pending.then.push(then); }
+        else this.pending = { sx: x, at: this.clock, tries: 0, then: then ? [then] : [] };
+        this.request();
+    }
+
+    private request(): void {
+        const L = B.lightning, p = this.pending;
+        if (!p) return;
+        p.at = this.clock;
+        this.lightningStats.requests++;
+        // FX answers synchronously (fx:emit → gate → fx:lightning), so `pending` is set before this emit.
+        this.fx('bg_lightning', p.sx, L.boltY, L.boltSf, { scale: L.fxScale });
+    }
+
+    private tickPending(): void {
+        const L = B.lightning, p = this.pending;
+        if (!p || this.clock - p.at < L.retryMs) return;
+        if (p.tries < L.retries) { p.tries++; this.request(); return; }
+        this.pending = null;
+        // FX never answered in this scene (its gate missing): one dim crossfade at most every fallbackMs, no bolt.
+        if (!this.fxSeen && this.clock - this.lastFallback >= L.fallbackMs) {
+            this.lastFallback = this.clock;
+            this.lightningStats.fallbacks++;
+            this.flash(L.fallbackPeak, p.sx, false, false);
+            for (const fn of p.then) fn();
+        } else this.lightningStats.dropped++;
+    }
+
+    /** FX accepted a flash (its own storm strikes too): light the sky with FX's strength (already dimmed for reduced flash). */
+    private onLightning(strength: number, double: boolean): void {
+        this.fxSeen = true;
+        const p = this.pending;
+        this.pending = null;
+        this.flash(strength, p?.sx ?? this.rand(40, 344), double, true);
+        if (p) for (const fn of p.then) fn();
+    }
+
+    private flash(strength: number, x: number, double: boolean, bolt: boolean): void {
+        const L = B.lightning;
+        this.lightningStats.flashes++;
+        this.flashT = 0;
+        this.flashPeak = L.peak * Phaser.Math.Clamp(strength, 0, 1);
+        if (double) this.after(L.doubleMs, () => { this.flashT = 0; this.flashPeak = L.peak * strength * L.doublePeak; });
+        if (bolt) this.actor({ key: 'bg_bolt', anim: 'bg_bolt_strike', once: true, sf: L.boltSf, sx: x, sy: L.boltY, origin: [0.5, 0], depth: FAR + 1.2, alpha: L.boltAlpha * (0.4 + 0.6 * strength), add: true, life: 260, flip: this.rnd() < 0.5 });
         this.after(L.thunderMs, () => this.announce('lightning', x, 40));
     }
 
@@ -227,8 +279,10 @@ export class BackgroundDirector {
             const x = a.ax - eff * o.sf + (o.vx ?? 0) * a.age / 1000;
             const y = a.ay + (LEVEL.parallax.restScrollY - camY) * (o.sfY ?? 0) + (o.vy ?? 0) * a.age / 1000;
             const s = a.sprite;
-            const off = o.offset ? o.offset(a) : NO_OFFSET;
-            s.setPosition(Math.round(x + off[0]), Math.round(y + off[1]));
+            const off = this.off;
+            off.x = 0; off.y = 0;
+            o.offset?.(a, off);
+            s.setPosition(Math.round(x + off.x), Math.round(y + off.y));
             if (o.exitOff && a.age > 300) {
                 const vx = o.vx ?? 0, half = s.displayWidth;
                 if ((vx > 0 && x - half > w + 8) || (vx < 0 && x + half < -8)) { this.kill(i); continue; }
@@ -333,7 +387,8 @@ export class BackgroundDirector {
             zones: this.zones.filter(z => z.f > 0).map(z => z.id).join(' ') || null,
             fired: this.fired.slice(-8).join(' ') || null,
             shots: this.shots.filter(s => !s.done).length,
-            tunnel: this.inTunnel, gorge: Math.round(this.gorgeF * 100) / 100
+            tunnel: this.inTunnel, gorge: Math.round(this.gorgeF * 100) / 100,
+            lightning: { ...this.lightningStats, pending: !!this.pending, fxSeen: this.fxSeen }
         };
     }
 
@@ -380,10 +435,11 @@ const SHOTS: Record<string, (d: BackgroundDirector, o?: LevelObject, at?: { sx: 
                 flip: dir < 0, depth: FAR + 2.5, alpha: C.alpha, life: C.lifeMs, fadeIn: 120, fadeOut: 900,
                 // frantic flapping in the burst, slowing to a glide
                 tick: a => { a.sprite.anims.timeScale = 1 + 1.4 * Math.exp(-a.age / 700); },
-                offset: a => {
+                offset: (a, out) => {
                     const t = Math.max(0, a.age - delay) / 1000, e = 1 - Math.exp(-t * k);
                     // fast launch that eases into level flight, plus a slight bob
-                    return [dir * (spd * 0.45 * e / k * 2 + spd * 0.55 * t), -rise * e + Math.sin(t * 5 + ph) * 1.5];
+                    out.x = dir * (spd * 0.45 * e / k * 2 + spd * 0.55 * t);
+                    out.y = -rise * e + Math.sin(t * 5 + ph) * 1.5;
                 } });
         }
         d.announce('crows', sx, C.y);
@@ -420,9 +476,10 @@ const SHOTS: Record<string, (d: BackgroundDirector, o?: LevelObject, at?: { sx: 
         d.actor({ key: 'bg_buzzard', origin: [0.5, 0.5], anim: 'bg_buzzard_fly', sf: Z.sf, sfY: 0.05, sx: cx, sy: cy, depth: FAR + 2.5, alpha: Z.alpha, fadeIn: 600, life: Z.lifeMs, fadeOut: 500,
             // two lazy circles, then it peels off to the right (toward the train) and out of view
             tick: act => act.sprite.setFlipX(Math.cos(w * act.age / 1000) < 0 && act.age < Z.lifeMs - 1600),
-            offset: act => {
+            offset: (act, out) => {
                 const t = act.age / 1000, leave = Math.max(0, act.age - (Z.lifeMs - 1600)) / 1000;
-                return [Math.sin(w * t) * Z.rx + leave * leave * 140, Math.cos(w * t) * Z.ry + leave * 24];
+                out.x = Math.sin(w * t) * Z.rx + leave * leave * 140;
+                out.y = Math.cos(w * t) * Z.ry + leave * 24;
             } });
         d.announce('buzzard_circle', cx, cy);
     },
@@ -607,9 +664,10 @@ function flock(d: BackgroundDirector, sx: number): void {
         d.actor({ key: 'bg_heron', origin: [0.5, 0.5], anim: 'bg_heron_flap', sf: H.sf, sfY: 0.08, sx: sx + d.rand(-20, 20), sy: H.y + d.rand(-3, 3),
             flip: dir < 0, depth: FAR + 4.5, alpha: H.alpha, life: H.lifeMs, fadeIn: 200, fadeOut: 1200,
             tick: a => { a.sprite.anims.timeScale = 0.8 + 0.9 * Math.exp(-a.age / 900); },
-            offset: a => {
+            offset: (a, out) => {
                 const t = Math.max(0, a.age - delay) / 1000, e = 1 - Math.exp(-t * k);
-                return [dir * (spd * 0.4 * e / k * 2 + spd * 0.6 * t), -rise * e + Math.sin(t * 3 + ph) * 1.5];
+                out.x = dir * (spd * 0.4 * e / k * 2 + spd * 0.6 * t);
+                out.y = -rise * e + Math.sin(t * 3 + ph) * 1.5;
             } });
     }
     d.announce('herons', sx, H.y - 20);
@@ -625,20 +683,22 @@ const M2_SHOTS: Record<string, (d: BackgroundDirector, o?: LevelObject, at?: { s
         if (!boat) return;
         const lamp = d.actor({ key: 'bg_beam', sf: P.sf, sfY: 0.08, sx: -40, sy: P.y, vx: P.speed, depth: FAR + 7.45, alpha: B.beam.alpha, add: true, origin: [0.5, 1], life: P.lifeMs, fadeIn: 900, fadeOut: 1500,
             tick: a => a.sprite.setAngle(P.beamBase + Math.sin(a.age / 2600 * Math.PI * 2) * P.beamSweep),
-            offset: () => [P.lamp[0] - 32, P.lamp[1] - 22] });
+            offset: (_a, out) => { out.x = P.lamp[0] - 32; out.y = P.lamp[1] - 22; } });
         void lamp;
         d.announce('patrol_boat', 60, P.y - 10);
     },
     gator_glimpse: d => {
         // Lightning reveals GATORGEDDON's silhouette far across the swamp, then it's gone (foreshadowing).
+        // The silhouette appears with the next flash FX accepts (FX gates every flash), never on its own.
         const G = B.gatorSil;
-        d.strike(G.sx + d.rand(-40, 40));
-        const a = d.actor({ key: 'bg_gator_sil', anim: 'bg_gator_sil_lit', sf: G.sf, sfY: 0.06, sx: G.sx, sy: G.y, depth: FAR + 5.5, alpha: G.alpha,
-            life: G.litMs + G.darkMs + G.fadeMs, fadeOut: G.fadeMs });
-        if (!a) return;
-        d.after(G.litMs, () => { if (a.sprite.active && hasAnim(d.scene, 'bg_gator_sil_dark')) a.sprite.play({ key: 'bg_gator_sil_dark', repeat: -1 }); });
-        d.announce('gator_glimpse', G.sx, G.y - 20);
-        d.ctx.events.emit('fx:shake', { tier: 1 });
+        d.strike(G.sx + d.rand(-40, 40), () => {
+            const a = d.actor({ key: 'bg_gator_sil', anim: 'bg_gator_sil_lit', sf: G.sf, sfY: 0.06, sx: G.sx, sy: G.y, depth: FAR + 5.5, alpha: G.alpha,
+                life: G.litMs + G.darkMs + G.fadeMs, fadeOut: G.fadeMs });
+            if (!a) return;
+            d.after(G.litMs, () => { if (a.sprite.active && hasAnim(d.scene, 'bg_gator_sil_dark')) a.sprite.play({ key: 'bg_gator_sil_dark', repeat: -1 }); });
+            d.announce('gator_glimpse', G.sx, G.y - 20);
+            d.ctx.events.emit('fx:shake', { tier: 1 });
+        });
     },
     pond_shell: d => {
         const W = B.pondWake;
@@ -678,7 +738,7 @@ const M2_SHOTS: Record<string, (d: BackgroundDirector, o?: LevelObject, at?: { s
         for (let i = 0; i < S.count; i++) {
             const ox = d.rand(-S.spread[0], S.spread[0]), oy = d.rand(-S.spread[1], S.spread[1]), ph = d.rand(0, 6.28), w = d.rand(1.5, 3.5);
             d.actor({ key: 'bg_skeeter', anim: 'bg_skeeter_buzz', origin: [0.5, 0.5], sf: S.sf, sx: 440 + ox, sy: S.y + oy, vx: S.speed * d.rand(0.85, 1.15), depth: FAR + 1.4,
-                alpha: S.alpha, life: S.lifeMs, fadeIn: 500, fadeOut: 1200, offset: a => [0, Math.sin(a.age / 1000 * w + ph) * 4] });
+                alpha: S.alpha, life: S.lifeMs, fadeIn: 500, fadeOut: 1200, offset: (a, out) => { out.y = Math.sin(a.age / 1000 * w + ph) * S.bob; } });
         }
         d.announce('skeeter_swarm', 330, S.y);
     },
@@ -750,7 +810,7 @@ const M2_ZONES: Record<string, ZoneImpl> = {
             z.state.next = d.rand(Wp.minMs, Wp.maxMs);
             const life = d.rand(Wp.lifeMs[0], Wp.lifeMs[1]), ph = d.rand(0, 6.28);
             const a = d.actor({ key: 'bg_wisp', anim: 'bg_wisp_flicker', sf: Wp.sf, sfY: 0.1, sx: d.rand(20, 364), sy: d.rand(Wp.yMin, Wp.yMax), depth: FAR + 5.2, alpha: Wp.alpha, add: true,
-                life, fadeIn: 400, fadeOut: 700, zone: z, offset: q => [Math.sin(q.age / 700 + ph) * 3, Math.sin(q.age / 430 + ph) * 2] });
+                life, fadeIn: 400, fadeOut: 700, zone: z, offset: (q, out) => { out.x = Math.sin(q.age / 700 + ph) * 3; out.y = Math.sin(q.age / 430 + ph) * 2; } });
             if (!a) d.fx('bg_wisp', d.rand(20, 364), d.rand(Wp.yMin, Wp.yMax), Wp.sf, { duration: life });
         }
     },

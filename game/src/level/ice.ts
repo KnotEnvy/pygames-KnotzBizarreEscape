@@ -28,6 +28,8 @@ export class IceSystem {
     private readonly ts: number;
     private readonly style: CrackStyle;
     stats = { cracked: 0, opened: 0, refrozen: 0, stomps: 0 };
+    /** Tile columns of the last stomp hole (debug / QA). */
+    private lastHole: [number, number] | null = null;
 
     constructor(private readonly ctx: GameContext, private readonly built: BuiltMap) {
         this.layer = built.ground;
@@ -126,19 +128,37 @@ export class IceSystem {
         return p.x > x0 - 6 && p.x < x0 + this.ts + 6 && p.y > y0 - 2 && p.y < y0 + this.ts + 30;
     }
 
-    /** boss:stomp: crack 2-tile holes in the arena ice toward the player (phase-3 power), clear of the arena walls. */
+    /** boss:stomp: crack 2-tile holes in the arena floor toward the player (phase-3 power), clear of the arena walls.
+     *  MOOSEZILLA (m1p3) leads its stomp by stompOffset; maps in perMap (m2p3) open the hole at the stomp x itself. */
     private stomp(x: number, power: number): void {
         const I = LEVEL.ice;
         if (power < I.stompMinPower || this.frames.length < 4) return;
         this.stats.stomps++;
+        const pm = I.perMap[this.built.key];
+        const lead = pm ? pm.offset : I.stompOffset, nearest = pm?.nearest ?? 0;
         const p = this.ctx.player();
         const dir = p ? (p.x >= x ? 1 : -1) : -1;
         const v = this.ctx.camera.view();
+        const lo = v.left + I.wallMargin, hi = v.right - I.wallMargin;
         const holes = Math.max(1, Math.round(power) - 1);
         for (let i = 0; i < holes; i++) {
-            const cx = x + dir * (I.stompOffset + i * I.stompSpacing);
-            if (cx < v.left + I.wallMargin || cx > v.right - I.wallMargin) continue;
-            const t0 = Math.round(cx / this.ts) - 1;
+            let cx = x + dir * (lead + i * I.stompSpacing);
+            if (cx < lo || cx > hi) {
+                if (!nearest) continue;
+                cx = Phaser.Math.Clamp(cx, lo, hi);
+            }
+            let t0 = Math.round(cx / this.ts) - 1;
+            if (nearest) {
+                // Off the crackable planks (the refuge at the walls): the nearest pair of crackable columns inside the margin.
+                const ok = (t: number) => (t + 1) * this.ts >= lo && (t + 1) * this.ts <= hi && this.columnCells(t).length > 0 && this.columnCells(t + 1).length > 0;
+                if (!ok(t0)) {
+                    let found: number | null = null;
+                    for (let d = 1; d <= nearest && found === null; d++) for (const t of [t0 - d, t0 + d]) if (found === null && ok(t)) found = t;
+                    if (found === null) continue;
+                    t0 = found;
+                }
+            }
+            this.lastHole = [t0, t0 + 1];
             for (let tx = t0; tx <= t0 + 1; tx++) {
                 for (const c of this.columnCells(tx)) if (c.state === 'intact') this.crack(c, I.stompRefreezeMs);
             }
@@ -155,6 +175,6 @@ export class IceSystem {
     }
 
     debug(): unknown {
-        return { tiles: this.cells.size, live: this.live.size, ...this.stats };
+        return { tiles: this.cells.size, live: this.live.size, ...this.stats, lastHole: this.lastHole };
     }
 }

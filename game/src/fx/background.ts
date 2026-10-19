@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { settings, type GameContext } from '../core';
 import { FX } from '../config/tuning/fx';
 import { bounded, type SpatialFx } from './campaign';
+import type { FxLightning } from './lightning';
 
 // duration ms, mote count, width px, height px, speed px/s, travel angle radians.
 const RECIPES = {
@@ -25,7 +26,7 @@ interface Backdrop {
     g: Phaser.GameObjects.Graphics;
     effect: Effect; active: boolean; age: number; remaining: number; life: number;
     width: number; height: number; count: number; speed: number; angle: number;
-    flash: boolean; motes: Mote[];
+    flash: boolean; strength: number; motes: Mote[];
 }
 
 /** Eight prewarmed drawings, 96 analytic motes total. No timers, gameplay bodies or camera effects.
@@ -33,16 +34,14 @@ interface Backdrop {
 export class BackgroundFx {
     private readonly slots: Backdrop[];
     private readonly reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-    private clock = 0;
     private redraw = 0;
-    private lastFlash = -Infinity;
     readonly stats = { active: 0, motes: 0, peak: 0, dropped: 0, emitted: 0, skyFlash: false };
 
-    constructor(private readonly ctx: GameContext) {
+    constructor(private readonly ctx: GameContext, private readonly lightning: FxLightning) {
         this.slots = Array.from({ length: FX.background.slots }, () => ({
             g: ctx.scene.add.graphics().setDepth(FX.background.depth).setVisible(false),
             effect: 'bg_flak', active: false, age: 0, remaining: 0, life: 1,
-            width: 0, height: 0, count: 0, speed: 0, angle: 0, flash: false,
+            width: 0, height: 0, count: 0, speed: 0, angle: 0, flash: false, strength: 1,
             motes: Array.from({ length: FX.background.perEffect }, () => ({ x: 0, y: 0, speed: 0, phase: 0 }))
         }));
     }
@@ -50,7 +49,6 @@ export class BackgroundFx {
     emit(e: SpatialFx): boolean {
         if (!Object.hasOwn(RECIPES, e.effect)) return false;
         const effect = e.effect as Effect, recipe = RECIPES[effect];
-        if (effect === 'bg_lightning' && this.clock - this.lastFlash < (settings.get().reducedFlash || this.reducedMotion.matches ? 6000 : 1200)) return true;
         const factor = bounded(e.scrollFactor, .3, 0, 1);
         const persistent = effect === 'aurora' || effect === 'bg_smoke_plume' || effect === 'bg_mist';
         let slot = persistent ? this.slots.find(s => s.active && s.effect === effect && s.g.scrollFactorX === factor) : undefined;
@@ -69,6 +67,9 @@ export class BackgroundFx {
         s.count = effect === 'aurora' ? 0 : Math.min(wanted, available);
         if (effect === 'bg_lightning') {
             if (available < 9) { this.stats.dropped++; return true; }
+            const flash = this.lightning.request(e.x, e.y);
+            if (!flash) return true;
+            s.strength = flash.strength;
             s.count = 9;
         }
         s.width = bounded(e.width, recipe[2], 8, 512);
@@ -81,8 +82,7 @@ export class BackgroundFx {
         s.g.setBlendMode(effect === 'aurora' || effect === 'bg_lightning' ? Phaser.BlendModes.ADD : Phaser.BlendModes.NORMAL);
         if (!refresh) {
             s.effect = effect; s.age = 0; s.active = true;
-            s.flash = effect === 'bg_lightning' && this.clock - this.lastFlash >= 1200;
-            if (s.flash) this.lastFlash = this.clock;
+            s.flash = effect === 'bg_lightning';
             for (const m of s.motes) {
                 m.x = this.ctx.rng.range(-.5, .5); m.y = this.ctx.rng.range(0, 1);
                 m.speed = this.ctx.rng.range(.65, 1.35); m.phase = this.ctx.rng.range(0, Math.PI * 2);
@@ -94,7 +94,6 @@ export class BackgroundFx {
     }
 
     update(dt: number): void {
-        this.clock += dt;
         this.redraw += dt;
         const redraw = this.redraw >= FX.background.redrawMs;
         if (redraw) this.redraw %= FX.background.redrawMs;
@@ -145,13 +144,13 @@ export class BackgroundFx {
             return;
         }
         if (s.effect === 'bg_lightning') {
-            const flash = !reduced && s.flash && s.age < 110;
+            const flash = !reduced && s.strength === 1 && s.flash && s.age < 110;
             this.stats.skyFlash ||= flash;
             if (flash) for (let band = 0; band < 5; band++) {
                 g.fillStyle(0x678da4, .012 * (1 - s.age / 110)).fillEllipse(0, s.height * .35, 320 - band * 48, Math.min(100, s.height) - band * 12);
             }
             // One monotonic fade, no strobe/restrike; dim steady geometry in reduced flash mode.
-            g.lineStyle(1, 0xa8c5d1, reduced ? .3 : .85 * Math.max(.2, 1 - s.age / s.life));
+            g.lineStyle(1, 0xa8c5d1, .85 * Math.min(s.strength, reduced ? .14 : 1) * Math.max(.2, 1 - s.age / s.life));
             let x = 0, y = 0;
             for (let i = 0; i < 9; i++) {
                 const nx = s.motes[i].x * s.width, ny = (i + 1) / 9 * s.height;
@@ -240,7 +239,7 @@ export class BackgroundFx {
 
     reset(): void {
         for (const s of this.slots) { s.active = false; s.g.clear().setVisible(false); }
-        this.lastFlash = -Infinity; this.stats.skyFlash = false; this.count();
+        this.stats.skyFlash = false; this.count();
     }
     destroy(): void { this.reset(); for (const s of this.slots) s.g.destroy(); }
 }

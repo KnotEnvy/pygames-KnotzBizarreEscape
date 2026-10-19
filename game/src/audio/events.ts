@@ -210,12 +210,35 @@ export function wireAudioEvents(ctx: GameContext, engine: AudioEngine): void {
     // Phase F: arenas duck the section bed (combat focus); the clear brings it back.
     bus.on('arena:start', () => { arenaGain = UI.audio.bedArenaGain; });
     bus.on('arena:clear', () => { arenaGain = 1; });
+    // Phase G fix round: thunder follows FX's accepted flashes (`fx:lightning`, FX's single lightning gate). The clap trails the
+    // flash by distance when the flash has an x, else by a random beat, at a volume scaled by `strength` (reduced flash → a far
+    // rumble); a double flash gets a softer second clap. One clap per `gapMs` across every thunder path: Levels' `bg:event
+    // lightning` → `bg_thunder` (below) shares the claim, so a strike both report claps once. The catalog's `thunder.minMs` (1.4 s, FX's flash
+    // spacing) is the backstop for any direct `sfx('thunder')` call.
+    const THUNDER_KEYS = new Set(['thunder', 'bg_thunder']);
+    let thunderAt = -Infinity;
+    const claimThunder = (): boolean => {
+        if (clock - thunderAt < UI.audio.thunder.gapMs) return false;
+        thunderAt = clock;
+        return true;
+    };
+    bus.on('fx:lightning', e => {
+        const T = UI.audio.thunder;
+        if (!(e.strength > 0) || !claimThunder()) return;
+        const far = e.x === undefined ? ctx.rng.next() : Math.min(1, Math.abs(e.x - ctx.camera.view().centerX) / T.farPx);
+        const delay = T.nearMs + (T.farMs - T.nearMs) * far;
+        const volume = T.volume * Math.min(1, e.strength) * (1 - far * 0.35);
+        const pan = bgPan(e.x);
+        engine.after(delay, () => engine.sfx('thunder', { pan, volume }));
+        if (e.double) engine.after(delay + T.doubleGapMs, () => engine.sfx('bg_thunder', { pan, volume: volume * T.doubleVolume, detune: -250 }));
+    });
     // Phase F: background moments → distant sounds through the lookup table (ids are Levels' choice; see UI.audio.bgEvents).
     bus.on('bg:event', e => {
         const id = String(e.id ?? '');
         const spec = UI.audio.bgEvents[id] ?? UI.audio.bgEvents[id.replace(/^bg[_:]/, '')] ?? (engine.has(id) ? { key: id } : null);
         engine.noteBg(id, spec ? spec.key || '(silent)' : null);
         if (!spec || !spec.key) return;
+        if (THUNDER_KEYS.has(spec.key) && !claimThunder()) return;
         engine.sfx(spec.key, { pan: bgPan(e.x), volume: spec.volume, detune: spec.detune });
     });
 

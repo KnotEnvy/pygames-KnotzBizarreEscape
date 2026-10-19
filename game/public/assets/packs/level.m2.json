@@ -374,6 +374,16 @@
       },
       {
         "type": "image",
+        "key": "m2p2_fg_reeds",
+        "url": "assets/backgrounds/m2p2/fg_reeds.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p2_fg_trunks",
+        "url": "assets/backgrounds/m2p2/fg_trunks.png"
+      },
+      {
+        "type": "image",
         "key": "m2p2_haze",
         "url": "assets/backgrounds/m2p2/haze.png"
       },

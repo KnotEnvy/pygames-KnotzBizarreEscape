@@ -90,6 +90,7 @@ export class FxPool {
     private readonly pools = {} as Record<Category, Pool<Slot>>;
     readonly combatLive: Record<CombatKind, number> = { debris: 0, sparks: 0, embers: 0, snow: 0 };
     private readonly textureCounts = new Map<string, number>();
+    ambientLive = 0;
     coverage = 0; cloudCoverage = 0;
     dropped = 0; peak = 0; active = 0; hot = 0;
     /** Synchronous emission scope; reset by the director in finally. Existing slots retain their layer. */
@@ -131,6 +132,7 @@ export class FxPool {
         // Presentation is committed in POST_UPDATE, after callers configure alpha/lifetime.
         this.textureCounts.set(clip.texture, this.countTexture(clip.texture) + 1);
         if (category === 'combat') this.combatLive[clip.kind]++;
+        if (category === 'ambient') this.ambientLive++;
         this.active++; this.peak = Math.max(this.active, this.peak);
         return s;
     }
@@ -139,8 +141,19 @@ export class FxPool {
         if (!s.live) return;
         this.textureCounts.set(s.clip!.texture, this.countTexture(s.clip!.texture) - 1);
         if (s.category === 'combat') this.combatLive[s.clip!.kind]--;
+        if (s.category === 'ambient') this.ambientLive--;
         s.live = false; s.image.setVisible(false); this.active--;
         this.pools[s.category].release(s);
+    }
+
+    /** Make room only when an ambience change leaves too many old pooled motes alive. */
+    reserveWeather(motes: number): void {
+        const limit = FX.caps.ambient - motes;
+        if (this.ambientLive <= limit) return;
+        for (const s of this.slots) {
+            if (s.live && s.category === 'ambient') this.release(s);
+            if (this.ambientLive <= limit) break;
+        }
     }
 
     update(dt: number): void {

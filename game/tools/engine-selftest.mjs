@@ -24,7 +24,9 @@
 //          `<team>.m2.json` fetched once, anims built, ready only once Game is up); later parts / retries reuse the
 //          cache; Title-style scene.start('Game', { part: '2-2' }); ?enemytest= in 1-1 loads them too; a mission pack
 //          aborted once is refetched; the mission chain 1-3 → Results { next: 2-1, carry } → Game 2-1 with the carry,
-//          2-1 unlocked; 2-3 (last mission) → Results without next; materialAt shallow/mud mapping.
+//          2-1 unlocked; 2-3 (last mission) → Results without next; materialAt shallow/mud mapping; (G3) a mission pack
+//          that always fails shows ESC: BACK TO TITLE, the final RELOAD resumes { part, carry } once from
+//          sessionStorage, a stale stash is ignored, blocked sessionStorage is harmless.
 // Exit code 0 = pass. Usage: node game/tools/engine-selftest.mjs [--shots /tmp/dir] [--only core|campaign|missions]
 import { createServer } from 'vite';
 import { fileURLToPath } from 'node:url';
@@ -654,6 +656,72 @@ async function missionChecks() {
         check('missions: clearing 2-3 (last mission) → Results without next/carry', last.mission === 2 && last.part === '2-3' && last.next === null && last.carry === null, last);
         const errors = [...errs, ...(await pg.evaluate(() => window.__KBE.state().errors))];
         check('missions: no page errors in the mission chain', errors.length === 0, errors.slice(0, 5));
+        await pg.close();
+    }
+
+    // ---- G3: a mission pack that always fails. Error screen offers ESC: BACK TO TITLE; the final RELOAD stashes
+    // { part, carry } in sessionStorage and the reloaded page resumes it once; a stale stash is ignored.
+    {
+        let blocked = true;
+        const { pg, errs } = await open('scene=Game&part=1-3', pg => pg.route('**/assets/packs/fx.m2.json', route => blocked ? route.abort('failed') : route.continue()));
+        await waitPart(pg, '1-3');
+        const startM2 = () => pg.evaluate(() => {
+            const g = window.__KBE.game.scene.getScene(window.__KBE.game.scene.isActive('Game') ? 'Game' : 'Title');
+            const carry = { score: 777, lives: 1, bombs: 4, weapon: 'spread', ammo: 33, rescued: 2, difficulty: 'arcade', parts: [] };
+            g.scene.start('Game', { part: '2-1', carry });
+        });
+        const errorScreen = () => pg.waitForFunction(() => {
+            const pre = window.__KBE.game.scene.getScene('Preload');
+            return window.__KBE.game.scene.isActive('Preload') && window.__KBE.state().loadErrors?.length > 0 && pre.children.list.some(o => o.type === 'Text' && /PRESS ENTER/.test(o.text));
+        }, null, { timeout: 30000 });
+        const texts = () => pg.evaluate(() => window.__KBE.game.scene.getScene('Preload').children.list.filter(o => o.type === 'Text').map(o => o.text));
+        await startM2();
+        await errorScreen();
+        const t1 = await texts();
+        if (shots) await pg.screenshot({ path: path.join(shots, 'selftest-mission-error.png') });
+        await pg.keyboard.press('Escape');
+        await pg.waitForFunction(() => window.__KBE.ready && window.__KBE.game.scene.isActive('Title') && !window.__KBE.game.scene.isActive('Preload'), null, { timeout: 10000 });
+        const back = await pg.evaluate(() => ({ errs: window.__KBE.state().loadErrors.length, missions: window.__KBE.state().missionPacks }));
+        check('missions: a mission pack that always fails → error screen with ESC / B: BACK TO TITLE; Esc reaches the Title (ready, no loadErrors)',
+            t1.some(t => /BACK TO TITLE/.test(t)) && t1.some(t => /RETRY/.test(t)) && back.errs === 0 && back.missions?.join() === '1', { t1, back });
+
+        // From the Title again; retry until the prompt turns into RELOAD, then un-block and reload.
+        await startM2();
+        await errorScreen();
+        for (let i = 0; i < 4 && !(await texts()).some(t => /RELOAD/.test(t)); i++) {
+            await pg.keyboard.press('Enter');
+            await pg.waitForTimeout(200);
+            await errorScreen();
+        }
+        const t2 = await texts();
+        blocked = false;
+        await Promise.all([pg.waitForEvent('load', { timeout: 30000 }), pg.keyboard.press('Enter')]);
+        await waitPart(pg, '2-1');
+        await pg.waitForTimeout(300);
+        const r = await info(pg);
+        const left = await pg.evaluate(() => sessionStorage.getItem('kbe.missionResume.v1'));
+        check('missions: after 3 retries RELOAD resumes 2-1 with the carried run (score/lives/bombs/weapon/ammo), stash cleared',
+            t2.some(t => /RELOAD/.test(t)) && r.part === '2-1' && r.score === 777 && r.lives === 1 && r.bombs === 4 && r.weapon === 'spread' && r.ammo === 33 && left === null,
+            { t2, part: r.part, score: r.score, lives: r.lives, bombs: r.bombs, weapon: r.weapon, ammo: r.ammo, left });
+
+        // A stale stash (11 min old) is ignored and cleared: the reload routes normally (?part=1-3).
+        await pg.evaluate(() => sessionStorage.setItem('kbe.missionResume.v1', JSON.stringify({ t: Date.now() - 11 * 60 * 1000, part: '2-2', carry: { score: 1, lives: 1, bombs: 1, weapon: 'pistol', ammo: -1, rescued: 0, difficulty: 'arcade', parts: [] } })));
+        await pg.reload();
+        await waitPart(pg, '1-3');
+        const stale = await pg.evaluate(() => ({ left: sessionStorage.getItem('kbe.missionResume.v1'), score: window.__KBE.game.scene.getScene('Game').ctx.state.score }));
+        check('missions: a stale resume stash is ignored and cleared', stale.left === null && stale.score !== 1, stale);
+        const errors = [...errs, ...(await pg.evaluate(() => window.__KBE.state().errors))];
+        check('missions: no page errors around the mission load-error screen', errors.length === 0, errors.slice(0, 5));
+        await pg.close();
+    }
+
+    // ---- G3: the stash helpers without sessionStorage (blocked) never throw and report nothing
+    {
+        const { pg, errs } = await open('scene=Title', pg => pg.addInitScript(() => Object.defineProperty(window, 'sessionStorage', { get() { throw new Error('storage blocked'); } })));
+        await pg.waitForFunction(() => window.__KBE?.ready && window.__KBE.game.scene.isActive('Title'), null, { timeout: 30000 });
+        const r = await pg.evaluate(() => import('/src/core/missionPacks.ts').then(m => ({ stash: m.stashMissionResume({ part: '2-1' }), take: m.takeMissionResume() })));
+        const errors = [...errs, ...(await pg.evaluate(() => window.__KBE.state().errors))].filter(e => !/storage blocked/.test(e));
+        check('missions: resume stash without sessionStorage: no throw, boots normally', r.stash === false && r.take === null && errors.length === 0, { r, errors: errors.slice(0, 3) });
         await pg.close();
     }
 }

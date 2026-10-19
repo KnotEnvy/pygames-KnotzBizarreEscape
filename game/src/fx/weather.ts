@@ -3,12 +3,13 @@ import { DEPTH, settings, type GameContext } from '../core';
 import { FX } from '../config/tuning/fx';
 import { bounded, type Ambience } from './campaign';
 import type { FxPool } from './pool';
+import type { FxLightning } from './lightning';
 import { FxFog, type FogBounds } from './fog';
 
 const LAMP_TEXTURE = 'fx_tunnel_lamplight';
 const LAMP_WIDTH = 160, LAMP_HEIGHT = 216;
 
-/** Reused weather geometry and five light sprites, all below combat silhouettes. */
+/** Reused weather geometry and five light sprites, with near rain explicitly above combat silhouettes. */
 export class FxWeather {
     private readonly farRain: Phaser.GameObjects.Graphics;
     private readonly nearRain: Phaser.GameObjects.Graphics;
@@ -18,6 +19,7 @@ export class FxWeather {
     private ambientOccupied = 0;
     private lightningStart = -Infinity;
     private doubleStrike = false;
+    private lightningStrength = 0;
     private readonly fog: FxFog;
     private readonly veil: Phaser.GameObjects.Graphics;
     private readonly lamps: Phaser.GameObjects.Image[] = [];
@@ -29,11 +31,11 @@ export class FxWeather {
     private sparkDebt = 0;
     private nextLightning = 6500;
     private lightningUntil = 0;
-    readonly stats = { drift: 180, gust: 0, mode: null as Ambience, lamps: 0, lampPulse: 0, lightningAlpha: 0, strikes: 0, motes: 0, doubleStrike: false };
-    constructor(private readonly ctx: GameContext, private readonly pool: FxPool) {
+    readonly stats = { drift: 180, gust: 0, mode: null as Ambience, lamps: 0, lampPulse: 0, lightningAlpha: 0, strikes: 0, motes: 0, rainStreaks: 0, precipitation: null as Ambience, doubleStrike: false };
+    constructor(private readonly ctx: GameContext, private readonly pool: FxPool, private readonly lightning: FxLightning) {
         this.veil = ctx.scene.add.graphics().setDepth(DEPTH.ENEMIES - 2);
         this.farRain = ctx.scene.add.graphics().setDepth(DEPTH.TILES_BACK - 1);
-        this.nearRain = ctx.scene.add.graphics().setDepth(DEPTH.PLAYER + 1);
+        this.nearRain = ctx.scene.add.graphics().setDepth(DEPTH.FX_TOP);
         this.fog = new FxFog(ctx);
         this.makeLamplight();
         for (let i = 0; i < 5; i++) this.lamps.push(ctx.scene.add.image(0, 0, LAMP_TEXTURE)
@@ -77,8 +79,8 @@ export class FxWeather {
         this.distance += this.drift * dt / 1000;
         this.sparkDebt += dt;
         this.farRain.clear(); this.nearRain.clear(); this.weatherMotes = this.stats.motes = 0;
-        this.ambientOccupied = 0;
-        for (const s of this.pool.slots) if (s.live && s.category === 'ambient') this.ambientOccupied++;
+        this.ambientOccupied = this.pool.ambientLive;
+        this.stats.rainStreaks = 0; this.stats.precipitation = null;
         this.fog.begin();
         this.veil.clear(); this.stats.mode = null; this.stats.lightningAlpha = 0;
         for (const lamp of this.lamps) lamp.setVisible(false);
@@ -91,10 +93,14 @@ export class FxWeather {
             this.veil.fillStyle(0x1c2433, storm ? .24 : .14).fillRect(left - 8, top - 8, right - left + 16, bottom - top + 16);
             if (storm) {
                 if (this.clock >= this.nextLightning) {
-                    this.lightningStart = this.clock;
-                    this.doubleStrike = !reduced && this.ctx.rng.chance(.3);
-                    this.lightningUntil = this.clock + (reduced ? 700 : this.doubleStrike ? 650 : 300);
-                    this.ctx.audio.sfx('thunder', { volume: .45 }); this.stats.strikes++;
+                    const flash = this.lightning.request(undefined, undefined, this.ctx.rng.chance(.3));
+                    if (flash) {
+                        this.lightningStart = this.clock;
+                        this.lightningStrength = flash.strength;
+                        this.doubleStrike = !!flash.double;
+                        this.lightningUntil = this.clock + (reduced ? 700 : this.doubleStrike ? 650 : 300);
+                        this.stats.strikes++; // thunder: Audio claps on fx:lightning, delayed by distance (Lead, Phase G fix round)
+                    }
                     this.nextLightning = this.clock + (reduced ? 14000 : 6500) + this.ctx.rng.range(0, reduced ? 2500 : 6500);
                 }
                 const age = this.clock - this.lightningStart;
@@ -102,11 +108,11 @@ export class FxWeather {
                 let lift = Math.max(0, 1 - age / (reduced ? 700 : 300));
                 if (!reduced && this.doubleStrike && age >= 380) lift = Math.max(lift, .65 * Math.max(0, 1 - (age - 380) / 270));
                 this.stats.doubleStrike = this.doubleStrike && !reduced;
-                this.stats.lightningAlpha = lift * (reduced ? .045 : .32);
+                this.stats.lightningAlpha = lift * .32 * Math.min(this.lightningStrength, reduced ? .14 : 1);
                 if (this.clock < this.lightningUntil) {
                     this.veil.fillStyle(0xa8d4f0, this.stats.lightningAlpha).fillRect(left - 8, top - 8, right - left + 16, bottom - top + 16);
                     const bx = left + (right - left) * .72;
-                    const alpha = reduced ? .24 * lift : .8 * lift;
+                    const alpha = .8 * lift * Math.min(this.lightningStrength, reduced ? .14 : 1);
                     this.farRain.lineStyle(1, 0xa8d4f0, alpha).beginPath().moveTo(bx, top + 8)
                         .lineTo(bx - 12, top + 30).lineTo(bx + 2, top + 28).lineTo(bx - 18, top + 63)
                         .lineTo(bx - 10, top + 46).strokePath();
@@ -248,6 +254,7 @@ export class FxWeather {
                 const y = top + u / .86 * travel;
                 const len = far ? 5 : storm ? 14 : 10;
                 const dx = far ? 2 : wind;
+                this.stats.rainStreaks++;
                 g.lineStyle(1, 0x82cddd, far ? .3 : storm ? .65 : .55)
                     .lineBetween(Math.round(x + dx * (1 - u)), Math.round(y), Math.round(x + dx * (1 - u) - dx), Math.round(Math.min(floor, y + len)));
             } else if (!far && floor < bottom) {
