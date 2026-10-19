@@ -3,6 +3,7 @@ import { DEPTH, settings, type GameContext } from '../core';
 import { FX } from '../config/tuning/fx';
 import { bounded, type Ambience } from './campaign';
 import type { FxPool } from './pool';
+import { FxFog, type FogBounds } from './fog';
 
 const LAMP_TEXTURE = 'fx_tunnel_lamplight';
 const LAMP_WIDTH = 160, LAMP_HEIGHT = 216;
@@ -17,6 +18,7 @@ export class FxWeather {
     private ambientOccupied = 0;
     private lightningStart = -Infinity;
     private doubleStrike = false;
+    private readonly fog: FxFog;
     private readonly veil: Phaser.GameObjects.Graphics;
     private readonly lamps: Phaser.GameObjects.Image[] = [];
     private readonly reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -32,6 +34,7 @@ export class FxWeather {
         this.veil = ctx.scene.add.graphics().setDepth(DEPTH.ENEMIES - 2);
         this.farRain = ctx.scene.add.graphics().setDepth(DEPTH.TILES_BACK - 1);
         this.nearRain = ctx.scene.add.graphics().setDepth(DEPTH.PLAYER + 1);
+        this.fog = new FxFog(ctx);
         this.makeLamplight();
         for (let i = 0; i < 5; i++) this.lamps.push(ctx.scene.add.image(0, 0, LAMP_TEXTURE)
             .setOrigin(0, 0).setDepth(DEPTH.ENEMIES - 1.5).setBlendMode(Phaser.BlendModes.ADD).setVisible(false));
@@ -76,12 +79,13 @@ export class FxWeather {
         this.farRain.clear(); this.nearRain.clear(); this.weatherMotes = this.stats.motes = 0;
         this.ambientOccupied = 0;
         for (const s of this.pool.slots) if (s.live && s.category === 'ambient') this.ambientOccupied++;
+        this.fog.begin();
         this.veil.clear(); this.stats.mode = null; this.stats.lightningAlpha = 0;
         for (const lamp of this.lamps) lamp.setVisible(false);
         this.lampCount = this.stats.lamps = this.stats.lampPulse = 0;
         this.stats.gust = Math.max(0, Math.sin(this.clock / 1100)) ** 4;
     }
-    region(kind: Ambience, left: number, top: number, right: number, bottom: number): void {
+    region(kind: Ambience, left: number, top: number, right: number, bottom: number, fogBounds?: FogBounds): void {
         if (kind === 'rain' || kind === 'storm') {
             const storm = kind === 'storm', reduced = settings.get().reducedFlash || this.reducedMotion.matches;
             this.veil.fillStyle(0x1c2433, storm ? .24 : .14).fillRect(left - 8, top - 8, right - left + 16, bottom - top + 16);
@@ -121,6 +125,15 @@ export class FxWeather {
         // Engine view() excludes shake; overscan only viewport edges so dark weather never exposes bright gutters.
         const view = this.ctx.camera.view();
         const lampTop = top;
+        if (kind === 'fog') {
+            // The camera-clipped region is only for lamps/emission. Feather the authored world bounds.
+            this.weatherMotes += this.fog.draw(fogBounds?.x ?? left - 80, fogBounds?.y ?? top - 80,
+                fogBounds ? fogBounds.x + fogBounds.width : right + 80,
+                fogBounds ? fogBounds.y + fogBounds.height : bottom + 80,
+                this.clock, Math.max(0, 64 - this.weatherMotes - this.ambientOccupied));
+            this.stats.motes = this.weatherMotes;
+            if (left >= right || top >= bottom) return;
+        }
         if (kind !== 'train') {
             if (left <= view.left) left -= 16;
             if (right >= view.right) right += 16;
@@ -130,7 +143,7 @@ export class FxWeather {
         const width = right - left, height = bottom - top;
         const gust = this.stats.gust;
         if (kind === 'tunnel' || kind === 'fog') {
-            g.fillStyle(0x080a14, kind === 'fog' ? .42 : FX.weather.tunnelAlpha).fillRect(left, top, width, height);
+            if (kind === 'tunnel') g.fillStyle(0x080a14, FX.weather.tunnelAlpha).fillRect(left, top, width, height);
             // World-anchored lamps pass left at exactly map drift, also respecting camera travel.
             const spacing = FX.weather.lampSpacing, phase = ((this.distance % spacing) + spacing) % spacing;
             const start = Math.floor(left / spacing) * spacing - phase;
@@ -144,13 +157,18 @@ export class FxWeather {
                 if (!lamp) break;
                 // A local ~140 ms warm lift as a lamp passes Knotz. Never a camera/bullet flash.
                 const pulse = flashAllowed ? Math.max(0, 1 - Math.abs(x - playerX) / 18) ** 2 : 0;
-                lamp.setPosition(sourceLeft, lampTop).setAlpha(0.72 + pulse * 0.28)
-                    .setCrop(beamLeft - sourceLeft, 0, beamRight - beamLeft, Math.min(LAMP_HEIGHT, bottom - lampTop)).setVisible(true);
+                const edge = kind === 'fog' && fogBounds
+                    ? Math.max(0, Math.min(1, (x - fogBounds.x) / 64, (fogBounds.x + fogBounds.width - x) / 64)) : 1;
+                const fade = edge * edge * (3 - 2 * edge);
+                lamp.setPosition(sourceLeft, lampTop).setAlpha((0.72 + pulse * 0.28) * fade).setVisible(true);
+                // Fog light spills naturally across the bank; cropping it would reintroduce a vertical seam.
+                if (kind === 'fog') lamp.setCrop();
+                else lamp.setCrop(beamLeft - sourceLeft, 0, beamRight - beamLeft, Math.min(LAMP_HEIGHT, bottom - lampTop));
                 this.stats.lamps++;
                 this.stats.lampPulse = Math.max(this.stats.lampPulse, pulse);
                 if (lampX - 5 >= left && lampX + 5 < right) {
-                    g.fillStyle(0x392219, 1).fillRect(lampX - 6, lampTop + 40, 12, 6);
-                    g.fillStyle(0xffad42, 1).fillRect(lampX - 4, lampTop + 43, 8, 2);
+                    g.fillStyle(0x392219, fade).fillRect(lampX - 6, lampTop + 40, 12, 6);
+                    g.fillStyle(0xffad42, fade).fillRect(lampX - 4, lampTop + 43, 8, 2);
                 }
             }
         } else if (kind === 'blizzard') {
@@ -269,5 +287,5 @@ export class FxWeather {
         }
         this.stats.motes = this.weatherMotes;
     }
-    destroy(): void { this.farRain.destroy(); this.nearRain.destroy(); this.veil.destroy(); for (const lamp of this.lamps) lamp.destroy(); }
+    destroy(): void { this.fog.destroy(); this.farRain.destroy(); this.nearRain.destroy(); this.veil.destroy(); for (const lamp of this.lamps) lamp.destroy(); }
 }

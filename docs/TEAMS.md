@@ -41,3 +41,7 @@
 - **Phase G (now): Mission 2 "Bayou Blackout"** ([MISSION2.md](MISSION2.md)) on branch `mission-2`. Every team works to the
   Mission 1 definition of done in [LESSONS.md](LESSONS.md) from the first build. G1: all teams in parallel (Enemies as A =
   GATORGEDDON and B = mid-bosses and roster). G2: integration, QA, rules review, fix round, then owner playtest.
+- **Phase G1 ✅** (2bb8267): all of Mission 2 integrated. Three maps, three mech bosses, five new enemies, the shotgun, wading, mud,
+  sinking logs, gas vents, branches and fog, lazy mission packs, mission chaining, 72 SFX plus 5 songs, and 18 parallax layers.
+  `npm run audit` PASSes all six parts, and the selftest passes 44/44. **G2 (now):** QA review, Phaser 4 rules review, and polish
+  (UI bg ids, FX fog edges, mid-boss detail pass). The fix round follows from the QA and rules findings.

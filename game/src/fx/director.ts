@@ -585,9 +585,13 @@ export class FxDirector {
             if (!z.active || !z.kind) continue;
             const left = Math.max(z.x, view.left), right = Math.min(z.x + z.width, view.right);
             const top = Math.max(z.y, view.top), bottom = Math.min(z.y + z.height, view.bottom);
-            if (left >= right || top >= bottom) { z.debt = 0; continue; }
+            // Keep near-offscreen fog alive for its wisps; never substitute a clipped camera edge for a bank edge.
+            const spill = z.kind === 'fog' ? 80 : 0;
+            if (z.x >= view.right + spill || z.x + z.width <= view.left - spill ||
+                z.y >= view.bottom + spill || z.y + z.height <= view.top - spill) { z.debt = 0; continue; }
             hasZone = true;
-            this.weather.region(z.kind, left, top, right, bottom);
+            this.weather.region(z.kind, left, top, right, bottom, z.kind === 'fog' ? z : undefined);
+            if (left >= right || top >= bottom) continue;
             z.debt += dt * FX.ambientRate[z.kind] / 1000;
             if (dt > 0 && z.debt >= 1) { z.debt -= 1; this.emitAmbient(z.kind, left, top, right, bottom); }
         }

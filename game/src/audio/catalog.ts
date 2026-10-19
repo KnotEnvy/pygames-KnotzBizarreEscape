@@ -375,6 +375,19 @@ export const SFX_ALIASES: Record<string, AliasSpec> = {
     gator_slam: { key: 'boss_stomp', also: ['plank_break'] },
     gator_rocket: { key: 'gator_missile' },
     gator_explode: { key: 'gator_death', also: ['explo_xl'] },
+    // Phase G1 follow-up: Levels' last bg:event ids, layered from existing keys. An `also` layer plays at the caller's volume
+    // and detune (not the alias's), so each quieter layer is its own alias.
+    /** SHELLSHOCK foreshadowing (2-1 pond): a big far splash and the turtle's hiss, low and small. */
+    bg_pond_shell: { key: 'splash_xl', volume: 0.45, detune: -500, also: ['bg_shell_hiss'] },
+    bg_shell_hiss: { key: 'turtle_hiss', volume: 0.4, detune: -400 },
+    /** The barge going up far downriver (2-2): the artillery thump, lower, with a spray of debris into the water. */
+    bg_barge_blast: { key: 'bg_artillery', detune: -300, also: ['bg_barge_spray'] },
+    bg_barge_spray: { key: 'splash_l', volume: 0.3, detune: -600 },
+    /** GATORGEDDON from the den (2-3, after the mill arena): the boss roar itself, far and huge, under the distant tier. */
+    bg_gator_roar_huge: { key: 'gator_roar', volume: 0.35, detune: -500, also: ['bg_gator_roar'] },
+    /** GATORGEDDON's wake surging past (2-3): the pond wake, bigger and lower, with a surfacing surge. */
+    bg_gator_wake: { key: 'bg_pond_wake', detune: -400, also: ['bg_gator_surge'] },
+    bg_gator_surge: { key: 'gator_surface', volume: 0.3, detune: -700 },
     vent: { key: 'gas_vent' },
     bubbles: { key: 'gas_bubble' },
     creak: { key: 'boardwalk_creak' },

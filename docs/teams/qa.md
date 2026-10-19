@@ -1,5 +1,108 @@
 # QA — harness, Phase C acceptance and test plan
 
+## Phase G — Mission 2 acceptance, 2026-10-19
+
+Mission 2 has working progression and passing structural audits, with **eight open acceptance findings** ranked at the top of [qa-bugs.md](qa-bugs.md). The two S2 findings concern BAYOU QUEEN combat visibility. Rain integration, marked pier destruction and boss-prompt layout also need correction. No S1 crash, required-wave softlock or boss-flow failure was established.
+
+Build: `mission-2`, HEAD `2bb826759a93c78c3769345f67c67732491b72bd`, plus concurrent shared-tree polish. Environment: Linux, Chromium headless, ANGLE Vulkan **SwiftShader Device (Subzero)**, keyboard/debug input, Arcade, seed 731, viewport 1152×648, internal 384×216. Source fingerprints: `/tmp/kbe-qa/phase-g/source-sha256.txt`. QA edited only these two QA documents; the stock audit also generates its normal allowed `game/tests/artifacts/arena-audit-*.json` outputs. No git state changes, production fixes, installs or real-time bot traversal.
+
+### Required checks
+
+| Command | Final result | Evidence under `/tmp/kbe-qa/phase-g/` |
+|---|---|---|
+| `npm --prefix game run check` | PASS: typecheck; Phaser checker 113 files, 0 errors, 6 warnings | `check-final.log` |
+| `npm --prefix game run audit` | PASS: reach + arenas for 1-1, 1-2, 1-3, 2-1, 2-2, 2-3; no skips | `audit-final.log`, copied `arena-audit-*.json` |
+| `npm --prefix game run selftest` | PASS: 44/44 assertions, no page/state errors | `selftest-final.log` |
+
+Initial check was 112 files / zero warnings. During concurrent work the checker gained findings for three audio-loop active-handle checks and three per-frame background tuple allocations; the final command still exits 0. These are explicitly retained as warnings, not silently called warning-free or converted into unobserved gameplay bugs. The first sandboxed arena launch hit `listen EPERM`; the permitted local-server rerun and final rerun both pass.
+
+Mission 2 arena audit: **stilts 11/11, pump 8/8, crane 8/8, mill 11/11** members killed in view; each wave arena completes **3/3**, maxOff **0 ms**. SHELLSHOCK, MEGA-SKEETER and GATORGEDDON each reach phases **1/2/3**, maxOff **0 ms**, and expected **PartClear / PartClear / Results**. GATORGEDDON is legitimately submerged for 7.6 simulated seconds. The audit is authoritative arena acceptance. Warps in visual galleries intentionally skip prior arenas and do not establish combat completion.
+
+### Mechanics and mission flow
+
+`/tmp/kbe-qa/phase-g/probes.mjs` uses the same Vite/SwiftShader setup as `shot.mjs`, fixed-step advance, bounded loops and `finally` cleanup. Its final report is `probes/report.json`; **9/9 gameplay probes passed**, with no console entries.
+
+| Probe | Observed |
+|---|---|
+| Real sinking log at x952, god off | Sinking visible by sample +950 ms; one life lost, 3→2; resurfaced by +4050 ms. Log state/counters and player sinking animation recorded |
+| Real vent at x4104 | Two measured warning intervals **900 / 900 ms**; unprotected player dies in flame |
+| Real branch at x1240, deck y304 | Crouch **0** intersections; standing **1**, god off. 18 px / 30 px body shapes preserved |
+| Dirt / shallow / mud run | **105 / 75.6 / 63 px/s** |
+| Dirt / shallow / mud takeoff and apex | **−318 / −286.2 / −270.3 px/s**; **53.55 / 43.13 / 38.34 px** |
+| Shotgun 8 aim directions + grounded crouch | Each accepted trigger emits once and damages its 40 px target once for **4**. Real shotgun/damage service, finite ammo; eight directional targets are placed in empty air, crouch target above real ground |
+| Natural airboat | 172 samples, lane y344 with bob **342–346**; normal unlocked exit is allowed |
+| Natural piranha | 17 exposed leap (`attack`) samples, all inside the view; no off-screen leap observed |
+
+Hazard isolation is explicit: unrelated ordinary enemies are removed **outside arenas** for the log/branch probes, and the branch probe filters unrelated incoming attacks so a grunt cannot kill the test body before the branch arrives. Actual branch contact uses the normal damage service with god off. This is hazard acceptance, not combat/difficulty acceptance. No arena is certified with `killEnemies`.
+
+`/tmp/kbe-qa/phase-g/flow.mjs` drives native menus with keys held over simulation steps; **7/7 assertions pass**, `flow/report.json`, clean console:
+
+- 1-3 clear → Results with **CONTINUE TO MISSION 2** → mission-break map/title → actual **MISSION 2: BAYOU BLACKOUT** loading screen → playable 2-1.
+- Carried run verified: **score 4242, lives 2, bombs 5, spread / 40 ammo**. Native loader fetched Mission 2 packs; the main selftest separately verifies caching/retry/unlock behavior.
+- 2-1 clear → native **PartClear** → 2-2 with the carried run; 2-2 PartClear → 2-3.
+- 2-3 clear → **MISSION COMPLETE!** → Results → Title.
+- Native **PART SELECT** lists all six parts grouped by mission and starts 2-1 as a fresh run. URL `?part=2-1`, `2-2`, `2-3` starts also work in the galleries. Clear-part cheats are used only for these authorized flow tests.
+
+The supplementary acceptance probes intentionally fail on the filed defects: real crane clear requests rain but renders river; real GATORGEDDON slams miss/skip the marked planks; background skeeters exceed the clearance band. A center slam opens two displaced tiles and both repair after moving away and advancing 7 s. These are in `supplement/report.json`, separate from the passing main mechanics table.
+
+### Visual gallery and readability
+
+**Opened and inspected all three final contact sheets**, their larger review strips, and the focused comparisons. Each part's `manifest.json` maps every caption to its original full-size screenshot. Main galleries use **`game/tools/shot.mjs`** and `__KBE.sim.advance`, rendering every 50 ms so PRE_RENDER background actors keep moving. F2 removes the diagnostic overlay while retaining `debug=1` hooks. Boss state/HP controls are used for pose coverage in the **real arenas**, separately from audit acceptance.
+
+| Inspected sheet | Panels | Coverage |
+|---|---:|---|
+| `/tmp/kbe-qa/phase-g/2-1/contact.png` | 45 | Landing, shallow water, forest/logs, shotgun island, stilt village/arena, mud/vents/pump/fog, turtle pond; fireflies, herons, patrol boat, wisps, lightning/gator glimpse, plane, wake/shell; high/low snap cues and releases, egg marks/volley, spin cue/release, damage tiers and death; actual log drowning/resurface and wave-3 stress |
+| `/tmp/kbe-qa/phase-g/2-2/contact.png` | 51 | Skiff/fuel/container barges, branch sweep/fog, crane, paddlewheel, main/promenade/hurricane decks, boiler room, wheelhouse/foredeck; riverbank, gator pod, burning barge/blast, swarm, racing airboats, storm/lightning; laser/dive/stuck, larva marks/drop, stinger cue/fan, damage tiers/death/clear; natural radio occlusion and paired foreground diagnostic |
+| `/tmp/kbe-qa/phase-g/2-3/contact.png` | 50 | Wreck shore, water/logs/roots/mud/vents, mill/wheel/arena, den approach/channel; lightning, wreck collapse, far wheel/glow, gator wake/tail/roar; lunge, missiles, conditional tail, dive/wake/ambush/burst/gatling, roll, slam, gas/flame, faster lunge, damage tiers/death/Results; actual marked-slam/pier-hole comparisons |
+
+Readability conclusions: ordinary orange enemy bullets have readable bright cores against the dark river/storm backgrounds; foreground occlusion remains G02. Roof actors collide with the HUD/radio band (G01). Shallow-water box styling and weak mud differentiation are G06/G07. Gameplay gnats sampled below the reserved band; visible background skeeters reach **opaque-pixel y57** (G08). Boss silhouettes, phase art and marked attacks are present; GATORGEDDON's prompt covers its bar (G05). Fog edges and SHELLSHOCK art details are concurrent polish areas, not duplicate bugs.
+
+The forced-weather and hidden-foreground comparisons are explicitly labeled fixtures; they are not evidence of shipped behavior. Some low-contrast far-water moments are partially concealed by real scenery; the sheets retain that context rather than replacing the backdrop.
+
+### Performance: serial 10-second samples
+
+All samples use SwiftShader, 1152×648, god on, stationary firing in the named real map region after setup/warmup. Each lasts approximately **10.0 s** and collects about **601 rAF frames**. No other QA browser sample runs concurrently. `uptime` was recorded immediately before/after each window; load is **1 / 5 / 15 minutes**, not a CPU utilization percentage. Reports preserve raw frame times, displayed game FPS, scene/player/arena/boss/weather state and renderer.
+
+| Workload | Measured rAF FPS | Mean displayed FPS / min | p95 frame | Load before → after |
+|---|---:|---:|---:|---|
+| 2-2, storm-front trigger at x4200 | **60.04** | 60.49 / 60 | 16.8 ms | **2.89 / 2.80 / 2.51 → 2.52 / 2.72 / 2.49** |
+| 2-2, explicit rain fixture on same real map | **60.07** | 59.99 / 59 | 16.8 ms | **1.14 / 2.30 / 2.37 → 1.26 / 2.29 / 2.37** |
+| 2-3, storm + GATORGEDDON phase 3 | **60.07** | 60.70 / 60 | 16.7 ms | **2.80 / 2.77 / 2.51 → 4.05 / 3.05 / 2.60** |
+| 2-1, stilts wave 3 (four members alive) | **60.10** | 60.19 / 59 | 16.7 ms | **2.08 / 2.66 / 2.49 → 1.76 / 2.57 / 2.46** |
+
+**The integrated 2-2 sample does not contain rain because of G03.** The separate `fxtest=rain` sample explicitly supplies the intended heavier workload and renders 32 rain streaks. The 2-3 sample stays in phase 3/storm with the player alive; the stilts sample stays in wave 3. `killVisible` is used only to select that stress wave, not to assert arena acceptance. An earlier stilts sample remained on wave 2 and is retained as setup history rather than substituted for wave 3.
+
+Evidence: `perf/report.json`, `perf/stilts.json`, `perf/storm-rain.json`, `perf.log`, `perf-stilts.log`, `perf-rain.log`. This establishes approximately 60 FPS for the sampled stationary workloads, not a long-session or real-GPU playthrough.
+
+### Console, concurrent changes and reproducibility
+
+Final healthy background captures for all three parts, native flow and performance runs have no browser exceptions, missing-texture or missing-sound warnings. Captured `__KBE.state().errors` arrays are empty. `audio.unknown` / `audio.bgUnknown` are checked in the saved states. Early `pond_shell` and `barge_blast` mapping warnings disappeared during UI/Audio's concurrent polish; no duplicate issue was filed. Invalid attempts to call event-only `barge_blast`/`gator_roar` as independent cheats are harness diagnostics, not missing-game-content findings.
+
+Host `ERR_NETWORK_CHANGED` interrupted an early 2-3 module load and one mechanics start; another mechanics run recovered loads but retained console resource errors. Those attempts are preserved in `probes/report-network-observed.json`, `probes-network-observed.log` and the failed-start logs, and are not represented as clean console acceptance. The final full mechanics rerun passes 9/9 with zero console entries. The native flow, clean per-part captures and engine selftest provide independent healthy-load coverage. No audible mix, physical gamepad or human Arcade difficulty sign-off is claimed.
+
+Reproduce from repository root; each browser script closes its browser/server in `finally`, and each verification attempt is bounded below ten minutes:
+
+```sh
+npm --prefix game run check
+npm --prefix game run audit
+npm --prefix game run selftest
+python3 /tmp/kbe-qa/phase-g/gallery.py 2-1   # also 2-2 and 2-3
+python3 /tmp/kbe-qa/phase-g/backgrounds.py 2-1  # also 2-2 and 2-3; adds timed moment captures
+node /tmp/kbe-qa/phase-g/probes.mjs
+node /tmp/kbe-qa/phase-g/flow.mjs
+node /tmp/kbe-qa/phase-g/supplement.mjs
+node /tmp/kbe-qa/phase-g/storm-confirm.mjs
+node /tmp/kbe-qa/phase-g/perf.mjs storm
+node /tmp/kbe-qa/phase-g/perf.mjs storm-rain
+node /tmp/kbe-qa/phase-g/perf.mjs gator-phase3
+node /tmp/kbe-qa/phase-g/perf.mjs stilts
+node /tmp/kbe-qa/phase-g/contacts.mjs 2-1  # also 2-2 and 2-3
+```
+
+Scratch gallery generators overwrite their primary manifest; the final combined manifests additionally include mechanic/stress/diagnostic screenshots. Keep the existing final manifests for this review's exact panel inventory. Single captures can be reproduced directly with `shot.mjs` using the URLs and steps in each bug. Servers select free loopback ports, so substitute their reported port for 8080. No `cd` alias, pattern-based kill or git operation is used.
+
+---
+
 Owner: QA. Scope: `game/tests/**`, `game/playwright.config.ts`, this document. No source, dependency, or git state changes.
 
 ## Running the harness

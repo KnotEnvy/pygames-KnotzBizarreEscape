@@ -799,6 +799,47 @@ bash tools/audio/build.sh sfx; bash tools/audio/build.sh music; uv run --with nu
 
 ### Known issues
 - Nobody has heard the new audio; every level above is numeric against the Mission 1 references.
-- `powTotalByPart` 2-1..2-3 are estimates (6/4/3) until the maps report `powTotal` (2-1 reported 4 in the probe, so the rank already uses it there).
+- ~~`powTotalByPart` 2-1..2-3 are estimates (6/4/3)~~ → 4/4/4 from Levels' final counts (G1 follow-up below); the maps' `powTotal` still wins when reported.
 - The Results mission break runs from the Title with sample data; the real path (1-3 clear → Results with `next`) was exercised by Engine's
   selftest, not by a playthrough.
+
+### Phase G1 follow-up (Levels' final `bg:event` ids, POW counts, fog bed, briefing paging)
+Scratch: `/tmp/kbe-ui/g1_probe_21.png`, `g1_probe_22.png`, `g1_probe_22b.png`, `g1_probe_23.png`, `g1_probe_23b.png`, `g1_card_c.png`,
+`g1_radio_p1..p5.png`. `npm run check` clean. Probes on 2-1 / 2-2 / 2-3 firing every id of Levels' final list through
+`__KBE.cheats.bg('<id>')`: `audio.unknown []`, `audio.bgUnknown []` in all three parts, every id in `audio.bg` as `id→key` or `id→(silent)`.
+
+- **`UI.audio.bgEvents`** (`src/config/tuning/ui.ts`): `pond_shell` → `bg_pond_shell`; `barge_blast` → `bg_barge_blast`; `gator_roar` →
+  `bg_gator_roar_huge`; **`gator_wake` repointed** to `bg_gator_wake` (it was the far roar; the roar has its own id now).
+  `fireflies_swarm` and `riverbank` stay `key: ''` (known, silent). Synonyms added next to each (`shell_splash`, `barge_explosion`,
+  `gatorgeddon_roar`, `gator_surge`, ...); `gator_far` / `gator_roar_far` keep the plain distant tier `bg_gator_roar`.
+- **Layered aliases** (`src/audio/catalog.ts` `SFX_ALIASES`, no new files): an `also` layer plays at the *caller's* volume/detune, not the
+  alias's, so every quieter layer is its own alias.
+  | Alias | Layers |
+  |---|---|
+  | `bg_pond_shell` | `splash_xl` 0.45 / −500 ct + `bg_shell_hiss` (= `turtle_hiss` 0.4 / −400 ct): a big far splash and the turtle's hiss |
+  | `bg_barge_blast` | `bg_artillery` −300 ct + `bg_barge_spray` (= `splash_l` 0.3 / −600 ct): the far thump and debris hitting the water |
+  | `bg_gator_roar_huge` | `gator_roar` 0.35 / −500 ct + `bg_gator_roar`: the boss roar itself, far and huge, under the distant tier |
+  | `bg_gator_wake` | `bg_pond_wake` −400 ct + `bg_gator_surge` (= `gator_surface` 0.3 / −700 ct): a bigger, lower wake with a surfacing surge |
+- **`UI.results.powTotalByPart`** 2-1 / 2-2 / 2-3 = **4 / 4 / 4** (Levels' real counts).
+- **`amb_fog`** target −30 → −27 dB in `tools/audio/sfx.py` (`set_loudness` targets the loudest 300 ms window, so the file sits a few dB
+  under the target); rendered with `sfx.py amb_fog` only: peak −24.3 / RMS **−31.6** dBFS (was −27.3 / −34.6), next to `amb_forest` −31.4.
+  Only `amb_fog.ogg` and its manifest entry changed; `ambienceKinds.fog` stays at 1.
+- **Radio paging** (`src/ui/radio.ts` `balancedWrap`): rows are word-wrapped at `lineChars`, then the column is narrowed while the row
+  count holds, so a line that needs N rows gets N rows of similar length. The Lead's shortened 2-1 briefing paged as 48 / 40 / **10**
+  + 47 / **10** chars (two one-word pages, "DELACROIX." and "THEM DOWN."); it now pages 34 / 33 / 31 + 24 / 33 (5 pages, ~15 s, closes by
+  itself; `g1_radio_p1..p5.png`). 2-2's single line becomes 43 / 44 / 38. The title card is unchanged (mission banner + title, `g1_card_c.png`),
+  and the radio still opens as the title leaves (`phase: opening` at ~4.2 s).
+- **For Levels (director behaviour, not bugs):** `barge_blast` is not a shot of its own: the `burning_barge` shot announces it 4.2 s in
+  (`blastMs`), so `cheats.bg('barge_blast')` returns false. `gator_wake` waits for camera x ≥ 3280 (`minCamX`, up to 20 s) and announces
+  `gator_roar` 3.4 s later (`tailAtMs`); the probe ran at `x=3400`.
+
+```bash
+# bg:event probe per part (ids = Levels' final list); barge_blast / gator_roar come from the director's own shots
+node tools/shot.mjs --out /tmp/kbe-ui/g1_probe_21.png --query "scene=Game&fast=1&part=2-1&god=1&mute=1&debug=1" --wait 2500 --steps '[{"eval":"JSON.stringify([\"fireflies_swarm\",\"herons\",\"patrol_boat\",\"wisps\",\"gator_glimpse\",\"lightning\",\"plane\",\"pond_wake\",\"pond_shell\"].map(id=>id+\":\"+window.__KBE.cheats.bg(id)))"},{"wait":1500},{"eval":"JSON.stringify((s=>({unknown:s.audio.unknown,bgUnknown:s.audio.bgUnknown,bg:s.audio.bg}))(window.__KBE.state()))"}]'
+node tools/shot.mjs --out /tmp/kbe-ui/g1_probe_22b.png --query "scene=Game&fast=1&part=2-2&god=1&mute=1&debug=1" --wait 2500 --steps '[{"eval":"window.__KBE.cheats.bg(\"burning_barge\")"},{"wait":5200},{"eval":"JSON.stringify(window.__KBE.state().audio.bg)"}]'
+node tools/shot.mjs --out /tmp/kbe-ui/g1_probe_23b.png --query "scene=Game&fast=1&part=2-3&x=3400&god=1&mute=1&debug=1" --wait 2500 --steps '[{"eval":"window.__KBE.cheats.bg(\"gator_wake\")"},{"wait":5200},{"eval":"JSON.stringify(window.__KBE.state().audio.bg)"}]'
+# Hazel's 2-1 pages (radio state is in hud.card.radio)
+node tools/shot.mjs --out /tmp/kbe-ui/g1_card.png --query "scene=Game&fast=1&part=2-1&god=1&mute=1&debug=1" --wait 1700 --steps '[{"wait":2400},{"shot":"/tmp/kbe-ui/g1_radio_p1.png"},{"eval":"JSON.stringify(window.__KBE.state().hud.card.radio)"},{"wait":2900},{"shot":"/tmp/kbe-ui/g1_radio_p2.png"},{"eval":"JSON.stringify(window.__KBE.state().hud.card.radio)"}]'
+# fog bed only
+uv run --with numpy,scipy,soundfile,pillow python3 -I tools/audio/sfx.py amb_fog
+```

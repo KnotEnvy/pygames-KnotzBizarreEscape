@@ -10,6 +10,24 @@ import { C, F, panel, text, wrapText } from './widgets';
 
 type Phase = 'closed' | 'opening' | 'typing' | 'hold' | 'closing';
 
+
+/**
+ * Phase G1: word-wrap, then narrow the column until the row count would grow, so a line that needs N rows gets N rows of
+ * similar length instead of full rows plus a one-word orphan page ("DELACROIX."). Single-row lines are unchanged.
+ */
+function balancedWrap(text: string, cols: number): string[] {
+    let best = wrapText(text, cols);
+    const n = best.length;
+    if (n <= 1) return best;
+    const floor = Math.ceil(text.length / n);
+    for (let c = cols - 1; c >= floor; c--) {
+        const rows = wrapText(text, c);
+        if (rows.length !== n) break;
+        best = rows;
+    }
+    return best;
+}
+
 export class RadioBox {
     readonly container: Phaser.GameObjects.Container;
     private readonly rows: Phaser.GameObjects.BitmapText[] = [];
@@ -61,7 +79,7 @@ export class RadioBox {
         const R = UI.radio;
         this.pages = [];
         for (const line of lines) {
-            const rows = wrapText(line.toUpperCase(), R.lineChars);
+            const rows = balancedWrap(line.toUpperCase(), R.lineChars);
             for (let i = 0; i < rows.length; i += R.maxLines) this.pages.push(rows.slice(i, i + R.maxLines));
         }
         if (this.pages.length === 0) { this.close(); return; }

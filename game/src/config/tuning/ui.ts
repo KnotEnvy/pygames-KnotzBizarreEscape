@@ -162,7 +162,7 @@ export const UI = {
         /** Stage 1 has five POWs; the engine doesn't report the total, so we assume it per stage. */
         powTotal: { 1: 5 } as Record<number, number>,
         /** Phase E: POWs per part when the level didn't report `powTotal` for that part (mission total = sum). */
-        powTotalByPart: { '1-1': 5, '1-2': 4, '1-3': 3, '2-1': 6, '2-2': 4, '2-3': 3 } as Record<string, number>,
+        powTotalByPart: { '1-1': 5, '1-2': 4, '1-3': 3, '2-1': 4, '2-2': 4, '2-3': 4 } as Record<string, number>,
         /**
          * Phase G: mission chaining. With `next` in the Results data the confirm reads CONTINUE TO MISSION n; the mission break
          * (black, the next mission's route map and name, Hazel's teaser, a radio blip) holds `breakMs` before Game starts.
@@ -279,10 +279,12 @@ export const UI = {
             wisps: { key: 'bg_wisps' }, wisp: { key: 'bg_wisps' }, swamp_gas: { key: 'bg_wisps' }, gas_flames: { key: 'bg_wisps' },
             gator_glimpse: { key: 'bg_gator_roar', volume: 0.7 }, gator_silhouette: { key: 'bg_gator_roar', volume: 0.7 }, gatorgeddon_glimpse: { key: 'bg_gator_roar', volume: 0.7 },
             pond_wake: { key: 'bg_pond_wake' }, wake: { key: 'bg_pond_wake' }, turtle_wake: { key: 'bg_pond_wake' }, shellshock_wake: { key: 'bg_pond_wake' },
+            pond_shell: { key: 'bg_pond_shell' }, shell_splash: { key: 'bg_pond_shell' }, shellshock_glimpse: { key: 'bg_pond_shell' }, turtle_shell: { key: 'bg_pond_shell' },
             // 2-2 RIVER RUN
             riverbank: { key: '' }, river_bank: { key: '' }, bank: { key: '' },
             gator_pod: { key: 'bg_gator_pod' }, gators: { key: 'bg_gator_pod' }, pod: { key: 'bg_gator_pod' },
             burning_barge: { key: 'bg_burning_barge' }, barge_fire: { key: 'bg_burning_barge' }, wreck_drift: { key: 'bg_burning_barge' },
+            barge_blast: { key: 'bg_barge_blast' }, barge_explosion: { key: 'bg_barge_blast' }, barge_explode: { key: 'bg_barge_blast' }, barge_boom: { key: 'bg_barge_blast' },
             skeeter_swarm: { key: 'bg_skeeter_swarm' }, swarm: { key: 'bg_skeeter_swarm' }, mosquito_swarm: { key: 'bg_skeeter_swarm' }, skeeter_cloud: { key: 'bg_skeeter_swarm' },
             storm_front: { key: 'bg_thunder' }, storm: { key: 'bg_thunder' }, rain_start: { key: 'bg_thunder', volume: 0.7 },
             airboat_race: { key: 'bg_airboat_race' }, airboats: { key: 'bg_airboat_race' }, airboat_far: { key: 'bg_airboat_race' },
@@ -290,7 +292,9 @@ export const UI = {
             lightning: { key: 'bg_thunder' }, lightning_flash: { key: 'bg_thunder' }, thunder: { key: 'bg_thunder' }, bg_thunder: { key: 'bg_thunder' },
             mill_wheel: { key: 'bg_mill_creak' }, mill: { key: 'bg_mill_creak' }, waterwheel: { key: 'bg_mill_creak' },
             den_glow: { key: 'bg_den_glow' }, den: { key: 'bg_den_glow' }, reactor_glow: { key: 'bg_den_glow' },
-            gator_wake: { key: 'bg_gator_roar' }, gator_far: { key: 'bg_gator_roar' }, gator_roar_far: { key: 'bg_gator_roar' }, gatorgeddon_wake: { key: 'bg_gator_roar' },
+            gator_wake: { key: 'bg_gator_wake' }, gatorgeddon_wake: { key: 'bg_gator_wake' }, gator_surge: { key: 'bg_gator_wake' }, den_wake: { key: 'bg_gator_wake' },
+            gator_roar: { key: 'bg_gator_roar_huge' }, gatorgeddon_roar: { key: 'bg_gator_roar_huge' }, den_roar: { key: 'bg_gator_roar_huge' },
+            gator_far: { key: 'bg_gator_roar' }, gator_roar_far: { key: 'bg_gator_roar' },
             boat_wreck: { key: 'bg_wreck_collapse' }, wreck: { key: 'bg_wreck_collapse' }, wreck_collapse: { key: 'bg_wreck_collapse' }, queen_wreck: { key: 'bg_wreck_collapse' }
         } as Record<string, { key: string; volume?: number; detune?: number }>,
         /** Background pan: pan = clamp(dx / bgPanRange) × bgPanMax (gentler than gameplay sounds). */

@@ -24,8 +24,8 @@
     "duration": 3.2,
     "file": "assets/audio/sfx/amb_fog.ogg",
     "loop": true,
-    "peak_db": -27.3,
-    "rms_db": -34.6
+    "peak_db": -24.3,
+    "rms_db": -31.6
   },
   "amb_forest": {
     "duration": 3.2,

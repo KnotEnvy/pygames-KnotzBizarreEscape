@@ -778,3 +778,44 @@ ellipses instead of a hard-edged rectangle; refreshed and re-inspected the
 lightning panel and complete crop sheet. Last shared check still has no FX
 errors; additional in-flight Levels errors appeared at `level/index.ts:60`
 (fog ambience type) and `level/train.ts:114` (unused S), alongside ice.ts:36.
+
+## Phase G1 follow-up — fog bank edges (2026-10-19)
+
+Changed only `src/fx/{fog,weather,director}.ts` and this note. Fog now uses a
+world-anchored nine-slice veil with a continuous **64 px smoothstep feather** on
+both sides and the top/bottom; interior colour **#080a14 / .42 alpha** stays the
+same. Tiny zones scale the feather to fit. Camera clipping no longer supplies
+false bank edges. Soft drifting wisps spill roughly 64–76 px outside the bank;
+near-offscreen zones remain eligible for rendering. Lantern pools retain their
+warm lighting and reduced-flash behavior, fade near the bank sides, and no
+longer get a hard rectangular crop in fog. Tunnel presentation is unchanged.
+
+Two small textures bake once and survive scene restarts; fixed pools hold 32
+veils / 32 wisps, with at most nine wisps per visible zone and wisp counts charged
+against the existing 64 ambient-mote budget. No filters, per-frame texture
+uploads, timers, or object allocation. Mesh geometry only resizes when needed.
+
+Verification: `npm --prefix game run check` passes (113 files, **zero errors /
+warnings**); `/tmp/kbe-fx/fog-edge/check.log`. Captured and individually opened
+all six images under `/tmp/kbe-fx/fog-edge/`:
+- `before-bog.png`, `after-bog.png`: real 2-1 trigger x=5184, spawn x=5188.
+- `before-river.png`, `after-river.png`: real 2-2 trigger x=1584, spawn x=1588.
+- `before-static.png`, `after-static.png`: page-emitted 240×150 fog zone on 2-1
+  at x=400, including both side edges, top and corners.
+
+Both real bank fronts are captured about 150 world px into the viewport. The
+static box's hard top/sides and the bog seam are gone; the river bank retains
+its lantern glow, and actors/projectiles remain readable. Reproduce with
+`node /tmp/kbe-fx/fog-edge/capture.mjs before` or `after`; baseline uses saved
+original FX modules through a Vite loader, without reverting working files.
+URLs use `scene=Game&part=2-1|2-2&x=5188|1588&debug=1&fast=1&god=1&mute=1&seed=7`.
+Only fixed-step advancement to the bank edge, no bot traversal.
+
+Ten-second stationary 1152×648 Chromium/SwiftShader comparison on the static
+real-map fixture: before **60.00 FPS / 16.7 ms p95**, after **60.10 FPS / 16.8 ms
+p95**. After maximum sampled FX moving-average CPU **.142 ms**, final **.093 ms**,
+zero dropped FX and zero runtime errors. Details: `{before,after}.json` and
+`{before,after}-perf.json` in that directory. This is a bounded stationary
+measurement, not a whole-mission performance certification. All fixture
+servers/browsers closed in `finally`. No git state changes; no requests for other
+teams. Initial sandbox approval capacity failures cleared on the authorized retry.

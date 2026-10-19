@@ -1,3 +1,108 @@
+## Phase G — Mission 2 acceptance (2026-10-19)
+
+**Verdict: functional progression passes; visual/combat acceptance needs fixes.** Ranked open findings are below. No S1 crash or arena stall was established. Judged against `docs/MISSION2.md` and `docs/LESSONS.md`, especially §§2–5.
+
+Reviewed branch `mission-2`, HEAD `2bb826759a93c78c3769345f67c67732491b72bd`, with concurrent polish present in the shared working tree. Chromium/ANGLE Vulkan SwiftShader, Linux, keyboard/debug input, Arcade, seed 731, 1152×648 viewport / 384×216 game. All coordinates below are native pixels. Screenshot paths are absolute and retained under `/tmp/kbe-qa/phase-g/`. See `qa.md`'s Phase G section for coverage, caveats and reproduction commands.
+
+| Rank / ID | Severity | Owner | Finding |
+|---|---|---|---|
+| 1 · KBE-QA-G01 | S2 | Engine + Levels | BAYOU QUEEN roof threats sit behind the HUD and Hazel's radio |
+| 2 · KBE-QA-G02 | S2 | Levels | Opaque moving foreground crosses enemies and firing lanes |
+| 3 · KBE-QA-G03 | S3 | Levels + FX | Storm-front rain is requested but suppressed by the river ambience zone |
+| 4 · KBE-QA-G04 | S3 | Levels; coordinate Enemies A | GATORGEDDON pier holes miss the marked slam point; edge slams open none |
+| 5 · KBE-QA-G05 | S3 | UI/Audio | Boss instructions cover the boss HP fill |
+| 6 · KBE-QA-G06 | S4 | Levels | Wading surfaces read as transparent rectangular boxes |
+| 7 · KBE-QA-G07 | S4 | Levels | Bog mud reads as speckled dirt/gravel rather than soft mud |
+| 8 · KBE-QA-G08 | S4 | Levels | Background mosquito swarm rises above the y62 minimum |
+
+### KBE-QA-G01 — OPEN: roof threats are covered by the HUD/radio
+
+- **Severity / owner:** S2; Engine (vertical camera framing) + Levels (multi-deck layout). **Contract:** LESSONS §5, important gameplay below y54, with the y62 clearance band.
+- **URL:** `http://127.0.0.1:8080/?scene=Game&part=2-2&debug=1&fast=1&god=1&mute=1&seed=731&x=3140` (substitute the harness's port).
+- **Repro:** Start directly on the main deck, toggle the debug overlay off with F2, and capture while the natural Hazel briefing is open, about 5.5 seconds after boot. Also inspect x3840 and x4160 from the main deck.
+- **Expected:** Roof enemies and their attack cues remain readable while the player uses the main deck.
+- **Actual:** Main-deck camera top is y152; the roof is y208, leaving its actors' feet at screen y56 and their upper bodies around y24–54. The roof grunt is reduced to a head behind the BOMB digits while the radio covers its body/weapon. The x4160 roof turret also has its root at screen y56. This persists independently of the moving foreground.
+- **Frequency / evidence:** Reproduced in direct boot and multiple section captures. `2-2/capture-states.json` records the view and roof actors; `roof-radio.log` records the fresh natural briefing.
+- **Screenshot:** `/tmp/kbe-qa/phase-g/2-2/roof-natural-radio.png`; overview `/tmp/kbe-qa/phase-g/2-2/09-queen-main.png`.
+
+### KBE-QA-G02 — OPEN: foreground trunks/canopy obscure combat
+
+- **Severity / owner:** S2; Levels (`m2p2_fg_speed`, parallax depth/coverage). **Contract:** LESSONS §5, gameplay contrast and visibility first.
+- **URL:** `http://127.0.0.1:8080/?scene=Game&part=2-2&debug=1&fast=1&god=1&mute=1&seed=731&x=3840`.
+- **Repro:** Freeze, move the player onto the real hurricane roof with `ctx.player().teleport(3900,208)`, and advance/render in 17–50 ms batches. Watch a foreground trunk pass in front of the roof grenadier. `node /tmp/kbe-qa/phase-g/supplement.mjs` preserves a deterministic overlap and a diagnostic comparison with just this strip hidden.
+- **Expected:** Speed scenery preserves enemy silhouettes, muzzle cues and dangerous bullets on every deck.
+- **Actual:** The opaque front-band strip is above enemies/projectiles. A trunk removes part of the roof grenadier's arm/body; the paired frame reveals it when that strip is hidden. Canopy/moss also crosses roof-height silhouettes when the camera follows the main deck. A thin enemy bullet can disappear entirely behind a trunk. The whole moving strip crossing combat, rather than its darkness alone, is the issue.
+- **Frequency / evidence:** Repeated across sections and boss captures. Focused overlap: grenadier `(3978,208)`, view approximately `(3770,75)`, torso screen `(208,118)`; opaque foreground texel sampled there. `supplement/report.json`, `probes.foreground`.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/supplement/foreground-real.png`, `/tmp/kbe-qa/phase-g/supplement/foreground-hidden-comparison.png`. The hidden-strip frame is a diagnostic, not a shipped fix.
+
+### KBE-QA-G03 — OPEN: the storm front does not render its rain
+
+- **Severity / owner:** S3; Levels + FX (`triggers.ts` ambience zones / `FxDirector` zone precedence). **Contract:** MISSION2 River Run storm-front beat; LESSONS §§1, 5.
+- **URL:** `http://127.0.0.1:8080/?scene=Game&part=2-2&debug=1&fast=1&god=1&mute=1&seed=731&x=2310`.
+- **Repro:** Let crane lock; advance its waves with `killVisible` only until `crane:done`, wait for the clear hook, then warp between sections to x4200. Alternatively, `__KBE.cheats.bg('storm_front')` reproduces the same renderer mismatch. Run `/tmp/kbe-qa/phase-g/storm-confirm.mjs` for the actual-clear path.
+- **Expected:** The storm sky arrives and rain continues over the riverboat after crane clear.
+- **Actual:** `arena.arenas='crane:done skeeter:idle'`, `fx.ambience='rain'`, audio bed `amb_rain`, but `fx.weather.mode='river'`, 24 motes, zero rain streaks. The static river `fx:zone` wins over the changed fallback ambience. A separate `fxtest=rain` capture demonstrates the missing 32-streak workload.
+- **Frequency / evidence:** Actual crane clear plus independent `storm_front` probe/performance run. `storm-confirm/report.json`, `supplement/report.json`, `perf/report.json`.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/storm-confirm/storm-after-crane.png`; comparison `/tmp/kbe-qa/phase-g/perf/storm-rain.png` (explicit rain fixture).
+
+### KBE-QA-G04 — OPEN: slam holes are displaced from the committed marker
+
+- **Severity / owner:** S3; Levels (`IceSystem.stomp`); coordinate Enemies A (`Gatorgeddon` already emits the tail's committed target). **Contract:** MISSION2 tail slam / pier holes; LESSONS §2 marked, fixed attack targets.
+- **URL:** `http://127.0.0.1:8080/?scene=Game&part=2-3&debug=1&fast=1&god=1&mute=1&seed=731&x=3700`.
+- **Repro:** `cheats.boss()`, press right/advance about 3 s to enter the real den, then damage the boss through the shared hook to phase 3. Reposition with `ctx.player().teleport` (keep the arena lock), first to x4236, then to x4064; wait for each real `slam` cue/release. Do not emit a synthetic stomp.
+- **Expected:** The marked tail impact breaks the planks at that position while preserving the edge refuge.
+- **Actual:** A marker at x4048 opens tiles x4096 and x4112 (hole spans x4096–4128), leaving the marked tile intact and damaging the route 48–80 px to its right. A mark at x4236 increments `stomps` but opens no tiles. The shared Moose Lake consumer adds another 56 px to the already-final tail target, and its wall-margin check then skips the edge case. Opened tiles do repair: 2 opened / 2 refrozen after moving away and advancing 7 s.
+- **Frequency / evidence:** Repeated edge slams in the gallery plus focused right/center comparisons, with real boss events. `supplement/report.json`, `slam-right`, `slam-middle`, `repair-middle`.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/supplement/slam-middle-cue.png`, `/tmp/kbe-qa/phase-g/supplement/slam-middle-holes.png`, `/tmp/kbe-qa/phase-g/supplement/slam-right-holes.png`.
+
+### KBE-QA-G05 — OPEN: DUCK/JUMP prompts mask boss health
+
+- **Severity / owner:** S3; UI/Audio (HUD prompt layout). **Contract:** LESSONS §5, important information remains readable; boss HP feedback.
+- **URL / steps:** Start the real 2-3 den as G04; wait for phase-2 `gatling` or phase-3 `gas`. Freeze/render at cue +350–500 ms.
+- **Expected:** The instruction and boss health remain legible together.
+- **Actual:** `DUCK!` and `JUMP THE FLAME!` sit at y200 over the bar at y198, covering its central HP fill precisely during the attack cue. The fill itself renders correctly when the prompt is gone.
+- **Frequency / evidence:** Both prompt types in repeated real-arena cycles. Tuning confirms prompt y200 / boss bar y198; gallery state preserves each attack.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/2-3/29-gatling-cue.png`, `/tmp/kbe-qa/phase-g/2-3/37-gas-flame.png` (original filenames; contact-sheet indices differ after removing unavailable cheat-only panels).
+
+### KBE-QA-G06 — OPEN: shallow water looks like a glass box
+
+- **Severity / owner:** S4; Levels (wading surface/edge art). **Contract:** requested water readability review; LESSONS §5.
+- **URL / steps:** `http://127.0.0.1:8080/?scene=Game&part=2-1&debug=1&fast=1&god=1&mute=1&x=600`; F2, settle and inspect. Repeat at SHELLSHOCK's pool and 2-3's opening.
+- **Expected:** A liquid surface over the submerged legs, with banks and water depth easy to distinguish.
+- **Actual:** Long straight horizontal highlights, bright curled/beveled end caps and a translucent flat face make a bounded green glass trough. The turtle arena is the clearest example. Water movement/splash and slowdown work; this is a visual acceptance gap.
+- **Frequency:** Consistent across both swamp parts.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/2-1/02-wading.png`, `/tmp/kbe-qa/phase-g/2-1/22-snap-high-cue.png`, `/tmp/kbe-qa/phase-g/2-3/01-wreck-shore.png`.
+
+### KBE-QA-G07 — OPEN: mud lacks a distinct soft/wet surface reading
+
+- **Severity / owner:** S4; Levels (mud tiles/dressing). **Contract:** requested bog readability review; MISSION2 mud verb and LESSONS §5.
+- **URL / steps:** `http://127.0.0.1:8080/?scene=Game&part=2-1&debug=1&fast=1&god=1&mute=1&x=4020`; compare the bog with the ordinary bank at x420.
+- **Expected:** Mud is identifiable before the speed/jump penalty takes effect.
+- **Actual:** The hard flat edge and repeated bright flecks read as dark dirt/gravel. Small bubbles/splats help in motion, but the main traversal surface does not clearly communicate soft bog mud; a player depends on the prompt/slowdown. The physical values are correct (63 px/s, jump −270.3).
+- **Frequency:** Bog and pump-area captures; visual judgment, not a collision defect.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/2-1/08-bog-mud.png`, `/tmp/kbe-qa/phase-g/2-1/09-gas-vents.png`, `/tmp/kbe-qa/phase-g/2-1/16-bg-wisps.png`.
+
+### KBE-QA-G08 — OPEN: background skeeters enter the reserved clearance band
+
+- **Severity / owner:** S4; Levels (background swarm vertical spread/bob). **Contract:** LESSONS §5, sky actors at screen y62–110.
+- **URL / steps:** `http://127.0.0.1:8080/?scene=Game&part=2-2&debug=1&fast=1&god=1&mute=1&seed=731&x=3840`; fire `cheats.bg('skeeter_swarm')`; advance/render every 50 ms for 8 s. Measure current animation-frame opaque pixels, not transparent source padding.
+- **Expected:** Every visible sky swarm pixel stays at or below y62.
+- **Actual:** Visible background skeeters reach screen y57. In the final focused scan, 319 of 8,014 on-screen background-actor samples had opaque pixels above y62. This does not establish overlap with the radio itself (ends y54); it violates its clearance margin. The gameplay gnats in this probe remained below the limit.
+- **Frequency / evidence:** Two seeded scans; `supplement/report.json`, `probes.flyers`. The guide screenshot marks y62; JSON captures the exact extrema over time.
+- **Screenshot:** `/tmp/kbe-qa/phase-g/supplement/swarm-y62-guide.png`.
+
+### Verification and concurrent work notes
+
+- `npm --prefix game run check`: PASS initially with 112 files / zero warnings. Final typecheck passes; checker passes with 113 files / zero errors and **6 warnings** (three audio-loop handle retries, three background tuple allocations). These are reported as current checker warnings, not new reproduced gameplay bugs.
+- `npm --prefix game run audit`: reach and arenas PASS for **all six parts**, including final rerun. All Mission 2 wave arenas complete 3/3 waves with maxOff=0 ms; every boss reaches phases 1/2/3 and PartClear/Results. Arena acceptance is the audit, not the section warps used for galleries.
+- Full engine selftest: **44/44 PASS** initially and on the final rerun. Final mechanics probes **9/9 PASS** with a clean console; native flow/menu probes **7/7 PASS** with a clean console. The supplementary failures above are acceptance findings, not ignored green tests.
+- Inspected full sheets: `/tmp/kbe-qa/phase-g/2-1/contact.png` (**45 panels**), `/tmp/kbe-qa/phase-g/2-2/contact.png` (**51**), `/tmp/kbe-qa/phase-g/2-3/contact.png` (**50**), plus their larger `review-*.png` strips. All sections, authored moment families, new mechanics and real-arena boss attacks are represented; captioned comparison/forced-weather panels are diagnostics.
+- SwiftShader, approximately 10 s each, measured rAF FPS: integrated 2-2 storm trigger **60.04** (rain suppressed, G03); explicit rain workload **60.07**; 2-3 storm + GATORGEDDON phase 3 **60.07**; stilts wave 3 **60.10**. Full load-average triples, frame pacing and workload states are in `qa.md` / `perf/*.json`.
+- Healthy final per-part background capture logs, native flow, and performance runs have no browser exceptions, missing-texture or missing-sound warnings; sampled `state().errors` are empty. Host `ERR_NETWORK_CHANGED` interrupted some earlier starts and appeared in an earlier mechanics run despite successful gameplay probes; those logs are retained and are not counted as clean console runs. The final mechanics rerun has zero console entries.
+- **Concurrent polish:** initial `pond_shell` / `barge_blast` audio mapping warnings disappeared in fresh background captures. No duplicate audio-mapping bug filed. Fog-edge polish and SHELLSHOCK art detail work were left to their active owners. Audible mix, physical gamepad and human difficulty acceptance remain outside this deterministic review.
+
+---
+
 # Final QA — Phase D verification
 
 ## Release readiness

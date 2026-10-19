@@ -267,12 +267,27 @@ function checkFile(file, index) {
     const zRe = /\.(?:setZoom|zoomTo)\s*\(|\b(?:cam|camera|cameras\.main|cameras\.\w+)\.zoom\s*=(?!=)/g;
     for (let m; (m = zRe.exec(code));) once(m.index, 'camera-zoom-outside-controller', W, 'camera zoom outside core/camera.ts: non-integer zoom shimmers/swims pixel art and bypasses the zoom-punch bookkeeping and reduced-motion check', 'ctx.camera.zoomPunch(amount, ms); for a deliberate integer zoom add // phaser4-ok: <reason>');
   }
+  // Phase G: raw JS timers are not owned by the scene: they fire after shutdown/restart, on destroyed objects.
+  const rawTimerRe = /(?<![\w$])(?:setTimeout|setInterval|requestAnimationFrame)\s*\(/g;
+  if (!/[\\/]scenes[\\/]BootScene\.ts$/.test(file)) for (let m; (m = rawTimerRe.exec(code));) once(m.index, 'raw-timer', W, 'setTimeout/setInterval/requestAnimationFrame outlive the scene (they fire after shutdown/restart and ignore hitstop and pause)', 'scene.time.delayedCall(ms, fn) / scene.time.addEvent({...}); for a pre-scene or per-page install add // phaser4-ok: <reason>');
+  // Phase G: a per-frame callback that returns an array literal allocates one array per actor per frame (Phase F F2 came back in level/background.ts).
+  const offRe = /\boffset\s*:\s*(?:\([^()]*\)|[\w$]+)\s*=>\s*\[/g;
+  for (let m; (m = offRe.exec(code));) once(m.index, 'offset-returns-array', W, 'an `offset: a => [x, y]` callback runs every frame for every actor and allocates a tuple each call', 'write into a scratch field (a.ox / a.oy, or one reused readonly [number, number]) and return that');
+  // Phase G: `if (!this.loop && !audio.locked) this.loop = audio.loop(...)` never re-acquires: the engine hands back a permanently inactive
+  // no-op handle (voice budget, unknown key) and steals the oldest voice at the per-key max, so the actor stays silent for the rest of its life.
+  const loopRe = /\bif\s*\(\s*!\s*((?:this\s*\.\s*)?[\w$]+)\s*&&[^()]*\)\s*\{?\s*\1\s*=\s*[^;]*?\.loop\s*\(/g;
+  for (let m; (m = loopRe.exec(code));) {
+    const h = m[1].replace(/\s+/g, '').replace(/[.$]/g, '\\$&');
+    if (new RegExp('\\b' + h + '\\s*\\??\\.\\s*active\\b').test(code)) continue;
+    once(m.index, 'loop-handle-no-active-check', W, `audio loop handle \`${m[1].replace(/\s+/g, '')}\` is only null-checked: a stolen/no-op handle (active === false) is never re-requested`, `if (!${m[1].replace(/\s+/g, '')}?.active && !audio.locked) ${m[1].replace(/\s+/g, '')} = audio.loop(key, { x });  (retry at most every ~500 ms)`);
+  }
   // Per-frame hazards inside update-like function bodies (lexical scan, so helper calls are not flagged).
   const updHead = /(?:^|[\s;{}])(?:(?:private|public|protected|static|async)\s+)*(update\w*|tick\w*|preUpdate|postUpdate|step\w*|on\w*Update)\s*\([^()]*\)\s*(?::\s*[^{;=()]+)?\{|\bonUpdate\s*\(\s*(?:\([^()]*\)|\w+)\s*(?::\s*\w+)?=>\s*\{/g;
   const BODY_RULES = [
     { id: 'update-new-phaser-object', re: /\bnew\s+Phaser\s*\.\s*(?:Geom|Math\s*\.\s*Vector[234]?|Display\s*\.\s*Color|Structs)\b[\w$.]*/g, msg: 'allocates a Phaser math/geom object every frame', fix: 'keep a scratch instance on the class/closure and .setTo()/.set() it' },
     { id: 'update-creates-gameobject', re: /\.add\s*\.\s*(?:sprite|image|text|bitmapText|graphics|rectangle|ellipse|circle|container|zone|tileSprite|particles|renderTexture|dynamicTexture|shader)\s*\(/g, msg: 'creates a game object inside a per-frame function', fix: 'create once (constructor/create) or take it from a pool' },
     { id: 'update-adds-collider', re: /\.add\s*\.\s*(?:collider|overlap)\s*\(/g, msg: 'adds an Arcade collider inside a per-frame function (colliders accumulate)', fix: 'create it once and keep the Collider; destroy() it when replaced' },
+    { id: 'update-play-config-object', re: /\.play\s*\(\s*\{/g, msg: 'Sprite#play({ ... }) allocates a config object (and a play request) every call on a per-frame path', fix: 'use the string form play(key, ignoreIfPlaying) after a currentAnim.key check, or call it only on state change' },
     { id: 'update-adds-filter', re: /\.filters\s*[!?]?\.\s*(?:internal|external)\s*\.\s*add\w*\s*\(|\bPhaser\s*\.\s*Actions\s*\.\s*AddEffect\w+\s*\(|\bnew\s+Phaser\s*\.\s*Filters\s*\.\s*Controller\b/g, msg: 'creates a filter inside a per-frame function', fix: 'add the filter once and toggle `controller.active` / mutate its properties' },
   ];
   for (let h; (h = updHead.exec(code));) {
@@ -309,6 +324,10 @@ if (opts.list) {
   console.log(`warn  update-creates-gameobject  add.sprite/text/graphics/... inside update/tick/onUpdate`);
   console.log(`warn  update-adds-collider       add.collider/overlap inside update/tick/onUpdate`);
   console.log(`warn  update-adds-filter         filters.*.add*/AddEffect*/new Filters.Controller inside update/tick/onUpdate`);
+  console.log(`warn  raw-timer                    setTimeout/setInterval/requestAnimationFrame in src (outlive the scene)`);
+  console.log(`warn  offset-returns-array       \`offset: a => [x, y]\` callbacks (one array per actor per frame)`);
+  console.log(`warn  loop-handle-no-active-check   if (!this.loop && ...) this.loop = audio.loop(...) with no .active check`);
+  console.log(`warn  update-play-config-object  sprite.play({ ... }) inside update/tick/onUpdate`);
   console.log(`error suppress-no-reason     // phaser4-ok without a reason`);
   process.exit(0);
 }

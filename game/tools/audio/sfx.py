@@ -1991,7 +1991,7 @@ CATALOG = {
     "bg_airboat_race": (bg_airboat_race, -21, False), "bg_mill_creak": (bg_mill_creak, -23, False), "bg_den_glow": (bg_den_glow, -23, False),
     "bg_gator_roar": (bg_gator_roar, -18, False), "bg_wreck_collapse": (bg_wreck_collapse, -20, False), "bg_thunder": (bg_thunder, -20, False),
     # Phase G: ambient beds by fx:ambience kind (loops)
-    "amb_swamp": (amb_swamp, -27, True), "amb_rain": (amb_rain, -26, True), "amb_storm": (amb_storm, -25, True), "amb_fog": (amb_fog, -30, True), "amb_riverboat": (amb_riverboat, -26, True),
+    "amb_swamp": (amb_swamp, -27, True), "amb_rain": (amb_rain, -26, True), "amb_storm": (amb_storm, -25, True), "amb_fog": (amb_fog, -27, True), "amb_riverboat": (amb_riverboat, -26, True),
 }
 
 
