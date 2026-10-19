@@ -14,7 +14,7 @@ export type Difficulty = 'arcade' | 'casual';
 /** Materials a hurtbox can be made of. */
 export type HurtMaterial = 'flesh' | 'metal' | 'wood' | 'shield';
 /** Materials terrain can be made of (tile property `material`, default 'dirt'). */
-export type TerrainMaterial = 'dirt' | 'stone' | 'metal' | 'wood' | 'snow' | 'water';
+export type TerrainMaterial = 'dirt' | 'stone' | 'metal' | 'wood' | 'snow' | 'water' | 'mud';
 /** What a projectile hit (hurtbox material, or terrain material for tiles). */
 export type ImpactMaterial = HurtMaterial | TerrainMaterial;
 
