@@ -6,6 +6,11 @@ import Phaser from 'phaser';
 import { createEngineTextures } from '../core/textures';
 
 export const PACKS = ['engine', 'player', 'enemies', 'level', 'fx', 'ui'] as const;
+/**
+ * Phase G stopgap (Lead): Mission 2 packs (`packs/<team>.m2.json`) load at boot until Engine's lazy per-mission loader
+ * replaces this. Missing ones are skipped quietly like any undeployed pack.
+ */
+export const MISSION_PACKS_AT_BOOT = ['engine', 'player', 'enemies', 'gatorgeddon', 'level', 'fx', 'ui'].map(t => `${t}.m2`);
 export const PACK_BASE = 'assets/packs/';
 /** Attempts per pack / per file before it counts as failed, and the wait before each retry (ms). */
 export const LOAD_ATTEMPTS = 3;
@@ -63,7 +68,7 @@ export class BootScene extends Phaser.Scene {
     create(): void {
         createEngineTextures(this);
         this.input.keyboard?.addCapture('UP,DOWN,LEFT,RIGHT,SPACE');
-        Promise.all(PACKS.map(fetchPack)).then(results => {
+        Promise.all([...PACKS, ...MISSION_PACKS_AT_BOOT].map(fetchPack)).then(results => {
             const packs: LoadedPack[] = [], packErrors: PackError[] = [];
             for (const r of results) {
                 if (!r.ok) packErrors.push(r.error);
