@@ -5,11 +5,12 @@ import { registerEnemyAnimations } from './animations';
 import { MachineBoss } from '../bosses/MachineBoss';
 import { AssaultEnemy } from './AssaultEnemy';
 import { Moosezilla } from '../bosses/Moosezilla';
+import { registerGatorgeddon, type TrackedBoss } from '../bosses/Gatorgeddon';
 
 export function registerEnemies(ctx: RegisterContext): void {
     registerEnemyAnimations(ctx);
     const enemies = new Set<Enemy | AssaultEnemy>();
-    let boss: Moosezilla | MachineBoss | null = null;
+    let boss: Moosezilla | MachineBoss | TrackedBoss | null = null;
     // boss:intro arrives during the gate rumble, before the boss exists. Its authored
     // sprite intro begins on spawn; these socket puffs bridge the approach beat.
     let approach: { x: number; y: number; effect: string; left: number; puff: number } | null = null;
@@ -43,6 +44,8 @@ export function registerEnemies(ctx: RegisterContext): void {
         if (boss?.active) return boss;
         boss = new MachineBoss(c, kind, x, y, props); return boss;
     });
+    // Phase G: GATORGEDDON lives in Enemies A's own module (docs/ARCHITECTURE.md, A/B split).
+    registerGatorgeddon(ctx, b => { boss = b; });
     ctx.debug.register('enemyAI', () => [...enemies].map(e => e.snapshot()));
     ctx.debug.register('bossPhase', () => boss?.active ? boss.phase : null);
     ctx.debug.register('boss', () => boss?.active ? boss.snapshot() : null);
