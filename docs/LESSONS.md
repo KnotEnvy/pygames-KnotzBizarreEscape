@@ -56,6 +56,12 @@ Mission 1 needed a whole extra phase to add these. In a new mission they're part
 - **New fliers or swimmers** (anything that isn't a walker) register with the arena as flying for the edge clamp and the pull and cull, like `drone` and `buzzard` do.
 - **Entry animations** (leapers, lurkers rising, airboat drops) clamp their landing inside a locked view.
 - **Factories accept authored props:** `facing`, `patrol`, `wave`, `from=door`, `sleep`.
+- **Fair openings (Mission 2).** The first threat stands at least 224 px from `player_start`. A player who stands idle while the title card and
+  Hazel's radio play must survive at least 5 s in Arcade mode. 2-3 shipped a lurker 176 px out that killed an idle player in about 3 s.
+- **Gameplay stays below the HUD on multi-level maps (Mission 2).** The camera keeps the player's feet near screen y≈152, so from the lowest
+  floor a section uses, an enemy can stand at most ~44 px higher and still clear screen y 62. Higher decks are routes, not firing positions,
+  unless the player is up there too.
+- **Speed scenery never crosses the combat band** (screen y 29–199). Put it behind the actors, or keep it to the edges.
 
 ## 4. Testing: fast, deterministic, time-boxed
 - Owner's rule: **no real-time bot playthroughs.** Phase E1 lost 2+ hours to a bot stuck on scenery.
