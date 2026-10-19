@@ -238,7 +238,7 @@ export function mapkit({ W, H, G, tilesets = ['stage1'] }) {
         else {
           let depth = 0; while (y - depth - 1 >= 0 && L[layer].mat[idx(x, y - depth - 1)]) depth++;
           const h = hash(x, y, 11);
-          const earthy = m === 'ground' || m === 'rock';
+          const earthy = m === 'ground' || m === 'rock' || m === 'bank' || m === 'mud'; // Mission 2 swamp banks and mud
           const plain = earthy ? (bg ? 0.6 : 0.25) : 0.6;
           if (earthy && (y === H - 1 || depth >= 4)) n = `deep_v${Math.floor(h * 4)}`;
           else n = h < plain ? 'm0' : `fill_v${1 + Math.floor((h - plain) / (1 - plain) * 3)}`;

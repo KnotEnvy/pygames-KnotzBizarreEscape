@@ -522,3 +522,62 @@ Visually inspected all six contact sheets (left-to-right, top-to-bottom: idle, h
 Full-resolution source captures: `/tmp/kbe-enemies/flash-<boss>-<normal|soft>-<sample>.png`. Probe report: `/tmp/kbe-enemies/flash-captures.json`; runner log: `/tmp/kbe-enemies/flash-captures.log`.
 
 `npm run check` **PASS**: TypeScript plus Phaser checker, **103 files, zero errors/warnings**. `npm run audit` **PASS**: every reach target and arena; Snowcat/Ironhorn phases 1/2/3 → PartClear, MOOSEZILLA phases 1/2/3 → Results, zero boss off-view time (`/tmp/kbe-enemies/flash-audit.log`). The first sandboxed audit could not bind its loopback server; the approved local-server rerun passed. Capture runs had no page exceptions; Part III reported existing unmapped background-audio events `lab_searchlights` / `lab_tesla`. Only Enemies source/notes were edited; no git commands or git state changes.
+
+## Phase G — Enemies B: bayou mid-bosses and roster (2026-10-18)
+
+Built only Enemies B paths; GATORGEDDON and its registration call remain Enemies A's. No git state changes.
+
+### Implementation and assets
+
+- `game/src/entities/bosses/BayouBoss.ts`: SHELLSHOCK **170 HP / 3000 points**, MEGA-SKEETER **200 HP / 3500 points**. Each has a 1100 ms safe sprite intro, living idle, persistent 66%/33% art, `BossDebris`, synchronized `BossFlash`, one scaled state clock, preallocated three-slot local ordnance, death cancellation and one final defeat. Levels still owns stage clear.
+- SHELLSHOCK surfaces shell-first, then reveals its articulated snapping beak. Alternating high/low **650 ms** head-angle cues; crouch high and jump low. Head takes **2× during extension**. Three shootable **25-point** eggs have fixed landing marks, an 850 ms arc, and 1200 ms blinking fuse. Spin has **700 ms** anticipation, three bounces, a visibly flattened low shell, clank-only hits and a **55+ px** wall refuge. At 33% missing plate/core art exposes a **2×** core. Death flips its shell, flails its feet, throws heavy fragments and pops its head on a spring.
+- MEGA-SKEETER has a four-wing mosquito/drill silhouette, a three-gnat entrance swarm and positional whine. Its target is pinned during the **700 ms** laser cue; dive is 440 ms (340 critical), stuck/punish window **700 ms**. Pods bounce/land and hatch gnats; the registry caps **all live gnats at four**. Leg guns cue **600 ms** then release five 92 px/s stingers, 0.32 radians apart. Tank is **1.5×**, then **2×** at 33%; a torn wing accompanies erratic critical flight. Death spins toward the river, fades/sinks, and emits an XL splash. Horizontal **80 px** and vertical clamps keep its 144×88 canvas inside the view; flight art stays below the radio band.
+- `game/src/entities/enemies/BayouEnemy.ts`: piranha **1/100**, hopper **4/200**, gnat **1/50**, airboat **16/500**. Piranhas wait for a visible water surface, cue 500 ms, leap 80 px and splash on both ends; only the explicit fixture bypasses the water check. Hoppers check every 8 px of their landing path and never change floors; 450 ms hop squat, 500 ms inflated-throat cue and 64 px tongue. Gnats sine-weave, cue 400 ms and commit to a fixed dive target. Airboats bob on the authored water lane, cue 600 ms before three-shot bursts and drop two leapers with the parent wave. Airboats explode and sink; free boats exit after nine seconds. Gnat/boat loops stop on death, exit, destruction and shutdown.
+- `game/src/entities/enemies/Enemy.ts`: lurker **3/150**, seven-frame **700 ms** rise into grunt rifle AI. `sleep` is accepted alongside existing idle/facing/patrol/wave/from props. Ground walkers receive a **160 ms** decaying shotgun shove through the existing wall/ledge/hazard/locked-view movement checks; stationary turrets and airborne entry states are excluded. Hoppers get the same short shove when grounded.
+- `game/src/entities/enemies/index.ts`, `game/src/config/tuning/enemies.ts`: all factories, fixtures, shared debug tracking, four-gnat cap, approach pond bubbles/rising whine. `registerGatorgeddon(ctx, track)` is preserved.
+- Original editable art: `game/art-src/enemies/phase-g.lua`, nine corresponding `.aseprite` sources. Outputs: `game/public/assets/sprites/enemies/{shellshock,shellshock_head,skeeter,lurker,piranha,hopper,gnat,airboat,turtle_egg}.{png,json}`. Mission pack: **`game/public/assets/packs/enemies.m2.json`**. No Mission 1 assets or packs were rebuilt. **9 assets / 605 frames / 104 unique prefixed tags**; **1,499,629 opaque pixels** checked against the master palette, binary alpha, no exceptions (`/tmp/kbe-enemies-b/art-audit.log`).
+
+Rebuild and inspect every authored state at 3×:
+
+```sh
+bash game/tools/build-art.sh art-src/enemies/phase-g.lua
+mkdir -p /tmp/kbe-enemies-b
+/home/knotz2/.local/bin/aseprite --batch --script-param root="$PWD/game" --script-param kbe="$PWD/game/tools/aseprite/kbe.lua" --script game/art-src/enemies/lib/phase-g-preview.lua
+```
+
+### Fixtures and inspected evidence
+
+All seven URLs work before the new maps exist:
+`?scene=Game&god=1&fast=1&mute=1&enemytest=shellshock|skeeter|lurker|piranha|hopper|gnat|airboat` (choose one kind). Mission packs preload automatically for enemy fixtures. The skeeter fixture uses the player's actual floor as its virtual deck. Default dev mode allows cheats without a debug overlay; add `debug=1` for hurtboxes.
+
+Example exact capture command (no real-time bot):
+
+```sh
+node game/tools/shot.mjs --wait 1200 --query 'scene=Game&god=1&fast=1&mute=1&enemytest=skeeter' --steps '[{"eval":"(__KBE.sim.freeze(),__KBE.sim.advance(2200),__KBE.sim.render(),1)"}]' --out /tmp/kbe-enemies-b/skeeter-fixture.png
+```
+
+All verification scratch is **`/tmp/kbe-enemies-b/`**. The bounded runners reuse `shot.mjs`'s Vite/SwiftShader/library setup and always close their browser/server. `verify.mjs`, `real-fire.mjs`, `quality.mjs`, `edges.mjs` deliberately intercept only the level pack to choose the Engine's isolated dev sandbox; they do not edit any shared map/code or weaken combat. This avoids Mission 1 authored soldiers and gates in a Mission 2 fixture. Real-fire results still include the sandbox dummy's score, shot eggs and shot gnats; **the one-defeat count is specifically the boss event**.
+
+Visually opened and inspected:
+
+- **Silhouette before animation**: `silhouettes.png`, both bosses at Knotz's native scale. Improved the turtle's foreground claws after this inspection.
+- **3× complete state sheets**: `states-shellshock.png`, `states-shellshock_head.png`, `states-skeeter.png`, `states-roster.png`. Boss rows are the source pose order, repeated for intact/damaged/critical; four frame samples each. Flattened spin art was rebuilt and re-inspected.
+- **Fixture contacts**: `review-shellshock.png`, `review-skeeter.png`, `review-lurker.png`, `review-piranha.png`, `review-hopper.png`, `review-gnat.png`, `review-airboat.png`. These cover every encountered cue/action, phase art, deaths and late deaths. Individual captures are `<kind>-<state>.png`; `captures.json` lists them and records probes. Specific full-size inspections include `shellshock-snap.png`, `shellshock-spin.png`, `shellshock-death-late.png`, `skeeter-laser.png`, `skeeter-idle.png`.
+- **Real player HMG completions**: `review-real-fire.png`, with originals `fire-<kind>-<sample>.png` and `fire-<kind>-finished.png`. Fresh runs use only god mode, HMG/ammo grant and real player shoot input in 500 ms fixed-step batches: **SHELLSHOCK 240 shots; MEGA-SKEETER 241 shots**, both phases **[2,3]**, **exactly one defeat**, no page/runtime errors. **No HP cheats or direct damage in these runs.** `real-fire.json` contains all samples; `real-fire.log` is the summary.
+- **Quality probes**, separate from real fire: `review-quality.png`, `quality.json`, and `quality-<boss>-<normal|soft>-*.png`. Initial intro snapshots at about 17–77 ms; visible `intro700` shots show the surfaced shell/head and entrance gnat swarm. The earlier `intro` screenshots show the existing part-entry wipe, so they are not evidence of boss silhouette. Per mode, **500 samples / 25 simulated seconds** check boss hurtboxes at least 8 px inside the view, with zero failures. Hit flashes synchronize all parts and clear by **67 raw ms**; death flashes clear by **117 raw ms**, including reduced-flash multiply tint. Three-point area hits deal **3 once** across overlapping parts; extended head **2×**, tank **1.5×**, critical core/tank **2×**. Death clears all local eggs/adds and enemy bullets. Each completed quality run also records exactly one defeat.
+- **Locked edges**: opened `locked-edges.png`; `locked-edges.json` has **400 samples / 20 seconds**, all five new kinds seeded 12 px beyond both edges, with gnats above and airboats below the view. Zero off-view failures; extra gnat spawns stop at four. Wall-adjacent shotgun hits stay inside the view; separate middle-floor hits verify actual displacement. This is an implementation-level fixture test, not Levels' future arena acceptance.
+
+### Validation and current integration limits
+
+- `npm --prefix game run audit`: **Mission 1 reach and arenas PASS**, Snowcat/Ironhorn/MOOSEZILLA phases 1/2/3 and expected PartClear/Results, zero boss off-view time (`audit.log`). Mission 2 skips while maps are absent.
+- Explicit `node game/tools/arena-audit.mjs --part 2-1` and `--part 2-2`: **SKIP, maps missing** (`audit-2-1.log`, `audit-2-2.log`). No real pond/foredeck acceptance is claimed yet.
+- `npm --prefix game run selftest`: **all passed** (`selftest.log`), including mission-pack preload/cache, material mapping, mission chain and listener stability.
+- The first full `npm --prefix game run check` passed with zero findings. Final check status is recorded in `check-final.log`; the final shared check has **four Levels-owned diagnostics**: `src/level/ice.ts:36` TS2352 (wood/ice style cast), `src/level/props.ts:256` two missing `LEVEL.gates` references, and `src/level/train.ts:114` unused `S`. **No Enemies B diagnostics.** Separate Phaser output **passes: 112 files / zero findings** (`phaser-final.log`). Earlier GATORGEDDON warnings disappeared during A's concurrent changes; its files were left untouched.
+- The precise Mission 2 audio keys are emitted, but the shared Audio catalog/mission pack was still in progress during captures. Missing keys degrade silently; playback/mix is not accepted yet.
+- Fixed-step SwiftShader correctness and visual review were performed; **no sustained 60-FPS benchmark** is claimed. No git state changes, new dependencies, real-time bot traversal or non-owned source edits.
+
+### Requests for other teams
+
+- **Levels:** classify **`gnat`, `airboat`, `piranha` as fliers/swimmers** in both arena off-view recovery and edge-spawn floor projection (`arenas.ts` currently special-cases drone/Buzzard). Preserve their authored Y. Piranhas need `hazard=water` at surface+8 and a visible surface. Airboats accept **`laneY`** (also `waterY`, default **344 in 2-2**, otherwise authored spawn Y); please author the water lane near **344**, beside the barges. Boss spawn Y / optional `floorY` is the pond bank or **304 px foredeck**. Keep the two boss arenas gateless; emit exact `boss:intro` names **SHELLSHOCK** and **MEGA-SKEETER**. Once maps land, rerun both real arena audits and inspect in context.
+- **UI/Audio:** supply/register the exact MISSION2 keys used here: lurker_rise, piranha_leap/bite, hopper_croak/hop/tongue, gnat_buzz, airboat_motor/gun; turtle_hiss/snap, shell_clank/spin, egg_lob/beep; skeeter_whine/laser/dive/drill, larva_pop, stinger_fire. Route music via boss names; whine, spin, buzz and motor use positional loop handles.
+- **Lead / QA:** rerun final check after concurrent Levels fixes, then Mission 2 real-map/part-clear and sustained performance acceptance. Preserve Enemies A's GATORGEDDON files and inspect its own separate report.

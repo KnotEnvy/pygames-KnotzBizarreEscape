@@ -1,0 +1,67 @@
+{ "frames": {
+   "bg_den_glow#0": {
+    "frame": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 120
+   },
+   "bg_den_glow#1": {
+    "frame": { "x": 81, "y": 0, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 120
+   },
+   "bg_den_glow#2": {
+    "frame": { "x": 162, "y": 0, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 120
+   },
+   "bg_den_glow#3": {
+    "frame": { "x": 0, "y": 41, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 120
+   },
+   "bg_den_glow#4": {
+    "frame": { "x": 81, "y": 41, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 120
+   },
+   "bg_den_glow#5": {
+    "frame": { "x": 162, "y": 41, "w": 80, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 40 },
+    "sourceSize": { "w": 80, "h": 40 },
+    "duration": 120
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "bg_den_glow.png",
+  "format": "RGBA8888",
+  "size": { "w": 242, "h": 81 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "bg_den_glow_pulse", "from": 0, "to": 5, "direction": "pingpong", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

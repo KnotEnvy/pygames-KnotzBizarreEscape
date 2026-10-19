@@ -435,3 +435,131 @@ with them. No ground tiles, spawns or arenas changed.
   `tint` actor option darkens it (0x5c606c) so it reads against pale clouds.
 - Screenshots `/tmp/kbe-level/f2/`: `p1_zeppelin` (with the radio strip open), `p1_flyers_a` (plane), `p1_crows_a/b/c/d` (burst sequence),
   `p2_buzzard2` (with the radio strip open), `p1_yard_smoke3` (x=6100), `p1_yard_arena2` (arena, pre-tint).
+
+## Phase G: Mission 2 "Bayou Blackout" (2026-10-19)
+
+Three new maps, three tilesets, 33 props, 18 background actors, 12 runtime strips, the new mechanics (wading, sinking logs,
+swamp-gas vents, low branches, fog banks, the den channel and the breaking pier), Mission 2 background moments and parallax.
+Art was drawn by seven helpers against written contracts (`/tmp/kbe-level/contracts/*.md`) and reviewed in game.
+
+### Build and preview
+| What | Command (from `game/`) |
+|---|---|
+| Tilesets | `bash tools/build-art.sh art-src/tiles/m2_bayou.lua` (also `m2_boat.lua`, `m2_mill.lua`) |
+| Props | `bash tools/build-art.sh art-src/props/bayou.lua` (also `mill.lua`, `boat.lua`); manifests `art-src/props/manifest_m2a.json` (swamp/mill), `manifest_m2b.json` (river) |
+| Actors | `bash tools/build-art.sh art-src/backgrounds/actors/<key>.lua` (the 18 Mission 2 `bg_*` below) |
+| Strips | `bash tools/build-art.sh art-src/maps/bayou_strips.lua` → `backgrounds/m2p1|m2p2|m2p3/*.png` (never the `gen_*` files) |
+| Maps | `bash art-src/maps/build.sh m2p1 m2p2 m2p3` (generators `build_m2p*.mjs` on `lib/mapkit.mjs` + the new `lib/bayou.mjs`); no map name = all six maps |
+| Pack | `node art-src/maps/build_pack_m2.mjs` → `public/assets/packs/level.m2.json` (maps, tilesets, props from both manifests, actors, strips; only existing files). Imagegen's `gen_*` layers are in `packs/imagegen.m2.json` (keys `bg_<map>_<name>`) and are only referenced here |
+| See it | `node game/tools/shot.mjs --out /tmp/x.png --query "scene=Game&part=2-1&fast=1&mute=1&god=1&x=<X>"`; gallery tool `/tmp/kbe-level/gallery.mjs <part> <outdir> '<stops json>'` (one browser, warp + `__KBE.sim.advance` in 50 ms render steps); moments: `__KBE.cheats.bg('<id>')` |
+
+### Tilesets
+- `m2_bayou` (351 tiles, 12 rows): autotile sets `bank` (dirt), `mud` (material=mud, + animated `mud_bubble_f0..3`), `pump` (stone),
+  bg sets `bank_bg`, `pump_bg`; bayou water `water_top/body_f0..3`, `water_deep`; wading riverbed `shallow_l/m/m2/r` (material=shallow);
+  sinking logs `sinklog_{l,m,r}` + `_bob/_s1/_s2` (sink=true; s1/s2 are water); stable `log_*`, `log_dry_*`; boardwalk `walk_*`, posts,
+  rotten `dock_*` + rail, mangrove `root_*` + hanging roots, `limb_*`; stilt shacks (`sdeck_*`, tin `roof_*`, 9-slice `shack_*`, windows,
+  doorway, `stilt_*`), rope bridge `rbridge_*` + `rope_*`; pump metal (catwalk, ladder, railing, fence, mossy sandbags, `_w` decor);
+  giant cypress (`cyp_*`, `cflare_*`, `canopy_*`, moss), knees, reeds, lilies, front reeds; far silhouettes (unused: they fought the
+  painted parallax).
+- `m2_boat` (158): night river `river_*`; barges (`bdeck_*`, `bhull_*`, `bhull_sub_*` = water), containers `cr_/cs_/co_*` (solid, 2 rows),
+  fuel tank, cargo net, crane lattice; the BAYOU QUEEN (`qdeck_*`, `qhull_*`, bow `qbow_*`, one-way `qprom_*`/`qroof_*`, cabin 9-slice
+  `qcab_*` whose top row shares the deck strip's row, columns, railings, trim, smokestacks, paddlewheel housing, boiler interior, `qsteel_*`).
+- `m2_mill` (100): mill floor/planks/roof, ruined walls with bite marks and claw gouges, pilings, lumber, chains, cages, gears, saw,
+  waterwheel frame, den rocks with reactor-glow seams, and the den pier `pier_*` with `pier_stomp` (crack=stomp) → `pier_crack_f1..3` →
+  `pier_hole` (water), `pier_under*`.
+
+### Maps
+| Part | Map | Size | Tilesets | Arenas | POWs |
+|---|---|---|---|---|---|
+| 2-1 CYPRESS DEEP | `m2p1` | 400×24 (6400) | m2_bayou | `stilts` (204–228, 3 waves), `pump` (298–322, 3 waves), boss `shellshock` (370–400, 480 px, gateless) | 4: hmg, shotgun, rocket, bombs |
+| 2-2 RIVER RUN | `m2p2` | 338×24 (5408), drift 200 | m2_boat + m2_bayou | `crane` (140–164, 3 waves), boss `skeeter` (308–338, 480 px, gateless, deck y 304) | 4: hmg, spread, laser, bombs |
+| 2-3 GATOR'S DEN | `m2p3` | 270×24 (4320 = 3808 + 512) | m2_bayou + m2_mill | `mill` (180–204, 3 waves, `mill_gate` lock=mill blows open), boss `gator` (238–270, 512 px, gateless) | 4: hmg, spread, rocket, bombs |
+
+- **2-1:** Hazel's skiff at a rotten dock → bank, first shallow pool (WADING SLOWS YOU sign + prompt), POW hmg, boardwalk → drowned
+  forest: deep water crossed on 5 sinking logs (LOGS SINK, KEEP MOVING!), root islands, mangrove roots, piranhas, lurkers in a pool,
+  a gnat swarm, the **shotgun POW** on root island B → stilt village over the shallows (shacks with doors that trickle grunts, decks at
+  y 288/272/256/224, rope bridges, nets, lanterns, rocket POW tied up on a deck) and the `stilts` arena (door grunts / hoppers + lurker /
+  roof grenadiers + gnats) → bog: mud flats (MUD prompt), 6 gas vents (GAS VENTS prompt), the pump station (sandbags, roof turret,
+  catwalk, alarm light) and the `pump` arena (door grunts + pad turret / Buzzard drop (plane hook) / shields + grenadier, a vent in
+  the middle), a rolling fog bank past lantern posts, POW bombs → turtle pond: wake and shell moments, then SHELLSHOCK. Rain from x 3792.
+  `clearSfx=boat_horn`. Checkpoints `cp_dock, cp_forest, cp_forest_b, cp_village, cp_stilts, cp_bog, cp_pump, cp_fog, cp_boss`.
+- **2-2:** jump from the skiff onto a fuel barge → fuel barges (tanks, drums, fuel cells, airboats alongside on the lane y 344, gnats)
+  → container barges (solid stacks, end-on `container_door`s that spawn grunts, two low-branch sweeps at deck height y 282, a 7 s fog
+  bank with lantern buoys) → the `crane` arena (airboat + grunts / Buzzard + hopper / hoppers + shields) → the paddlewheel (crossed on a
+  catwalk over the spinning wheel) → the BAYOU QUEEN: main deck, promenade (one-way 256) and hurricane roof (one-way 208), cabins with
+  open-air stretches, smokestacks, wheelhouse, roof turret, a dark boiler-room passage (solid ceiling, `tunnel` ambience), a
+  branch sweep at promenade height (y 234) → the foredeck and MEGA-SKEETER. Checkpoints `cp_skiff, cp_containers, cp_fog, cp_crane,
+  cp_queen, cp_decks, cp_boss`.
+- **2-3:** crawl out of the beached, burning `queen_wreck` into the shallows → sunken forest (5 sinking logs, roots, mud islands with
+  3 vents, hoppers, gnats, piranhas, FOLLOW THE LIGHTNING) → the Drowned Mill (the turning `waterwheel` with a gantry over the race, a
+  ruined mill on pilings with storm gaps, bite marks, chains, cages, lumber cover) and the `mill` arena (grunts + grenadier / hoppers +
+  gnats / shields + grenadier) → den approach (DANGER: GATOR, crushed boats, bones, broken cage, claw marks) → the den: mud bank (48 px)
+  + pier (stomp planks 64 px / 48 px from the walls), far bank rocks with glow, the `channel` strip, GATORGEDDON. Map properties
+  `crack_style=wood`, `crack_gids` (pier frames). Checkpoints `cp_wreck, cp_forest, cp_forest_b, cp_mill, cp_mill_b, cp_boss`.
+
+### New runtime (`src/level/**`, tuning `LEVEL.water/vent/kinds/gates/train.sweep.kinds/train.fog/ice.styles/bg`)
+| File | Job |
+|---|---|
+| `water.ts` (new) | **Wading:** every run of `material=shallow` tiles gets a translucent surface over the legs (`m2p1_wade` at alpha 0.55 + a crest scrolling the other way + end caps), depth PROJECTILES−1 (over actors, under bullets/FX). Pools are a one-tile depression (floor y 352, waterline y 338). **Sinking logs:** a run of `sink=true` tiles is one log; standing bobs it (`log_bob`, small splash), after 800 ms of standing (decays at half speed off it) it sinks s1 → s2 → water (`log_sink`, `water:splash m sink`), resurfaces after 2.5 s (`surface` splash), never into a body. Frames from the map property `sink_gids` (JSON, by tile name). **Den channel:** trigger `channel` → an opaque animated strip at `DEPTH.TILES_BACK + 1` (21), top y 326 (water line 328), across the 512 px arena |
+| `vents.ts` (new) | Trigger `hazard_vent` (`period`, `on`, `offset`): idle → ≥ 700 ms bubbling (`prop_gas_vent_bubble`, `fx:emit gas_bubble`, `gas_bubble`) → flame (`prop_gas_flame` start/loop/end, `fx:emit gas_flame {width, height, duration}`, `gas_vent`), damage column 14×64 above the nozzle (10 px up): the player via `ctx.damage.deal` (god/i-frames respected), enemies once per flame. Far vents keep time silently |
+| `tiles.ts` (new) | Shared tile swap (index + tileset props + collision faces), used by the ice/pier and the logs |
+| `train.ts` | `hazard_sweep kind=branch` (`prop_branch` limb, `prop_sign_branch` in the river, `boat_horn`, `branch_whoosh`, LOW BRANCHES! DUCK: HOLD ↓, 44 px wide); trigger `fog` (moving `fx:zone kind=fog` at drift speed or its own `speed`/`width`, ambience `fog` while inside, `lantern` props drifting in it, default buoys) |
+| `ice.ts` | Map property `crack_style` (`ice` default / `wood`: `boardwalk_creak`, `plank_break`, wood debris, a splash). The den pier is the Moose Lake stomp-crack logic unchanged |
+| `arenas.ts`, `spawner.ts` | Kind groups `LEVEL.kinds`: `flyXY` drone/gnat/buzzard (pulled back in x and y), `flyX` airboat (x only, keeps its water lane), `swim` piranha (only ever moved to a water column inside the view, else culled), walkers otherwise (lurker, hopper, leaper); `keepY` kinds keep their authored y when an edge member is placed; gnat/airboat spawn with the flying margin |
+| `props.ts` | Doors `shack_door`, `container_door`; generic gates (`gate`, `mill_gate`, bodies in `LEVEL.gates`); explosive `fuel_drum`; `paddlewheel`/`waterwheel` spin and, on screen, repeat `paddlewheel`/`mill_wheel` + `fx:emit paddle_spray` + small splashes; `crane_hook` (top origin) |
+| `parallax.ts` | Layer options `gaps` (hidden inside camX spans: a local backdrop replaces the band) and `fall` (vertical scroll, rain sheet) |
+| `triggers.ts` | Ambience ids `swamp rain storm fog river`; `setWeather()` (2-2's storm front turns the river to rain) |
+| `background.ts` | Mission 2 moments (below), lightning pulses (cover group `flash` → the lit sky layer, peak 0.3 with reduced flash) and the storm-sky fade (`storm`). Actors now loop their animation (tags are created with repeat 0, so Mission 1 actors used to stop after one cycle); `once` actors play through (bolt, debris, shell rise) |
+| `index.ts` | Wires water and vents; debug fields `water`, `vents`; fog triggers build the train system without making a static map drift |
+| `validate.mjs` | All Mission 2 vocabulary (kinds, bosses, shotgun, props, moments, ambience, `hazard_vent`, `fog`, `channel`, `kind=branch`), sink-log length warning, `sink_gids` check, jumps from mud/shallow clear 2 rows, arena patrol rules for gnat/airboat/piranha, goal = the boss's own arena |
+
+### Parallax (`LEVEL.parallax.sets.m2p1..3`)
+- 2-1 (7): sky, cypress far, stilt village far (`once`, village), bog pump (`span` bog), cypress mid (`gaps` over village and bog),
+  roots near, haze.
+- 2-2 (10): sky + storm sky (`showIn: storm`), riverbank far, BAYOU QUEEN far view (`once`, no drift: it's towing us), riverbank mid
+  (raised to y 60 so the far shore shows above the decks), river surface, haze, wake under the hulls (track band), foam line over the
+  waterline (front band, world speed), foreground speed layer (cypress, moss, reeds at sfX 1.6, screen-fixed vertically).
+- 2-3 (8): storm sky + lightning sky (`showIn: flash`), drowned forest far, Drowned Mill far (`once`), den backdrop (`once`, den),
+  roots near (`gaps` over the den), haze, rain sheet (front, `fall`).
+
+### Background moments and their `bg:event` ids
+| Part | Id (announced) | Trigger | What plays |
+|---|---|---|---|
+| 2-1 | `fireflies_swarm` | zone 0–150 | FX `bg_fireflies_swarm` clouds among the far trunks |
+| 2-1 | `herons` | zone 30–240 (+1.8 s), explosions in it (8 s cooldown) | 7 egrets/herons lift off the far marsh and glide off |
+| 2-1 | `patrol_boat` | one-shot x 66 | Regime patrol boat along the far channel, searchlight sweeping |
+| 2-1 | `wisps` | zone 244–338 | Green will-o'-wisps flicker over the far bog (ADD) |
+| 2-1 | `gator_glimpse` (+ `lightning`) | one-shot x 263 | A strike lights GATORGEDDON's silhouette across the swamp, then dark, eyes glowing, gone (shake 1) |
+| 2-1 | `plane` | hook `wave:pump:2` | the transport plane before the Buzzard drop |
+| 2-1 | `pond_wake`, `pond_shell` | zone 338–372 (repeats 11 s) | a huge wake crosses the far pond, then SHELLSHOCK's shell breaks the surface |
+| 2-2 | `riverbank` | zone, whole map | far-bank shacks and jetties drift past |
+| 2-2 | `gator_pod` | one-shot x 30 | 4 mech-gator ridges cruise past in the river |
+| 2-2 | `burning_barge`, `barge_blast` | one-shot x 110 | a burning wreck drifts by, then explodes (FX explosion + smoke plume) |
+| 2-2 | `skeeter_swarm` | one-shot x 240 | 30 mech mosquitos cross the sky by the moon |
+| 2-2 | `airboat_race` | hook `start:crane` | 3 airboats race along the far channel |
+| 2-2 | `storm_front` (+ `lightning`) | hook `clear:crane` | a strike, the storm sky rolls in over 4 s, ambience → rain, then lightning for the rest of the part |
+| 2-3 | `lightning` | zone, whole map (every 3.5–8 s) | sky flash (lit sky crossfade), a bolt on the horizon, thunder (the id is announced 350 ms after the flash) |
+| 2-3 | `boat_wreck` | one-shot x 18 | burning QUEEN debris topples into the water |
+| 2-3 | `mill_wheel` | zone 118–206 (every 4.2 s) | the painted mill's wheel turns (`bg_millwheel_big` on its hub) and creaks |
+| 2-3 | `den_glow` | zone 206–270 (every 6.5 s) | green reactor glow pulses from the far den, chain rattles |
+| 2-3 | `gator_wake`, `gator_roar` | hook `clear:mill` (+0.9 s, waits until the camera leaves the mill) | GATORGEDDON's ridges slide through the far water, the tail breaks the surface, roar (shake 2) |
+
+### Verification (Phase G)
+- `npm run check`: typecheck clean, `check:phaser4` 112 files, 0 findings. `npm run selftest`: all PASS (one run timed out once
+  under load, the rerun passed).
+- `npm run audit`: reach 1-1..2-3 all PASS (2-1 471/508 standable, 2-2 490/490, 2-3 295/315); arenas all PASS: stilts, pump, crane,
+  mill 3/3 waves with every member killed in view (maxOff 0 ms), SHELLSHOCK, MEGA-SKEETER and GATORGEDDON phases 1/2/3 → PartClear /
+  Results in their real arenas. All six maps validate (0 errors, 0 warnings); Mission 1 maps rebuild byte-identical.
+- Mechanic probes (frozen sim): a sinking log sinks ~800 ms after standing and drowns the player, resurfaces 2.5 s later; a vent flame
+  killed a non-god player (1 hit); the branch hits a standing player on the deck (1 hit) and not a crouching one (0); a `boss:stomp`
+  power 2 opened 2 pier holes that repaired after 5 s.
+- Screenshots: `/tmp/kbe-level/g1/` (2-1 sections), `/tmp/kbe-level/g2/` (2-2), `/tmp/kbe-level/g3/` (2-3), moments
+  `/tmp/kbe-level/bg1|bg2|bg3/`, probes `/tmp/kbe-level/g/` (`p1_pool`, `p1_log_*`, `branch*`, `pier_hole`), map previews
+  `/tmp/kbe-level/m2p1|m2p2|m2p3/`. FPS 59 on SwiftShader in every capture.
+
+### Known issues
+- FX draws fog zones with a hard vertical edge; the 2-1 bog fog rolls in slowly so the edge reads as the bank's front, but a feathered
+  edge would be better. (A static ambience-rect fog drew as a hard dark box, so 2-1 uses a moving bank instead.)
+- Some far moments are deliberately dark (the gator wake, riverbank shacks): they read best with the storm flashes.
+- Background actors move at PRE_RENDER (real frames); tools that freeze the sim must render every ~50 ms or actors look frozen.
+- The paddlewheel housing tiles are a 48 px arch; the 128 px wheel overhangs them (it reads as a wheel in a frame, fine at speed).

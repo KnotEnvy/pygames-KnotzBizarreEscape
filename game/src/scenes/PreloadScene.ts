@@ -4,12 +4,16 @@
 // packs still fail, Preload never routes: it shows the load-error screen (Enter / click / pad retries only what
 // failed) and __KBE.state().loadErrors lists the failures while __KBE.ready stays false. loadErrors is only
 // non-empty on that screen (automatic retries in progress don't count as an error yet).
+// Phase G mission mode (core/missionPacks.ts): started by Game with { missions, next }, it fetches and loads the
+// `<team>.m<N>.json` packs the same way (same bar, retries and error screen), then starts `next` instead of routing.
 import Phaser from 'phaser';
 import { fetchPack, LOAD_ATTEMPTS, LOAD_BACKOFF, type LoadedPack, type PackError } from './BootScene';
 import { PAL } from '../core/textures';
 import { PARAMS } from '../core/params';
 import { registerDebug, setReady } from '../core/debug/hooks';
 import { createAsepriteAnims } from '../core/anims';
+import { markMissionLoaded, missionPackNames, type MissionLoadData } from '../core/missionPacks';
+import { CAMPAIGN } from '../config/campaign';
 
 interface PackFileEntry { type?: string; key?: string; url?: unknown; textureURL?: unknown; fontDataURL?: unknown; atlasURL?: unknown }
 /** One file entry of a pack, with its section (so it can be re-queued under the same baseURL/path/prefix). */
@@ -36,13 +40,16 @@ export class PreloadScene extends Phaser.Scene {
     private status!: Phaser.GameObjects.Text;
     private errorUi: Phaser.GameObjects.GameObject[] = [];
     private onRetry: (() => void) | null = null;
+    /** Mission mode: the missions being loaded and the scene to start afterwards (null = boot mode). */
+    private mission: MissionLoadData | null = null;
 
     constructor() {
         super('Preload');
         registerDebug('loadErrors', () => loadErrors.map(e => ({ ...e })));
     }
 
-    init(data: { packs?: LoadedPack[]; packErrors?: PackError[] }): void {
+    init(data: { packs?: LoadedPack[]; packErrors?: PackError[] } & Partial<MissionLoadData>): void {
+        this.mission = data.missions && data.next ? { missions: [...data.missions], next: data.next } : null;
         this.packs = [];
         this.packErrors = [...(data.packErrors ?? [])];
         this.refs = [];
@@ -59,7 +66,8 @@ export class PreloadScene extends Phaser.Scene {
         const { width, height } = this.scale;
         const bw = 160, bh = 6, bx = (width - bw) / 2, by = height / 2 + 8;
         this.cameras.main.setBackgroundColor(PAL.outline);
-        this.add.text(width / 2, height / 2 - 12, 'KNOTZ BIZARRE ESCAPE', {
+        const m = this.mission ? CAMPAIGN.find(c => c.id === this.mission!.missions[0]) : undefined;
+        this.add.text(width / 2, height / 2 - 12, m ? `MISSION ${m.id}: ${m.name}` : 'KNOTZ BIZARRE ESCAPE', {
             fontFamily: 'monospace', fontSize: '10px', color: '#f0e0a8'
         }).setOrigin(0.5);
         this.barFrame = this.add.graphics();
@@ -84,7 +92,19 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     create(): void {
-        this.settle();
+        if (!this.mission) { this.settle(); return; }
+        // Mission mode: fetch the mission's packs (missing ones skip quietly), then one load pass and settle().
+        const names = this.mission.missions.flatMap(missionPackNames);
+        Promise.all(names.map(fetchPack)).then(results => {
+            if (!this.scene.isActive()) return;
+            const fresh: LoadedPack[] = [];
+            for (const r of results) {
+                if (!r.ok) this.packErrors.push(r.error);
+                else if (r.pack) { this.indexPack(r.pack); fresh.push(r.pack); }
+            }
+            if (fresh.length === 0) { this.settle(); return; }
+            this.reload([], fresh, () => this.settle());
+        });
     }
 
     // ---- load bookkeeping
@@ -174,6 +194,15 @@ export class PreloadScene extends Phaser.Scene {
     private finish(): void {
         this.status.setText('');
         this.createAsepriteAnims();
+        if (this.mission) {
+            for (const n of this.mission.missions) markMissionLoaded(n);
+            console.info(`[preload] mission pack(s) ${this.mission.missions.join(', ')} loaded (${this.packs.map(p => p.team).join(', ') || 'none deployed'})`);
+            // Game sets __KBE.ready at the end of its create(); anything else flips it on create.
+            const { scene, data } = this.mission.next;
+            if (scene !== 'Game') this.scene.get(scene).events.once(Phaser.Scenes.Events.CREATE, () => setReady(true));
+            this.scene.start(scene, data);
+            return;
+        }
         // Readiness = "the requested scene booted and (for Game) every team registered". Game sets it at the end of
         // its own create(); any other target (Title, ...) flips it once its create() has run.
         const target = this.route();

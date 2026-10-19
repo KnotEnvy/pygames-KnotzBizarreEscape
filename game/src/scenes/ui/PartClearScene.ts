@@ -85,7 +85,7 @@ export class PartClearScene extends Phaser.Scene {
         // right: escape route
         panel(this, 200, 44, 174, 150);
         const parts = (partById(this.from.id) && this.missionParts()) || [this.from.part, this.next.part];
-        this.map = new RouteMap(this, P.map.x, P.map.y, this.from.part, this.next.part, parts);
+        this.map = new RouteMap(this, P.map.x, P.map.y, this.from.part, this.next.part, parts, this.from.mission);
         const ny = P.nextY;
         this.nextLabel = text(this, 212, ny, 'NEXT', F.gold).setAlpha(0);
         this.nextTitle = text(this, 244, ny, this.next.title.toUpperCase(), F.hud).setTint(C.fire5).setAlpha(0);
@@ -102,7 +102,10 @@ export class PartClearScene extends Phaser.Scene {
         this.press = text(this, W / 2, 204, 'PRESS START', F.hud, [0.5, 0.5]).setTint(C.sand5).setVisible(false);
         this.menuInput = new MenuInput(this);
         const audio = getAudio(this);
-        this.wind = audio.loop('wind', { volume: 0.4 });
+        // A quiet bed under the map: Pine Ridge wind, the bayou's frogs and crickets (UI.partClear.bed by mission; a mission
+        // bed lives in that mission's pack, so fall back to the wind when it isn't loaded, e.g. a preview from the Title).
+        const bed = UI.partClear.bed[this.from.mission];
+        this.wind = audio.loop(bed && audio.has(bed) ? bed : 'wind', { volume: 0.4 });
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { this.wind?.stop(300); this.wind = null; });
         registerDebug('partClear', () => ({ active: this.scene.isActive(), from: this.from.id, next: this.next.id, phase: this.phase, tallyDone: this.tally.done, arrived: this.map.arrived }));
         wipeIn(this);

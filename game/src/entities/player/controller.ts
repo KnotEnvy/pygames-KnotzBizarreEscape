@@ -3,8 +3,8 @@ import { DEPTH, hasAnim, type GameContext, type Hurtbox, type PlayerQuery } from
 import { PLAYER as T } from '../../config/tuning/player';
 import { Weapons } from '../weapons';
 
-export type Entry = 'walk' | 'jump_down' | 'tumble';
-type ActionState = 'entrance' | 'ready' | 'knife' | 'throw' | 'dead' | 'respawn' | 'victory';
+export type Entry = 'walk' | 'jump_down' | 'tumble' | 'skiff_dock' | 'skiff_barge' | 'wreck_crawl';
+type ActionState = 'entrance' | 'ready' | 'knife' | 'throw' | 'sinking' | 'dead' | 'respawn' | 'victory';
 interface Socket { offsetFromFeet: [number, number]; direction: [number, number] }
 interface Metadata { muzzles: Record<string, { frames: Socket[] }> }
 const RUN_BOB = [1, 0, -1, 0, 1, 0, -1, 0] as const;
@@ -34,12 +34,23 @@ export class Knotz {
     private dust = 0;
     private iceSpark = 0;
     private onIce = false;
+    private surface: string | null = null;
+    private surfaceStep = 0;
+    private surfaceJump = 1;
+    private sinkDeath = false;
+    private sinkY = 0;
+    private sinkBubble = 0;
+    private entryX = 0;
+    private entryY = 0;
+    private entryLanded = false;
+    private lastPumping = false;
     private land = 0;
     private recoil = 0;
     private aimAngle = 0;
     private aimLocked = false;
     private aimTag = 'aim_fwd';
     private metadata: Metadata;
+    private missionMetadata: Metadata | undefined;
     private muzzlePoint = { x: 0, y: 0 };
     private lastLegs = '';
     private lastPose = '';
@@ -55,12 +66,17 @@ export class Knotz {
         this.torso = ctx.scene.add.sprite(x, y, 'knotz_torso_pistol').setOrigin(0.5, 1).setDepth(DEPTH.PLAYER + 1);
         this.full = ctx.scene.add.sprite(x, y, 'knotz_full').setOrigin(0.5, 1).setDepth(DEPTH.PLAYER + 1);
         this.metadata = ctx.scene.cache.json.get('knotz_meta') as Metadata;
+        this.missionMetadata = ctx.scene.cache.json.get('knotz_m2_meta') as Metadata | undefined;
         this.weapons = new Weapons(ctx);
         // RunState has already been restored by Engine before factories run. Publish it for HUD listeners.
         this.weapons.equip(ctx.state.weapon, ctx.state.ammo);
         if (entry) {
             this.change('entrance');
-            if (entry === 'jump_down') { this.body.reset(x, y - 48); this.body.setVelocity(45, 80); }
+            if (this.bayouEntry()) {
+                this.entryX = x; this.entryY = y; this.body.enable = false;
+                this.sprite.setPosition(x - (entry === 'wreck_crawl' ? 28 : 44), y + (entry === 'wreck_crawl' ? 4 : 12));
+            }
+            else if (entry === 'jump_down') { this.body.reset(x, y - 48); this.body.setVelocity(45, 80); }
             else if (entry === 'tumble') { this.body.reset(x, y - 24); this.body.setVelocity(85, -100); }
             else this.body.setVelocityX(50);
         }
@@ -94,20 +110,29 @@ export class Knotz {
             if (ctx.player(index) === query) ctx.setPlayer(null, index);
         });
         ctx.debug.register('shotsFired', () => this.weapons.shotsFired);
-        ctx.debug.register('playerController', () => ({ state: this.state, hp: this.hp, crouch: this.crouch, aim: this.aimAngle, aimTag: this.aimTag, aimLocked: this.aimLocked, facing: this.facing, muzzle: { ...this.muzzle() }, invulnerableMs: this.invulnerable, vx: this.body.velocity.x, vy: this.body.velocity.y, onIce: this.onIce, entry: this.entry, hurtboxTop: this.body.top, hurtboxHeight: this.body.height }));
+        ctx.debug.register('playerController', () => ({ state: this.state, hp: this.hp, crouch: this.crouch, aim: this.aimAngle, aimTag: this.aimTag, aimLocked: this.aimLocked, facing: this.facing, muzzle: { ...this.muzzle() }, invulnerableMs: this.invulnerable, vx: this.body.velocity.x, vy: this.body.velocity.y, onIce: this.onIce, surface: this.surface, pumping: this.weapons.pumping, entry: this.entry, hurtboxTop: this.body.top, hurtboxHeight: this.body.height }));
         ctx.debug.cheat('give', (w: string, ammo?: number) => this.weapons.equip(w, ammo));
         ctx.debug.cheat('kill', () => this.die());
         ctx.events.emit('player:spawn', { x, y, index });
         this.render();
     }
-    private alive(): boolean { return this.state !== 'dead'; }
+    private alive(): boolean { return this.state !== 'dead' && this.state !== 'sinking'; }
+    private bayouEntry(): boolean { return this.entry === 'skiff_dock' || this.entry === 'skiff_barge' || this.entry === 'wreck_crawl'; }
     private change(state: ActionState): void { this.state = state; this.elapsed = 0; this.actionDone = false; }
     private play(sprite: Phaser.GameObjects.Sprite, key: string): void {
         if (sprite.anims.currentAnim?.key !== key && hasAnim(this.ctx.scene, key)) sprite.play(key);
     }
-    private die(): void {
+    private die(hazard?: string | null): void {
         if (!this.alive() || this.state === 'victory') return;
-        this.hp = 0; this.change('dead'); this.weapons.cancel();
+        this.hp = 0; this.weapons.cancel();
+        const water = hazard === 'water' || (!hazard && this.ctx.physics.hazardAt(this.sprite.x, this.body.bottom + 1) === 'water');
+        if (water && this.ctx.scene.textures.exists('knotz_sink')) {
+            this.sinkDeath = true; this.sinkY = this.sprite.y; this.sinkBubble = 0;
+            this.change('sinking'); this.body.setVelocity(0, 0); this.body.enable = false;
+            this.ctx.events.emit('water:splash', { x: this.sprite.x, y: this.sinkY, size: 'l', kind: 'sink' });
+            return;
+        }
+        this.change('dead');
         this.body.setVelocity(0, 0); this.body.enable = false;
         this.ctx.events.emit('player:died', { x: this.sprite.x, y: this.sprite.y, index: this.index });
     }
@@ -115,7 +140,8 @@ export class Knotz {
         this.body.enable = true; this.body.reset(x, y); this.body.setVelocity(0, 0);
         this.hp = this.ctx.state.difficulty === 'casual' ? 3 : 1;
         this.invulnerable = T.respawnMs; this.buffer = this.coyote = 0; this.wasGround = false;
-        this.full.setRotation(0).setOrigin(0.5, 1);
+        this.full.setRotation(0).setOrigin(0.5, 1).setCrop();
+        this.sinkDeath = false; this.surface = null; this.surfaceStep = 0; this.surfaceJump = 1;
         this.change('respawn'); this.weapons.equip('pistol');
         this.ctx.events.emit('player:respawn', { x, y, index: this.index });
     }
@@ -126,7 +152,7 @@ export class Knotz {
     }
     private muzzle(): { x: number; y: number } {
         const tag = this.torso.anims.currentAnim?.key ?? `knotz_pistol_${this.aimTag}`;
-        const frames = this.metadata?.muzzles[tag]?.frames;
+        const frames = (this.missionMetadata?.muzzles[tag] ?? this.metadata?.muzzles[tag])?.frames;
         const frame = frames?.[Math.min(frames.length - 1, Math.max(0, (this.torso.anims.currentFrame?.index ?? 1) - 1))];
         const offset = frame?.offsetFromFeet ?? MUZZLE_FALLBACK;
         this.muzzlePoint.x = this.torso.x + this.facing * offset[0];
@@ -138,8 +164,37 @@ export class Knotz {
         this.elapsed += dt; this.invulnerable = Math.max(0, this.invulnerable - dt);
         this.crouchEnter = Math.max(0, this.crouchEnter - dt);
         this.recoil = Math.max(0, this.recoil - dt); this.skid = Math.max(0, this.skid - dt); this.land = Math.max(0, this.land - dt);
+        if (this.state === 'sinking') {
+            this.sinkBubble -= dt;
+            if (this.sinkBubble <= 0) {
+                this.sinkBubble = 150;
+                this.ctx.events.emit('fx:emit', { effect: 'bubbles', x: this.sprite.x + this.facing * 4, y: this.sinkY - 9, count: 2, material: 'water', team: 'player' });
+            }
+            this.sprite.y = this.sinkY + Math.min(42, this.elapsed * 0.045);
+            if (this.elapsed >= T.sinkMs) {
+                this.change('dead');
+                this.ctx.events.emit('player:died', { x: this.sprite.x, y: this.sinkY, index: this.index });
+            }
+            this.render(); return;
+        }
         if (this.state === 'dead') { this.render(); return; }
         if (this.state === 'victory') { this.body.setVelocityX(0); this.render(); return; }
+        if (this.state === 'entrance' && this.bayouEntry()) {
+            const progress = Math.min(1, this.elapsed / T.bayouEntranceMs);
+            const crawl = this.entry === 'wreck_crawl';
+            const travel = crawl ? progress : Math.min(1, progress / 0.78);
+            const arc = this.entry === 'skiff_barge' ? 48 : 33;
+            this.sprite.setPosition(this.entryX - (crawl ? 28 : 44) * (1 - travel),
+                this.entryY + (crawl ? (1 - progress) * 4 : 12 * (1 - travel) - Math.sin(travel * Math.PI) * arc));
+            if (!this.entryLanded && (crawl ? progress >= 0.85 : progress >= 0.78)) {
+                this.entryLanded = true;
+                this.ctx.events.emit('player:land', { x: this.entryX, y: this.entryY, vy: 150, index: this.index });
+                if (this.ctx.physics.surfaceAt(this.entryX, this.entryY + 1) === 'shallow' || crawl) this.ctx.events.emit('water:splash', { x: this.entryX, y: this.entryY, size: 'm', kind: 'enter' });
+            }
+            if (progress < 1) { this.render(); return; }
+            this.body.enable = true; this.body.reset(this.entryX, this.entryY); this.body.setVelocity(0, 0);
+            this.full.setRotation(0).setOrigin(0.5, 1); this.wasGround = true; this.change('ready'); this.render(); return;
+        }
         if (this.state === 'entrance') {
             const grounded = this.body.blocked.down || this.body.touching.down;
             if (this.elapsed >= T.entranceMaxMs || (this.entry === 'walk' ? this.elapsed >= T.entranceWalkMs : grounded && this.elapsed >= T.entranceMinMs)) {
@@ -150,8 +205,15 @@ export class Knotz {
         const ctx = this.ctx, input = ctx.inputFor(this.index), aim = input.aim();
         const ground = this.body.blocked.down || this.body.touching.down;
         this.aimLocked = input.isDown('aimlock');
+        this.surface = ground ? ctx.physics.surfaceAt(this.sprite.x, this.body.bottom + 1) : null;
+        const wet = this.surface === 'shallow', muddy = this.surface === 'mud';
+        const surfaceTuning = wet ? T.surface.shallow : muddy ? T.surface.mud : null;
+        if (ground) this.surfaceJump = surfaceTuning?.jump ?? 1;
         if (ground && !this.wasGround) {
-            this.land = 130; ctx.events.emit('player:land', { x: this.sprite.x, y: this.sprite.y, vy: this.lastVy, index: this.index }); ctx.audio.sfx('land');
+            this.land = 130; ctx.events.emit('player:land', { x: this.sprite.x, y: this.sprite.y, vy: this.lastVy, index: this.index });
+            if (wet) ctx.events.emit('water:splash', { x: this.sprite.x, y: this.body.bottom, size: 'm', kind: 'enter' });
+            else if (muddy) this.mudStep(true);
+            else ctx.audio.sfx('land');
         }
         this.wasGround = ground; this.lastVy = this.body.velocity.y;
         this.coyote = ground ? T.coyoteMs : this.coyote - dt;
@@ -175,10 +237,16 @@ export class Knotz {
             this.body.prevFrame.x += dx; this.body.prevFrame.y += dy;
             this.body.updateCenter();
         }
-        this.onIce = ground && (ctx.physics as { surfaceAt?(x: number, y: number): string | null }).surfaceAt?.(this.sprite.x, this.body.bottom + 1) === 'ice';
-        const target = (this.aimLocked ? 0 : aim.x) * (this.crouch ? T.crouchRun : T.run);
+        this.onIce = this.surface === 'ice';
+        const target = (this.aimLocked ? 0 : aim.x) * (this.crouch ? T.crouchRun : T.run) * (surfaceTuning?.speed ?? 1);
+        this.surfaceStep -= dt;
+        if (ground && (wet || muddy) && Math.abs(this.body.velocity.x) > 12 && this.surfaceStep <= 0) {
+            this.surfaceStep = T.surfaceStepMs;
+            if (wet) ctx.events.emit('water:splash', { x: this.sprite.x, y: this.body.bottom, size: 's', kind: 'step' });
+            else this.mudStep(false);
+        }
         if (target * this.body.velocity.x < 0) {
-            if (ground && !this.onIce && this.skid <= 0) ctx.events.emit('fx:emit', { effect: 'dust_skid', x: this.sprite.x, y: this.sprite.y, material: ctx.physics.materialAt(this.sprite.x, this.sprite.y + 1), team: 'player' });
+            if (ground && !this.onIce && !wet && !muddy && this.skid <= 0) ctx.events.emit('fx:emit', { effect: 'dust_skid', x: this.sprite.x, y: this.sprite.y, material: ctx.physics.materialAt(this.sprite.x, this.sprite.y + 1), team: 'player' });
             this.skid = T.skidMs;
         }
         this.iceSpark -= dt;
@@ -187,18 +255,18 @@ export class Knotz {
             ctx.events.emit('fx:emit', { effect: 'ice_skid', x: this.sprite.x, y: this.body.bottom });
         }
         this.dust -= dt;
-        if (ground && !this.onIce && Math.abs(this.body.velocity.x) > 20 && this.dust <= 0) {
+        if (ground && !this.onIce && !wet && !muddy && Math.abs(this.body.velocity.x) > 20 && this.dust <= 0) {
             this.dust = T.dustMs;
             ctx.events.emit('fx:emit', { effect: 'dust_run', x: this.sprite.x - this.facing * 4, y: this.sprite.y, material: ctx.physics.materialAt(this.sprite.x, this.sprite.y + 1), team: 'player', scale: this.crouch ? 0.6 : 1 });
         }
-        const vx = this.body.velocity.x, step = (this.onIce ? (this.aimLocked || this.crouch ? T.iceBrake : target === 0 ? T.iceDeceleration : T.iceAcceleration) : T.acceleration) * dt / 1000;
+        const vx = this.body.velocity.x, step = (this.onIce ? (this.aimLocked || this.crouch ? T.iceBrake : target === 0 ? T.iceDeceleration : T.iceAcceleration) : muddy ? T.mudAcceleration : T.acceleration) * dt / 1000;
         this.body.setVelocityX(vx + Math.sign(target - vx) * Math.min(Math.abs(target - vx), step));
         if (this.buffer > 0 && this.coyote > 0) {
             this.buffer = this.coyote = 0;
             if (aim.y > 0 && ctx.physics.onOneWay(this.sprite)) ctx.physics.dropThrough(this.sprite);
             else {
-                this.body.setVelocityY(-T.jump); this.wasGround = false;
-                ctx.events.emit('player:jump', { x: this.sprite.x, y: this.sprite.y, vy: -T.jump, index: this.index }); ctx.audio.sfx('jump');
+                this.body.setVelocityY(-T.jump * this.surfaceJump); this.wasGround = false;
+                ctx.events.emit('player:jump', { x: this.sprite.x, y: this.sprite.y, vy: -T.jump * this.surfaceJump, index: this.index }); ctx.audio.sfx('jump');
             }
         }
         if (!input.isDown('jump') && this.body.velocity.y < -T.jumpCut) this.body.setVelocityY(-T.jumpCut);
@@ -237,9 +305,12 @@ export class Knotz {
         const cx = ctx.camera.clampX(this.sprite.x, 8);
         if (cx !== this.sprite.x) { this.sprite.x = cx; this.body.updateFromGameObject(); this.body.setVelocityX(0); }
         const hazard = ctx.physics.hazardAt(this.sprite.x, this.sprite.y - 2);
-        if (!ctx.cheats.god && hazard === 'water') ctx.events.emit('fx:emit', { effect: 'splash', x: this.sprite.x, y: this.sprite.y, material: 'water', team: 'player' });
-        if ((!ctx.cheats.god && hazard) || this.sprite.y > ctx.level.bounds.bottom + 32) this.die();
+        if ((!ctx.cheats.god && hazard) || this.sprite.y > ctx.level.bounds.bottom + 32) this.die(hazard);
         this.render();
+    }
+    private mudStep(landing: boolean): void {
+        this.ctx.events.emit('fx:emit', { effect: 'mud_splat', x: this.sprite.x, y: this.body.bottom, scale: landing ? 1.5 : 0.65, count: landing ? 8 : 3, material: 'mud', team: 'player' });
+        this.ctx.audio.sfx('mud_step', { x: this.sprite.x, volume: landing ? 1 : 0.65, detune: landing ? -350 : 0 });
     }
     private sync(): void {
         const tag = this.sprite.anims.currentAnim?.key;
@@ -252,27 +323,39 @@ export class Knotz {
     }
     private render(shooting = false): void {
         this.sync();
-        const full = this.state === 'dead' || this.state === 'respawn' || this.state === 'victory' || (this.state === 'entrance' && this.entry === 'tumble');
+        const full = this.state === 'sinking' || this.state === 'dead' || this.state === 'respawn' || this.state === 'victory' || (this.state === 'entrance' && (this.entry === 'tumble' || this.entry === 'wreck_crawl'));
         this.sprite.setVisible(!full); this.torso.setVisible(!full); this.full.setVisible(full);
         const alpha = this.state !== 'entrance' && this.invulnerable > 0 && Math.floor(this.invulnerable / 80) % 2 === 0 ? 0.25 : 1;
         this.sprite.setAlpha(alpha); this.torso.setAlpha(alpha); this.full.setAlpha(this.state === 'dead' ? 1 : alpha);
         if (this.state === 'entrance' && this.entry === 'tumble') {
             this.full.setOrigin(0.5, 0.65).setPosition(this.sprite.x, this.sprite.y - 17).setRotation(this.elapsed / T.entranceMinMs * Math.PI * 2);
         }
+        if (this.state === 'sinking' || (this.state === 'dead' && this.sinkDeath)) {
+            if (this.full.texture.key !== 'knotz_sink') this.full.setTexture('knotz_sink');
+            this.full.setCrop(0, 0, 48, Math.max(0, 48 - (this.sprite.y - this.sinkY))).setAlpha(this.state === 'dead' ? 0 : 1);
+            this.play(this.full, 'knotz_sink_flail'); return;
+        }
+        const fullTexture = this.state === 'entrance' && this.entry === 'wreck_crawl' ? 'knotz_crawl' : 'knotz_full';
+        if (this.full.texture.key !== fullTexture) this.full.setTexture(fullTexture).setCrop();
+        if (this.state === 'entrance' && this.entry === 'wreck_crawl') { this.play(this.full, 'knotz_crawl_emerge'); return; }
         if (full) { this.play(this.full, this.state === 'dead' ? 'knotz_death' : this.state === 'victory' ? 'knotz_victory' : 'knotz_respawn_drop'); return; }
         const ground = this.body.blocked.down || this.body.touching.down;
         const moving = Math.abs(this.body.velocity.x) > 5;
-        const legs = !ground ? (this.body.velocity.y < 0 ? 'jump_rise' : 'jump_fall') : this.crouch ? (this.crouchEnter > 0 ? 'crouch_enter' : moving ? 'crouch_walk' : 'crouch_idle') : this.skid > 0 ? 'skid' : this.land > 0 ? 'land' : moving ? 'run' : 'idle';
+        const entryAir = this.state === 'entrance' && this.bayouEntry() && !this.entryLanded;
+        const entryLanding = this.state === 'entrance' && this.bayouEntry() && this.entryLanded;
+        const legs = entryLanding ? 'land' : entryAir ? (this.elapsed < 390 ? 'jump_rise' : 'jump_fall') : !ground ? (this.body.velocity.y < 0 ? 'jump_rise' : 'jump_fall') : this.crouch ? (this.crouchEnter > 0 ? 'crouch_enter' : moving ? 'crouch_walk' : 'crouch_idle') : this.skid > 0 ? 'skid' : this.land > 0 ? 'land' : moving ? 'run' : 'idle';
         if (legs !== this.lastLegs) { this.lastLegs = legs; this.play(this.sprite, `knotz_legs_${legs}`); }
-        const variant = this.ctx.state.weapon === 'hmg' ? 'heavy' : this.ctx.state.weapon;
+        const weaponVariant = this.ctx.state.weapon === 'hmg' ? 'heavy' : this.ctx.state.weapon;
+        const variant = this.ctx.scene.textures.exists(`knotz_torso_${weaponVariant}`) ? weaponVariant : 'spread';
         if (variant !== this.lastVariant) { this.torso.stop(); this.torso.setTexture(`knotz_torso_${variant}`); this.lastVariant = variant; this.lastPose = ''; }
         let renderedAim = this.aimTag;
 
         if (this.crouchEnter > 55 && renderedAim === 'crouch_fwd') renderedAim = 'aim_fwd';
         const firing = shooting || this.recoil > 0;
-        if (!this.lastPose || renderedAim !== this.lastRenderedAim || this.state !== this.lastAction || firing !== this.lastShooting) {
-            const pose = this.state === 'knife' ? 'knife' : this.state === 'throw' ? 'grenade_throw' : firing ? renderedAim + '_shoot' : renderedAim;
-            this.lastPose = pose; this.lastRenderedAim = renderedAim; this.lastAction = this.state; this.lastShooting = firing;
+        const pumping = variant === 'shotgun' && this.weapons.pumping && this.state === 'ready';
+        if (!this.lastPose || renderedAim !== this.lastRenderedAim || this.state !== this.lastAction || firing !== this.lastShooting || pumping !== this.lastPumping) {
+            const pose = this.state === 'knife' ? 'knife' : this.state === 'throw' ? 'grenade_throw' : pumping ? renderedAim + '_pump' : firing ? renderedAim + '_shoot' : renderedAim;
+            this.lastPose = pose; this.lastRenderedAim = renderedAim; this.lastAction = this.state; this.lastShooting = firing; this.lastPumping = pumping;
             this.play(this.torso, `knotz_${variant}_${pose}`);
         }
         this.sync();

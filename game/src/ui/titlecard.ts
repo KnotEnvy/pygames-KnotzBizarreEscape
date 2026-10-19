@@ -1,10 +1,13 @@
 // Part title card (Phase E), shown by the HUD on part:start: "MISSION 1 · PART II" slides in, the part title slams
 // (Callout), the location fades in, and Hazel's radio box opens underneath. Everything is non-blocking and times
 // itself out; hide() cancels it (stage clear, game over).
+// Phase G: a mission's first part carries the mission banner instead of the part numeral ("MISSION 2 · BAYOU BLACKOUT"),
+// so the mission name shows even when the Intro slam is skipped (?fast=1, a restart).
 import Phaser from 'phaser';
 import type { GameEvents } from '../core';
 import { getAudio } from '../audio';
 import { UI } from '../config/tuning/ui';
+import { missionOf } from '../config/campaign';
 import { C, F, W, bar, roman, text } from './widgets';
 import { Callout } from './callout';
 import { RadioBox } from './radio';
@@ -22,6 +25,8 @@ export class TitleCard {
     private readonly title: Callout;
     private readonly location: Phaser.GameObjects.BitmapText;
     private readonly timers: Phaser.Time.TimerEvent[] = [];
+    /** The radio's open timer lives apart from the card's own timers: a weapon callout cuts the card but Hazel still talks. */
+    private radioTimer: Phaser.Time.TimerEvent | null = null;
     private shown: PartStartInfo | null = null;
     private visible = false;
 
@@ -52,9 +57,10 @@ export class TitleCard {
         const T = UI.titleCard;
         this.after(delayMs, () => {
             this.visible = true;
-            // mission line: "MISSION n ● PART II" centred, slid in from the left
+            // mission line: "MISSION n ● PART II" centred, slid in from the left; the first part shows the mission's name instead.
+            const mission = info.part === 1 ? missionOf(info.id)?.name : undefined;
             this.missionText.setText(`MISSION ${info.mission}`);
-            this.partText.setText(`PART ${roman(info.part)}`);
+            this.partText.setText(mission ? mission.toUpperCase() : `PART ${roman(info.part)}`).setTint(mission ? C.fire5 : C.white);
             const gap = 5;
             const w = this.missionText.width + gap + 2 + gap + this.partText.width;
             this.missionText.setPosition(0, 0);
@@ -71,7 +77,7 @@ export class TitleCard {
                 this.location.setText(info.location.toUpperCase()).setAlpha(0);
                 this.scene.tweens.add({ targets: this.location, alpha: 1, duration: 200 });
             });
-            this.after(UI.radio.delayMs, () => this.radio.open(info.briefing ?? []));
+            this.radioTimer = this.scene.time.delayedCall(UI.radio.delayMs, () => this.radio.open(info.briefing ?? []));
             this.after(T.titleAt + T.holdMs, () => this.out());
         });
     }
@@ -79,6 +85,9 @@ export class TitleCard {
     private out(): void {
         if (!this.visible) return;
         this.visible = false;
+        // Pending title/location reveals must not land on top of whatever cut the card (Phase G: a weapon callout on part start).
+        for (const t of this.timers) t.remove(false);
+        this.timers.length = 0;
         const T = UI.titleCard;
         this.scene.tweens.add({ targets: this.missionLine, x: W + 40, alpha: 0, duration: T.outMs, ease: 'Quad.easeIn', onComplete: () => this.missionLine.setVisible(false) });
         this.scene.tweens.add({ targets: this.location, alpha: 0, duration: T.outMs });
@@ -100,6 +109,8 @@ export class TitleCard {
     hide(silent = false): void {
         for (const t of this.timers) t.remove(false);
         this.timers.length = 0;
+        this.radioTimer?.remove(false);
+        this.radioTimer = null;
         if (this.visible) {
             this.visible = false;
             this.scene.tweens.killTweensOf([this.missionLine, this.location]);

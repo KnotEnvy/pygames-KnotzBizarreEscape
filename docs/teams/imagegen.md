@@ -107,3 +107,73 @@ All 14 new assets rebuilt successfully and pass exact palette membership and bin
 Viewed the final three part composites, red-enemy / yellow-white bullet readability swatches, repeated strips, isolated feature sheet (`/tmp/kbe-imagegen/f-features.png`), and all four actors together. The first aurora source was rejected for excessive texture after reduction; its retained `_v1` source is unused. The selected source has broad, cleaner aurora curtains. Exact prompts are retained in `prompts_f.json`; built-in image generation was used throughout.
 
 `npm run check` and `npm run audit` passed (all three parts). The audit and screenshot initially hit sandbox localhost restrictions and passed after running with local-server access. Viewed `/tmp/kbe-imagegen/f-runtime-stage1.png`; console clean. That screenshot verifies the current build only, not integration of these additional textures. No runtime registration, actor motion, FX, git index, branch, or commit changes were made by Imagegen.
+
+## Phase G — BAYOU BLACKOUT
+
+Delivered 18 painterly layers across m2p1/m2p2/m2p3, including river drift strips, the BAYOU QUEEN far view, Drowned Mill, den, storm front and lightning sky. Built-in imagegen was used for every source. No small actors were painted. Sources `raw_g_*.png`, exact generation/edit prompts `prompts_g.json`, offline processor `process_g.py`, and machine-readable `manifest_g.json` live in `game/art-src/backgrounds/gen/`. The original dusk sky is retained as `raw_g_m2p1_sky_v1.png`; its selected revision makes the low moon survive quantization.
+
+Paths below are relative to `game/public/assets/backgrounds/`. X/Y origin is top-left. Y is suggested screen-space top at the default camera. Draw by depth; all depths are below TILES_BACK=20. Scroll Y should follow the existing background convention; listed factors are X. These are integration suggestions, not collision geometry.
+
+| File | Size | Scroll X | Y | Depth band/value | Tiles horizontally |
+|---|---:|---:|---:|---|---|
+| m2p1/gen_sky.png | 384×216 | 0.015 | 0 | BG_FAR 0 | Yes |
+| m2p1/gen_cypress_far.png | 768×124 | 0.1 | 65 | BG_FAR 2 | Yes |
+| m2p1/gen_village_far.png | 768×104 | 0.17 | 91 | BG_FAR 4 | No (once) |
+| m2p1/gen_bog_pump.png | 768×100 | 0.2 | 115 | BG_FAR 5 | Yes |
+| m2p1/gen_cypress_mid.png | 768×150 | 0.28 | 77 | BG_FAR 7 | Yes |
+| m2p1/gen_roots_near.png | 768×74 | 0.42 | 153 | BG_NEAR 12 | Yes |
+| m2p2/gen_sky.png | 384×216 | 0.015 | 0 | BG_FAR 0 | Yes |
+| m2p2/gen_sky_storm.png | 384×216 | 0.015 | 0 | BG_FAR 0 | Yes |
+| m2p2/gen_riverbank_far.png | 768×116 | 0.1 | 73 | BG_FAR 2 | Yes |
+| m2p2/gen_bayou_queen_far.png | 320×90 | 0.16 | 91 | BG_FAR 4 | No (once) |
+| m2p2/gen_riverbank_mid.png | 768×106 | 0.23 | 110 | BG_FAR 7 | Yes |
+| m2p2/gen_river_surface.png | 768×64 | 0.36 | 153 | BG_NEAR 11 | Yes |
+| m2p3/gen_sky.png | 384×216 | 0.015 | 0 | BG_FAR 0 | Yes |
+| m2p3/gen_sky_lightning.png | 384×216 | 0.015 | 0 | BG_FAR 0 | Yes |
+| m2p3/gen_forest_far.png | 768×126 | 0.1 | 63 | BG_FAR 2 | Yes |
+| m2p3/gen_mill_far.png | 768×148 | 0.2 | 62 | BG_FAR 6 | No (once) |
+| m2p3/gen_den_backdrop.png | 768×132 | 0.24 | 83 | BG_FAR 8 | No (once) |
+| m2p3/gen_roots_near.png | 768×78 | 0.4 | 151 | BG_NEAR 12 | Yes |
+
+The Mission 2 pack is `game/public/assets/packs/imagegen.m2.json`, with keys `bg_<map>_<name>` (e.g. `bg_m2p1_sky`, `bg_m2p3_den_backdrop`; omit the filename's `gen_`). It contains all 18 textures. Engine's current `MISSION_PACK_TEAMS` does not yet include `imagegen`; request below.
+
+### Rebuild and visual inspection
+
+```sh
+UV_CACHE_DIR=/tmp/kbe-imagegen/uv-cache /home/knotz2/.local/bin/uv run --offline --with pillow,numpy python game/art-src/backgrounds/gen/process_g.py
+```
+
+BOX downsampling, restrained atmospheric contrast, nearest master-palette quantization with no dithering, and alpha threshold 128. Repeats use a 48 px premultiplied overlap before quantization plus identical boundary columns. All non-sky sources retain real generated transparency; no color-keying or checkerboard removal. No palette additions.
+
+Opened and inspected every final layer in `/tmp/kbe-imagegen/g-m2p1-layers.png`, `g-m2p2-layers.png`, `g-m2p3-layers.png`; every repeating layer in the corresponding `g-m2p1-repeats.png`, `g-m2p2-repeats.png`, `g-m2p3-repeats.png` (three horizontal copies). No hard wrap seam observed.
+
+Inspected native 384×216 composites, including both horizontal phases and every local set-piece/weather variant, in:
+
+- `/tmp/kbe-imagegen/g-m2p1-native-gallery.png` (forest, village, bog)
+- `/tmp/kbe-imagegen/g-m2p2-native-gallery.png` (moon, storm, boat)
+- `/tmp/kbe-imagegen/g-m2p3-native-gallery.png` (forest, mill, den, lightning)
+
+Opened enlarged composites:
+
+- `/tmp/kbe-imagegen/g-m2p1-forest-p0-3x.png`
+- `/tmp/kbe-imagegen/g-m2p2-boat-p0-3x.png`
+- `/tmp/kbe-imagegen/g-m2p3-mill-p0-3x.png`
+- `/tmp/kbe-imagegen/g-m2p3-den-p0-3x.png`
+- `/tmp/kbe-imagegen/g-m2p3-lightning-p0-3x.png`
+
+Also inspected `g-m2p1-forest-p0-readability.png`, `g-m2p2-boat-p0-readability.png`, `g-m2p3-den-p0-readability.png` under the same scratch directory: simple red enemy/khaki head and 4–6 px bright bullet swatches stay distinct. These are art-only compositions and swatches, not in-engine captures.
+
+### Integration/tuning
+
+Use village and bog as local alternatives to the dense mid cypress band, so the architecture remains visible. Roots remain the lowest visual band behind gameplay. Riverbanks and water can drift continuously at the listed factors. The BAYOU QUEEN is a large once-only set piece, not a small animated actor. The mill is a 768 px panorama: its wheel is on the left and crane on the right, so reveal it through scrolling rather than trying to show the entire building in one 384 px view. Den and mill are separate local backdrops. Sky variants share output dimensions and scroll factor; use identical tile position when crossfading. Lightning was generated as an illumination edit of the storm source; clouds remain closely aligned. Reduced-flash gating belongs to Levels/FX. Rain streaks in the storm source are deliberately subtle and largely disappear at palette/native scale; FX supplies readable animated rain.
+
+### Validation and limits
+
+All 18 outputs passed exact master-palette membership and binary-alpha assertions; all 13 non-skies contain transparent pixels, and all 14 repeating layers pass identical left/right RGBA-column assertions. `npm --prefix game run check` passed again at handoff (109 Phaser files, zero errors/warnings). All 18 pack URLs exist and keys are unique across currently deployed packs; final PNG payload totals 289,888 bytes. `node game/tools/arena-audit.mjs --part 2-1` currently exits 2: unknown part; its local PARTS table still only contains Mission 1. No runtime integration or Mission 2 arena acceptance is claimed. No git state changes, gameplay files, dev servers or browser processes were made/started by this team.
+
+### Requests for other teams
+
+- Engine: add `imagegen` to `MISSION_PACK_TEAMS` so `packs/imagegen.m2.json` loads on demand.
+- Levels: integrate the pack keys using the table; tune Y against terrain/camera, reveal once-only village/boat/mill/den locally, and crossfade sky variants with reduced-flash settings. Animate wheel, glow, rain and small background actors separately.
+- Engine/QA: extend arena audit to Mission 2, then run acceptance after map and art integration. Runtime inspection URLs after integration: `/?scene=Game&part=2-1&fast=1&god=1&mute=1`, likewise `part=2-2` and `part=2-3`.
+

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DEPTH, type GameContext, type Projectile } from '../../core';
+import { DEPTH, type GameContext, type Projectile, type Hurtbox } from '../../core';
 import { PLAYER as T, isWeapon, type Weapon } from '../../config/tuning/player';
 
 export class Weapons {
@@ -14,6 +14,13 @@ export class Weapons {
         laser_muzzle: [], laser_impact: [],
     };
     private flashNext = { laser_muzzle: 0, laser_impact: 0 };
+    private pumpAge = -1;
+    private pumpEjected = false;
+    private pumpAngle = 0;
+    private pellets: { sprite: Phaser.GameObjects.Sprite; x: number; y: number; dx: number; dy: number; age: number; limit: number }[] = [];
+    private coneTargets: { h: Hurtbox; x: number; y: number; distance: number }[] = [];
+    private coneOwners = new Set<unknown>();
+    get pumping(): boolean { return this.pumpAge >= T.shotgunPumpMs - 90 && this.pumpAge < T.shotgunPumpEndMs; }
     constructor(private ctx: GameContext) {
         for (const texture of ['laser_muzzle', 'laser_impact'] as const) {
             for (let i = 0; i < 2; i++) {
@@ -23,7 +30,14 @@ export class Weapons {
                 this.flashes[texture].push(spr);
             }
         }
+        // Tracers are visual only: cone damage is resolved exactly once at the trigger.
+        for (let i = 0; i < 5; i++) this.pellets.push({
+            sprite: ctx.scene.add.sprite(0, 0, ctx.scene.textures.exists('shotgun_pellet') ? 'shotgun_pellet' : 'pistol_bullet').setDepth(DEPTH.PROJECTILES).setVisible(false),
+            x: 0, y: 0, dx: 0, dy: 0, age: -1, limit: 0,
+        });
         ctx.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            for (const p of this.pellets) p.sprite.destroy();
+            this.pellets.length = 0;
             for (const pool of Object.values(this.flashes)) {
                 for (const spr of pool) spr.destroy();
                 pool.length = 0;
@@ -32,23 +46,46 @@ export class Weapons {
     }
     equip(name: string, ammo?: number): void {
         if (!isWeapon(name)) return;
-        this.flameLeft = 0;
+        this.cancel();
         this.ctx.state.setWeapon(name, name === 'pistol' ? Infinity : Math.max(0, ammo ?? T.ammo[name]));
         this.sinceShot = Infinity;
     }
     update(dt: number, muzzle: { x: number; y: number }): void {
         this.sinceShot += dt;
+        if (this.ctx.state.weapon !== 'shotgun') this.pumpAge = -1;
+        if (this.pumpAge >= 0) {
+            this.pumpAge += dt;
+            if (!this.pumpEjected && this.pumpAge >= T.shotgunPumpMs) {
+                this.pumpEjected = true;
+                this.ctx.events.emit('fx:emit', { effect: 'shotgun_pump', x: muzzle.x, y: muzzle.y, angle: this.pumpAngle, team: 'player' });
+                this.ctx.events.emit('fx:emit', { effect: 'casing', x: muzzle.x - Math.cos(this.pumpAngle) * 10, y: muzzle.y, angle: this.pumpAngle, scale: 1.3, count: 1, team: 'player' });
+            }
+            if (this.pumpAge >= T.shotgunMs) {
+                this.pumpAge = -1;
+                if (this.ctx.state.weapon === 'shotgun' && this.ctx.state.ammo <= 0) this.ctx.state.setWeapon('pistol', Infinity);
+            }
+        }
+        for (const p of this.pellets) {
+            if (p.age < 0) continue;
+            p.age += dt;
+            const distance = p.age * 0.9;
+            if (distance >= p.limit) { p.age = -1; p.sprite.setVisible(false); }
+            else p.sprite.setPosition(p.x + p.dx * distance, p.y + p.dy * distance);
+        }
         if (this.flameLeft > 0) {
             this.flameLeft -= dt; this.flameTick -= dt;
             if (this.flameTick <= 0) { this.flameTick += T.flameTickMs; this.flame(muzzle.x, muzzle.y, this.flameAngle); }
         }
     }
-    cancel(): void { this.flameLeft = 0; }
+    cancel(): void {
+        this.flameLeft = 0; this.pumpAge = -1;
+        for (const p of this.pellets) { p.age = -1; p.sprite.setVisible(false); }
+    }
     fire(x: number, y: number, angle: number, tapped: boolean): boolean {
         const ctx = this.ctx;
         const w: Weapon = isWeapon(ctx.state.weapon) ? ctx.state.weapon : 'pistol';
         const interval = w === 'pistol' ? (tapped ? T.pistolTapMs : T.pistolHoldMs) :
-            w === 'laser' ? T.laserMs : w === 'hmg' ? T.hmgMs : w === 'spread' ? T.spreadMs : w === 'rocket' ? T.rocketMs : T.flameMs;
+            w === 'shotgun' ? T.shotgunMs : w === 'laser' ? T.laserMs : w === 'hmg' ? T.hmgMs : w === 'spread' ? T.spreadMs : w === 'rocket' ? T.rocketMs : T.flameMs;
         if (this.sinceShot < interval) return false;
         if (w !== 'pistol' && ctx.state.ammo <= 0) { this.equip('pistol'); return false; }
         let shotAngle = angle;
@@ -60,20 +97,62 @@ export class Weapons {
         this.lastAngle = shotAngle;
         this.sinceShot = 0;
         if (w === 'spread') for (let i = -2; i <= 2; i++) this.bullet(x, y, angle + i * Math.PI / 18, w);
+        else if (w === 'shotgun') this.shotgun(x, y, angle);
         else if (w === 'laser') this.laser(x, y, angle);
         else if (w === 'rocket') this.rocket(x, y, angle);
         else if (w === 'flame') { this.flameLeft = T.flameBurstMs; this.flameAngle = angle; this.flameTick = T.flameTickMs; this.flame(x, y, angle); }
         else this.bullet(x, y, shotAngle, w);
         this.shotsFired++;
         ctx.events.emit('player:shoot', { weapon: w, x, y, angle: shotAngle });
-        ctx.audio.sfx(w, { x });
+        if (w !== 'shotgun') ctx.audio.sfx(w, { x }); // Shotgun fire/pump are event-driven by Audio.
         if (w !== 'pistol') {
             ctx.fx.shake(1);
             const remaining = ctx.state.ammo - 1;
-            if (remaining <= 0) ctx.state.setWeapon('pistol', Infinity);
+            // Let the last shotgun round finish its recoil and pump before drawing the pistol.
+            if (remaining <= 0 && w !== 'shotgun') ctx.state.setWeapon('pistol', Infinity);
             else ctx.state.ammo = remaining;
         }
         return true;
+    }
+    private clearRay(x: number, y: number, dx: number, dy: number, distance: number): number {
+        for (let d = 0; d <= distance; d += 2) if (this.ctx.physics.solidAt(x + dx * d, y + dy * d)) return d;
+        return distance;
+    }
+    private shotgun(x: number, y: number, angle: number): void {
+        const ctx = this.ctx, range = T.shotgunRange, dx = Math.cos(angle), dy = Math.sin(angle);
+        this.pumpAge = 0; this.pumpEjected = false; this.pumpAngle = angle;
+        this.seekRect.setTo(x - range, y - range, range * 2, range * 2);
+        // Snapshot before hit callbacks reuse DamageService's query buffers.
+        this.coneTargets.length = 0; this.coneOwners.clear();
+        for (const h of ctx.damage.queryRect(this.seekRect, 'player')) {
+            const r = ctx.damage.rectOf(h);
+            const along = Math.max(0, Math.min(range, (r.centerX - x) * dx + (r.centerY - y) * dy));
+            const hx = Math.max(r.left, Math.min(r.right, x + dx * along));
+            const hy = Math.max(r.top, Math.min(r.bottom, y + dy * along));
+            const vx = hx - x, vy = hy - y, distance = Math.hypot(vx, vy);
+            const dot = vx * dx + vy * dy;
+            if (distance > range || dot < 0 || (distance > 2 && dot / distance < Math.cos(T.shotgunHalfAngle))) continue;
+            if (distance > 0 && this.clearRay(x, y, vx / distance, vy / distance, distance) < distance - 1) continue;
+            this.coneTargets.push({ h, x: hx, y: hy, distance });
+        }
+        this.coneTargets.sort((a, b) => a.distance - b.distance);
+        let hits = 0;
+        for (const target of this.coneTargets) {
+            const owner = target.h.owner ?? target.h;
+            if (this.coneOwners.has(owner)) continue;
+            const damage = target.distance <= 24 ? T.shotgunCloseDamage : target.distance <= 48 ? T.shotgunMidDamage : T.shotgunFarDamage;
+            if (ctx.damage.deal(target.h, { damage, source: 'player', x: target.x, y: target.y, dirX: dx, dirY: dy, kind: 'bullet', weapon: 'shotgun' })) {
+                this.coneOwners.add(owner);
+                ctx.events.emit('projectile:impact', { x: target.x, y: target.y, material: target.h.material ?? 'flesh', team: 'player', weapon: 'shotgun' });
+                if (++hits >= T.shotgunMaxTargets) break;
+            }
+        }
+        for (let i = 0; i < this.pellets.length; i++) {
+            const p = this.pellets[i], a = angle + (i - 2) * T.shotgunHalfAngle / 2;
+            p.x = x; p.y = y; p.dx = Math.cos(a); p.dy = Math.sin(a); p.age = 0;
+            p.limit = this.clearRay(x, y, p.dx, p.dy, T.shotgunTracerRange - Math.abs(i - 2) * 4);
+            p.sprite.setPosition(x, y).setRotation(a).setVisible(p.limit > 0);
+        }
     }
     private bullet(x: number, y: number, angle: number, weapon: Weapon): void {
         const texture = weapon === 'hmg' ? 'hmg_bullet' : weapon === 'spread' ? 'spread_bullet' : 'pistol_bullet';

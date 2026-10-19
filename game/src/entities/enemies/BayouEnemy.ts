@@ -1,0 +1,140 @@
+import Phaser from 'phaser';
+import { DEPTH, type GameContext, type HitInfo } from '../../core';
+import { getAudio, type LoopHandle } from '../../audio';
+import { ENEMIES } from '../../config/tuning/enemies';
+import { animate, visible } from './Enemy';
+import { BossFlash } from '../bosses/BossFlash';
+
+export type BayouKind = 'piranha' | 'hopper' | 'gnat' | 'airboat';
+/** Fixed targets, bounded entries and one clock per state; no timers outlive the actor. */
+export class BayouEnemy extends Phaser.GameObjects.Sprite {
+    hp: number;
+    state = 'idle';
+    readonly wave: unknown;
+    private facing: number;
+    private elapsed = 0;
+    private duration = 900;
+    private age = 0;
+    private homeX: number;
+    private floor: number;
+    private fromX = 0;
+    private fromY = 0;
+    private targetX = 0;
+    private targetY = 0;
+    private turns = 0;
+    private fired = 0;
+    private dropped = 0;
+    private contactMs = 0;
+    private knockMs = 0;
+    private knockDir = 0;
+    private readonly patrol: number;
+    private readonly testWater: boolean;
+    private loop: LoopHandle | null = null;
+    private readonly flash = new BossFlash();
+    private readonly rect = new Phaser.Geom.Rectangle();
+    private readonly attack = new Phaser.Geom.Rectangle();
+    private readonly cue: Phaser.GameObjects.Graphics;
+    private readonly offs: Array<() => void> = [];
+    constructor(private readonly ctx: GameContext, readonly kind: BayouKind, x: number, y: number, props: Record<string, unknown>) {
+        super(ctx.scene, x, y, kind); ctx.scene.add.existing(this); this.setDepth(DEPTH.ENEMIES).setOrigin(.5, kind === 'gnat' || kind === 'piranha' ? .5 : 1);
+        this.testWater = props.testWater === true; this.hp = ENEMIES[kind].hp; this.wave = props.wave; this.facing = props.facing === 'right' || Number(props.facing) === 1 ? 1 : -1;
+        this.patrol = props.patrol === false ? 0 : Number.isFinite(Number(props.patrol)) ? Math.abs(Number(props.patrol)) : 48;
+        this.homeX = x; this.floor = kind === 'airboat' ? Number(props.laneY ?? props.waterY ?? (ctx.part.id === '2-2' ? 344 : y)) : y; this.y = this.floor;
+        this.cue = ctx.scene.add.graphics().setDepth(DEPTH.ENEMIES + .1);
+        this.offs.push(ctx.damage.register({ team: 'enemy', kind, owner: this, material: 'metal', body: () => this.bounds(), alive: () => this.active && this.hp > 0 && (kind !== 'piranha' || this.state === 'attack'), hit: h => this.hit(h) }), ctx.onUpdate((dt, raw) => { this.flash.update(raw); this.tick(dt); }));
+        if (props.from === 'door') this.enter('entry', 700);
+        if (props.sleep || props.idle === 'sleep') this.enter('sleep', 0);
+        const stop = () => this.stopLoop(); ctx.scene.events.once('shutdown', stop);
+        this.once('destroy', () => { this.stopLoop(); this.flash.clear(); this.cue.destroy(); for (const off of this.offs) off(); ctx.scene.events.off('shutdown', stop); });
+        if (Number(props.graceMs) > 0) this.duration = Number(props.graceMs);
+        this.pose('idle'); this.clamp();
+    }
+    private pose(tag: string): void { animate(this, `${this.kind}_${tag}`, true); }
+    private enter(s: string, ms: number): void { this.state = s; this.elapsed = 0; this.duration = ms; this.fired = 0; }
+    private bounds(): Phaser.Geom.Rectangle {
+        const w = this.kind === 'airboat' ? 82 : this.kind === 'hopper' ? 34 : this.kind === 'piranha' ? 27 : 20;
+        const h = this.kind === 'airboat' ? 38 : this.kind === 'hopper' ? 29 : 16;
+        return this.rect.setTo(this.x - w / 2, this.y - (this.kind === 'gnat' || this.kind === 'piranha' ? h / 2 : h), w, h);
+    }
+    private stopLoop(): void { this.loop?.stop(0); this.loop = null; }
+    private hit(h: HitInfo): boolean {
+        if (this.hp <= 0) return false;
+        this.hp -= h.damage; this.flash.start([this]);
+        if (this.hp > 0 && this.kind === 'hopper' && h.weapon === 'shotgun' && this.state !== 'attack') { this.knockMs = 160; this.knockDir = Math.sign(h.dirX); }
+        if (this.hp <= 0) {
+            this.enter('death', this.kind === 'airboat' ? 1200 : 600); this.pose('death'); this.stopLoop(); this.cue.clear();
+            this.ctx.events.emit('enemy:killed', { kind: this.kind, x: this.x, y: this.y, score: ENEMIES[this.kind].score, cause: h.kind });
+            this.ctx.events.emit('explosion', { x: this.x, y: this.y - 12, size: this.kind === 'airboat' ? 'm' : 's', team: 'enemy' });
+            if (this.kind === 'airboat' || this.kind === 'piranha') this.splash('sink');
+        }
+        return true;
+    }
+    private splash(kind: 'leap' | 'enter' | 'sink'): void { this.ctx.events.emit('water:splash', { x: this.x, y: this.floor, size: this.kind === 'airboat' ? 'l' : 's', kind }); }
+    private clamp(): void {
+        if (this.hp <= 0) return;
+        const v = this.ctx.camera.view();
+        // The HUD/radio band is reserved even during an unlocked fly-by.
+        if (this.kind === 'gnat') { this.floor = Phaser.Math.Clamp(this.floor, v.top + 88, v.bottom - 55); this.y = Phaser.Math.Clamp(this.y, v.top + 76, v.bottom - 18); }
+        if (!this.ctx.camera.isLocked()) return;
+        const m = this.kind === 'airboat' ? 56 : 26;
+        const nx = Phaser.Math.Clamp(this.x, v.left + m, v.right - m); if (nx !== this.x) this.facing = nx > this.x ? 1 : -1; this.x = nx;
+        this.homeX = Phaser.Math.Clamp(this.homeX, v.left + m, v.right - m);
+        if (this.kind === 'piranha') { this.floor = Phaser.Math.Clamp(this.floor, v.top + 100, v.bottom - 20); this.y = Phaser.Math.Clamp(this.y, v.top + 64, v.bottom - 12); }
+        else if (this.kind === 'airboat') { this.floor = Phaser.Math.Clamp(this.floor, v.top + 110, v.bottom - 8); this.y = this.floor + Math.sin(this.age / 250) * 2; }
+        else if (this.floor < v.top + 40 || this.floor > v.bottom) { this.floor = this.ctx.physics.groundBelow(this.x, v.top + 40, v.height) ?? this.ctx.player()?.y ?? this.floor; this.y = this.floor; }
+    }
+    private touch(r: Phaser.Geom.Rectangle): void {
+        if (this.contactMs > 0) return;
+        const boxes = this.ctx.damage.queryRect(r, 'enemy');
+        for (const box of boxes) this.ctx.damage.deal(box, { x: r.centerX, y: r.centerY, damage: 1, source: 'enemy', kind: 'contact', dirX: this.facing, dirY: 0 });
+        this.contactMs = 150;
+    }
+    private safeHopX(x: number): number {
+        if (this.ctx.camera.isLocked()) { const v = this.ctx.camera.view(); x = Phaser.Math.Clamp(x, v.left + 26, v.right - 26); }
+        // A hopper never changes decks or commits to a gap. Probe the full landing path.
+        const count = Math.ceil(Math.abs(x - this.x) / 8);
+        for (let i = 1; i <= count; i++) { const nx = this.x + (x - this.x) * i / count; const floor = this.ctx.physics.groundBelow(nx, this.floor - 4, 8); if (floor === null || Math.abs(floor - this.floor) > 2 || this.ctx.physics.hazardAt(nx, this.floor + 2) || this.ctx.level.solidAt(nx, this.floor - 16)) return this.x; }
+        return x;
+    }
+    private tick(dt: number): void {
+        if (!this.active) return;
+        this.clamp();
+        if (this.hp > 0 && (this.kind === 'gnat' || this.kind === 'airboat') && visible(this.ctx, this.x, this.y, 32)) { const a = getAudio(this.ctx.scene); if (!this.loop && !a.locked) this.loop = a.loop(this.kind === 'gnat' ? 'gnat_buzz' : 'airboat_motor', { x: this.x }); this.loop?.setX(this.x); } else this.stopLoop();
+        if (!dt) return;
+        if (this.hp > 0 && this.x < this.ctx.camera.leftEdge() - 96) { this.destroy(); return; }
+        if (this.hp > 0 && !visible(this.ctx, this.x, this.y, this.kind === 'piranha' ? 0 : 32)) { if (this.kind === 'airboat' && this.age >= 9000 && !this.ctx.camera.isLocked()) this.destroy(); return; }
+        this.elapsed += dt; this.age += dt; this.contactMs -= dt; this.cue.clear();
+        if (this.state === 'death') { this.stopLoop(); if (this.kind === 'airboat') { this.y += dt * .035; this.rotation -= dt * .0002; } if (this.elapsed >= this.duration) this.destroy(); return; }
+        const p = this.ctx.player();
+        this.setFlipX(this.kind === 'hopper' ? this.facing < 0 : this.facing > 0);
+        if (this.state === 'sleep') { if (p?.alive() && Math.abs(p.x - this.x) < 150) this.enter('idle', 700); return; }
+        if (this.state === 'entry') { this.pose('idle'); if (this.elapsed >= this.duration) this.enter('idle', 700); return; }
+        if (this.knockMs > 0) { this.knockMs = Math.max(0, this.knockMs - dt); this.x = this.safeHopX(this.x + this.knockDir * dt * .13 * this.knockMs / 160); this.clamp(); return; }
+        if (this.kind === 'piranha') {
+            if (this.state === 'idle') { this.setAlpha(.25); this.y = this.floor; this.cue.lineStyle(1, 0xa9bccb, .6).strokeEllipse(this.x, this.floor, 14 + Math.sin(this.age / 130) * 4, 4);
+                if (this.elapsed >= this.duration && p?.alive() && Math.abs(p.x - this.x) < 180 && visible(this.ctx, this.x, this.floor) && (this.testWater || this.ctx.physics.hazardAt(this.x, this.floor + 8) === 'water')) { this.enter('cue', 500); this.targetX = this.x + (p.x < this.x ? -1 : 1) * 48; if (this.ctx.camera.isLocked()) { const v = this.ctx.camera.view(); this.targetX = Phaser.Math.Clamp(this.targetX, v.left + 26, v.right - 26); } }
+            } else if (this.state === 'cue') { this.cue.lineStyle(1, 0xffe066).strokeEllipse(this.x, this.floor, 28 + Math.sin(this.age / 60) * 4, 5); if (this.elapsed >= 500) { this.fromX = this.x; this.enter('attack', 850); this.pose('attack'); this.setAlpha(1); this.splash('leap'); this.ctx.audio.sfx('piranha_leap', { x: this.x }); } }
+            else { const t = Math.min(1, this.elapsed / 850); this.x = Phaser.Math.Linear(this.fromX, this.targetX, t); this.y = this.floor - Math.sin(t * Math.PI) * 80; this.touch(this.bounds()); if (!this.fired && t > .35) { this.fired++; this.ctx.audio.sfx('piranha_bite', { x: this.x }); } if (t >= 1) { this.splash('enter'); this.enter('idle', 1500); } }
+        } else if (this.kind === 'hopper') {
+            if (this.state === 'cue' && this.elapsed >= 450) { this.fromX = this.x; this.enter('attack', 720); this.pose('attack'); this.ctx.audio.sfx('hopper_hop', { x: this.x }); }
+            else if (this.state === 'attack') { const t = Math.min(1, this.elapsed / 720); this.x = Phaser.Math.Linear(this.fromX, this.targetX, t); this.y = this.floor - Math.sin(t * Math.PI) * 58; this.touch(this.bounds()); if (t >= 1) { this.y = this.floor; this.enter('idle', 950); this.pose('idle'); } }
+            else if (this.state === 'tongue_cue') { this.cue.lineStyle(1, 0xffe066, .7).lineBetween(this.x, this.y - 17, this.x + this.facing * 64, this.y - 17); if (this.elapsed >= 500) { this.enter('tongue', 220); this.pose('tongue'); this.ctx.audio.sfx('hopper_tongue', { x: this.x }); } }
+            else if (this.state === 'tongue') { const w = 64 * Math.sin(Math.min(1, this.elapsed / 220) * Math.PI); this.cue.lineStyle(3, 0xf07a5a).lineBetween(this.x, this.y - 17, this.x + this.facing * w, this.y - 17); this.touch(this.attack.setTo(this.x + (this.facing < 0 ? -w : 0), this.y - 20, w, 5)); if (this.elapsed >= 220) { this.enter('idle', 950); this.pose('idle'); } }
+            else if (this.state === 'idle' && this.elapsed >= this.duration && p?.alive() && Math.abs(p.x - this.x) < 190) { this.facing = p.x < this.x ? -1 : 1; if (++this.turns % 2 === 0) { this.enter('tongue_cue', 500); this.pose('tongue_cue'); this.ctx.audio.sfx('hopper_croak', { x: this.x }); } else { this.targetX = this.safeHopX(this.x + this.facing * Math.min(96, Math.abs(p.x - this.x))); this.enter('cue', 450); this.pose('cue'); this.ctx.audio.sfx('hopper_croak', { x: this.x }); } }
+        } else if (this.kind === 'gnat') {
+            if (this.state === 'idle') { if (this.patrol) this.x += this.facing * dt * .038; this.y = this.floor + Math.sin(this.age / 230) * 10; if (Math.abs(this.x - this.homeX) >= this.patrol) this.facing = this.x > this.homeX ? -1 : 1; if (this.elapsed >= this.duration && p?.alive() && Math.abs(p.x - this.x) < 180) { this.targetX = p.x; this.targetY = p.centerY; this.fromX = this.x; this.fromY = this.y; this.enter('cue', 400); this.pose('cue'); } }
+            else if (this.state === 'cue') { this.cue.lineStyle(1, 0xd4483a, .6).lineBetween(this.x, this.y, this.targetX, this.targetY); if (this.elapsed >= 400) { this.enter('attack', 650); this.pose('attack'); } }
+            else if (this.state === 'attack') { const t = Math.min(1, this.elapsed / 650); this.x = Phaser.Math.Linear(this.fromX, this.targetX, t); this.y = Phaser.Math.Linear(this.fromY, this.targetY, t); this.touch(this.bounds()); if (t >= 1) this.enter('recover', 650); }
+            else if (this.state === 'recover') { this.y += (this.floor - this.y) * Math.min(1, dt / 200); if (this.elapsed >= 650) { this.enter('idle', 1400); this.pose('idle'); } }
+        } else {
+            this.y = this.floor + Math.sin(this.age / 250) * 2;
+            if (!this.ctx.camera.isLocked() && this.age >= 9000) { this.x += this.facing * dt * .12; if (!visible(this.ctx, this.x, this.y, 56)) this.destroy(); return; }
+            if (this.patrol) this.x += this.facing * dt * .03; if (Math.abs(this.x - this.homeX) > this.patrol) this.facing *= -1;
+            if (this.dropped < 2 && this.age >= 1600 + this.dropped * 2400) { this.dropped++; const v = this.ctx.camera.view(); const x = Phaser.Math.Clamp(this.x, v.left + 28, v.right - 28); const y = this.ctx.physics.groundBelow(x, v.top + 60, v.height) ?? p?.y ?? this.floor - 32; this.ctx.spawn('enemy', 'leaper', { facing: this.facing, wave: this.wave }, x, y); }
+            if (this.state === 'idle' && this.elapsed >= this.duration && p?.alive()) { this.targetX = p.x; this.targetY = p.centerY; this.enter('cue', 1100); this.pose('cue'); }
+            else if (this.state === 'cue') { this.cue.lineStyle(1, 0xffe066, .7).lineBetween(this.x + this.facing * 32, this.y - 28, this.targetX, this.targetY); if (this.elapsed >= 600 + this.fired * 170 && this.fired < 3) { this.fired++; const a = Math.atan2(this.targetY - (this.y - 28), this.targetX - (this.x + this.facing * 32)); this.ctx.projectiles.spawn({ x: this.x + this.facing * 32, y: this.y - 28, vx: Math.cos(a) * 110, vy: Math.sin(a) * 110, team: 'enemy', damage: 1, texture: 'enemy_bullet', anim: 'enemy_bullet_fly', rotate: false, lifetime: 2600 }); this.ctx.audio.sfx('airboat_gun', { x: this.x }); this.pose('fire'); } if (this.elapsed >= 1100) { this.enter('idle', 2000); this.pose('idle'); } }
+        }
+        this.clamp();
+    }
+    snapshot(): unknown { return { kind: this.kind, x: this.x, y: this.y, hp: this.hp, state: this.state, wave: this.wave, elapsed: this.elapsed, floor: this.floor, targetX: this.targetX, targetY: this.targetY, dropped: this.dropped }; }
+}

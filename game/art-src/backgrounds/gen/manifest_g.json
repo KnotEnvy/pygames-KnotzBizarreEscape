@@ -1,0 +1,200 @@
+[
+  {
+    "path": "game/public/assets/backgrounds/m2p1/gen_sky.png",
+    "size": [
+      384,
+      216
+    ],
+    "y": 0,
+    "scrollX": 0.015,
+    "depth": 0,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p1/gen_cypress_far.png",
+    "size": [
+      768,
+      124
+    ],
+    "y": 65,
+    "scrollX": 0.1,
+    "depth": 2,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p1/gen_village_far.png",
+    "size": [
+      768,
+      104
+    ],
+    "y": 91,
+    "scrollX": 0.17,
+    "depth": 4,
+    "tiles": false
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p1/gen_bog_pump.png",
+    "size": [
+      768,
+      100
+    ],
+    "y": 115,
+    "scrollX": 0.2,
+    "depth": 5,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p1/gen_cypress_mid.png",
+    "size": [
+      768,
+      150
+    ],
+    "y": 77,
+    "scrollX": 0.28,
+    "depth": 7,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p1/gen_roots_near.png",
+    "size": [
+      768,
+      74
+    ],
+    "y": 153,
+    "scrollX": 0.42,
+    "depth": 12,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p2/gen_sky.png",
+    "size": [
+      384,
+      216
+    ],
+    "y": 0,
+    "scrollX": 0.015,
+    "depth": 0,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p2/gen_sky_storm.png",
+    "size": [
+      384,
+      216
+    ],
+    "y": 0,
+    "scrollX": 0.015,
+    "depth": 0,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p2/gen_riverbank_far.png",
+    "size": [
+      768,
+      116
+    ],
+    "y": 73,
+    "scrollX": 0.1,
+    "depth": 2,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p2/gen_bayou_queen_far.png",
+    "size": [
+      320,
+      90
+    ],
+    "y": 91,
+    "scrollX": 0.16,
+    "depth": 4,
+    "tiles": false
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p2/gen_riverbank_mid.png",
+    "size": [
+      768,
+      106
+    ],
+    "y": 110,
+    "scrollX": 0.23,
+    "depth": 7,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p2/gen_river_surface.png",
+    "size": [
+      768,
+      64
+    ],
+    "y": 153,
+    "scrollX": 0.36,
+    "depth": 11,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p3/gen_sky.png",
+    "size": [
+      384,
+      216
+    ],
+    "y": 0,
+    "scrollX": 0.015,
+    "depth": 0,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p3/gen_sky_lightning.png",
+    "size": [
+      384,
+      216
+    ],
+    "y": 0,
+    "scrollX": 0.015,
+    "depth": 0,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p3/gen_forest_far.png",
+    "size": [
+      768,
+      126
+    ],
+    "y": 63,
+    "scrollX": 0.1,
+    "depth": 2,
+    "tiles": true
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p3/gen_mill_far.png",
+    "size": [
+      768,
+      148
+    ],
+    "y": 62,
+    "scrollX": 0.2,
+    "depth": 6,
+    "tiles": false
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p3/gen_den_backdrop.png",
+    "size": [
+      768,
+      132
+    ],
+    "y": 83,
+    "scrollX": 0.24,
+    "depth": 8,
+    "tiles": false
+  },
+  {
+    "path": "game/public/assets/backgrounds/m2p3/gen_roots_near.png",
+    "size": [
+      768,
+      78
+    ],
+    "y": 151,
+    "scrollX": 0.4,
+    "depth": 12,
+    "tiles": true
+  }
+]

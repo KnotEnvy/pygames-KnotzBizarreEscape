@@ -1,0 +1,96 @@
+{
+  "imagegen_m2": {
+    "files": [
+      {
+        "type": "image",
+        "key": "bg_m2p1_sky",
+        "url": "assets/backgrounds/m2p1/gen_sky.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p1_cypress_far",
+        "url": "assets/backgrounds/m2p1/gen_cypress_far.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p1_village_far",
+        "url": "assets/backgrounds/m2p1/gen_village_far.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p1_bog_pump",
+        "url": "assets/backgrounds/m2p1/gen_bog_pump.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p1_cypress_mid",
+        "url": "assets/backgrounds/m2p1/gen_cypress_mid.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p1_roots_near",
+        "url": "assets/backgrounds/m2p1/gen_roots_near.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p2_sky",
+        "url": "assets/backgrounds/m2p2/gen_sky.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p2_sky_storm",
+        "url": "assets/backgrounds/m2p2/gen_sky_storm.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p2_riverbank_far",
+        "url": "assets/backgrounds/m2p2/gen_riverbank_far.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p2_bayou_queen_far",
+        "url": "assets/backgrounds/m2p2/gen_bayou_queen_far.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p2_riverbank_mid",
+        "url": "assets/backgrounds/m2p2/gen_riverbank_mid.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p2_river_surface",
+        "url": "assets/backgrounds/m2p2/gen_river_surface.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p3_sky",
+        "url": "assets/backgrounds/m2p3/gen_sky.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p3_sky_lightning",
+        "url": "assets/backgrounds/m2p3/gen_sky_lightning.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p3_forest_far",
+        "url": "assets/backgrounds/m2p3/gen_forest_far.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p3_mill_far",
+        "url": "assets/backgrounds/m2p3/gen_mill_far.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p3_den_backdrop",
+        "url": "assets/backgrounds/m2p3/gen_den_backdrop.png"
+      },
+      {
+        "type": "image",
+        "key": "bg_m2p3_roots_near",
+        "url": "assets/backgrounds/m2p3/gen_roots_near.png"
+      }
+    ]
+  }
+}

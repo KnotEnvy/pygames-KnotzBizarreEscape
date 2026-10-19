@@ -1,14 +1,21 @@
-// Escape-route map (Phase E PART CLEAR): the Pine Ridge field map (ui_map_m1) with a pictogram per part on the
-// railway, dotted route, the Knotz marker that travels from the cleared part to the next one and a bouncing pin.
+// Escape-route map (Phase E PART CLEAR, Phase G Results mission break): the mission's field map (ui_map_m1 Pine Ridge,
+// ui_map_m2 Blackwater Bayou; UI.partClear.maps) with a pictogram per part on the route, dotted route, the Knotz marker
+// that travels from the cleared part to the next one and a bouncing pin.
 import Phaser from 'phaser';
 import { TEX, hasAnim, tagFrame } from '../core';
 import { getAudio } from '../audio';
 import { UI } from '../config/tuning/ui';
 import { C, F, roman, text } from './widgets';
 
-const PICTOGRAM: Record<number, string> = { 1: 'map_camp', 2: 'map_train', 3: 'map_lake' };
+type MapSpec = (typeof UI.partClear.maps)[number];
+
+/** The route map of a mission (Mission 1's when a mission has none yet). */
+export function mapSpec(mission: number): MapSpec {
+    return UI.partClear.maps[mission] ?? UI.partClear.maps[1];
+}
 
 export class RouteMap {
+    private readonly spec: MapSpec;
     readonly container: Phaser.GameObjects.Container;
     readonly width: number;
     readonly height: number;
@@ -21,19 +28,20 @@ export class RouteMap {
     private travelled = false;
     private tween: Phaser.Tweens.Tween | null = null;
 
-    constructor(private readonly scene: Phaser.Scene, x: number, y: number, private readonly from: number, private readonly to: number, parts: number[]) {
+    constructor(private readonly scene: Phaser.Scene, x: number, y: number, private readonly from: number, private readonly to: number, parts: number[], mission = 1) {
         const M = UI.partClear;
+        const spec = this.spec = mapSpec(mission);
         this.width = M.map.w; this.height = M.map.h;
         this.container = scene.add.container(x, y);
-        if (scene.textures.exists('ui_map_m1')) this.container.add(scene.add.image(0, 0, 'ui_map_m1').setOrigin(0, 0));
+        if (scene.textures.exists(spec.key)) this.container.add(scene.add.image(0, 0, spec.key).setOrigin(0, 0));
         else this.container.add(scene.add.rectangle(0, 0, M.map.w, M.map.h, 0xa88c52, 1).setOrigin(0, 0));
         // polyline lengths
-        const R = M.route;
+        const R = spec.route;
         this.cum.push(0);
         for (let i = 1; i < R.length; i++) this.cum.push(this.cum[i - 1] + Phaser.Math.Distance.Between(R[i - 1][0], R[i - 1][1], R[i][0], R[i][1]));
         this.total = this.cum[this.cum.length - 1];
         // route dots between the two markers (lit as the marker passes)
-        const a = M.routeIndex[from] ?? 0, b = M.routeIndex[to] ?? R.length - 1;
+        const a = spec.routeIndex[from] ?? 0, b = spec.routeIndex[to] ?? R.length - 1;
         const d0 = this.cum[Math.min(a, b)], d1 = this.cum[Math.max(a, b)];
         for (let d = d0 + 3; d < d1 - 2; d += 4) {
             const p = this.pointAt(d);
@@ -44,9 +52,9 @@ export class RouteMap {
         }
         // pictograms + numerals
         for (const n of parts) {
-            const anchor = M.anchors[n];
+            const anchor = spec.anchors[n];
             if (!anchor) continue;
-            const tag = PICTOGRAM[n];
+            const tag = spec.pictograms[n];
             const frame = tag ? tagFrame(scene, tag) : undefined;
             const img = frame !== undefined ? scene.add.image(anchor.x, anchor.y, 'ui_map', frame).setOrigin(0.5, 1) : scene.add.rectangle(anchor.x, anchor.y, 10, 8, 0xd4483a, 1).setOrigin(0.5, 1);
             if (n < from || (n === from && from !== to)) img.setAlpha(0.75);
@@ -69,7 +77,7 @@ export class RouteMap {
     }
 
     private pointAt(d: number): { x: number; y: number } {
-        const R = UI.partClear.route;
+        const R = this.spec.route;
         d = Phaser.Math.Clamp(d, 0, this.total);
         for (let i = 1; i < R.length; i++) {
             if (d <= this.cum[i]) {
@@ -86,7 +94,8 @@ export class RouteMap {
         if (this.travelled) return;
         this.travelled = true;
         const M = UI.partClear;
-        const a = M.routeIndex[this.from] ?? 0, b = M.routeIndex[this.to] ?? M.route.length - 1;
+        const R = this.spec;
+        const a = R.routeIndex[this.from] ?? 0, b = R.routeIndex[this.to] ?? R.route.length - 1;
         const d0 = this.cum[a], d1 = this.cum[b];
         const prog = { t: 0 };
         this.tween = this.scene.tweens.add({
@@ -112,8 +121,8 @@ export class RouteMap {
         // A running travel tween would otherwise complete later and fire onArrive a second time.
         this.tween?.stop();
         this.tween = null;
-        const M = UI.partClear;
-        const end = this.pointAt(this.cum[M.routeIndex[this.to] ?? M.route.length - 1]);
+        const R = this.spec;
+        const end = this.pointAt(this.cum[R.routeIndex[this.to] ?? R.route.length - 1]);
         this.knotz.setPosition(Math.round(end.x), Math.round(end.y) - 1);
         for (const dot of this.dots) dot.setTint(C.fire5).setAlpha(1);
         this.pin.setVisible(true);

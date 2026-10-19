@@ -1,5 +1,8 @@
 """KBE sound-effect library: every SFX is synthesized here (no samples) and written as OGG. Phase E adds the train, ice, laser, mid-boss, hound, Buzzard and radio keys;
 Phase F adds the WARNING siren, HUD ticks, weapon layers, the bg_* background moments and the amb_* section beds.
+Phase G (Mission 2 "Bayou Blackout") adds the shotgun, water (splash_s..xl, wade/mud steps, drown), the bayou enemies, the three mechs
+(SHELLSHOCK, MEGA-SKEETER, GATORGEDDON), the level props (logs, vents, horn, branches, paddlewheel, mill wheel, thunder, planks), the
+Mission 2 bg_* moments and the amb_* beds keyed by fx:ambience kind (swamp, rain, storm, fog, riverboat).
 usage: uv run --with numpy,scipy,soundfile,pillow python3 -I tools/audio/sfx.py [--wav] [names...]
 Output: public/assets/audio/sfx/<key>.ogg + sfx_manifest.json (duration/peak/rms/loop per key).
 """
@@ -1115,6 +1118,795 @@ def amb_lab():
     return _bed(dur, xf, (hum, fluo, hiss, low))
 
 
+# ----------------------------------------------------------------- Phase G (Mission 2 "Bayou Blackout"): player, water, enemies, bosses, level, bg, beds
+def _splash(dur, f0, f1, tau, drops, big=False, gain_low=1.0):
+    """Water splash: a plop (pitched thump), a noise sheet whose colour falls as the water settles, droplets, and for the big
+    sizes a low whoomp and a short churn tail."""
+    plop = thump(min(dur, 0.3), f0, f1, tau * 0.6) * gain_low
+    sheet = burst(dur, tau, lp_sweep=(4200, 700), color="white", attack=0.003)
+    ev = [(0.0, plop), (0.0, sheet)]
+    for i in range(drops):
+        t0 = float(S._rng.uniform(0.06, dur * 0.7))
+        f = float(S._rng.uniform(900, 2600))
+        ev.append((t0, blip(0.05, f, f * 1.6, sine, 0.5, 0.012) * float(S._rng.uniform(0.15, 0.4))))
+    if big:
+        whoomp = thump(0.5, 90, 35, 0.16, drive=1.6) * 0.9
+        churn = lowpass(noise(dur, "pink"), 900) * lin(dur, [(0, 0), (0.15, 0.8), (dur * 0.6, 0.5), (dur, 0)]) * 0.7
+        ev += [(0.0, whoomp), (0.05, churn)]
+    x = place(ev, total=dur)
+    return declick(reverb(x, 0.4 if not big else 0.6, 0.12 if not big else 0.2))
+
+
+def splash_s():
+    return _splash(0.26, 520, 180, 0.05, 3)
+
+
+def splash_m():
+    return _splash(0.5, 320, 110, 0.09, 5)
+
+
+def splash_l():
+    return _splash(0.9, 220, 70, 0.14, 8, big=True)
+
+
+def splash_xl():
+    x = _splash(1.4, 160, 45, 0.24, 12, big=True, gain_low=1.3)
+    second = _splash(0.6, 300, 100, 0.1, 4) * 0.6
+    return declick(place([(0, x), (0.22, second)]))
+
+
+def wade_step():
+    """One wading step, 0.18 s: a short slosh (band-passed noise falling) over a soft watery knock."""
+    dur = 0.18
+    slosh = filter_sweep(noise(dur), "bp", expsweep(dur, 1400, 500), 1.2) * perc(dur, 0.004, 0.05)
+    knock = thump(0.08, 180, 90, 0.02) * 0.6
+    drip = blip(0.04, 1400, 2200, sine, 0.5, 0.012) * 0.2
+    return declick(place([(0, slosh), (0.0, knock), (0.09, drip)]))
+
+
+def mud_step():
+    """Mud squelch, 0.24 s: a 'schlorp' (FM sine falling) under a low-passed wet noise with sticky clicks."""
+    dur = 0.24
+    f = expsweep(dur, 320, 90)
+    schl = np.sin(2 * np.pi * np.cumsum(f) / S.SR + 0.6 * sine(90, dur)) * perc(dur, 0.01, 0.07)
+    wet = filter_sweep(noise(dur, "pink"), "lp", expsweep(dur, 1600, 320), 0.9) * perc(dur, 0.003, 0.08)
+    clicks = np.zeros(n(dur))
+    idx = S._rng.integers(n(0.02), n(0.16), 7)
+    clicks[idx] = S._rng.uniform(0.3, 0.8, 7)
+    clicks = lowpass(clicks, 2500) * 0.6
+    return declick(mix(schl * 0.7, wet, clicks))
+
+
+def drown():
+    """Sinking death, 1.5 s: a muffled cry pitching down under rising bubbles and a gurgle; everything low-passed as if underwater."""
+    dur = 1.5
+    f = expsweep(dur, 520, 160) * vib(dur, 8, 0.05)
+    cry = voice(dur, f, (500, 900, 1800), 0.35, 7, 0.03) * lin(dur, [(0, 0), (0.05, 1), (0.9, 0.7), (dur, 0)])
+    gurgle = filter_sweep(noise(dur, "pink"), "bp", 300 + 120 * sine(5.5, dur), 2.0) * lin(dur, [(0, 0.2), (0.4, 1), (dur, 0.3)]) * 0.8
+    ev = [(0, lowpass(cry, 900) * 0.8), (0, gurgle)]
+    for i in range(9):
+        t0 = 0.15 + i * 0.13 + float(S._rng.uniform(-0.03, 0.03))
+        f0 = float(S._rng.uniform(220, 480))
+        ev.append((t0, blip(0.09, f0, f0 * 2.1, sine, 0.5, 0.03) * 0.35))
+    return declick(reverb(lowpass(place(ev, total=dur), 1800), 0.5, 0.2))
+
+
+def shotgun_fire():
+    """Shotgun, 0.5 s: a deep boom (200 -> 50 Hz) with a hard-clipped crunch and a wide noise sheet; bigger and lower than `spread`."""
+    boom = thump(0.4, 200, 50, 0.1, drive=3.0)
+    sheet = burst(0.36, 0.06, lp_sweep=(7500, 500), attack=0.0004)
+    crunch = distort(burst(0.12, 0.025, hp=500, lp=4500), 4.0, "hard") * 0.6
+    crack = burst(0.03, 0.004, hp=2500, attack=0.0002) * 0.8
+    x = mix(boom * 1.1, sheet * 1.1, crunch, crack)
+    x = distort(x, 1.3)
+    return declick(reverb(x, 0.35, 0.12))
+
+
+def shotgun_pump():
+    """Pump action, 0.28 s: two metal clacks (open, close) with a sliding rasp between them."""
+    clack = lambda g: mix(ring(0.09, [900, 1400, 2300], 0.018, [1, 0.6, 0.35]), burst(0.03, 0.004, hp=2000, lp=8000) * 0.8) * g
+    rasp = filter_sweep(noise(0.1), "bp", linsweep(0.1, 1800, 1100), 2.5) * lin(0.1, [(0, 0), (0.03, 1), (0.1, 0)]) * 0.5
+    return declick(place([(0, clack(1.0)), (0.03, rasp), (0.14, clack(0.85))]))
+
+
+# ---- Mission 2 regular enemies
+def lurker_rise():
+    """Lurker rising from the shallows, 0.75 s: a rising wet surge, water pouring off, a weedy rustle and drips."""
+    dur = 0.75
+    surge = filter_sweep(noise(dur, "pink"), "lp", expsweep(dur, 500, 3200), 0.8) * lin(dur, [(0, 0), (0.25, 1), (0.5, 0.6), (dur, 0)])
+    pour = burst(0.5, 0.15, lp_sweep=(3500, 900), attack=0.02) * 0.6
+    slup = sine(expsweep(0.3, 90, 220), 0.3) * perc(0.3, 0.02, 0.1) * 0.5
+    ev = [(0, surge), (0.15, pour), (0.0, slup)]
+    for i in range(6):
+        ev.append((0.3 + i * 0.07 + float(S._rng.uniform(0, 0.03)), blip(0.04, 1500, 2600, sine, 0.5, 0.012) * 0.25))
+    return declick(reverb(place(ev, total=dur), 0.4, 0.12))
+
+
+def piranha_leap():
+    """Mech piranha leaping, 0.42 s: a quick splash, an arcing whoosh and a tiny servo chitter."""
+    sp = _splash(0.3, 450, 160, 0.05, 2) * 0.9
+    whoosh = filter_sweep(noise(0.3), "bp", expsweep(0.3, 700, 2800), 2.0) * lin(0.3, [(0, 0), (0.1, 1), (0.3, 0)]) * 0.6
+    chit = ring(0.12, [3200, 4800], 0.015) * (0.5 + 0.5 * square(60, 0.12, 0.5)) * 0.3
+    return declick(place([(0, sp), (0.05, whoosh), (0.12, chit)]))
+
+
+def piranha_bite():
+    """Mech piranha bite, 0.26 s: a steel snap (bright ring) with a short low knock."""
+    snap = mix(ring(0.14, [1800, 2700, 4100], 0.02, [1, 0.6, 0.4]), burst(0.02, 0.003, hp=3000) * 0.7)
+    knock = thump(0.08, 300, 120, 0.02) * 0.6
+    return declick(mix(snap, knock))
+
+
+def hopper_croak():
+    """Hopper (bullfrog walker) croak, 0.55 s: a low pulsed croak through a frog formant with a servo whine on top."""
+    dur = 0.55
+    f = expsweep(dur, 72, 95) * vib(dur, 19, 0.06, 0.02)
+    croak = pulse(f, dur, 0.22) * (0.6 + 0.4 * square(19, dur, 0.5))
+    croak = distort(formant(croak, (280, 720, 1250), 4.0, (1.0, 0.7, 0.3)), 2.0) * adsr(dur, 0.02, 0.1, 0.8, 0.12)
+    servo = lowpass(saw(expsweep(dur, 900, 1250), dur), 2500) * perc(dur, 0.05, 0.25) * 0.12
+    return declick(mix(croak, servo))
+
+
+def hopper_hop():
+    """Hopper hop, 0.36 s: a hydraulic spring 'boing' (falling sine + tri) and a short hiss of the leg pistons."""
+    dur = 0.36
+    f = expsweep(dur, 420, 120)
+    boing = (sine(f, dur) * 0.6 + tri(f, dur) * 0.4) * perc(dur, 0.003, 0.09)
+    hiss = burst(0.25, 0.07, hp=1500, lp=7000, attack=0.005) * 0.5
+    return declick(mix(boing * 0.9, hiss))
+
+
+def hopper_tongue():
+    """Tongue harpoon, 0.42 s: a zip (saw sweeping down), a whip-crack and a metallic clank as the harpoon locks."""
+    zip_ = lowpass(saw(expsweep(0.14, 2200, 400), 0.14), 5000) * perc(0.14, 0.002, 0.05)
+    whip = filter_sweep(noise(0.2), "bp", expsweep(0.2, 600, 4000), 2.0) * lin(0.2, [(0, 0), (0.04, 1), (0.2, 0)]) * 0.7
+    clank = mix(ring(0.16, [1100, 1700, 2600], 0.03, [1, 0.6, 0.3]), burst(0.02, 0.003, hp=2500) * 0.6)
+    return declick(place([(0, zip_), (0.0, whip), (0.16, clank * 0.9)]))
+
+
+def gnat_buzz():
+    """Mech gnat drone, seamless 0.6 s loop: a mosquito whine (two detuned saws + an octave) with a light flutter."""
+    dur, xf = 0.6, 0.05
+    d = dur + xf
+    x = saw(430, d) * 0.5 + saw(433.5, d) * 0.5 + saw(860, d) * 0.25
+    x = lowpass(x, 4200) * (0.85 + 0.15 * sine(25 / dur, d))
+    x += bandpass(noise(d), 3200, 3.0) * 0.12
+    return declick(loopify(x * 0.6, xf), 2)
+
+
+def airboat_motor():
+    """Airboat fan, seamless 1.0 s loop: a V8 putter (55 Hz pulses) under a propeller wash chopped at 27 Hz."""
+    dur, xf = 1.0, 0.06
+    d = dur + xf
+    eng = pulse(55, d, 0.2) + pulse(110, d, 0.4) * 0.5
+    eng = lowpass(distort(eng, 2.5), 700)
+    wash = lowpass(noise(d, "pink"), 1800) * (0.55 + 0.45 * (0.5 + 0.5 * sine(27, d)) ** 2)
+    whine = lowpass(saw(1300, d) * 0.5 + saw(1308, d) * 0.5, 2500) * 0.08
+    x = mix(eng * 0.6, wash, whine)
+    return declick(loopify(x * 0.5, xf), 2)
+
+
+def airboat_gun():
+    """Airboat gunner burst, 0.32 s: three heavy rifle cracks."""
+    one = mix(burst(0.07, 0.012, hp=500, lp=6500), thump(0.1, 240, 90, 0.025, drive=2.0))
+    return declick(place([(0, one), (0.075, one * 0.95), (0.15, one * 0.9)]))
+
+
+# ---- SHELLSHOCK
+def turtle_hiss():
+    """SHELLSHOCK's hiss, 0.9 s: a reptile hiss (high noise with a shimmer) over a low pulsed growl and a steam bleed."""
+    dur = 0.9
+    hiss = highpass(lowpass(noise(dur), 9000), 2200) * (0.8 + 0.2 * sine(31, dur)) * lin(dur, [(0, 0), (0.08, 1), (0.6, 0.8), (dur, 0)])
+    growl = distort(formant(saw(58 * vib(dur, 7, 0.1), dur), (250, 600), 3.0), 2.5) * lin(dur, [(0, 0), (0.1, 0.6), (0.7, 0.8), (dur, 0)])
+    return declick(mix(hiss, growl * 0.5))
+
+
+def turtle_snap():
+    """Beak snap, 0.36 s: a heavy thump with a steel clank and a sharp crack."""
+    x = mix(thump(0.3, 220, 60, 0.07, drive=2.5), ring(0.3, [700, 1100, 1800], 0.05, [1, 0.6, 0.4]) * 0.8, burst(0.04, 0.006, hp=1500) * 0.9)
+    return declick(reverb(x, 0.35, 0.1))
+
+
+def shell_clank():
+    """Hit on the spinning shell (no damage), 0.3 s: a bright hollow 'clank' with no body."""
+    x = mix(ring(0.28, [1500, 2300, 3400, 5000], 0.06, [1, 0.7, 0.5, 0.3]), burst(0.02, 0.003, hp=4000) * 0.6)
+    return declick(x)
+
+
+def shell_spin():
+    """Shell spin, seamless 0.5 s loop: a whirring spin (16 Hz rotation) with a scraping drag on the mud."""
+    dur, xf = 0.5, 0.04
+    d = dur + xf
+    rot = 0.5 + 0.5 * sine(16, d)
+    whirr = lowpass(saw(95, d) * 0.6 + saw(190, d) * 0.4, 1200) * (0.6 + 0.4 * rot)
+    scrape = bandpass(noise(d), 1900, 1.5) * rot ** 2 * 0.8
+    wind = lowpass(noise(d, "pink"), 900) * 0.5
+    x = mix(whirr * 0.6, scrape, wind)
+    return declick(loopify(x * 0.5, xf), 2)
+
+
+def egg_lob():
+    """Egg mine lobbed from the hatch, 0.4 s: a hatch click, a soft 'bloop' and a short air whoosh."""
+    click = mix(ring(0.06, [1200, 1900], 0.015), burst(0.015, 0.003, hp=3000) * 0.5) * 0.6
+    bloop = sine(expsweep(0.2, 260, 620), 0.2) * perc(0.2, 0.005, 0.07) * 0.8
+    whoosh = filter_sweep(noise(0.3), "bp", expsweep(0.3, 500, 1800), 2.0) * lin(0.3, [(0, 0), (0.1, 1), (0.3, 0)]) * 0.4
+    return declick(place([(0, click), (0.04, bloop), (0.08, whoosh)]))
+
+
+def egg_beep():
+    """Egg mine beep, 0.12 s: a short electronic beep with a tick."""
+    beep = square(1750, 0.1, 0.5) * perc(0.1, 0.002, 0.04) * 0.6
+    tick = bandpass(noise(0.02), 3000, 2.0) * perc(0.02, 0.0005, 0.006) * 0.5
+    return declick(lowpass(place([(0, tick), (0.005, beep)]), 6000))
+
+
+# ---- MEGA-SKEETER
+def skeeter_whine():
+    """MEGA-SKEETER rotor wings, seamless 0.8 s loop: four blurred wings (50 Hz flutter) over a deep mosquito whine."""
+    dur, xf = 0.8, 0.06
+    d = dur + xf
+    flutter = 0.6 + 0.4 * (0.5 + 0.5 * sine(50, d)) ** 2
+    wings = lowpass(saw(190, d) * 0.5 + saw(191.6, d) * 0.5 + saw(380, d) * 0.3, 2600) * flutter
+    whine = lowpass(saw(905, d) * 0.5 + saw(912, d) * 0.5, 4000) * 0.14
+    wash = lowpass(noise(d, "pink"), 1500) * flutter * 0.4
+    x = mix(wings * 0.6, whine, wash)
+    return declick(loopify(x * 0.5, xf), 2)
+
+
+def skeeter_laser():
+    """Lock-on laser line, 0.7 s: a steady 1.4 kHz tone whose tremolo speeds up as the lock completes, plus an electric hum."""
+    dur = 0.7
+    trem = 0.5 + 0.5 * square(linsweep(dur, 9, 28), dur, 0.5)
+    tone = sine(1400, dur) * 0.6 + sine(2800, dur) * 0.15
+    hum = lowpass(saw(140, dur), 600) * 0.3
+    x = (tone * trem + hum) * lin(dur, [(0, 0), (0.03, 1), (0.62, 1), (dur, 0)])
+    return declick(x)
+
+
+def skeeter_dive():
+    """Drill dive, 0.6 s: a falling whoosh (saw and band-passed noise sweeping down) with the wing whine dropping."""
+    dur = 0.6
+    env = lin(dur, [(0, 0.3), (0.15, 1), (dur, 0)])
+    sw = saw(expsweep(dur, 1150, 340), dur) * env
+    rush = filter_sweep(noise(dur), "bp", expsweep(dur, 3200, 500), 1.5) * env
+    return declick(lowpass(mix(sw * 0.6, rush), 5000) * 0.8)
+
+
+def skeeter_drill():
+    """Drill into the deck, 0.85 s: a buzzing distorted saw (30 Hz AM), grinding metal noise and wood crunches, ending in a clank."""
+    dur = 0.85
+    buzz = distort(saw(expsweep(dur, 170, 260), dur), 3.0) * (0.55 + 0.45 * square(30, dur, 0.5))
+    buzz = lowpass(buzz, 2200) * lin(dur, [(0, 0), (0.03, 1), (0.7, 0.9), (dur, 0)])
+    grind = bandpass(noise(dur), 2600, 1.2) * (0.5 + 0.5 * np.abs(sine(30, dur))) * lin(dur, [(0, 0), (0.05, 1), (0.7, 0.8), (dur, 0)]) * 0.6
+    ev = [(0, buzz * 0.7), (0, grind)]
+    for i in range(5):
+        ev.append((0.1 + i * 0.13, bandpass(noise(0.07), 700, 2.5) * perc(0.07, 0.001, 0.02) * 0.7))
+    ev.append((0.72, ring(0.15, [900, 1500], 0.03) * 0.5))
+    return declick(place(ev, total=dur))
+
+
+def larva_pop():
+    """Larva pod hatching, 0.32 s: a wet pop and a splat."""
+    pop = thump(0.1, 520, 150, 0.03) * 0.8
+    splat = filter_sweep(noise(0.25, "pink"), "lp", expsweep(0.25, 3000, 500), 0.8) * perc(0.25, 0.002, 0.07)
+    bubbles = place([(0.05 + i * 0.05, blip(0.04, 400 + i * 120, 900 + i * 150, sine, 0.5, 0.015) * 0.3) for i in range(3)])
+    return declick(place([(0, pop), (0, splat), (0, bubbles)]))
+
+
+def stinger_fire():
+    """Stinger fan, 0.36 s: four quick energy zaps from the leg guns."""
+    ev = []
+    for i in range(4):
+        z = mix(blip(0.08, 1600, 550, square, 0.3, 0.03) * 0.7, burst(0.02, 0.004, hp=2500) * 0.6)
+        ev.append((i * 0.065, z * (1.0 - i * 0.07)))
+    return declick(lowpass(place(ev), 7000))
+
+
+# ---- GATORGEDDON
+def gator_roar():
+    """GATORGEDDON's roar, 1.7 s: lower and bigger than MOOSEZILLA: a 45 Hz growl through a wide-jaw formant, a bellowing
+    animal pulse falling 150 -> 70 Hz, steam, breath and a metal plate rattle; heavy drive and a long reverb."""
+    dur = 1.7
+    growl = saw(45 * vib(dur, 4.0, 0.09), dur)
+    growl = distort(formant(growl, (220, 520, 1300), 3.0, (1, 0.8, 0.35)), 3.2)
+    animal = pulse(expsweep(dur, 150, 70) * vib(dur, 6.5, 0.1), dur, 0.32)
+    animal = formant(animal, (400, 800, 1700), 4.0)
+    breath = burst(dur, 0.6, lp=1400, hp=250, color="pink", attack=0.06)
+    steam = burst(0.8, 0.35, hp=2800, attack=0.1) * 0.4
+    rattle = ring(dur, [310, 470], 0.5) * (0.5 + 0.5 * square(23, dur, 0.5)) * 0.25
+    env = lin(dur, [(0, 0), (0.1, 1), (1.2, 0.9), (dur, 0)])
+    x = mix(growl * 1.0, animal * 0.85, breath * 0.6, rattle) * env
+    x = place([(0, x), (0.9, steam)])
+    x = distort(x, 1.3)
+    return declick(reverb(x, 0.95, 0.32))
+
+
+def gator_snap():
+    """Jaw lunge snap, 0.45 s: a huge thump, a steel-teeth 'shing', a heavy clank and a crack."""
+    x = mix(thump(0.4, 180, 40, 0.1, drive=3.0), ring(0.35, [420, 650, 1000, 1600], 0.07, [1, 0.7, 0.5, 0.3]) * 0.9,
+            ring(0.2, [3200, 4800], 0.03) * 0.3, burst(0.05, 0.008, hp=1200, lp=7000))
+    return declick(reverb(x, 0.45, 0.14))
+
+
+def gator_hiss():
+    """Hydraulic hiss (lunge telegraph), 1.0 s: pistons hissing, a relay click and the eye lamps' rising hum."""
+    dur = 1.0
+    hiss = highpass(lowpass(noise(dur), 9000), 1800) * lin(dur, [(0, 0), (0.06, 1), (0.5, 0.7), (dur, 0)])
+    hum = lowpass(saw(expsweep(dur, 180, 420), dur), 1200) * lin(dur, [(0, 0), (0.3, 0.5), (0.9, 0.9), (dur, 0)]) * 0.35
+    click = mix(ring(0.05, [1500, 2400], 0.012), burst(0.015, 0.003, hp=3000) * 0.5) * 0.6
+    return declick(place([(0, hiss * 0.8), (0, hum), (0.02, click)]))
+
+
+def gator_tail():
+    """Tail sweep, 0.65 s: a heavy swish (band-pass rising then falling), chain rattles and a low thrum."""
+    dur = 0.65
+    env = lin(dur, [(0, 0), (0.12, 0.5), (0.3, 1), (dur, 0)])
+    swish = filter_sweep(noise(dur), "bp", np.concatenate([expsweep(0.3, 400, 2600), expsweep(0.35, 2600, 500)]), 1.5) * env
+    thrum = (saw(expsweep(dur, 240, 110), dur) * 0.5 + sine(expsweep(dur, 120, 55), dur) * 0.5) * env * 0.3
+    chain = np.zeros(n(dur))
+    idx = S._rng.integers(n(0.1), n(0.55), 14)
+    chain[idx] = S._rng.uniform(0.3, 1.0, 14)
+    chain = bandpass(chain, 2600, 1.2) * 0.8
+    return declick(lowpass(mix(swish, thrum, chain), 7500))
+
+
+def gator_submerge():
+    """Submerge, 1.1 s: a big splash, a falling whoomp and bubbles rising as it goes under."""
+    sp = _splash(0.8, 200, 60, 0.14, 6, big=True)
+    sink = sine(expsweep(0.9, 160, 55), 0.9) * lin(0.9, [(0, 0), (0.1, 0.8), (0.9, 0)]) * 0.5
+    ev = [(0, sp), (0.1, sink)]
+    for i in range(8):
+        ev.append((0.35 + i * 0.08 + float(S._rng.uniform(0, 0.03)), blip(0.08, 240 + i * 40, 600 + i * 70, sine, 0.5, 0.025) * 0.3))
+    return declick(reverb(lowpass(place(ev, total=1.1), 4000), 0.5, 0.18))
+
+
+def gator_surface():
+    """Surface, 1.15 s: a rising rumble, water cascading off the armour, a splash and steel drips."""
+    dur = 1.15
+    rumble = lowpass(noise(dur, "brown"), 160) * lin(dur, [(0, 0), (0.3, 1), (0.6, 0.7), (dur, 0)]) * 1.2
+    cascade = filter_sweep(noise(dur, "pink"), "lp", expsweep(dur, 1200, 4500), 0.8) * lin(dur, [(0, 0), (0.35, 1), (0.8, 0.6), (dur, 0)])
+    sp = _splash(0.6, 260, 80, 0.1, 4, big=True) * 0.8
+    ev = [(0, rumble), (0, cascade), (0.3, sp)]
+    for i in range(5):
+        ev.append((0.6 + i * 0.09, ring(0.08, [1800, 2900], 0.015) * 0.2))
+    return declick(reverb(place(ev, total=dur), 0.5, 0.18))
+
+
+def gator_roll():
+    """Death roll, 1.6 s: churning water (6 Hz slosh), rolling metal clanks every 0.2 s, a deep rumble and a wave at the end."""
+    dur = 1.6
+    churn = lowpass(noise(dur, "pink"), 1400) * (0.5 + 0.5 * (0.5 + 0.5 * sine(6, dur)) ** 2) * lin(dur, [(0, 0), (0.1, 1), (1.2, 0.9), (dur, 0)])
+    rumble = lowpass(noise(dur, "brown"), 120) * lin(dur, [(0, 0.3), (0.8, 1), (dur, 0.3)])
+    ev = [(0, churn), (0, rumble)]
+    for i in range(7):
+        ev.append((0.05 + i * 0.2, ring(0.18, [380, 610, 920], 0.04, [1, 0.6, 0.4]) * (0.7 + 0.3 * (i % 2))))
+    ev.append((1.1, _splash(0.5, 180, 60, 0.1, 3, big=True) * 0.8))
+    return declick(reverb(place(ev, total=dur), 0.55, 0.2))
+
+
+def gator_missile():
+    """Swamp rocket launch from the pod, 0.6 s: a fwoomp, a rising whoosh and an ignition crack."""
+    fwoomp = burst(0.35, 0.09, lp_sweep=(3000, 350), attack=0.004)
+    whoosh = filter_sweep(noise(0.5), "bp", expsweep(0.5, 400, 2200), 3.0) * lin(0.5, [(0, 0), (0.1, 1), (0.5, 0)]) * 0.8
+    ignite = burst(0.05, 0.01, hp=2500) * 0.6
+    low = thump(0.3, 150, 60, 0.09) * 0.7
+    return declick(mix(fwoomp, whoosh, ignite, low))
+
+
+def gator_gatling():
+    """Jaw gatling burst, 0.5 s: six heavy cracks at 55 ms over a spinning barrel whirr."""
+    ev = []
+    for i in range(6):
+        c = mix(burst(0.05, 0.008, hp=800, lp=7000, attack=0.0003), thump(0.07, 280, 100, 0.018, drive=2.2))
+        ev.append((i * 0.055, c * (1.0 - i * 0.04)))
+    whirr = lowpass(saw(expsweep(0.5, 60, 130), 0.5), 900) * lin(0.5, [(0, 0.3), (0.3, 0.6), (0.5, 0)]) * 0.35
+    ev.append((0, whirr))
+    return declick(distort(place(ev), 1.4))
+
+
+def gator_gas():
+    """Swamp-gas breath, 1.05 s: a hissing gas cloud with gurgles, then the igniter spark at the end."""
+    dur = 1.05
+    gas = highpass(lowpass(noise(dur), 3000), 400) * lin(dur, [(0, 0), (0.1, 1), (0.75, 0.7), (0.9, 0)])
+    gurgle = filter_sweep(noise(dur, "pink"), "bp", 260 + 100 * sine(4, dur), 2.5) * lin(dur, [(0, 0.3), (0.5, 1), (0.9, 0)]) * 0.7
+    ev = [(0, gas * 0.7), (0, gurgle)]
+    for i in range(5):
+        ev.append((0.1 + i * 0.15, blip(0.07, 180 + i * 50, 420 + i * 60, sine, 0.5, 0.02) * 0.3))
+    ev.append((0.88, mix(burst(0.05, 0.006, hp=3500), ring(0.08, [4200, 6300], 0.012) * 0.6) * 0.9))
+    return declick(place(ev, total=dur))
+
+
+def gator_flame():
+    """Flame jet, 0.95 s: an ignition whomp, a roaring jet and crackle, ending in a hiss."""
+    dur = 0.95
+    whomp = mix(burst(0.3, 0.07, lp_sweep=(3200, 500), color="pink", attack=0.008), thump(0.25, 120, 55, 0.08) * 0.8)
+    roar = lowpass(noise(dur, "pink"), 1900) * lin(dur, [(0, 0), (0.08, 1), (0.7, 0.9), (dur, 0)]) * (0.85 + 0.15 * sine(9, dur))
+    pops = np.zeros(n(dur))
+    idx = S._rng.integers(n(0.1), n(0.8), 30)
+    pops[idx] = S._rng.uniform(0.3, 1.0, 30)
+    pops = bandpass(pops, 2400, 1.0) * 0.5
+    return declick(place([(0, whomp), (0.05, roar * 0.9), (0, pops)], total=dur))
+
+
+def gator_death():
+    """GATORGEDDON's death, 3.2 s: a staggering roar that sinks, chain explosions running down the body, sparks, a last
+    huge splash as it flips into the channel and bubbles as the lamps fade."""
+    dur = 3.2
+    roar = resample_safe(gator_roar(), 0.88)
+    fall = saw(expsweep(2.0, 60, 24) * vib(2.0, 5, 0.08), 2.0)
+    fall = distort(formant(fall, (260, 600), 3.0), 2.5) * lin(2.0, [(0, 0.6), (1.5, 1), (2.0, 0)])
+    sparks = np.zeros(n(dur))
+    idx = S._rng.integers(0, n(2.4), 50)
+    sparks[idx] = S._rng.uniform(0.3, 1.0, 50)
+    sparks = highpass(lowpass(sparks, 6000), 1500) * 0.5
+    ev = [(0, roar * 0.9), (0.4, fall * 0.6), (0, sparks), (0.6, explo_m(), 0.8), (1.15, explo_m(), 0.85), (1.65, explo_l(), 0.8), (2.25, splash_xl(), 1.0)]
+    for i in range(6):
+        ev.append((2.6 + i * 0.09, blip(0.08, 200 + i * 40, 500 + i * 60, sine, 0.5, 0.025) * 0.25))
+    return declick(reverb(place(ev, total=dur), 0.9, 0.3))
+
+
+# ---- Mission 2 level props and hazards
+def log_bob():
+    """Sinking log bobbing, 0.36 s: a wooden knock and a slosh."""
+    knock = mix(bandpass(noise(0.08), 850, 3.0) * perc(0.08, 0.001, 0.02), thump(0.1, 260, 130, 0.025) * 0.8)
+    slosh = filter_sweep(noise(0.3), "bp", expsweep(0.3, 1200, 500), 1.2) * perc(0.3, 0.01, 0.1) * 0.6
+    return declick(place([(0, knock), (0.02, slosh)]))
+
+
+def log_sink():
+    """Log going under, 0.95 s: a wood creak, water flooding over it, a low whoomp and bubbles."""
+    creak = formant(pulse(expsweep(0.4, 190, 120) * vib(0.4, 21, 0.07), 0.4, 0.15), (380, 820, 1500), 5.0) * perc(0.4, 0.01, 0.14) * 0.6
+    flood = burst(0.6, 0.18, lp_sweep=(3500, 600), color="pink", attack=0.02)
+    whoomp = thump(0.4, 110, 45, 0.12) * 0.7
+    ev = [(0, creak), (0.15, flood), (0.2, whoomp)]
+    for i in range(5):
+        ev.append((0.45 + i * 0.09, blip(0.06, 300 + i * 60, 700 + i * 80, sine, 0.5, 0.02) * 0.3))
+    return declick(reverb(place(ev, total=0.95), 0.4, 0.14))
+
+
+def gas_bubble():
+    """Swamp-gas bubbling (vent telegraph), 0.55 s: a cluster of bubbles with a gurgle."""
+    ev = [(0, filter_sweep(noise(0.5, "pink"), "bp", 300 + 90 * sine(7, 0.5), 2.5) * lin(0.5, [(0, 0), (0.1, 1), (0.5, 0)]) * 0.6)]
+    for i in range(6):
+        t0 = float(S._rng.uniform(0, 0.4))
+        f0 = float(S._rng.uniform(220, 520))
+        ev.append((t0, blip(0.07, f0, f0 * 2.2, sine, 0.5, 0.02) * float(S._rng.uniform(0.3, 0.6))))
+    return declick(lowpass(place(ev, total=0.55), 3500))
+
+
+def gas_vent():
+    """Swamp-gas vent igniting, 1.0 s: a whump, a roaring flame column and a crackle, dying to a hiss."""
+    dur = 1.0
+    whump = thump(0.3, 160, 50, 0.1, drive=1.8)
+    roar = lowpass(noise(dur, "pink"), 2200) * lin(dur, [(0, 0), (0.05, 1), (0.6, 0.8), (dur, 0)])
+    crackle = np.zeros(n(dur))
+    idx = S._rng.integers(n(0.05), n(0.8), 24)
+    crackle[idx] = S._rng.uniform(0.3, 1.0, 24)
+    crackle = bandpass(crackle, 2600, 1.0) * 0.5
+    hiss = burst(0.5, 0.2, hp=2500, attack=0.05) * 0.3
+    return declick(place([(0, whump), (0, roar * 0.9), (0, crackle), (0.55, hiss)], total=dur))
+
+
+def boardwalk_creak():
+    """Boardwalk plank creak, 0.45 s: a wooden creak and a dull knock."""
+    creak = formant(pulse(expsweep(0.35, 150, 95) * vib(0.35, 20, 0.08), 0.35, 0.15), (400, 900, 1700), 5.0) * perc(0.35, 0.01, 0.12)
+    knock = mix(bandpass(noise(0.06), 700, 3.0) * perc(0.06, 0.001, 0.015), thump(0.08, 220, 120, 0.02) * 0.7) * 0.6
+    return declick(place([(0, knock), (0.03, creak * 0.8)]))
+
+
+def boat_horn():
+    """Riverboat steam horn, 1.9 s: a low three-note chord (Eb minor) through a horn formant with breath, hall reverb."""
+    dur = 1.9
+    env = lin(dur, [(0, 0), (0.08, 1), (1.45, 0.95), (dur, 0)])
+    x = np.zeros(n(dur))
+    for f, g in ((155.6, 1.0), (207.7, 0.8), (233.1, 0.5), (311.1, 0.35)):
+        fr = f * vib(dur, 4.8, 0.004, 0.25) * lin(dur, [(0, 0.98), (0.1, 1.0), (1.5, 1.0), (dur, 0.975)])
+        x += (saw(fr, dur) * 0.6 + square(fr, dur, 0.3) * 0.4) * g
+    x = formant(x, (380, 900, 1700), 2.5, (1.0, 0.6, 0.25))
+    x = distort(x, 1.4)
+    breath = bandpass(noise(dur), 1200, 1.0) * 0.14
+    x = lowpass(mix(x, breath) * env, 2600)
+    return declick(reverb(x, 1.0, 0.32, 3500, 0.025))
+
+
+def branch_whoosh():
+    """Low cypress limb sweeping past, 0.65 s: the girder whoosh recipe with a leafy rustle and a lower wooden thrum."""
+    dur = 0.65
+    env = lin(dur, [(0, 0), (0.1, 0.4), (0.24, 1.0), (0.34, 0.7), (dur, 0)])
+    rush = filter_sweep(noise(dur), "bp", expsweep(dur, 2400, 320), 1.3) * env
+    rustle = bandpass(noise(dur), 4200, 0.9) * (0.5 + 0.5 * np.abs(sine(37, dur))) * env * 0.5
+    pressure = lowpass(noise(dur, "brown"), 220) * lin(dur, [(0, 0.1), (0.22, 1.0), (0.36, 0.5), (dur, 0)])
+    thrum = (saw(expsweep(dur, 220, 110), dur) * 0.5 + sine(expsweep(dur, 110, 55), dur) * 0.5) * env * 0.2
+    return declick(lowpass(mix(rush, rustle, pressure, thrum), 7000) * 0.8)
+
+
+def paddlewheel():
+    """BAYOU QUEEN paddlewheel, seamless 1.6 s loop: four paddle slaps (0.4 s apart) each a splash with a wooden thud, over a water rush."""
+    dur, xf = 1.6, 0.08
+    d = dur + xf
+    ev = []
+    for i in range(4):
+        slap = mix(burst(0.3, 0.07, lp_sweep=(3800, 700), attack=0.004), thump(0.1, 180, 90, 0.025) * 0.7) * (1.0 if i % 2 == 0 else 0.85)
+        ev.append((i * 0.4, slap))
+    slaps = periodic(ev, dur, xf)
+    rush = lowpass(noise(d, "pink"), 1400) * (0.75 + 0.25 * sine(1 / dur, d)) * 0.7
+    creak = lowpass(saw(48, d) * 0.5 + saw(96, d) * 0.3, 400) * (0.5 + 0.5 * sine(2 / dur, d)) * 0.25
+    x = mix(slaps, rush, creak)
+    return declick(loopify(x * 0.5, xf), 2)
+
+
+def mill_wheel():
+    """Drowned Mill waterwheel, seamless 2.4 s loop: two creaks per turn, a wooden groan and water trickling off the paddles."""
+    dur, xf = 2.4, 0.2
+    d = dur + xf
+    creak = lambda f0, f1: formant(pulse(expsweep(0.6, f0, f1) * vib(0.6, 17, 0.07), 0.6, 0.15), (380, 820, 1500), 5.0) * lin(0.6, [(0, 0), (0.05, 1), (0.45, 0.4), (0.6, 0)]) * 0.5
+    creaks = periodic([(0.0, creak(170, 120)), (1.2, creak(150, 105))], dur, xf)
+    groan = lowpass(saw(55, d) * 0.6 + saw(110, d) * 0.3, 350) * (0.6 + 0.4 * sine(1 / dur, d)) * 0.35
+    trickle = bandpass(noise(d), 2600, 0.9) * (0.5 + 0.5 * sine(2 / dur, d, 1.0)) * 0.3
+    water = lowpass(noise(d, "pink"), 900) * 0.4
+    x = mix(creaks, groan, trickle, water)
+    return declick(loopify(x * 0.5, xf), 3)
+
+
+def thunder():
+    """Close thunder, 2.8 s: a crack, a deep boom (90 -> 30 Hz) and a long rolling rumble with tumbling after-thuds."""
+    dur = 2.8
+    crack = burst(0.12, 0.02, hp=600, lp=6000, attack=0.0005)
+    boom = thump(1.2, 90, 28, 0.45, drive=2.0)
+    rumble = lowpass(noise(dur, "brown"), 140) * lin(dur, [(0, 0.2), (0.3, 1), (1.6, 0.6), (dur, 0)]) * 1.3
+    ev = [(0, crack), (0.02, boom), (0, rumble)]
+    for t0, g in ((0.5, 0.6), (0.9, 0.5), (1.5, 0.45), (2.0, 0.3)):
+        ev.append((t0, thump(0.4, 70, 35, 0.12) * g))
+    return declick(reverb(place(ev, total=dur), 0.9, 0.3, 3000, 0.02))
+
+
+def plank_break():
+    """Pier plank breaking, 0.55 s: a wood snap, splinters and a small splash through the hole."""
+    snap = mix(bandpass(noise(0.08), 650, 2.5) * perc(0.08, 0.001, 0.02), thump(0.12, 240, 90, 0.03) * 0.9)
+    ev = [(0, snap)]
+    for i, f in enumerate((500, 900, 700, 1100)):
+        ev.append((0.03 + i * 0.04, bandpass(noise(0.08), f, 3.0) * perc(0.08, 0.001, 0.02) * 0.8))
+    ev.append((0.18, splash_s() * 0.8))
+    return declick(place(ev))
+
+
+def warning_major():
+    """Main-boss WARNING layer (GATORGEDDON), 1.8 s: a deep klaxon falling, two heartbeat thuds and a steel groan; plays under `warning_siren`."""
+    dur = 1.8
+    klax = saw(expsweep(dur, 95, 70), dur) * 0.5 + square(expsweep(dur, 47, 35), dur, 0.5) * 0.5
+    klax = lowpass(distort(klax, 1.8), 500) * lin(dur, [(0, 0), (0.05, 1), (1.5, 0.9), (dur, 0)])
+    beat = lambda g: thump(0.3, 70, 38, 0.1, drive=1.6) * g
+    groan = formant(saw(expsweep(1.2, 120, 85) * vib(1.2, 9, 0.05), 1.2), (300, 700), 4.0) * lin(1.2, [(0, 0), (0.2, 1), (1.2, 0)]) * 0.3
+    x = place([(0, klax * 0.7), (0.15, beat(1.0)), (0.5, beat(0.8)), (0.4, groan)], total=dur)
+    return declick(reverb(x, 0.8, 0.25, 2500, 0.02))
+
+
+# ---- Mission 2 background moments (distant)
+def _flaps(dur, count, spacing, start=0.1, lp=900, gain=0.5):
+    flaps = np.zeros(n(dur))
+    for i in range(count):
+        k = n(0.05)
+        j = n(start + i * spacing)
+        if j + k < len(flaps):
+            flaps[j:j + k] += (lowpass(noise(0.05, "pink"), lp) * perc(0.05, 0.004, 0.02))[:k] * gain
+    return flaps
+
+
+def bg_herons():
+    """Egrets and herons lifting off the far marsh, 2.1 s: slow heavy wing beats and two raspy heron croaks."""
+    dur = 2.1
+    flaps = _flaps(dur, 8, 0.22, 0.05, 700, 0.7)
+    croak = lambda f0: formant(pulse(expsweep(0.3, f0, f0 * 0.7) * vib(0.3, 26, 0.08), 0.3, 0.3), (700, 1500, 2600), 4.0, (1, 0.7, 0.3)) * lin(0.3, [(0, 0), (0.03, 1), (0.2, 0.7), (0.3, 0)])
+    x = place([(0, flaps), (0.4, croak(380) * 0.7), (1.1, croak(330) * 0.6)], total=dur)
+    return declick(_far(x, 2800, 0.8, 0.3))
+
+
+def bg_patrol_boat():
+    """Regime patrol boat on a far channel, 3.6 s: an outboard passing (doppler putter) with a wake hiss and a searchlight servo."""
+    dur = 3.6
+    env = lin(dur, [(0, 0), (1.0, 0.8), (1.8, 1), (2.8, 0.7), (dur, 0)])
+    f = expsweep(dur, 92, 66)
+    eng = pulse(f, dur, 0.2) + pulse(f * 2, dur, 0.4) * 0.5
+    eng = lowpass(distort(eng, 2.0), 600)
+    wake = lowpass(noise(dur, "pink"), 1200) * 0.5
+    servo = lowpass(saw(150 * (1 + 0.2 * np.sin(np.pi * t(dur) / dur)), dur), 700) * 0.15
+    return declick(_far(mix(eng * 0.6, wake, servo) * env, 1200, 1.0, 0.35))
+
+
+def bg_wisps():
+    """Swamp-gas wisps on the far water, 2.6 s: an eerie detuned cluster with a minor second, slow tremolo and a whisper of noise."""
+    dur = 2.6
+    env = lin(dur, [(0, 0), (0.8, 1), (1.8, 0.8), (dur, 0)])
+    x = np.zeros(n(dur))
+    for f, g in ((330.0, 1.0), (349.7, 0.5), (495.3, 0.6), (660.8, 0.35)):
+        x += sine(f * vib(dur, 0.6, 0.006), dur) * g * (0.7 + 0.3 * sine(0.9 + g, dur))
+    whisper = bandpass(noise(dur), 2600, 1.5) * (0.5 + 0.5 * sine(1.3, dur)) * 0.08
+    return declick(reverb(mix(x * 0.25, whisper) * env, 1.0, 0.5, 5000, 0.05))
+
+
+def bg_pond_wake():
+    """A huge wake in the turtle pond, 2.3 s: heaving water swelling in, slow sloshes and a dull thud as the shell breaks the surface."""
+    dur = 2.3
+    env = lin(dur, [(0, 0), (0.7, 1), (1.6, 0.8), (dur, 0)])
+    heave = lowpass(noise(dur, "pink"), 900) * (0.6 + 0.4 * sine(1.5, dur)) * env
+    slosh = filter_sweep(noise(dur, "pink"), "bp", 350 + 150 * sine(1.5, dur, 1.0), 2.5) * env * 0.6
+    thud = thump(0.5, 80, 38, 0.15) * 0.8
+    drips = place([(1.3 + i * 0.12, blip(0.05, 1200 + i * 200, 2000 + i * 200, sine, 0.5, 0.015) * 0.2) for i in range(5)])
+    x = place([(0, heave), (0, slosh), (1.15, thud), (0, drips)], total=dur)
+    return declick(_far(x, 1500, 1.0, 0.35))
+
+
+def bg_gator_pod():
+    """A pod of mech-gator ridges cruising the far water, 3.0 s: slow sloshing, a very low growl and a tail slap."""
+    dur = 3.0
+    env = lin(dur, [(0, 0), (0.8, 1), (2.3, 0.9), (dur, 0)])
+    slosh = lowpass(noise(dur, "pink"), 700) * (0.6 + 0.4 * sine(0.8, dur)) * env
+    growl = distort(formant(saw(40 * vib(dur, 3, 0.08), dur), (200, 450), 3.0), 2.5) * env * 0.4
+    slap = _splash(0.5, 200, 70, 0.1, 3, big=True) * 0.7
+    x = place([(0, slosh), (0, growl), (1.9, slap)], total=dur)
+    return declick(_far(x, 900, 1.0, 0.4))
+
+
+def bg_burning_barge():
+    """A burning wreck drifting past, 3.6 s: fire roar and crackle with a far explosion halfway."""
+    dur = 3.6
+    env = lin(dur, [(0, 0), (0.8, 1), (2.8, 0.9), (dur, 0)])
+    roar = lowpass(noise(dur, "pink"), 900) * (0.8 + 0.2 * sine(3.1, dur)) * env
+    pops = np.zeros(n(dur))
+    idx = S._rng.integers(0, n(dur), 60)
+    pops[idx] = S._rng.uniform(0.3, 1.0, 60)
+    pops = bandpass(pops, 2000, 1.0) * env * 0.7
+    boom = mix(thump(0.5, 120, 35, 0.18, drive=1.4), lowpass(noise(1.2, "brown"), 180) * decay(1.2, 0.3))
+    x = place([(0, roar), (0, pops), (1.6, boom * 1.2)], total=dur)
+    return declick(_far(x, 1600, 1.0, 0.35))
+
+
+def bg_skeeter_swarm():
+    """A dark cloud of mech mosquitos crossing the moon, 3.0 s: a swelling chorus of detuned whines, far away."""
+    dur = 3.0
+    env = lin(dur, [(0, 0), (1.1, 1), (2.0, 0.9), (dur, 0)])
+    x = np.zeros(n(dur))
+    for i, f in enumerate((352, 371, 395, 418, 440, 468, 497, 523)):
+        x += saw(f * (1 + 0.004 * sine(0.7 + i * 0.13, dur)), dur) * (0.6 + 0.4 * sine(1.1 + i * 0.21, dur)) / 8
+    x = lowpass(x, 3000) * env
+    return declick(_far(x, 2400, 0.9, 0.35))
+
+
+def bg_airboat_race():
+    """Airboats racing through a far channel, 3.4 s: two fan motors passing (doppler) with chopped prop wash, staggered."""
+    dur = 3.4
+    def boat(f0, f1, start, length):
+        env = lin(length, [(0, 0), (length * 0.35, 1), (length * 0.6, 0.9), (length, 0)])
+        f = expsweep(length, f0, f1)
+        eng = lowpass(distort(pulse(f, length, 0.2) + pulse(f * 2, length, 0.4) * 0.5, 2.5), 700)
+        wash = lowpass(noise(length, "pink"), 1500) * (0.5 + 0.5 * (0.5 + 0.5 * sine(25, length)) ** 2)
+        return (start, mix(eng * 0.6, wash) * env)
+    x = place([boat(74, 52, 0.0, 2.6), boat(80, 56, 0.6, 2.6)], total=dur)
+    return declick(_far(x, 1300, 1.0, 0.35))
+
+
+def bg_mill_creak():
+    """The far mill's broken waterwheel turning, 2.2 s: a long wooden creak, a groan and water trickling."""
+    dur = 2.2
+    creak = formant(pulse(expsweep(0.9, 160, 110) * vib(0.9, 15, 0.07), 0.9, 0.15), (380, 820, 1500), 5.0) * lin(0.9, [(0, 0), (0.08, 1), (0.7, 0.4), (0.9, 0)])
+    groan = lowpass(saw(52, dur) * 0.6 + saw(104, dur) * 0.3, 350) * lin(dur, [(0, 0), (0.4, 1), (1.8, 0.8), (dur, 0)]) * 0.5
+    trickle = bandpass(noise(dur), 2600, 0.9) * lin(dur, [(0, 0), (0.3, 1), (dur, 0)]) * 0.4
+    x = place([(0.2, creak), (0, groan), (0, trickle)], total=dur)
+    return declick(_far(x, 1800, 1.0, 0.35))
+
+
+def bg_den_glow():
+    """Green reactor glow pulsing from the far den, 2.5 s: a pulsing low hum (1.2 Hz), chain rattles and a thin hiss."""
+    dur = 2.5
+    env = lin(dur, [(0, 0), (0.5, 1), (2.0, 0.9), (dur, 0)])
+    hum = (sine(55, dur) * 0.6 + sine(110, dur) * 0.4 + saw(165, dur) * 0.15) * (0.5 + 0.5 * (0.5 + 0.5 * sine(1.2, dur)) ** 2) * env
+    chain = np.zeros(n(dur))
+    idx = S._rng.integers(0, n(dur), 22)
+    chain[idx] = S._rng.uniform(0.3, 1.0, 22)
+    chain = bandpass(chain, 2400, 1.2) * env * 0.6
+    hiss = bandpass(noise(dur), 4000, 1.5) * env * 0.08
+    return declick(_far(mix(hum * 0.6, chain, hiss), 2000, 1.0, 0.4))
+
+
+def bg_gator_roar():
+    """GATORGEDDON roaring far across the swamp (gator_glimpse, gator_wake), 2.6 s: the roar recipe, lower, muffled and drenched."""
+    x = resample_safe(gator_roar(), 0.86)
+    return declick(_far(x, 800, 1.0, 0.5))
+
+
+def bg_wreck_collapse():
+    """Burning BAYOU QUEEN debris collapsing into the water, 2.7 s: a groan, wood and steel crashes, a hiss and a splash."""
+    dur = 2.7
+    groan = formant(pulse(expsweep(0.8, 140, 90) * vib(0.8, 12, 0.06), 0.8, 0.15), (350, 760), 5.0) * lin(0.8, [(0, 0), (0.1, 1), (0.8, 0)]) * 0.6
+    ev = [(0, groan)]
+    for i, (t0, f) in enumerate(((0.7, 420), (0.85, 650), (0.95, 520), (1.1, 380))):
+        ev.append((t0, mix(bandpass(noise(0.12), f, 2.5) * perc(0.12, 0.001, 0.03), thump(0.15, 200, 80, 0.04) * 0.8) * (0.9 - i * 0.1)))
+    ev.append((0.9, ring(0.5, [380, 610, 920], 0.1, [1, 0.6, 0.4]) * 0.5))
+    ev.append((1.3, _splash(0.9, 180, 60, 0.14, 5, big=True) * 0.9))
+    ev.append((1.5, burst(0.9, 0.3, hp=1800, attack=0.05) * 0.5))
+    return declick(_far(place(ev, total=dur), 1400, 1.0, 0.35))
+
+
+def bg_thunder():
+    """Far thunder (storm lightning moments), 2.5 s: a soft far boom and a long low rumble."""
+    dur = 2.5
+    boom = thump(0.8, 70, 28, 0.3, drive=1.4)
+    rumble = lowpass(noise(dur, "brown"), 150) * lin(dur, [(0, 0), (0.15, 1), (1.2, 0.5), (dur, 0)]) * 1.2
+    return declick(_far(mix(boom, rumble), 450, 1.0, 0.45))
+
+
+# ---- Mission 2 ambient beds (seamless loops, under the music; keyed by fx:ambience kind in UI.audio.ambienceKinds)
+def amb_swamp():
+    """Swamp bed, 3.2 s loop: bullfrogs (two croaks per period), crickets chirping at 30 Hz, a cicada drone and lapping water."""
+    dur, xf = 3.2, 0.3
+    d = dur + xf
+    base = 1.0 / dur
+    frog = lambda f0: formant(pulse(expsweep(0.3, f0, f0 * 1.15), 0.3, 0.22) * (0.6 + 0.4 * square(18, 0.3, 0.5)), (280, 700, 1200), 4.0) * perc(0.3, 0.02, 0.1) * 0.5
+    chirp = lambda dur_: bandpass(noise(dur_), 4600, 4.0) * (0.5 + 0.5 * square(30, dur_, 0.3)) * lin(dur_, [(0, 0), (0.05, 1), (dur_ - 0.05, 1), (dur_, 0)]) * 0.35
+    ev = [(0.5, frog(85)), (2.1, frog(74)), (0.0, chirp(1.1)), (1.7, chirp(0.9))]
+    wild = periodic(ev, dur, xf)
+    cicada = bandpass(saw(3100, d), 3200, 6.0) * (0.5 + 0.5 * sine(2 * base, d, 0.7)) * 0.08
+    water = lowpass(noise(d, "pink"), 600) * (0.7 + 0.3 * sine(base, d)) * 0.5
+    low = lowpass(noise(d, "brown"), 150) * 0.35
+    return _bed(dur, xf, (wild, cicada, water, low))
+
+
+def amb_rain():
+    """Rain bed, 3.2 s loop: a steady patter (dense high crackle) over a soft hiss and the odd drip."""
+    dur, xf = 3.2, 0.3
+    d = dur + xf
+    base = 1.0 / dur
+    hiss = lowpass(noise(d, "pink"), 3500) * (0.85 + 0.15 * sine(base, d)) * 0.6
+    patter = np.zeros(n(d))
+    idx = S._rng.integers(0, n(d), 2600)
+    patter[idx] = S._rng.uniform(0.2, 1.0, 2600)
+    patter = highpass(lowpass(patter, 7000), 1800) * 0.5
+    drips = periodic([(0.4, blip(0.05, 1500, 2400, sine, 0.5, 0.015) * 0.25), (1.9, blip(0.05, 1900, 2800, sine, 0.5, 0.015) * 0.2), (2.6, blip(0.05, 1300, 2100, sine, 0.5, 0.015) * 0.2)], dur, xf)
+    return _bed(dur, xf, (hiss, patter, drips))
+
+
+def amb_storm():
+    """Storm bed, 3.2 s loop: heavier rain with wind gusts and a soft far thunder rumble once per period."""
+    dur, xf = 3.2, 0.3
+    d = dur + xf
+    base = 1.0 / dur
+    gust = 0.55 + 0.45 * sine(base, d, 0.4) * sine(2 * base, d, 1.3)
+    rain = lowpass(noise(d, "pink"), 4000) * 0.7
+    patter = np.zeros(n(d))
+    idx = S._rng.integers(0, n(d), 3400)
+    patter[idx] = S._rng.uniform(0.2, 1.0, 3400)
+    patter = highpass(lowpass(patter, 7500), 1600) * 0.55
+    wind = filter_sweep(noise(d), "bp", 700 + 500 * (0.5 + 0.5 * sine(base, d, 2.0)), 3.0) * gust * 0.7
+    rumble = periodic([(1.4, lowpass(noise(1.4, "brown"), 120) * lin(1.4, [(0, 0), (0.3, 1), (1.4, 0)]) * 0.9)], dur, xf)
+    low = lowpass(noise(d, "brown"), 180) * gust * 0.5
+    return _bed(dur, xf, (rain, patter, wind, rumble, low))
+
+
+def amb_fog():
+    """Fog bed, 3.2 s loop: a muffled hush (brown noise), a faint far foghorn drone and slow drips."""
+    dur, xf = 3.2, 0.3
+    d = dur + xf
+    base = 1.0 / dur
+    hush = lowpass(noise(d, "brown"), 220) * (0.8 + 0.2 * sine(base, d)) * 0.9
+    horn = lowpass(sine(98, d) * 0.6 + saw(98, d) * 0.2 + sine(147, d) * 0.2, 400) * (0.4 + 0.6 * (0.5 + 0.5 * sine(base, d, 2.0)) ** 2) * 0.22
+    drips = periodic([(0.9, blip(0.06, 900, 1500, sine, 0.5, 0.02) * 0.2), (2.3, blip(0.06, 1100, 1700, sine, 0.5, 0.02) * 0.15)], dur, xf)
+    lap = lowpass(noise(d, "pink"), 500) * 0.3
+    return _bed(dur, xf, (hush, horn, lowpass(drips, 2500), lap))
+
+
+def amb_riverboat():
+    """River bed (2-2), 3.2 s loop: the water rush alongside the barges and the BAYOU QUEEN's paddlewheel far astern (4 slaps per period)."""
+    dur, xf = 3.2, 0.3
+    d = dur + xf
+    base = 1.0 / dur
+    rush = lowpass(noise(d, "pink"), 1300) * (0.8 + 0.2 * sine(base, d)) * 0.8
+    spray = bandpass(noise(d), 3000, 1.0) * (0.6 + 0.4 * sine(2 * base, d, 0.5)) * 0.15
+    slap = lambda g: lowpass(mix(burst(0.3, 0.07, lp_sweep=(2600, 500), attack=0.004), thump(0.1, 150, 80, 0.025) * 0.6), 1800) * g
+    wheel = periodic([(0.0, slap(0.5)), (0.8, slap(0.42)), (1.6, slap(0.5)), (2.4, slap(0.42))], dur, xf)
+    low = lowpass(noise(d, "brown"), 160) * 0.4
+    return _bed(dur, xf, (rush, spray, wheel, low))
+
+
 # ----------------------------------------------------------------- catalog: key -> (fn, loudness dBFS, loop)
 CATALOG = {
     # weapons
@@ -1170,6 +1962,36 @@ CATALOG = {
     # Phase F: ambient beds (loops)
     "amb_camp": (amb_camp, -28, True), "amb_forest": (amb_forest, -28, True), "amb_river": (amb_river, -26, True),
     "amb_outpost": (amb_outpost, -28, True), "amb_lake": (amb_lake, -28, True), "amb_lab": (amb_lab, -28, True),
+    # Phase G (Mission 2): player and water
+    "shotgun_fire": (shotgun_fire, -12, False), "shotgun_pump": (shotgun_pump, -17, False), "wade_step": (wade_step, -21, False), "mud_step": (mud_step, -20, False),
+    "splash_s": (splash_s, -19, False), "splash_m": (splash_m, -16, False), "splash_l": (splash_l, -13, False), "splash_xl": (splash_xl, -11, False), "drown": (drown, -13, False),
+    # Phase G: regular enemies
+    "lurker_rise": (lurker_rise, -17, False), "piranha_leap": (piranha_leap, -17, False), "piranha_bite": (piranha_bite, -16, False),
+    "hopper_croak": (hopper_croak, -17, False), "hopper_hop": (hopper_hop, -18, False), "hopper_tongue": (hopper_tongue, -16, False),
+    "gnat_buzz": (gnat_buzz, -24, True), "airboat_motor": (airboat_motor, -20, True), "airboat_gun": (airboat_gun, -16, False),
+    # Phase G: SHELLSHOCK
+    "turtle_hiss": (turtle_hiss, -16, False), "turtle_snap": (turtle_snap, -13, False), "shell_clank": (shell_clank, -15, False), "shell_spin": (shell_spin, -20, True),
+    "egg_lob": (egg_lob, -17, False), "egg_beep": (egg_beep, -18, False),
+    # Phase G: MEGA-SKEETER
+    "skeeter_whine": (skeeter_whine, -21, True), "skeeter_laser": (skeeter_laser, -18, False), "skeeter_dive": (skeeter_dive, -14, False),
+    "skeeter_drill": (skeeter_drill, -13, False), "larva_pop": (larva_pop, -17, False), "stinger_fire": (stinger_fire, -15, False),
+    # Phase G: GATORGEDDON
+    "gator_roar": (gator_roar, -9.5, False), "gator_snap": (gator_snap, -12, False), "gator_hiss": (gator_hiss, -16, False), "gator_tail": (gator_tail, -13, False),
+    "gator_submerge": (gator_submerge, -14, False), "gator_surface": (gator_surface, -12, False), "gator_roll": (gator_roll, -12, False),
+    "gator_missile": (gator_missile, -14, False), "gator_gatling": (gator_gatling, -15, False), "gator_gas": (gator_gas, -18, False),
+    "gator_flame": (gator_flame, -13, False), "gator_death": (gator_death, -9, False),
+    # Phase G: level props and hazards
+    "log_bob": (log_bob, -20, False), "log_sink": (log_sink, -16, False), "gas_bubble": (gas_bubble, -21, False), "gas_vent": (gas_vent, -13, False),
+    "boardwalk_creak": (boardwalk_creak, -22, False), "boat_horn": (boat_horn, -13, False), "branch_whoosh": (branch_whoosh, -14, False),
+    "paddlewheel": (paddlewheel, -22, True), "mill_wheel": (mill_wheel, -24, True), "thunder": (thunder, -11, False), "plank_break": (plank_break, -15, False),
+    "warning_major": (warning_major, -12, False),
+    # Phase G: background moments (distant tiers)
+    "bg_herons": (bg_herons, -22, False), "bg_patrol_boat": (bg_patrol_boat, -22, False), "bg_wisps": (bg_wisps, -27, False), "bg_pond_wake": (bg_pond_wake, -21, False),
+    "bg_gator_pod": (bg_gator_pod, -22, False), "bg_burning_barge": (bg_burning_barge, -20, False), "bg_skeeter_swarm": (bg_skeeter_swarm, -23, False),
+    "bg_airboat_race": (bg_airboat_race, -21, False), "bg_mill_creak": (bg_mill_creak, -23, False), "bg_den_glow": (bg_den_glow, -23, False),
+    "bg_gator_roar": (bg_gator_roar, -18, False), "bg_wreck_collapse": (bg_wreck_collapse, -20, False), "bg_thunder": (bg_thunder, -20, False),
+    # Phase G: ambient beds by fx:ambience kind (loops)
+    "amb_swamp": (amb_swamp, -27, True), "amb_rain": (amb_rain, -26, True), "amb_storm": (amb_storm, -25, True), "amb_fog": (amb_fog, -30, True), "amb_riverboat": (amb_riverboat, -26, True),
 }
 
 

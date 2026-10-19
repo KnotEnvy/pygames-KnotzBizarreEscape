@@ -6,10 +6,13 @@
 //               in 2-tile holes toward the player, and refreeze faster.
 // Slippery ice needs no level code: tiles carry material=ice and the player reads ctx.physics.surfaceAt().
 // The frame gids come from the map property `crack_gids` ("f1,f2,f3,water", written by the generator by tile name).
+// Map property `crack_style` picks the sounds/effects (LEVEL.ice.styles): 'ice' (default, Moose Lake) or 'wood' (Mission 2's
+// den pier, where GATORGEDDON's tail slams splinter planks into holes).
 import Phaser from 'phaser';
 import type { GameContext, GameEvents } from '../core';
-import { LEVEL } from '../config/tuning/level';
+import { LEVEL, type CrackStyle } from '../config/tuning/level';
 import type { BuiltMap } from './map';
+import { swapTile } from './tiles';
 
 type State = 'intact' | 'cracking' | 'open' | 'freezing';
 interface Cell { tx: number; ty: number; base: number; kind: 'step' | 'stomp'; state: State; t: number; stage: number; refreeze: number }
@@ -23,12 +26,14 @@ export class IceSystem {
     private readonly frames: number[];
     private readonly layer: Phaser.Tilemaps.TilemapLayer;
     private readonly ts: number;
+    private readonly style: CrackStyle;
     stats = { cracked: 0, opened: 0, refrozen: 0, stomps: 0 };
 
     constructor(private readonly ctx: GameContext, private readonly built: BuiltMap) {
         this.layer = built.ground;
         this.ts = built.map.tileWidth;
         this.frames = String(built.props.crack_gids ?? '').split(',').map(Number).filter(n => n > 0);
+        this.style = LEVEL.ice.styles[String(built.props.crack_style ?? 'ice')] ?? LEVEL.ice.styles.ice;
         this.layer.forEachTile(t => {
             const c = t.properties?.crack;
             if (c === undefined || c === null || c === false || c === '') return;
@@ -68,8 +73,9 @@ export class IceSystem {
         this.live.add(c);
         this.setFrame(c, 1);
         const x = (c.tx + 0.5) * this.ts, y = c.ty * this.ts;
-        this.ctx.events.emit('fx:emit', { effect: 'ice_crack', x, y, width: this.ts, duration: LEVEL.ice.stageMs * 4 } as IceFx);
-        this.ctx.audio.sfx('ice_crack', { x });
+        const S = this.style;
+        this.ctx.events.emit('fx:emit', { effect: S.crackFx, x, y, width: this.ts, duration: LEVEL.ice.stageMs * 4, material: S.material, count: 3 } as IceFx);
+        if (S.crackSfx) this.ctx.audio.sfx(S.crackSfx, { x });
         this.stats.cracked++;
     }
 
@@ -96,8 +102,10 @@ export class IceSystem {
         c.state = 'open'; c.t = 0;
         this.setTile(c, this.frames[3]);
         const x = (c.tx + 0.5) * this.ts, y = c.ty * this.ts;
-        this.ctx.events.emit('fx:emit', { effect: 'ice_shatter', x, y, width: this.ts, count: 8 } as IceFx);
-        this.ctx.audio.sfx('ice_break', { x });
+        const S = this.style;
+        this.ctx.events.emit('fx:emit', { effect: S.breakFx, x, y, width: this.ts, count: 8, material: S.material } as IceFx);
+        if (S.breakSfx) this.ctx.audio.sfx(S.breakSfx, { x });
+        if (S.splash) this.ctx.events.emit('water:splash', { x, y: y + this.ts, size: 'm', kind: 'enter' });
         this.stats.opened++;
     }
 
@@ -106,23 +114,9 @@ export class IceSystem {
         this.setTile(c, this.frames[stage - 1]);
     }
 
-    /** Swap the tile's index, copy that tile's properties and rebuild its collision (faces of the neighbours too). */
+    /** Swap the tile (copies its tileset properties and rebuilds collision). The cell's own base keeps its crack marker. */
     private setTile(c: Cell, gid: number): void {
-        const tile = this.layer.getTileAt(c.tx, c.ty, true);
-        if (!tile) return;
-        tile.index = gid;
-        const ts = this.built.map.tilesets.find(s => s.containsTileIndex(gid));
-        const raw = ts?.getTileProperties(gid) as unknown;
-        const props: Record<string, unknown> = {};
-        if (Array.isArray(raw)) for (const p of raw as Array<{ name: string; value: unknown }>) props[p.name] = p.value;
-        else if (raw && typeof raw === 'object') Object.assign(props, raw);
-        // Keep the crack marker on the cell's own frames so a refrozen tile can crack again.
-        if (gid === c.base) props.crack = c.kind === 'stomp' ? 'stomp' : 'true';
-        tile.properties = props;
-        if (props.collides === true) {
-            if (props.oneway) tile.setCollision(false, false, true, false, true);
-            else tile.setCollision(true, true, true, true, true);
-        } else tile.resetCollision(true);
+        swapTile(this.layer, this.built.map, c.tx, c.ty, gid, gid === c.base ? { crack: c.kind === 'stomp' ? 'stomp' : 'true' } : undefined);
     }
 
     private playerOver(c: Cell): boolean {

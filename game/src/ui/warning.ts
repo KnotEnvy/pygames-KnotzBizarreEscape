@@ -4,10 +4,15 @@
 // never blocking. The stripes strobe red/black; with REDUCED FLASH on they only sweep (no strobe, dimmer red).
 // It sits in the band y 92..132: under the HUD rows and the weapon callout (y 74), above the boss bar (y 198), and clear
 // of the engine's 14 px letterbox bars that come in at the same moment.
+// Phase G: the main-boss variant (catalog MAJOR_BOSS: GATORGEDDON, MOOSEZILLA) is taller (y 84..140), grows out from its
+// centre line, strobes slower and heavier, sets the name in the big fire font and holds longer (UI.warning.major).
 import Phaser from 'phaser';
 import { settings } from '../core';
 import { UI } from '../config/tuning/ui';
+import { MAJOR_BOSS } from '../audio/catalog';
 import { C, F, W, text } from './widgets';
+
+interface Timeline { y: number; h: number; strobeMs: number; textY: number; nameY: number; inMs: number; nameAt: number; outAt: number; outMs: number }
 
 const TEX_HAZARD = 'ui_hazard_stripes';
 const RED = 0xd4483a;
@@ -41,6 +46,10 @@ export class WarningBanner {
     private strobe = 0;
     private bossName = '';
     private reduced = false;
+    private major = false;
+    private K: Timeline = UI.warning;
+    /** Phase G: the band's grow-in progress (0..1; the regular banner starts at 1). */
+    private grow = 1;
 
     constructor(private readonly scene: Phaser.Scene, depth = 48) {
         const K = UI.warning;
@@ -55,24 +64,39 @@ export class WarningBanner {
     }
 
     get active(): boolean { return this.t >= 0; }
-    get state(): { name: string; t: number } | null { return this.active ? { name: this.bossName, t: Math.round(this.t) } : null; }
+    get state(): { name: string; t: number; major: boolean } | null { return this.active ? { name: this.bossName, t: Math.round(this.t), major: this.major } : null; }
 
     show(name: string): void {
-        const K = UI.warning;
+        const base = UI.warning;
         this.reduced = settings.get().reducedFlash;
         this.bossName = (name || 'BOSS').toUpperCase();
+        this.major = MAJOR_BOSS.test(this.bossName);
+        const K = this.K = this.major ? { ...base, ...base.major } : base;
         this.t = 0;
         this.strobe = 0;
         this.scene.tweens.killTweensOf([this.box, this.title, this.name]);
-        this.box.setVisible(true).setAlpha(1);
+        this.box.setVisible(true).setAlpha(1).setY(K.y);
         this.panel.setAlpha(K.panelAlpha);
         this.top.setAlpha(1); this.bottom.setAlpha(1);
         this.top.clearTint(); this.bottom.clearTint();
-        this.name.setText('').setAlpha(0);
+        this.name.setText('').setAlpha(0).setFont(this.major && base.major.nameFont === 'fire' ? F.fire : F.hud).setPosition(W / 2, K.nameY - K.y);
+        // The main boss: the band grows out from its centre line over growMs (rectangles, no texture scaling); regular: full at once.
+        this.grow = this.major ? 0 : 1;
+        this.layoutBand();
         // Slam: the word drops from above with an overshoot (position only), white for the first frames, then red.
         this.title.setTint(0xffffff).setAlpha(1).setPosition(W / 2, K.textY - K.y - 22);
         this.scene.tweens.add({ targets: this.title, y: K.textY - K.y, duration: K.inMs, ease: 'Back.easeOut' });
         if (this.reduced) { this.top.setTint(RED_DIM); this.bottom.setTint(RED_DIM); }
+    }
+
+    /** Size the panel and park the stripes on its edges for the current grow progress. */
+    private layoutBand(): void {
+        const K = this.K;
+        const h = Math.max(UI.warning.stripeH * 2, Math.round(K.h * this.grow));
+        const y0 = Math.round((K.h - h) / 2);
+        this.panel.setPosition(0, y0).setSize(W, h);
+        this.top.setPosition(0, y0);
+        this.bottom.setPosition(0, y0 + h - UI.warning.stripeH);
     }
 
     hide(): void {
@@ -84,10 +108,14 @@ export class WarningBanner {
 
     update(dt: number): void {
         if (!this.active) return;
-        const K = UI.warning;
+        const K = this.K;
         this.t += dt;
+        if (this.grow < 1) {
+            this.grow = Math.min(1, this.grow + dt / UI.warning.major.growMs);
+            this.layoutBand();
+        }
         // Hazard sweep: the two edges run opposite ways.
-        const sweep = K.sweepPxPerS * dt / 1000;
+        const sweep = UI.warning.sweepPxPerS * dt / 1000;
         this.top.tilePositionX -= sweep;
         this.bottom.tilePositionX += sweep;
         // Strobe: the red stripes flash bright ↔ dark (the black stripes stay, so the hazard pattern always reads),

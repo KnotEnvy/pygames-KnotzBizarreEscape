@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rebuild Mission 1 maps: generator -> TMX -> TMJ export -> validation -> preview renders.
+# Rebuild the maps (Mission 1 m1p1..3, Mission 2 m2p1..3): generator -> TMX -> TMJ export -> validation -> preview renders.
 #   bash art-src/maps/build.sh                 every map (m1p1 m1p2 m1p3)
 #   bash art-src/maps/build.sh m1p2            one map
 #   bash art-src/maps/build.sh --tiles [map]   also rebuild the tilesets (stage1, m1_train, m1_lake) and strips first
@@ -10,16 +10,17 @@ mkdir -p "$GAME/public/assets/maps"
 unset DISPLAY WAYLAND_DISPLAY PULSE_SERVER
 TILES=0; MAPS=()
 for a in "$@"; do if [ "$a" = "--tiles" ]; then TILES=1; else MAPS+=("$a"); fi; done
-[ ${#MAPS[@]} -eq 0 ] && MAPS=(m1p1 m1p2 m1p3)
+[ ${#MAPS[@]} -eq 0 ] && MAPS=(m1p1 m1p2 m1p3 m2p1 m2p2 m2p3)
 
 if [ "$TILES" = 1 ]; then
-  for t in stage1 m1_train m1_lake; do
+  for t in stage1 m1_train m1_lake m2_bayou m2_boat m2_mill; do
     [ -f "$GAME/art-src/tiles/$t.lua" ] || continue
     log=$(cd "$GAME" && bash tools/build-art.sh "art-src/tiles/$t.lua" 2>&1 || true); echo "$log"
     echo "$log" | grep -q "^built $t tileset" || { echo "!! tileset $t build failed"; exit 1; }
   done
   (cd "$GAME" && bash tools/build-art.sh art-src/maps/haze.lua)
   [ -f "$GAME/art-src/maps/train_strips.lua" ] && (cd "$GAME" && bash tools/build-art.sh art-src/maps/train_strips.lua)
+  [ -f "$GAME/art-src/maps/bayou_strips.lua" ] && (cd "$GAME" && bash tools/build-art.sh art-src/maps/bayou_strips.lua)
 fi
 
 for M in "${MAPS[@]}"; do

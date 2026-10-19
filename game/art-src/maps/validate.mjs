@@ -16,9 +16,11 @@ const map = JSON.parse(fs.readFileSync(file, 'utf8'));
 const errors = [], warns = [];
 const err = (m) => errors.push(m), warn = (m) => warns.push(m);
 
-const ENEMY_KINDS = ['grunt', 'grenadier', 'shield', 'turret', 'drone', 'paratrooper', 'leaper', 'buzzard', 'hound'];
-const BOSS_KINDS = ['moosezilla', 'snowcat', 'ironhorn'];
-const ITEMS = ['hmg', 'spread', 'rocket', 'flame', 'bombs', 'laser'];
+const ENEMY_KINDS = ['grunt', 'grenadier', 'shield', 'turret', 'drone', 'paratrooper', 'leaper', 'buzzard', 'hound',
+  // Mission 2
+  'lurker', 'piranha', 'hopper', 'gnat', 'airboat'];
+const BOSS_KINDS = ['moosezilla', 'snowcat', 'ironhorn', 'shellshock', 'skeeter', 'gatorgeddon'];
+const ITEMS = ['hmg', 'spread', 'rocket', 'flame', 'bombs', 'laser', 'shotgun'];
 const PICKUPS = [...ITEMS, 'points', 'life'];
 const PROP_KINDS = ['crate', 'supply_crate', 'barrel', 'explosive_barrel', 'sandbag', 'watchtower', 'prison_cell', 'pine_fg',
   'pine_mid', 'pine_dead', 'sign_jump', 'sign_bomb', 'sign_shoot', 'sign_arrow', 'sign_danger', 'sign_crouch', 'gate', 'alarm_light',
@@ -26,12 +28,22 @@ const PROP_KINDS = ['crate', 'supply_crate', 'barrel', 'explosive_barrel', 'sand
   // Part II (train)
   'bogie', 'coupling', 'boxcar_door', 'sign_duck', 'low_bridge', 'train_lamp',
   // Part III (lake / lab)
-  'wreck_boxcar', 'wreck_engine', 'wreck_bogie', 'log_spill', 'sign_thin_ice', 'lab_sign', 'tesla_coil', 'ice_hole'];
-const AIR_KINDS = ['drone', 'paratrooper', 'buzzard', 'leaper'];
+  'wreck_boxcar', 'wreck_engine', 'wreck_bogie', 'log_spill', 'sign_thin_ice', 'lab_sign', 'tesla_coil', 'ice_hole',
+  // Mission 2: swamp + mill (manifest_m2a.json), river (manifest_m2b.json)
+  'shack_door', 'lantern', 'lantern_post', 'net', 'sign_wade', 'sign_logs', 'sign_gator', 'skiff', 'queen_wreck', 'gas_vent', 'gas_flame',
+  'fuel_drum', 'cage', 'bones', 'boat_wreck', 'mill_gate', 'waterwheel', 'claw_marks', 'danger_post',
+  'container_door', 'branch', 'sign_branch', 'paddlewheel', 'crane_hook', 'fuel_cell', 'life_ring', 'queen_board', 'bell', 'buoy',
+  'boiler_lamp', 'rope_coil', 'drum_rack', 'wheelhouse_light'];
+// Airborne / swimming kinds: no floor check at their feet (piranhas sit at a water surface, airboats on the water lane).
+const AIR_KINDS = ['drone', 'paratrooper', 'buzzard', 'leaper', 'gnat', 'airboat', 'piranha'];
+const SWEEP_KINDS = ['branch'];
 // Background director moment ids (src/level/background.ts SHOTS + ZONES)
 const BG_EVENTS = ['camp_searchlights', 'zeppelin', 'crows', 'waterfall', 'towers', 'plane', 'flak', 'yard_smoke', 'snowcat_roar',
-  'gorge', 'buzzard_circle', 'ironhorn_plume', 'avalanche', 'armored_train', 'aurora', 'ice_fissure', 'lab_searchlights', 'lab_tesla', 'moosezilla'];
-const AMBIENCE = ['snow', 'embers', 'fireflies', 'steam', 'train', 'tunnel', 'blizzard'];
+  'gorge', 'buzzard_circle', 'ironhorn_plume', 'avalanche', 'armored_train', 'aurora', 'ice_fissure', 'lab_searchlights', 'lab_tesla', 'moosezilla',
+  // Mission 2
+  'fireflies_swarm', 'herons', 'patrol_boat', 'wisps', 'gator_glimpse', 'pond_wake', 'riverbank', 'gator_pod', 'burning_barge', 'skeeter_swarm',
+  'storm_front', 'airboat_race', 'lightning', 'mill_wheel', 'den_glow', 'gator_wake', 'boat_wreck'];
+const AMBIENCE = ['snow', 'embers', 'fireflies', 'steam', 'train', 'tunnel', 'blizzard', 'swamp', 'rain', 'storm', 'fog', 'river'];
 const FACING = ['left', 'right'];
 
 const props = (o) => Object.fromEntries((o.properties || []).map((p) => [p.name, p.value]));
@@ -69,7 +81,7 @@ const solidAt = (tx, ty) => { const g = groundAt(tx, ty); if (!g) return false; 
 const standable = (tx, ty) => { const g = groundAt(tx, ty); if (!g) return false; return !!gidProps(g).collides; };
 if (!animated) warn('no animated tiles');
 const hazards = { water: 0, spikes: 0 };
-let ice = 0, crack = 0, crackStomp = 0;
+let ice = 0, crack = 0, crackStomp = 0, shallow = 0, mud = 0, sink = 0;
 for (const g of L.ground.data) {
   if (!g) continue;
   const p = gidProps(g);
@@ -77,6 +89,22 @@ for (const g of L.ground.data) {
   if (p.material === 'ice') ice++;
   if (p.crack === 'true' || p.crack === true) crack++;
   if (p.crack === 'stomp') crackStomp++;
+  if (p.material === 'shallow') shallow++;
+  if (p.material === 'mud') mud++;
+  if (p.sink === true || p.sink === 'true') sink++;
+}
+// Sinking logs: a run of sink tiles is one log; it sinks ~800 ms after you stand on it (~84 px at run speed). Longer logs
+// make the player swim the end of it.
+for (let ty = 0; ty < H; ty++) {
+  let run = 0;
+  for (let tx = 0; tx <= W; tx++) {
+    const g = tx < W ? L.ground.data[ty * W + tx] : 0;
+    const p = g ? gidProps(g) : {};
+    if (p.sink === true || p.sink === 'true') { run++; continue; }
+    if (run > 5) warn(`sinking log at tiles ${tx - run}-${tx - 1}, row ${ty}: ${run} tiles is more than ~800 ms of walking`);
+    if (run && mp.sink_gids === undefined) err('map has sink tiles but no sink_gids property');
+    run = 0;
+  }
 }
 for (const n of ['bg_far_deco', 'back', 'front']) for (const g of L[n].data) if (g && gidProps(g).collides) { err(`collidable tile in non-collision layer ${n}`); break; }
 
@@ -126,7 +154,8 @@ for (const o of L.spawns.objects) {
     warn(`${where}: nothing to stand on at tile (${tx},${below})`);
 }
 if (starts !== 1) err(`expected exactly 1 player_start, found ${starts}`);
-for (const [id, lk] of locks) for (let w = 1; w <= lk.waves; w++) if (!lk.seen.has(w) && id !== 'boss') err(`camera_lock ${id}: wave ${w} has no enemies`);
+const bossLockIds = new Set(L.spawns.objects.filter((o) => o.type === 'boss').map((o) => props(o).lock ?? 'boss'));
+for (const [id, lk] of locks) for (let w = 1; w <= lk.waves; w++) if (!lk.seen.has(w) && !bossLockIds.has(id)) err(`camera_lock ${id}: wave ${w} has no enemies`);
 if (!bossObj) err('no boss spawn');
 
 // --- arena placement (lesson from the bridge-arena stall): every wave member and its patrol inside the locked view
@@ -136,8 +165,8 @@ for (const [id, lk] of locks) {
     // Enemy default patrol is 48 px (drones at least 48); turrets don't move; paratroopers land where they're placed.
     const k = m.p.kind;
     let patrol = typeof m.p.patrol === 'number' ? m.p.patrol : 48;
-    if (k === 'drone' || k === 'buzzard') patrol = Math.max(48, patrol);
-    if (k === 'turret') patrol = 0;
+    if (k === 'drone' || k === 'buzzard' || k === 'gnat' || k === 'airboat') patrol = Math.max(48, patrol);
+    if (k === 'turret' || k === 'piranha') patrol = 0;
     if (m.o.x - patrol < x0 + 8 || m.o.x + patrol > x1 - 8) err(`${m.where}: arena '${id}' member or its patrol (${patrol}) leaves the locked view ${x0}-${x1}`);
   }
 }
@@ -158,8 +187,16 @@ for (const o of L.triggers.objects) {
     case 'music': need(o, p, 'key', null, where); break;
     case 'prompt': need(o, p, 'text', null, where); break;
     case 'ambience': need(o, p, 'fx', AMBIENCE, where); break;
-    case 'hazard_sweep': if (p.y !== undefined && typeof p.y !== 'number') err(`${where}: y must be a number (beam bottom, px)`); break;
+    case 'hazard_sweep': if (p.y !== undefined && typeof p.y !== 'number') err(`${where}: y must be a number (beam bottom, px)`);
+      if (p.kind !== undefined && !SWEEP_KINDS.includes(p.kind)) err(`${where}: kind="${p.kind}" not in [${SWEEP_KINDS.join(', ')}]`); break;
     case 'tunnel': if (typeof p.ms !== 'number') err(`${where}: tunnel needs ms (duration)`); break;
+    case 'fog': if (typeof p.ms !== 'number') err(`${where}: fog needs ms (duration)`);
+      for (const k of ['speed', 'width', 'lanternY']) if (p[k] !== undefined && typeof p[k] !== 'number') err(`${where}: ${k} must be a number`); break;
+    case 'hazard_vent':
+      for (const k of ['period', 'on', 'offset']) if (p[k] !== undefined && typeof p[k] !== 'number') err(`${where}: ${k} must be a number (ms)`);
+      if (p.period !== undefined && p.on !== undefined && p.period - p.on < 900) err(`${where}: period - on must leave >= 900 ms (700 ms telegraph)`);
+      break;
+    case 'channel': break;
     default: err(`${where}: unknown trigger type "${o.type}"`);
   }
   bump('trigger:' + o.type);
@@ -169,6 +206,8 @@ if (!L.triggers.objects.some((o) => o.type === 'stage_end')) err('no stage_end t
 // --- traversal (static reachability, in tiles). A "stand" is (x, r): tile row r is standable at column x, the two
 // rows above are free (the 30 px player), and it's no hazard.
 const JUMP_UP = 3, GAP = 3; // rows up (56 px jump), empty columns across at the same height
+// From mud (jump x0.85, ~40 px) and shallow water (x0.9, ~45 px) the jump only clears 2 rows.
+const slowAt = (tx, ty) => { const m = gidProps(groundAt(tx, ty)).material; return m === 'mud' || m === 'shallow'; };
 function traverse(holes) {
   const isCrack = (tx, ty) => { const p = gidProps(groundAt(tx, ty)); return p.crack === 'true' || p.crack === true; };
   const st = (tx, ty) => standable(tx, ty) && !(holes && isCrack(tx, ty));
@@ -199,7 +238,9 @@ function traverse(holes) {
         const up = r - nr; // >0 = higher
         const adx = Math.abs(dx);
         let ok;
-        if (adx === 1) ok = up <= JUMP_UP; // step / hop up to 3 tiles, drop any depth
+        const jumpUp = slowAt(x, r) ? 2 : JUMP_UP;
+        if (up > jumpUp) ok = false;
+        else if (adx === 1) ok = true; // step / hop up to 3 tiles (2 from mud/shallow), drop any depth
         else if (up >= 3) ok = adx <= 2;
         else if (up >= 1) ok = adx <= GAP + 1;
         else ok = adx <= GAP + 1 + Math.min(2, Math.floor(-up / 2));
@@ -220,7 +261,9 @@ function traverse(holes) {
   return maxX;
 }
 // The goal: the boss arena's left edge (bosses end every part); otherwise the stage_end trigger.
-const bossLock = [...locks.values()].find((l) => l.o === L.triggers.objects.find((o) => o.type === 'camera_lock' && props(o).id === 'boss'));
+const bossLockId = bossObj ? props(bossObj).lock ?? 'boss' : 'boss';
+const bossLock = locks.get(bossLockId);
+if (bossObj && !bossLock) err(`boss spawn: lock="${bossLockId}" is not a camera_lock id`);
 const goalX = Math.floor(((bossLock ? bossLock.o.x : L.triggers.objects.find((o) => o.type === 'stage_end')?.x) ?? W * TS) / TS) + 2;
 let reach = { intact: 0, holes: 0 };
 if (start) {
@@ -233,7 +276,7 @@ if (start) {
 // --- summary
 const pad = (s, n) => String(s).padEnd(n);
 console.log(`map ${path.basename(file)}: ${W}x${H} tiles (${W * TS}x${H * TS} px), tilesets ${map.tilesets.map((t) => `${t.name}@${t.firstgid}`).join(' ')}, ${animated} animated tiles${mp.drift ? `, drift ${mp.drift} px/s` : ''}`);
-console.log(`hazard tiles: water ${hazards.water || 0}, spikes ${hazards.spikes || 0}; ice ${ice}, crack ${crack}, crack=stomp ${crackStomp}`);
+console.log(`hazard tiles: water ${hazards.water || 0}, spikes ${hazards.spikes || 0}; ice ${ice}, crack ${crack}, crack=stomp ${crackStomp}; shallow ${shallow}, mud ${mud}, sink ${sink}`);
 console.log('counts:');
 for (const k of Object.keys(count).sort()) console.log(`  ${pad(k, 28)} ${count[k]}`);
 console.log('sections (tiles):');

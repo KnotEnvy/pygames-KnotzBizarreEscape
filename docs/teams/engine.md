@@ -851,3 +851,101 @@ still compiles and behaves the same, except the two deliberate fixes marked ⚠.
 - **UI/audio:** expose `reducedFlash` in Options. If your AudioService sets mute, use `applyMute` from core.
 - **QA:** `kill()` = player death, `killEnemies()` = old behavior, `hurt(n)` = immunity test, `state().god`,
   `state().level.sandbox`.
+
+---
+
+## Phase G: Mission 2 "Bayou Blackout" (2026-10-18)
+
+### 1. Lazy per-mission asset packs (`src/core/missionPacks.ts`, `PreloadScene`, `GameScene`, `BootScene`)
+- **Boot loads only the main packs** (`PACKS`). The Lead's stopgap `MISSION_PACKS_AT_BOOT` is gone.
+- **Mission N ≥ 2:** `packs/<team>.m<N>.json` for `MISSION_PACK_TEAMS = engine, player, enemies, gatorgeddon, level, fx, ui, imagegen`, same format as the main packs.
+- **When:** `GameScene.init` resolves the part, then `missionsToLoad(part)` lists the missions not loaded yet:
+  - the part's mission;
+  - with cheats on, every mission when `?enemytest=` is set (fixtures run in 1-1 but spawn Mission 2 enemies);
+  - with cheats on, `?mission=<n>` (preload a mission's packs while playing another part).
+- **How:** if anything is missing, Game sets `__KBE.ready = false` and starts `Preload` with
+  `{ missions, next: { scene: 'Game', data: { part, carry } } }` (`MissionLoadData`). Its `create`/`update` no-op for that frame.
+- **Preload's mission mode:**
+  1. The title reads `MISSION 2: BAYOU BLACKOUT` above the same progress bar.
+  2. It fetches the packs with Boot's `fetchPack` (3 attempts; not deployed = skipped quietly).
+  3. It loads them with the same retry rounds and load-error screen as boot.
+  4. It builds Aseprite anims for the new sheets (`createAsepriteAnims`), marks the missions loaded, and starts Game again with the same data.
+  5. Game then sets `ready` at the end of its `create()`, as always.
+- **Cache:** a module-level set (`isMissionLoaded`, `loadedMissions()`; also `__KBE.state().missionPacks`, e.g. `[1, 2]`).
+  Later parts, `cheats.part`, retries and continues start directly with no fetch. Continue respawns in place anyway.
+- **Audio:** UI's audio engine looks keys up in `cache.audio` at play time (`src/audio/engine.ts`), so mission sounds work from Game's first frame. No change needed there.
+- **Probe:** `packs/engine.m2.json` holds one JSON entry, `engine_m2_probe`, so the path is always exercised.
+- **See it:** `node game/tools/shot.mjs --out /tmp/x.png --query "scene=Game&part=2-1&mute=1&fast=1"`.
+  The selftest saves the loading screen as `selftest-mission-loading.png` with `--shots`.
+
+### 2. Mission chaining and unlock (`src/core/flow.ts`, `src/config/campaign.ts`)
+- **New helper:** `nextMissionStart(id)` returns the first part of the next mission, or null.
+- **Unlock:** clearing a mission's final part unlocks that part (1-3 → `2-1`) at the clear, alongside the usual best-score save.
+- **`MissionResultsData`** (backward compatible: the new fields are optional and only present when another mission follows):
+  ```ts
+  next?: PartDef;      // first part of the next mission (2-1)
+  carry?: CarryState;  // score, lives, bombs, weapon, ammo, rescued, difficulty carried; parts: [] (new mission's totals)
+  ```
+  **UI CONTINUE TO MISSION 2:** `this.scene.start('Game', { part: data.next.id, carry: data.carry })`. Game routes through the
+  mission loader by itself. With no `next` (2-3, the last mission for now), Results goes to Title as before.
+  Without a Results scene the flow shows MISSION COMPLETE! and chains after 3.5 s.
+
+### 3. Materials (`src/core/physics.ts`)
+- `terrainMaterial(raw)` (exported from core) feeds `materialAt`:
+  - `shallow` → `'water'` and `mud` → `'mud'`;
+  - `ice` → `'snow'` (FX's impact upgrades snow/dirt/stone on an ice surface to its ice recipe);
+  - other known terrain names pass through; unknown or missing → `'dirt'`.
+- `surfaceAt` still returns the raw string (`'shallow'`, `'mud'`, `'ice'`).
+
+### 4. Audits for 2-1/2-2/2-3
+- **Parts:** both tools read the parts, maps and `final` from `src/config/campaign.ts` (Node type stripping, regex fallback).
+  A missing map is **SKIP (map missing)**, exit 0. `npm run audit` covers 1-1..2-3.
+- **`reach-check` rules (mutation-tested on synthetic maps in `/tmp/kbe-engine/mkmap.mjs`):**
+  - **Mud and shallow take-off:** jumps use `PLAYER.surface.{mud,shallow}.jump` (read from `tuning/player.ts`, mirrored as a fallback).
+    The run speed starts at `.speed` and accelerates to full in the air (`PLAYER.acceleration`), as the controller does.
+    A 48 px wall passes from dirt but FAILs from mud ("a full jump from mud (jump x0.85) clears 38 px") and from shallow (43 px).
+  - **Sinking logs:** `sink=true` tiles are floor (a jump-through if they lack `collides`).
+    A strict second pass allows at most 5 tile-steps (~800 ms at run speed) of walking or hopping along one log (a contiguous run of sink tiles in a row).
+    Targets reachable only in the lenient pass are **warnings**: `needs > 800 ms standing on the sinking log at x 320-416 …`.
+    Logs of 4–5 tiles pass; 6+ tiles with no way around warn.
+  - **Unchanged:** deep water (`hazard=water`) is a gap, and one-way decks drop through.
+  - **Drift maps:** `drift` is cosmetic (static world), and `hazard_sweep` branches are ignored like other sweeps.
+- **`arena-audit` rules:**
+  - The final part is taken from the campaign (2-3 expects Results).
+  - **Flying bosses** are checked in x and y like any boss.
+  - **Submerged bosses:** `damageBoss()` now returns `false` when the boss has no live hurtbox (GATORGEDDON submerged). The audit pauses
+    its no-damage and off-view clocks then. It fails `boss-never-surfaced` only after 15 s untouchable and reports the submerged time per arena.
+  - **Hidden entry states** (`rise`, `rising`, `submerged`, `underwater`, `hidden`, `ripple`, `drop`) are exempt from the off-view clock, like leapers.
+    **Enemies B:** use one of these state names for lurker rise, piranha under water and airboat drop, or ask for yours to be added.
+  - `isBossBox` knows `shellshock`, `skeeter` and `gatorgeddon` as fallbacks (bosses spawned as type `boss` were already recognised).
+
+### 5. `__KBE.cheats.bg(id)`
+- Fires a background-director moment through `window.__KBE_LEVEL.bg(id)` (Levels). Levels can instead override it with
+  `ctx.debug.cheat('bg', fn)`.
+- Returns `true` if it fired. Without a director or with an unknown id it warns and returns `false`.
+- Cheat return values now pass through the cheat wrapper (`damageBoss` and `bg`).
+
+### 6. Boss framing check (camera side; no camera change needed)
+- **Fixture:** `/tmp/kbe-engine/framing.mjs` (Phase G scratch). It uses `?part=1-1&mission=2`, a manual `camera.lock(1200, 1712)` (512 px), and
+  real `boss:gatorgeddon` and `boss:skeeter` spawns.
+  It runs 34 s of turbo sim per boss with the player moving and jumping, pushes through phases 1→3 with `damageBoss`, and samples the boss hurtbox union against the view every 100 ms.
+- **GATORGEDDON** (~240 px):
+  - 0 of 350 samples out of view; the minimum gap to the left edge is 8.5 px (the `bossFrame.pad`);
+  - 94 samples were submerged: the camera holds the last bounds instead of snapping away;
+  - the player always stays ≥ 48 px from the edges.
+- **MEGA-SKEETER** (flier): 0 out of view; the top of its hurtbox stays ≥ 74 px below the view top (below Hazel's strip).
+  Its own clamp (`v.top + 100 .. v.bottom - 48`) does the vertical work, so no vertical framing tweak was needed.
+- **Note:** GATORGEDDON's roar/climb pose reached screen y 32 once (under the radio strip, y 31–54) with the floor at screen y 136.
+  It's still fully in view. If that reads badly in the real 2-3 den, the camera could bias up while framing a tall boss; ask Engine.
+- Shots: `/tmp/kbe-engine/framing-<boss>-*.png`.
+
+### Selftest
+- `node game/tools/engine-selftest.mjs --only missions` (also part of the full run) covers:
+  - `?part=2-1` through mission mode (MISSION 2 title, ready=false while loading, each `*.m2.json` fetched once, the probe cached, no empty anims);
+  - cached restarts;
+  - a Title-style `scene.start('Game', {part:'2-2'})` with `player.m2.json` aborted once (refetched);
+  - `?enemytest=` loading;
+  - the chain 1-3 → Results `{ next: 2-1, carry }` → Game 2-1 with the carry, 2-1 unlocked;
+  - 2-3 → Results without `next`;
+  - the material mapping.
+- The campaign section now expects `2-1` unlocked after 1-3.

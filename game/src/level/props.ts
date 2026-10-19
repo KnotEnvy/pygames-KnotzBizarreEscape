@@ -117,12 +117,12 @@ export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
             if (i >= 0) solidProps.splice(i, 1);
             zone.destroy();
             dropResting(solid);
-            c.events.emit('fx:emit', { effect: 'debris', x: cx, y: cy, material: def.debris, count: kind === 'explosive_barrel' ? 4 : 7 });
+            c.events.emit('fx:emit', { effect: 'debris', x: cx, y: cy, material: def.debris, count: kind === 'explosive_barrel' || kind === 'fuel_drum' ? 4 : 7 });
             if (def.sfx) c.audio.sfx(def.sfx, { x: cx });
             const contains = str(props.contains);
             if (contains) c.spawn('pickup', contains, { kind: contains, from: kind }, x, feet);
             s.destroy();
-            if (kind === 'explosive_barrel') {
+            if (kind === 'explosive_barrel' || kind === 'fuel_drum') {
                 const boom = (): void => {
                     const E = LEVEL.explosiveBarrel;
                     c.fx.explosion(cx, cy, 'm', 'neutral');
@@ -220,27 +220,58 @@ export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
     };
     ctx.registry.register('prop:bunker_door', door('bunker_door'));
     ctx.registry.register('prop:boxcar_door', door('boxcar_door'));
+    // Mission 2: stilt-shack doors (2-1) and shipping-container doors (2-2).
+    ctx.registry.register('prop:shack_door', door('shack_door'));
+    ctx.registry.register('prop:container_door', door('container_door'));
 
-    ctx.registry.register('prop:gate', (c, x, y, props) => {
-        const s = makeSprite(c, 'gate', x, y, props);
-        playIf(s, 'prop_gate_closed', true);
-        // Solid while closed: the door opening (manifest body 12,16,72,80 of 96×96).
-        const zone = c.scene.add.zone(x - 48 + 12 + 36, y - 96 + 16 + 40, 72, 80);
+    // Set-piece wheels (the BAYOU QUEEN's sternwheel, the Drowned Mill's waterwheel): spin, and while on screen throw
+    // spray (FX) and churn/creak (one-shot sounds repeated, panned; the audio service has no loops).
+    const wheel = (sfx: string, everyMs: number, sprayY: number) => (c: GameContext, x: number, y: number, props: Record<string, unknown>): Sprite => {
+        const s = decor(c, x, y, props);
+        let t = 0, side = 1;
+        const off = c.onUpdate(dt => {
+            if (!dt) return;
+            const v = c.camera.view();
+            if (x < v.left - 64 || x > v.right + 64) return;
+            if ((t -= dt) > 0) return;
+            t = everyMs;
+            c.audio.sfx(sfx, { x, volume: 0.8 });
+            c.events.emit('fx:emit', { effect: 'paddle_spray', x, y: y - sprayY, width: s.width * 0.8, duration: everyMs });
+            side = -side;
+            c.events.emit('water:splash', { x: x + side * s.width * 0.3, y: y - sprayY, size: 's', kind: 'surface' });
+        });
+        s.once(Phaser.GameObjects.Events.DESTROY, off);
+        return s;
+    };
+    ctx.registry.register('prop:paddlewheel', wheel('paddlewheel', 900, 14));
+    ctx.registry.register('prop:waterwheel', wheel('mill_wheel', 1600, 10));
+
+    // Props anchored at their top (a crane hook hangs from the boom tip).
+    ctx.registry.register('prop:crane_hook', (c, x, y, props) => decor(c, x, y, props).setOrigin(0.5, 0));
+
+    // Gates: Mission 1's steel gate and the Drowned Mill's chained doors (`mill_gate`). Bodies from LEVEL.gates.
+    const gateFactory = (kind: string) => (c: GameContext, x: number, y: number, props: Record<string, unknown>): Sprite => {
+        const s = makeSprite(c, kind, x, y, props);
+        playIf(s, `prop_${kind}_closed`, true);
+        const G = LEVEL.gates[kind] ?? LEVEL.gates.gate;
+        const [bx, by, bw, bh] = G.body;
+        // Solid while closed: the door opening (body in canvas px, canvas anchored bottom-centre).
+        const zone = c.scene.add.zone(x - G.w / 2 + bx + bw / 2, y - G.h + by + bh / 2, bw, bh);
         rt.solids.add(zone);
         const gate = {
             x, y, lock: str(props.lock, 'boss'), smashed: false,
             rumble: () => {
                 if (gate.smashed) return;
-                playIf(s, 'prop_gate_shake', true);
+                playIf(s, `prop_${kind}_shake`, true);
                 c.fx.shake(1);
                 c.audio.sfx('boss_stomp', { x });
             },
             smash: () => {
                 if (gate.smashed) return;
                 gate.smashed = true;
-                playIf(s, 'prop_gate_smashed', false);
+                playIf(s, `prop_${kind}_smashed`, false);
                 if (zone.active) zone.destroy();
-                const cy = y - 44;
+                const cy = y - G.h * 0.46;
                 c.fx.explosion(x, cy, LEVEL.boss.smashExplosion, 'neutral');
                 c.events.emit('fx:emit', { effect: 'debris', x, y: cy, material: 'metal', count: 14 });
                 c.events.emit('fx:emit', { effect: 'debris', x, y: cy + 16, material: 'wood', count: 10 });
@@ -251,5 +282,7 @@ export function registerProps(ctx: RegisterContext, rt: LevelRuntime): void {
         rt.gates.set(gate.lock, gate);
         s.once(Phaser.GameObjects.Events.DESTROY, () => { if (zone.active) zone.destroy(); if (rt.gates.get(gate.lock) === gate) rt.gates.delete(gate.lock); });
         return s;
-    });
+    };
+    ctx.registry.register('prop:gate', gateFactory('gate'));
+    ctx.registry.register('prop:mill_gate', gateFactory('mill_gate'));
 }

@@ -36,7 +36,7 @@ function spawnPow(ctx: GameContext, x: number, y: number, item: string) {
 }
 export function registerPows(ctx: RegisterContext): void {
     ctx.registry.register('pow', (g, x, y, props) => spawnPow(g, x, y, String(props.item ?? 'hmg')));
-    for (const item of ['hmg', 'spread', 'rocket', 'flame', 'laser', 'bombs', 'points', 'life', 'fish', 'chicken', 'medal', 'ration']) {
+    for (const item of ['hmg', 'shotgun', 'spread', 'rocket', 'flame', 'laser', 'bombs', 'points', 'life', 'fish', 'chicken', 'medal', 'ration']) {
         ctx.registry.register(`pow:${item}`, (g, x, y) => spawnPow(g, x, y, item));
     }
 }

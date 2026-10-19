@@ -590,3 +590,191 @@ Game screenshot command after Phase B integration: `cd game && node tools/shot.m
 - **Levels:** supply ambient zone bounds, water surface y, and surface/debris material where known. `solidAt` alone cannot distinguish water, dirt, metal, and wood. Keep scorch off water and moving platforms unless local-space attachment is provided.
 - **UI/audio:** expose independent CRT, screen-shake, and reduced-flash toggles to FX/Engine. Own popups and sound; bind shield tink, casing bounce, explosion tiers, and impact surfaces to the same event recipes without duplicate effects.
 - **QA/Lead:** review the scaled GIFs and strips, then route API requests before Phase B. Confirm the reference midrange device and GPU quality preset. No additional dependencies or generated image assets are requested.
+
+## Phase G — Bayou Blackout (2026-10-18)
+
+Built in `game/src/fx/bayou.ts`, `director.ts`, `weather.ts`, `background.ts`,
+`campaign.ts`, `gallery.ts`, and `game/src/config/tuning/fx.ts`. Reuses the existing
+FX animation library and fixed pools; no new downloaded assets or mission pack is
+needed. No edits outside FX ownership; no git state changes.
+
+- `water:splash` consumes all four sizes and every kind. Surface/sink add rising
+  bubbles; XL surface adds five staggered falling sheets, droplets and three
+  expanding surface rings. Water projectile impacts use the small recipe.
+- Spatial ids: `wake`, `drip` (alias `water_drip`), `paddle_spray`, `bow_spray`,
+  `mud_splat`, `gas_bubble`, `gas_cloud`, `gas_flame`, `flame_jet`. Gas bubbles
+  stagger across 690 ms; flames loop the authored fire animation and get local
+  warm light. `flame_jet` uses `angle` (radians, default right); water sprays also
+  accept angle. Scale clamps to .25–2. Mud projectile impacts route to dark splats.
+- Shotgun gets a 1.3× spread muzzle, five directional pellet sparks, smoke, a red
+  shell casing, and tier-2 kick through the existing shake-setting gate.
+- Ambience parser now actually accepts `swamp|rain|storm|fog|river`. Swamp has
+  insects/spores/fireflies/low mist; rain has slanted streaks and delayed ground
+  ticks; river has foam streaks and mist. Fog reuses moving amber lanterns with a
+  .42 dark veil. Storm adds a monotonic .13 wash, 6.5–9 s apart, with `thunder`;
+  reduced flash/OS reduced motion lowers it to .025 and 14–16.5 s apart.
+- Background ids: `bg_lightning`, `bg_wisp`, `bg_fireflies_swarm`, `bg_splash`,
+  `bg_fire`, `bg_smoke_plume`, `bg_rain_curtain`. Existing background API/depth 18
+  and parallax coordinate contract apply. Lightning request gates are 1.2 s
+  normal / 6 s reduced. New backdrop effects are finite bursts; repeat to sustain.
+- Muzzle light pools now cover fog and `FX.darkParts = ['1-3','2-2','2-3']`.
+  Explosion pools remain shared. SHELLSHOCK/SKEETER use mid-boss finale feel.
+- Budgets unchanged: 344 image slots, 64 ambient slots, eight background drawings,
+  96 background motes. No new timers, emitters, per-particle filters or bodies.
+
+Gallery URLs: `?scene=Game&fast=1&mute=1&god=1&seed=7&fxtest=water|shotgun|bayou`
+(use one value), individual spatial ids above, each of the five ambience names,
+`background`, or each named background effect. Weather galleries no longer emit
+unrelated explosions. Example from repository root:
+
+```sh
+node game/tools/shot.mjs --out /tmp/kbe-fx/g-gallery.png \
+  --query 'scene=Game&part=2-2&fast=1&mute=1&god=1&seed=7&fxtest=water' \
+  --wait 1400 --steps '[{"eval":"window.__KBE.sim.advance(1300)"}]'
+node /tmp/kbe-fx/verify-g.mjs
+node /tmp/kbe-fx/access-g.mjs
+```
+
+Verification and limits:
+- Final `npm --prefix game run check`: PASS, TypeScript and Phaser 4 scanner
+  (108 files, zero errors/warnings). Earlier Player entrance type error cleared
+  during the team's work; FX did not edit it.
+- `node game/tools/arena-audit.mjs --part 2-1`: blocked, tool rejects unknown part
+  2-1. `npm --prefix game run selftest`: one failure, 30 s waitForFunction timeout
+  after the held-Enter/continue input checks passed. Logs are
+  `/tmp/kbe-fx/g-audit.log` and `g-selftest.log`.
+- Opened and inspected `/tmp/kbe-fx/g-contact.png`, the nine-panel sheet of
+  `g-water.png`, `g-shotgun.png`, `g-bayou.png`, `g-swamp.png`, `g-rain.png`,
+  `g-storm.png`, `g-fog.png`, `g-river.png`, `g-background.png`. Also opened the
+  water/shotgun/bayou/fog/storm/background images individually and both
+  `g-access-false.png` / `g-access-true.png`. Water size silhouettes are distinct;
+  gas flame was revised from thin heat lines to looping fire; fog lamps retain
+  actor visibility. Weather remains subtle on the bright fallback map.
+- These are **fallback Mission 1 camp captures**, not Mission 2 visual acceptance:
+  `m2p1..3` were absent and the loader warned/fell back. Real bayou/deck/waterline
+  alignment must be reviewed once Levels lands those maps.
+- Ten-second stationary SwiftShader stress (XL surface + shotgun every 550 ms,
+  storm): mean sampled FPS 59.39; p95 animation frame 16.8 ms; FX moving-average
+  CPU .077 ms, peak .90 ms; peak 90 pooled effects, zero drops; coverage <=16%.
+  This is approximately 60 FPS, not proof of strict 60 FPS on integrated maps.
+  `g-perf.json`, `g-results.json`, and `verify-g.mjs` preserve evidence/fixture.
+- Fixed-step accessibility fixture: normal 3 strikes / max alpha .13 / one
+  shotgun shake; reduced 2 strikes / max alpha .025 / zero shakes; no runtime
+  errors. See `g-access.json`. Screenshots show the settled scene, while alpha
+  assertions cover the actual strike frames.
+- All browser/server fixtures closed their resources in finally blocks. No bot
+  traversal, arena warp-clearing, git mutations, or verification over ten minutes.
+
+Requests for other teams:
+- **Levels:** emit the listed spatial/background ids, with waterline coordinates;
+  use `fx:zone kind='fog'` for moving fog banks. Repeat flame/spray effects for
+  sustained hazards. Land m2 maps so real waterline/deck captures can be accepted.
+- **Enemies A/B:** `gas_cloud` then `flame_jet` are supported; send committed angle
+  and muzzle x/y. Use `water:splash size='xl' kind='surface'` for surfacing, `sink`
+  for sinking, and `wake` while submerged/moving. FX is visual only.
+- **Player:** `water:splash` and `mud_splat` are ready; emit one shotgun shoot
+  event per trigger, not per pellet.
+- **Engine/QA:** add Mission 2 audit support and investigate the selftest timeout;
+  rerun full-map performance/accessibility checks after integration.
+- **UI/Audio:** consume water:splash and shotgun events with MISSION2 sound keys;
+  weather requests `thunder` directly. Background sounds remain owned by the
+  bg:event mapping, not the visual recipes. Missing music_m2p2 was observed in
+  the fallback capture while audio was still being authored.
+
+### Phase G visibility review + Player integration follow-up (2026-10-18)
+
+Lead's visibility review supersedes the subtle-weather tuning above. Owned edits:
+`weather.ts`, `background.ts`, `gallery.ts`, `director.ts`, `bayou.ts`, and FX tuning.
+
+- Rain now uses 32 persistent analytic streaks; storm uses 48. Fine far strokes
+  draw at depth 19; longer near strokes at 51, above actors but below bullets.
+  Near streaks are 10 px / alpha .55 in rain, 14 px / .65 in storm. Storm gusts
+  increase horizontal slant from 5 to 14 px. Rain/storm add a cheap .14/.24
+  blue-grey veil behind actors; no desaturation filter or new render pass.
+  Floor samples refresh every 250 ms and drive short splash ticks on solid decks.
+  The analytic population shares the 64-mote ambient limit with existing pooled
+  ambient images. The two reusable rain Graphics add no per-particle objects.
+- First storm strike at 6.5 s; following strikes 6.5–13 s apart. Peak wash .32,
+  plus a horizon bolt. 30% of normal strikes have a weaker second pulse 380 ms
+  later, with no more than two pulses. Reduced flash/OS reduced motion uses a
+  single .045 wash over 700 ms, 14–16.5 s cadence, and a dim bolt. No weather shake.
+- Swamp mist has six shallow floor-following contours, with three wandering
+  gnats per bank and additive pooled fireflies. River reuses low mist, adds
+  visible short foam crests, and moves with map drift. Ground gaps fall back to
+  a nearby waterline sample rather than pulling mist to the viewport bottom.
+- Background wisps/fire now have flame tongues and lit cores instead of faint
+  blocks; fireflies have a small halo/core; splash includes an expanding ring;
+  the curtain has longer, brighter rain; horizon lightning is clearer. Still
+  depth 18, below scenery/actors, with the existing eight-drawing/96-mote caps.
+- `fxtest=clear` supplies an unweathered baseline. Optional `fxbackdrop=dark`
+  (with any fxtest mode) replaces the distant art with the requested #3a4a6e
+  sky and covers the floor with #1c2433 for contrast review. This is explicitly
+  a gallery fixture, retaining actual map physics/actors, not new level art.
+
+Player integration (read `docs/teams/player.md` Integration requests):
+- Removed shotgun's trigger-time casing. Its big muzzle/sparks/smoke remain.
+- `fx:emit casing` is the sole ejection. `team:'player', scale:1.3` identifies
+  the shotgun shell and uses the existing spinning casing with palette red
+  #d4483a. This is the requested red-shell fallback and needs no Player assets.
+- `shotgun_pump` produces a tiny .22-scale/230 ms smoke wisp; it never ejects.
+- `bubbles` emits rising rings (count defaults to 2, capped at 6), without a new
+  splash. Player can repeat it every 150 ms during sinking.
+- Event fixture assertions: casing count before/after trigger/after pump-only/
+  after casing = **0/0/0/1**, tint **0xd4483a**, two bubbles, splash count **0→0**,
+  zero runtime errors. `/tmp/kbe-fx/player-integration.json`; inspected
+  `/tmp/kbe-fx/visibility-dark/pump-bubbles.png`.
+
+Visual evidence, all opened and inspected:
+- `/tmp/kbe-fx/visibility-dark/contact-crops-3x.png`: 13 labelled 3× crop panels,
+  clear baseline, swamp, rain, gusting storm, normal flash, reduced flash,
+  river, and each of the six requested backgrounds separately. Also inspected
+  the four full-resolution `review-0.png` … `review-3.png` sheet strips and the
+  individual weather/background images in that directory.
+- `/tmp/kbe-fx/visibility/`: real `part=1-3&x=1200` dusk-lake images before the
+  flat gallery backdrop. Individually inspected rain, swamp, river, normal and
+  reduced storm flashes, wisp, swarm, splash, fire, curtain and horizon bolt.
+  These retain actual lake scenery; no Mission 2-map acceptance is claimed.
+- Unlike the first pass, normal/reduced storm images were captured by advancing
+  until `fx.weather.lightningAlpha` exceeded .29/.04, then pausing, so they
+  actually show the strike. Normal strikes reached .32; reduced .045. The
+  fixed-step cadence fixture observed double strikes only in normal mode and
+  shotgun shake counts 1/0 for shake enabled/disabled.
+
+Reproduce from repository root (all fixture servers/browsers close in finally):
+
+```sh
+node game/tools/shot.mjs --out /tmp/kbe-fx/rain-dark.png \
+  --query 'scene=Game&part=1-3&x=1200&fast=1&mute=1&god=1&seed=7&fxtest=rain&fxbackdrop=dark' \
+  --wait 1400 --steps '[{"eval":"window.__KBE.sim.advance(2400)"}]'
+node /tmp/kbe-fx/visibility.mjs
+node /tmp/kbe-fx/visibility-dark.mjs
+node /tmp/kbe-fx/contact-visibility.mjs
+node /tmp/kbe-fx/player-integration.mjs
+node /tmp/kbe-fx/stress-visibility.mjs clear
+node /tmp/kbe-fx/stress-visibility.mjs storm
+```
+
+Verification limits / performance gate:
+- Typecheck + Phaser 4 check passed during the visibility build. Final Player
+  integration has no FX type errors, but the shared check currently stops on
+  `src/level/ice.ts:36` (wood/ice literal-style cast), outside ownership.
+- Fifteen-second **stationary**, 1152×648 SwiftShader stress: XL surface + shotgun
+  every 550 ms on the real dusk lake. Sequential clear baseline **35.11 FPS**,
+  storm **37.35 FPS**, with p95 frames about **100 ms** in both. Max FX moving
+  average CPU **.529/.543 ms**, storm ended at **.120 ms**, maximum 48 analytic
+  weather motes. Pooled effects stayed capped; dense cascade overlap dropped
+  16/17 optional requests. Logs: `visibility-perf-clear.json` and
+  `visibility-perf-storm.json` under `/tmp/kbe-fx/`.
+- Host load average was **27.25 / 23.41 / 10.93** during this shared test window.
+  This does not establish the cause of every missed frame, but the clear
+  baseline also fails 60 FPS. **60 FPS is not certified by this pass.** Please
+  rerun the saved comparison during a quiet integration window; no evidence
+  justifies raising budgets or adding GPU filters to address it.
+- Per Lead, did not rerun the changing selftest/audit. No bot traversal, git
+  state mutation, or edits outside FX ownership. All started fixtures exited.
+
+Final visibility touch-up: horizon lightning's wash now uses five faint nested
+ellipses instead of a hard-edged rectangle; refreshed and re-inspected the
+lightning panel and complete crop sheet. Last shared check still has no FX
+errors; additional in-flight Levels errors appeared at `level/index.ts:60`
+(fog ambience type) and `level/train.ts:114` (unused S), alongside ice.ts:36.

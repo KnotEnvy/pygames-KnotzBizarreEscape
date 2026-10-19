@@ -1,0 +1,60 @@
+{
+  "gatorgeddon": {
+    "files": [
+      {
+        "type": "aseprite",
+        "key": "gatorgeddon_body",
+        "textureURL": "assets/sprites/enemies/gatorgeddon_body.png",
+        "atlasURL": "assets/sprites/enemies/gatorgeddon_body.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "gatorgeddon_head",
+        "textureURL": "assets/sprites/enemies/gatorgeddon_head.png",
+        "atlasURL": "assets/sprites/enemies/gatorgeddon_head.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "gatorgeddon_jaw",
+        "textureURL": "assets/sprites/enemies/gatorgeddon_jaw.png",
+        "atlasURL": "assets/sprites/enemies/gatorgeddon_jaw.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "gatorgeddon_tail",
+        "textureURL": "assets/sprites/enemies/gatorgeddon_tail.png",
+        "atlasURL": "assets/sprites/enemies/gatorgeddon_tail.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "gatorgeddon_legs_back",
+        "textureURL": "assets/sprites/enemies/gatorgeddon_legs_back.png",
+        "atlasURL": "assets/sprites/enemies/gatorgeddon_legs_back.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "gatorgeddon_legs_front",
+        "textureURL": "assets/sprites/enemies/gatorgeddon_legs_front.png",
+        "atlasURL": "assets/sprites/enemies/gatorgeddon_legs_front.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "gatorgeddon_pod",
+        "textureURL": "assets/sprites/enemies/gatorgeddon_pod.png",
+        "atlasURL": "assets/sprites/enemies/gatorgeddon_pod.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "gatorgeddon_rocket",
+        "textureURL": "assets/sprites/enemies/gatorgeddon_rocket.png",
+        "atlasURL": "assets/sprites/enemies/gatorgeddon_rocket.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "gatorgeddon_wave",
+        "textureURL": "assets/sprites/enemies/gatorgeddon_wave.png",
+        "atlasURL": "assets/sprites/enemies/gatorgeddon_wave.json"
+      }
+    ]
+  }
+}

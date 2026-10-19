@@ -1,7 +1,7 @@
 // Title: key art, the animated logo (drop-in + periodic glitch), snow, "PRESS START" attract mode and the menu
 // (Start / Part Select / Difficulty / Options / Credits). Confirm in attract mode starts the game at once (arcade
-// style); any other input opens the menu. PART SELECT (Phase E) lists the campaign's parts with the saved
-// progress and starts a fresh run at the chosen part. Keyboard and gamepad via MenuInput.
+// style); any other input opens the menu. PART SELECT (Phase E, Phase G: every mission) lists the campaign's parts
+// grouped by mission with the saved progress and starts a fresh run at the chosen part. Keyboard and gamepad via MenuInput.
 import Phaser from 'phaser';
 import { TEX, playAnim, settings } from '../../core';
 import * as progress from '../../core/progress';
@@ -10,7 +10,8 @@ import { getAudio } from '../../audio';
 import { UI } from '../../config/tuning/ui';
 import { C, F, H, W, icon, pad, panel, roman, text } from '../../ui/widgets';
 import { MenuInput } from '../../ui/input';
-import { Menu } from '../../ui/menu';
+import { Menu, type MenuRow } from '../../ui/menu';
+import { mapSpec } from '../../ui/routemap';
 import { wipeIn, wipeOut } from '../../ui/transitions';
 import { uiLog } from '../../ui';
 
@@ -29,8 +30,6 @@ function safeProgress(): Progress {
     }
 }
 
-const PICTOGRAM: Record<number, string> = { 1: 'map_camp', 2: 'map_train', 3: 'map_lake' };
-
 export class TitleScene extends Phaser.Scene {
     private menuInput!: MenuInput;
     private menu!: Menu;
@@ -44,7 +43,7 @@ export class TitleScene extends Phaser.Scene {
     private logoReady = false;
     private starting = false;
     private overlay: 'none' | 'options' | 'credits' | 'parts' = 'none';
-    private parts: { root: Phaser.GameObjects.Container; menu: Menu; info: Phaser.GameObjects.BitmapText; defs: PartDef[]; prog: Progress } | null = null;
+    private parts: { root: Phaser.GameObjects.Container; menu: Menu; info: Phaser.GameObjects.BitmapText; tip: Phaser.GameObjects.BitmapText; defs: PartDef[]; prog: Progress } | null = null;
 
     constructor() { super('Title'); }
 
@@ -142,32 +141,42 @@ export class TitleScene extends Phaser.Scene {
         const root = this.add.container(0, 0).setDepth(12);
         root.add(panel(this, P.x, P.y, P.w, P.h));
         root.add(text(this, P.x + 12, P.y + 6, 'PART SELECT', F.sand));
-        const mission = CAMPAIGN[0];
-        root.add(text(this, P.x + 14, P.y + 26, `MISSION ${mission.id}  ${mission.name}`, F.plain).setTint(C.ink5));
-        const rowY0 = P.y + 42;
-        const rows = defs.map((p, i) => {
+        // Phase G: the parts of every mission, grouped under a mission header (a gap above each mission after the first).
+        const rowY0 = P.y + 36;
+        const rows: MenuRow[] = defs.map(p => {
             const locked = (): boolean => !prog.unlocked.includes(p.id);
-            const y = rowY0 + i * P.rowHeight;
-            const tag = PICTOGRAM[p.part];
-            if (!locked() && tag) root.add(icon(this, P.x + 14, y - 5, 'ui_map', tag));
-            else root.add(icon(this, P.x + 14, y - 5, 'ui_icons', 'icon_lock').setAlpha(locked() ? 0.9 : 0));
             return {
                 label: `${roman(p.part)}  ${p.title}`,
                 value: () => locked() ? 'LOCKED' : (prog.best[p.id] ? `BEST ${pad(prog.best[p.id], 6)}` : 'NEW'),
                 disabled: locked,
-                onSelect: () => this.start(p.id)
+                onSelect: () => this.start(p.id),
+                gap: p.part === 1 && p.mission !== CAMPAIGN[0].id ? P.missionGap : 0
             };
         });
         const menu = new Menu(this, { x: P.x + 56, y: rowY0, rowHeight: P.rowHeight, valueX: P.valueX, rows });
+        defs.forEach((p, i) => {
+            const y = menu.rowY(i);
+            if (p.part === 1) {
+                const m = CAMPAIGN.find(mm => mm.id === p.mission);
+                const cleared = m ? m.parts.every(q => prog.best[q.id] !== undefined) : false;
+                root.add(text(this, P.x + 14, y - 11, `MISSION ${p.mission}  ${m?.name ?? ''}`, F.plain).setTint(cleared ? C.fire5 : C.ink5));
+            }
+            const locked = !prog.unlocked.includes(p.id);
+            const tag = mapSpec(p.mission).pictograms[p.part];
+            if (!locked && tag) root.add(icon(this, P.x + 14, y - 5, 'ui_map', tag));
+            else root.add(icon(this, P.x + 14, y - 5, 'ui_icons', 'icon_lock').setAlpha(locked ? 0.9 : 0));
+        });
         root.add(menu.container);
-        const info = text(this, P.x + 56, P.y + P.h - 26, '', F.plain).setTint(C.ink5);
-        root.add(info);
-        root.add(text(this, P.x + P.w - 12, P.y + P.h - 14, 'ESC: BACK   ENTER: START', F.plain, [1, 0]).setAlpha(0.6).setTint(C.ink5));
+        // Under the rows: the part's location, then its tip (UI.tips) or what unlocks it.
+        const info = text(this, P.x + 14, P.y + P.h - 33, '', F.plain).setTint(C.ink5);
+        const tip = text(this, P.x + 14, P.y + P.h - 23, '', F.plain).setTint(C.sand5);
+        root.add([info, tip]);
+        root.add(text(this, P.x + P.w - 12, P.y + P.h - 12, 'ESC: BACK   ENTER: START', F.plain, [1, 0]).setAlpha(0.6).setTint(C.ink5));
         // start on the furthest unlocked part
         let last = 0;
         defs.forEach((p, i) => { if (prog.unlocked.includes(p.id)) last = i; });
         menu.setIndex(last);
-        this.parts = { root, menu, info, defs, prog };
+        this.parts = { root, menu, info, tip, defs, prog };
         this.refreshPartInfo();
         this.overlay = 'parts';
         this.menu.setVisible(false);
@@ -177,9 +186,14 @@ export class TitleScene extends Phaser.Scene {
 
     private refreshPartInfo(): void {
         if (!this.parts) return;
-        const p = this.parts.defs[this.parts.menu.index];
+        const i = this.parts.menu.index;
+        const p = this.parts.defs[i];
         const locked = !this.parts.prog.unlocked.includes(p.id);
-        this.parts.info.setText(locked ? `CLEAR PART ${roman(p.part - 1)} TO UNLOCK` : p.location.toUpperCase());
+        const prev = this.parts.defs[i - 1];
+        const need = !prev ? '' : prev.mission !== p.mission ? `CLEAR MISSION ${prev.mission} TO UNLOCK` : `CLEAR PART ${roman(prev.part)} TO UNLOCK`;
+        // Unlocked: the location and the part's tip (UI.tips); locked: the location and what unlocks it.
+        this.parts.info.setText(p.location.toUpperCase());
+        this.parts.tip.setText(locked ? need : (UI.tips[p.id] ?? '')).setTint(locked ? C.ink3 : C.sand5);
     }
 
     private closePartSelect(): void {

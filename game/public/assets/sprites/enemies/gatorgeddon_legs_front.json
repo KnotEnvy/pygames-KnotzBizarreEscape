@@ -1,0 +1,182 @@
+{ "frames": {
+   "gatorgeddon_legs_front#0": {
+    "frame": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#1": {
+    "frame": { "x": 113, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#2": {
+    "frame": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#3": {
+    "frame": { "x": 113, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#4": {
+    "frame": { "x": 226, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#5": {
+    "frame": { "x": 339, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#6": {
+    "frame": { "x": 0, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#7": {
+    "frame": { "x": 113, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#8": {
+    "frame": { "x": 113, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#9": {
+    "frame": { "x": 0, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#10": {
+    "frame": { "x": 339, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#11": {
+    "frame": { "x": 226, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#12": {
+    "frame": { "x": 226, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#13": {
+    "frame": { "x": 339, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#14": {
+    "frame": { "x": 226, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#15": {
+    "frame": { "x": 339, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#16": {
+    "frame": { "x": 0, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#17": {
+    "frame": { "x": 113, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#18": {
+    "frame": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#19": {
+    "frame": { "x": 113, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "gatorgeddon_legs_front.png",
+  "format": "RGBA8888",
+  "size": { "w": 451, "h": 122 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "gatorgeddon_legs_front_idle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_walk", "from": 4, "to": 11, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_crouch", "from": 12, "to": 15, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_stomp", "from": 16, "to": 19, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

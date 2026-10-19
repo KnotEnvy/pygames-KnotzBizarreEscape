@@ -1,0 +1,544 @@
+{
+  "ui_m2": {
+    "files": [
+      {
+        "type": "audio",
+        "key": "airboat_gun",
+        "url": [
+          "assets/audio/sfx/airboat_gun.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "airboat_motor",
+        "url": [
+          "assets/audio/sfx/airboat_motor.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "amb_fog",
+        "url": [
+          "assets/audio/sfx/amb_fog.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "amb_rain",
+        "url": [
+          "assets/audio/sfx/amb_rain.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "amb_riverboat",
+        "url": [
+          "assets/audio/sfx/amb_riverboat.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "amb_storm",
+        "url": [
+          "assets/audio/sfx/amb_storm.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "amb_swamp",
+        "url": [
+          "assets/audio/sfx/amb_swamp.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_airboat_race",
+        "url": [
+          "assets/audio/sfx/bg_airboat_race.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_burning_barge",
+        "url": [
+          "assets/audio/sfx/bg_burning_barge.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_den_glow",
+        "url": [
+          "assets/audio/sfx/bg_den_glow.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_gator_pod",
+        "url": [
+          "assets/audio/sfx/bg_gator_pod.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_gator_roar",
+        "url": [
+          "assets/audio/sfx/bg_gator_roar.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_herons",
+        "url": [
+          "assets/audio/sfx/bg_herons.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_mill_creak",
+        "url": [
+          "assets/audio/sfx/bg_mill_creak.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_patrol_boat",
+        "url": [
+          "assets/audio/sfx/bg_patrol_boat.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_pond_wake",
+        "url": [
+          "assets/audio/sfx/bg_pond_wake.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_skeeter_swarm",
+        "url": [
+          "assets/audio/sfx/bg_skeeter_swarm.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_thunder",
+        "url": [
+          "assets/audio/sfx/bg_thunder.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_wisps",
+        "url": [
+          "assets/audio/sfx/bg_wisps.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_wreck_collapse",
+        "url": [
+          "assets/audio/sfx/bg_wreck_collapse.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "boardwalk_creak",
+        "url": [
+          "assets/audio/sfx/boardwalk_creak.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "boat_horn",
+        "url": [
+          "assets/audio/sfx/boat_horn.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "branch_whoosh",
+        "url": [
+          "assets/audio/sfx/branch_whoosh.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "drown",
+        "url": [
+          "assets/audio/sfx/drown.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "egg_beep",
+        "url": [
+          "assets/audio/sfx/egg_beep.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "egg_lob",
+        "url": [
+          "assets/audio/sfx/egg_lob.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gas_bubble",
+        "url": [
+          "assets/audio/sfx/gas_bubble.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gas_vent",
+        "url": [
+          "assets/audio/sfx/gas_vent.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_death",
+        "url": [
+          "assets/audio/sfx/gator_death.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_flame",
+        "url": [
+          "assets/audio/sfx/gator_flame.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_gas",
+        "url": [
+          "assets/audio/sfx/gator_gas.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_gatling",
+        "url": [
+          "assets/audio/sfx/gator_gatling.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_hiss",
+        "url": [
+          "assets/audio/sfx/gator_hiss.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_missile",
+        "url": [
+          "assets/audio/sfx/gator_missile.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_roar",
+        "url": [
+          "assets/audio/sfx/gator_roar.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_roll",
+        "url": [
+          "assets/audio/sfx/gator_roll.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_snap",
+        "url": [
+          "assets/audio/sfx/gator_snap.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_submerge",
+        "url": [
+          "assets/audio/sfx/gator_submerge.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_surface",
+        "url": [
+          "assets/audio/sfx/gator_surface.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gator_tail",
+        "url": [
+          "assets/audio/sfx/gator_tail.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gnat_buzz",
+        "url": [
+          "assets/audio/sfx/gnat_buzz.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "hopper_croak",
+        "url": [
+          "assets/audio/sfx/hopper_croak.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "hopper_hop",
+        "url": [
+          "assets/audio/sfx/hopper_hop.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "hopper_tongue",
+        "url": [
+          "assets/audio/sfx/hopper_tongue.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "larva_pop",
+        "url": [
+          "assets/audio/sfx/larva_pop.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "log_bob",
+        "url": [
+          "assets/audio/sfx/log_bob.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "log_sink",
+        "url": [
+          "assets/audio/sfx/log_sink.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "lurker_rise",
+        "url": [
+          "assets/audio/sfx/lurker_rise.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "mill_wheel",
+        "url": [
+          "assets/audio/sfx/mill_wheel.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "mud_step",
+        "url": [
+          "assets/audio/sfx/mud_step.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "paddlewheel",
+        "url": [
+          "assets/audio/sfx/paddlewheel.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "piranha_bite",
+        "url": [
+          "assets/audio/sfx/piranha_bite.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "piranha_leap",
+        "url": [
+          "assets/audio/sfx/piranha_leap.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "plank_break",
+        "url": [
+          "assets/audio/sfx/plank_break.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "shell_clank",
+        "url": [
+          "assets/audio/sfx/shell_clank.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "shell_spin",
+        "url": [
+          "assets/audio/sfx/shell_spin.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "shotgun_fire",
+        "url": [
+          "assets/audio/sfx/shotgun_fire.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "shotgun_pump",
+        "url": [
+          "assets/audio/sfx/shotgun_pump.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "skeeter_dive",
+        "url": [
+          "assets/audio/sfx/skeeter_dive.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "skeeter_drill",
+        "url": [
+          "assets/audio/sfx/skeeter_drill.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "skeeter_laser",
+        "url": [
+          "assets/audio/sfx/skeeter_laser.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "skeeter_whine",
+        "url": [
+          "assets/audio/sfx/skeeter_whine.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "splash_l",
+        "url": [
+          "assets/audio/sfx/splash_l.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "splash_m",
+        "url": [
+          "assets/audio/sfx/splash_m.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "splash_s",
+        "url": [
+          "assets/audio/sfx/splash_s.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "splash_xl",
+        "url": [
+          "assets/audio/sfx/splash_xl.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "stinger_fire",
+        "url": [
+          "assets/audio/sfx/stinger_fire.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "thunder",
+        "url": [
+          "assets/audio/sfx/thunder.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "turtle_hiss",
+        "url": [
+          "assets/audio/sfx/turtle_hiss.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "turtle_snap",
+        "url": [
+          "assets/audio/sfx/turtle_snap.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "wade_step",
+        "url": [
+          "assets/audio/sfx/wade_step.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_boss_gator",
+        "url": [
+          "assets/audio/music/music_boss_gator.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_boss_m2",
+        "url": [
+          "assets/audio/music/music_boss_m2.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_m2p1",
+        "url": [
+          "assets/audio/music/music_m2p1.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_m2p2",
+        "url": [
+          "assets/audio/music/music_m2p2.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_m2p3",
+        "url": [
+          "assets/audio/music/music_m2p3.ogg"
+        ]
+      }
+    ]
+  },
+  "meta": {
+    "app": "Knotz Bizarre Escape",
+    "team": "ui-audio",
+    "generated_by": "tools/audio/make_pack.py",
+    "version": "1.1"
+  }
+}

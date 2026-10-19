@@ -215,12 +215,35 @@ export class ArenaController {
         const { offscreenPullMs: pull, offscreenCullMs: cull, edgeInset: e } = LEVEL.arena;
         if (m.offMs >= pull + cull) { go.destroy(); return; }
         if (m.offMs < pull || m.offMs - dt >= pull) return;
-        const x = Phaser.Math.Clamp(go.x, v.left + e * 2, v.right - e * 2);
-        const flying = go.kind === 'drone' || go.kind === 'buzzard';
-        const y = flying ? Phaser.Math.Clamp(go.y, v.top + 24, v.bottom - 48) : this.ctx.physics.groundBelow(x, Math.min(go.y, v.bottom) - 48, 200) ?? go.y;
+        const K = LEVEL.kinds, kind = String(go.kind ?? '');
+        let x = Phaser.Math.Clamp(go.x, v.left + e * 2, v.right - e * 2);
+        let y: number;
+        const flying = K.flyXY.includes(kind) || K.flyX.includes(kind);
+        if (K.flyXY.includes(kind)) y = Phaser.Math.Clamp(go.y, v.top + 24, v.bottom - 48);
+        else if (K.flyX.includes(kind)) y = go.y;           // airboats keep their water lane: no vertical pull
+        else if (K.swim.includes(kind)) {
+            // Swimmers (piranhas) only ever go back into water inside the view, never onto land: else they're culled.
+            const wx = this.waterColumn(x, v);
+            if (wx === null) { go.destroy(); return; }
+            x = wx;
+            y = this.ctx.physics.waterSurfaceAt(wx) ?? go.y;
+        } else y = this.ctx.physics.groundBelow(x, Math.min(go.y, v.bottom) - 48, 200) ?? go.y;
         go.setPosition(x, y);
-        // Drones patrol and recover around their spawn point: move it with them (private field, by design here).
-        if (flying) { (go as { startX?: number }).startX = x; (go as { startY?: number }).startY = y; }
+        // Fliers patrol and recover around their spawn point: move it with them (private field, by design here).
+        if (flying || K.swim.includes(kind)) { (go as { startX?: number }).startX = x; (go as { startY?: number }).startY = y; }
+    }
+
+    /** Nearest x to `x` inside the view (inset) whose column has deep water near the bottom of the view, or null. */
+    private waterColumn(x: number, v: Phaser.Geom.Rectangle): number | null {
+        const e = LEVEL.arena.edgeInset * 2;
+        for (let d = 0; d <= v.width; d += 8) {
+            for (const wx of d ? [x - d, x + d] : [x]) {
+                if (wx < v.left + e || wx > v.right - e) continue;
+                const s = this.ctx.physics.waterSurfaceAt(wx);
+                if (s !== null && s >= v.top && s <= v.bottom) return wx;
+            }
+        }
+        return null;
     }
 
     private waveCleared(a: Arena): void {
@@ -294,7 +317,7 @@ export class ArenaController {
         if (x === o.x) return spawnObject(this.ctx, o);
         let y = o.y;
         const kind = str(o.props.kind);
-        if (kind !== 'drone' && kind !== 'paratrooper' && kind !== 'buzzard') y = this.ctx.physics.groundBelow(x, o.y - 48, 160) ?? o.y;
+        if (!LEVEL.kinds.keepY.includes(kind)) y = this.ctx.physics.groundBelow(x, o.y - 48, 160) ?? o.y;
         const patrol = Math.min(num(o.props.patrol, LEVEL.arena.edgePatrol), LEVEL.arena.edgePatrol);
         return spawnObject(this.ctx, { ...o, props: { ...o.props, patrol } }, x, y);
     }

@@ -5,10 +5,14 @@
 // them through `hint()` / `stopRecent()` when an event carries better information than the call did.
 // Phase F: boss:intro siren, bg:event → distant `bg_*` sounds (UI.audio.bgEvents lookup, panned by x), weapon layers
 // under player:shoot, section ambient beds cross-faded by camera x (UI.audio.sections), arena ducking of the beds.
+// Phase G (Mission 2): water:splash → wade_step / splash_s..xl / drown (rate-limited in the catalog), fx:ambience kinds →
+// beds (UI.audio.ambienceKinds, overriding the x-sections while a kind is on), the shotgun (fire on player:shoot, pump on the
+// fx:emit), enemy:shoot hints for the bayou kinds, boss music by name (GATORGEDDON → music_boss_gator) and the main-boss
+// WARNING layer (warning_major under the siren, deeper duck).
 import type { GameContext, ImpactMaterial } from '../core/contracts';
 import { UI } from '../config/tuning/ui';
 import type { AudioEngine, LoopHandle } from './engine';
-import { GAMEPLAY_MUSIC, bossMusicFor } from './catalog';
+import { GAMEPLAY_MUSIC, MAJOR_BOSS, bossMusicFor } from './catalog';
 
 /** Phase E: the part being played, read defensively (the field is on GameContext since Engine's campaign work landed). */
 function partOf(ctx: GameContext): { id: string; music?: string } {
@@ -44,6 +48,9 @@ export function wireAudioEvents(ctx: GameContext, engine: AudioEngine): void {
     let bedPoll = 0;
     let arenaGain = 1;
     const bedFade = UI.audio.bedFadeMs;
+    /** Phase G: the bed an `fx:ambience` kind asked for (null = none asked, use the x-sections). */
+    let kindBed: string | null = null;
+    let kindBedVolume = 1;
 
     const stopLoops = (): void => {
         flame?.stop(80); flame = null;
@@ -60,6 +67,7 @@ export function wireAudioEvents(ctx: GameContext, engine: AudioEngine): void {
         stopBed(fadeMs);
     };
     const bedFor = (x: number): { bed: string | null; volume?: number } | null => {
+        if (kindBed) return { bed: kindBed, volume: kindBedVolume };
         const list = UI.audio.sections[partOf(ctx).id];
         if (!list || list.length === 0) return null;
         let pick: { bed: string | null; volume?: number } | null = null;
@@ -111,10 +119,33 @@ export function wireAudioEvents(ctx: GameContext, engine: AudioEngine): void {
         if (e.kind === 'moosezilla') engine.hint('boss_cannon', { x: e.x });
         else if (e.kind === 'snowcat') engine.hint(e.weapon === 'mortar' ? 'mortar_thump' : 'enemy_shoot', { x: e.x });
         else if (e.kind === 'ironhorn') engine.hint('loco_cannon', { x: e.x });
+        // Phase G: the bayou roster's own guns replace a generic `enemy_shoot` call that follows the event.
+        else if (e.kind === 'airboat') engine.hint('enemy_shoot', { x: e.x, replace: 'airboat_gun' });
+        else if (e.kind === 'skeeter') engine.hint('enemy_shoot', { x: e.x, replace: 'stinger_fire' });
+        else if (e.kind === 'shellshock') engine.hint('enemy_shoot', { x: e.x, replace: 'egg_lob' });
+        else if (e.kind === 'gatorgeddon') engine.hint('enemy_shoot', { x: e.x, replace: e.weapon === 'gatling' ? 'gator_gatling' : 'gator_missile' });
+        else if (e.kind === 'hopper') engine.hint('enemy_shoot', { x: e.x, replace: 'hopper_tongue' });
         else engine.hint('enemy_shoot', { x: e.x, replace: e.kind === 'turret' ? 'turret_fire' : undefined });
     });
     bus.on('fx:emit', e => {
         if (e.effect === 'vent_steam') engine.sfx('steam_hiss', { x: e.x, volume: 0.6 });
+        // Phase G: the Player's pump action (about 150 ms after a shotgun shot); the player makes no direct shotgun calls.
+        else if (e.effect === 'shotgun_pump') engine.sfx('shotgun_pump', { x: e.x });
+    });
+    // Phase G: anything touching water. Steps are one quiet key (fatigued in the catalog so wading never machine-guns); the
+    // other kinds pick the splash by size, and a sink (the player's drowning death, a log going under a body) adds `drown`.
+    bus.on('water:splash', e => {
+        if (e.kind === 'step') { engine.sfx('wade_step', { x: e.x }); return; }
+        engine.sfx(`splash_${e.size}`, { x: e.x, volume: e.kind === 'leap' ? 0.8 : 1 });
+        if (e.kind === 'sink') engine.sfx('drown', { x: e.x });
+    });
+    // Phase G: ambience kinds from Levels' triggers pick a bed (UI.audio.ambienceKinds); `null` or an unlisted kind
+    // (snow, embers, tunnel...) hands the choice back to the camera-x sections of the part.
+    bus.on('fx:ambience', e => {
+        const spec = e.kind ? UI.audio.ambienceKinds[e.kind] : undefined;
+        kindBed = spec ? spec.bed : null;
+        kindBedVolume = spec?.volume ?? 1;
+        bedPoll = UI.audio.bedPollMs;
     });
 
     // player
@@ -122,6 +153,8 @@ export function wireAudioEvents(ctx: GameContext, engine: AudioEngine): void {
         // Phase F: a low/bright layer under the weapon's own shot gives the guns more punch (same fatigue as the shot).
         const layer = UI.audio.weaponLayers[e.weapon];
         if (layer) engine.sfx(layer.key, { x: e.x, volume: layer.volume });
+        // Phase G: the shotgun is fully event-driven (the weapon code plays no sound for it).
+        if (e.weapon === 'shotgun') engine.sfx('shotgun_fire', { x: e.x });
         if (e.weapon === 'flame') {
             flameUntil = clock + UI.audio.flameLoopHoldMs;
             if (!flame || !flame.active) flame = engine.loop('flame_loop', { x: e.x });
@@ -166,9 +199,12 @@ export function wireAudioEvents(ctx: GameContext, engine: AudioEngine): void {
     bus.on('boss:phase', e => { bossHp = e.hp; engine.duck(0.55, 1200, 500); });
     bus.on('boss:defeated', () => engine.music(null, { fade: 2500 }));
     // Phase F: the WARNING banner's siren (the HUD draws the banner; the siren plays even without the HUD scene).
-    bus.on('boss:intro', () => {
+    bus.on('boss:intro', e => {
         engine.sfx(UI.warning.sfx);
-        const d = UI.audio.warningDuck;
+        const major = MAJOR_BOSS.test((e.name ?? '').toUpperCase());
+        // Phase G: the main boss gets a deeper klaxon under the siren and a longer, deeper duck (the banner grows to match).
+        if (major) engine.sfx(UI.warning.major.sfx);
+        const d = major ? UI.audio.warningDuckMajor : UI.audio.warningDuck;
         engine.duck(d.gain, d.holdMs, d.recoverMs);
     });
     // Phase F: arenas duck the section bed (combat focus); the clear brings it back.
@@ -189,6 +225,7 @@ export function wireAudioEvents(ctx: GameContext, engine: AudioEngine): void {
         const music = partOf(ctx).music;
         if (music && !(cur && GAMEPLAY_MUSIC.test(cur))) engine.music(music, { fade: 700 });
         stopAmbience(200);
+        kindBed = null;
         const amb = UI.audio.ambience[e.id];
         if (amb) for (const [key, volume] of Object.entries(amb)) ambience.push(engine.loop(key, { volume }));
         bedsOn = true;

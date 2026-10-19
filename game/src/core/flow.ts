@@ -7,7 +7,7 @@ import type { RunStateStore } from './state';
 import { DEPTH } from './depth';
 import { latchHeldInputs } from './input';
 import { ENGINE } from '../config/tuning/engine';
-import { nextPart, type CarryState, type PartClearData, type PartDef, type PartResult } from '../config/campaign';
+import { nextMissionStart, nextPart, type CarryState, type PartClearData, type PartDef, type PartResult } from '../config/campaign';
 import { recordBest, unlockPart } from './progress';
 
 /** Data the flow hands to the Results scene (the pre-Phase-E fields first, so the current scene keeps working). */
@@ -17,6 +17,13 @@ export interface MissionResultsData {
     /** Phase E: mission number, the final part's id, and every part's result in order (this one last). */
     mission: number; part: PartDef['id']; parts: PartResult[];
     shots: number; hits: number;
+    /**
+     * Phase G mission chain: present only when another mission follows. `next` is its first part, `carry` the run
+     * to continue with (score, lives, bombs, weapon, ammo, rescued, difficulty carried; `parts: []` so that mission's
+     * Results total only its own parts). CONTINUE: `scene.start('Game', { part: next.id, carry })`. Absent: go to Title.
+     */
+    next?: PartDef;
+    carry?: CarryState;
 }
 
 export function sceneExists(scene: Phaser.Scene, key: string): boolean {
@@ -162,15 +169,18 @@ export class GameFlow implements FlowService {
         this.cleared = true;
         const part = this.ctx.part;
         const next = final ? null : nextPart(part.id);
+        // Final part: the next mission's first part (if any) unlocks too (clearing 1-3 unlocks 2-1).
+        const nextMission = final ? nextMissionStart(part.id) : null;
         // Unlock at once (quitting during the tally still keeps it); the result is frozen at the clear moment.
         if (next) unlockPart(next.id);
+        if (nextMission) unlockPart(nextMission.id);
         const clearedAt = this.ctx.time.now;
         this.scene.time.delayedCall(ENGINE.run.stageClearDelayMs, () => {
             const result = this.store.partResult(part.id, clearedAt);
             recordBest(part.id, result.score);
             const carry = this.store.carry(result);
             if (next) this.toNextPart(part, next, result, carry);
-            else this.toResults(stage, carry);
+            else this.toResults(stage, carry, nextMission);
         });
     }
 
@@ -187,9 +197,15 @@ export class GameFlow implements FlowService {
     }
 
     /** Final part: mission Results with totals over every part of the run. */
-    private toResults(stage: number, carry: CarryState): void {
+    private toResults(stage: number, carry: CarryState, nextMission: PartDef | null): void {
         const sm = this.scene.scene;
-        if (!sceneExists(this.scene, 'Results')) { this.showOverlay('MISSION COMPLETE!'); return; }
+        const chain: CarryState | null = nextMission ? { ...carry, parts: [] } : null;
+        if (!sceneExists(this.scene, 'Results')) {
+            this.showOverlay('MISSION COMPLETE!');
+            // No Results scene: chain straight into the next mission after a beat.
+            if (nextMission && chain) this.scene.time.delayedCall(ENGINE.run.stageClearDelayMs, () => sm.start('Game', { part: nextMission.id, carry: chain }));
+            return;
+        }
         const parts = carry.parts;
         const sum = (k: 'kills' | 'deaths' | 'shots' | 'hits' | 'timeMs'): number => parts.reduce((a, p) => a + p[k], 0);
         const shots = sum('shots'), hits = sum('hits');
@@ -198,6 +214,7 @@ export class GameFlow implements FlowService {
             accuracy: shots > 0 ? Math.min(1, hits / shots) : 0, timeMs: sum('timeMs'), difficulty: carry.difficulty,
             mission: this.ctx.part.mission, part: this.ctx.part.id, parts, shots, hits
         };
+        if (nextMission && chain) { data.next = nextMission; data.carry = chain; }
         for (const k of ['HUD', 'Pause', 'Continue']) if (sm.isActive(k) || sm.isPaused(k)) sm.stop(k);
         sm.start('Results', data);
     }

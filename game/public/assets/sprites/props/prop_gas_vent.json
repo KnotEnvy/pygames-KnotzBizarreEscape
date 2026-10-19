@@ -1,0 +1,85 @@
+{ "frames": {
+   "prop_gas_vent#0": {
+    "frame": { "x": 0, "y": 0, "w": 16, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 12 },
+    "sourceSize": { "w": 16, "h": 12 },
+    "duration": 400
+   },
+   "prop_gas_vent#1": {
+    "frame": { "x": 17, "y": 0, "w": 16, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 12 },
+    "sourceSize": { "w": 16, "h": 12 },
+    "duration": 400
+   },
+   "prop_gas_vent#2": {
+    "frame": { "x": 34, "y": 0, "w": 16, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 12 },
+    "sourceSize": { "w": 16, "h": 12 },
+    "duration": 90
+   },
+   "prop_gas_vent#3": {
+    "frame": { "x": 0, "y": 13, "w": 16, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 12 },
+    "sourceSize": { "w": 16, "h": 12 },
+    "duration": 90
+   },
+   "prop_gas_vent#4": {
+    "frame": { "x": 17, "y": 13, "w": 16, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 12 },
+    "sourceSize": { "w": 16, "h": 12 },
+    "duration": 90
+   },
+   "prop_gas_vent#5": {
+    "frame": { "x": 34, "y": 13, "w": 16, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 12 },
+    "sourceSize": { "w": 16, "h": 12 },
+    "duration": 90
+   },
+   "prop_gas_vent#6": {
+    "frame": { "x": 0, "y": 26, "w": 16, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 12 },
+    "sourceSize": { "w": 16, "h": 12 },
+    "duration": 80
+   },
+   "prop_gas_vent#7": {
+    "frame": { "x": 17, "y": 26, "w": 16, "h": 12 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 12 },
+    "sourceSize": { "w": 16, "h": 12 },
+    "duration": 80
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "prop_gas_vent.png",
+  "format": "RGBA8888",
+  "size": { "w": 50, "h": 38 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "prop_gas_vent_idle", "from": 0, "to": 1, "direction": "forward", "color": "#000000ff" },
+   { "name": "prop_gas_vent_bubble", "from": 2, "to": 5, "direction": "forward", "color": "#000000ff" },
+   { "name": "prop_gas_vent_burn", "from": 6, "to": 7, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

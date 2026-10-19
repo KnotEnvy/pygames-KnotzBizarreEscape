@@ -10,7 +10,9 @@ export function registerPlayer(ctx: RegisterContext): void {
         const index = Number(props.index ?? 0);
         const existing = game.player(index);
         if (existing) { existing.teleport?.(x, y); return existing.sprite; }
-        return new Knotz(game, x, y, index, ['walk', 'jump_down', 'tumble'].includes(String(props.entry)) ? props.entry as Entry : undefined).sprite;
+        const bayouEntry = game.params.fast ? undefined : ({ '2-1': 'skiff_dock', '2-2': 'skiff_barge', '2-3': 'wreck_crawl' } as const)[game.part.id as '2-1' | '2-2' | '2-3'];
+        const entry = bayouEntry ?? (['walk', 'jump_down', 'tumble'].includes(String(props.entry)) ? props.entry as Entry : undefined);
+        return new Knotz(game, x, y, index, entry).sprite;
     });
     registerPickups(ctx);
     registerPows(ctx);

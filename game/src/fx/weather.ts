@@ -9,6 +9,14 @@ const LAMP_WIDTH = 160, LAMP_HEIGHT = 216;
 
 /** Reused weather geometry and five light sprites, all below combat silhouettes. */
 export class FxWeather {
+    private readonly farRain: Phaser.GameObjects.Graphics;
+    private readonly nearRain: Phaser.GameObjects.Graphics;
+    private readonly drops = Array.from({ length: 48 }, (_, i) => ({ phase: (i * .61803398875) % 1, floor: 0, sampled: -Infinity }));
+    private readonly banks = Array.from({ length: 6 }, () => ({ floor: 0, sampled: -Infinity }));
+    private weatherMotes = 0;
+    private ambientOccupied = 0;
+    private lightningStart = -Infinity;
+    private doubleStrike = false;
     private readonly veil: Phaser.GameObjects.Graphics;
     private readonly lamps: Phaser.GameObjects.Image[] = [];
     private readonly reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -17,9 +25,13 @@ export class FxWeather {
     private drift = FX.weather.drift as number;
     private distance = 0;
     private sparkDebt = 0;
-    readonly stats = { drift: 180, gust: 0, mode: null as Ambience, lamps: 0, lampPulse: 0 };
+    private nextLightning = 6500;
+    private lightningUntil = 0;
+    readonly stats = { drift: 180, gust: 0, mode: null as Ambience, lamps: 0, lampPulse: 0, lightningAlpha: 0, strikes: 0, motes: 0, doubleStrike: false };
     constructor(private readonly ctx: GameContext, private readonly pool: FxPool) {
         this.veil = ctx.scene.add.graphics().setDepth(DEPTH.ENEMIES - 2);
+        this.farRain = ctx.scene.add.graphics().setDepth(DEPTH.TILES_BACK - 1);
+        this.nearRain = ctx.scene.add.graphics().setDepth(DEPTH.PLAYER + 1);
         this.makeLamplight();
         for (let i = 0; i < 5; i++) this.lamps.push(ctx.scene.add.image(0, 0, LAMP_TEXTURE)
             .setOrigin(0, 0).setDepth(DEPTH.ENEMIES - 1.5).setBlendMode(Phaser.BlendModes.ADD).setVisible(false));
@@ -61,13 +73,49 @@ export class FxWeather {
         this.clock += dt;
         this.distance += this.drift * dt / 1000;
         this.sparkDebt += dt;
-        this.veil.clear(); this.stats.mode = null;
+        this.farRain.clear(); this.nearRain.clear(); this.weatherMotes = this.stats.motes = 0;
+        this.ambientOccupied = 0;
+        for (const s of this.pool.slots) if (s.live && s.category === 'ambient') this.ambientOccupied++;
+        this.veil.clear(); this.stats.mode = null; this.stats.lightningAlpha = 0;
         for (const lamp of this.lamps) lamp.setVisible(false);
         this.lampCount = this.stats.lamps = this.stats.lampPulse = 0;
         this.stats.gust = Math.max(0, Math.sin(this.clock / 1100)) ** 4;
     }
     region(kind: Ambience, left: number, top: number, right: number, bottom: number): void {
-        if (kind !== 'train' && kind !== 'tunnel' && kind !== 'blizzard') return;
+        if (kind === 'rain' || kind === 'storm') {
+            const storm = kind === 'storm', reduced = settings.get().reducedFlash || this.reducedMotion.matches;
+            this.veil.fillStyle(0x1c2433, storm ? .24 : .14).fillRect(left - 8, top - 8, right - left + 16, bottom - top + 16);
+            if (storm) {
+                if (this.clock >= this.nextLightning) {
+                    this.lightningStart = this.clock;
+                    this.doubleStrike = !reduced && this.ctx.rng.chance(.3);
+                    this.lightningUntil = this.clock + (reduced ? 700 : this.doubleStrike ? 650 : 300);
+                    this.ctx.audio.sfx('thunder', { volume: .45 }); this.stats.strikes++;
+                    this.nextLightning = this.clock + (reduced ? 14000 : 6500) + this.ctx.rng.range(0, reduced ? 2500 : 6500);
+                }
+                const age = this.clock - this.lightningStart;
+                // At most two separated pulses, never a strobe. Reduced mode has one long dim lift.
+                let lift = Math.max(0, 1 - age / (reduced ? 700 : 300));
+                if (!reduced && this.doubleStrike && age >= 380) lift = Math.max(lift, .65 * Math.max(0, 1 - (age - 380) / 270));
+                this.stats.doubleStrike = this.doubleStrike && !reduced;
+                this.stats.lightningAlpha = lift * (reduced ? .045 : .32);
+                if (this.clock < this.lightningUntil) {
+                    this.veil.fillStyle(0xa8d4f0, this.stats.lightningAlpha).fillRect(left - 8, top - 8, right - left + 16, bottom - top + 16);
+                    const bx = left + (right - left) * .72;
+                    const alpha = reduced ? .24 * lift : .8 * lift;
+                    this.farRain.lineStyle(1, 0xa8d4f0, alpha).beginPath().moveTo(bx, top + 8)
+                        .lineTo(bx - 12, top + 30).lineTo(bx + 2, top + 28).lineTo(bx - 18, top + 63)
+                        .lineTo(bx - 10, top + 46).strokePath();
+                }
+            }
+            this.rain(storm, left, top, right, bottom);
+            this.stats.mode = kind; return;
+        }
+        if (kind === 'swamp' || kind === 'river') {
+            this.marsh(kind === 'river', left, top, right, bottom);
+            this.stats.mode = kind; return;
+        }
+        if (kind !== 'train' && kind !== 'tunnel' && kind !== 'blizzard' && kind !== 'fog') { if (kind) this.stats.mode = kind; return; }
         if (this.stats.mode !== 'tunnel') this.stats.mode = kind;
         const g = this.veil;
         // Engine view() excludes shake; overscan only viewport edges so dark weather never exposes bright gutters.
@@ -81,8 +129,8 @@ export class FxWeather {
         }
         const width = right - left, height = bottom - top;
         const gust = this.stats.gust;
-        if (kind === 'tunnel') {
-            g.fillStyle(0x080a14, FX.weather.tunnelAlpha).fillRect(left, top, width, height);
+        if (kind === 'tunnel' || kind === 'fog') {
+            g.fillStyle(0x080a14, kind === 'fog' ? .42 : FX.weather.tunnelAlpha).fillRect(left, top, width, height);
             // World-anchored lamps pass left at exactly map drift, also respecting camera travel.
             const spacing = FX.weather.lampSpacing, phase = ((this.distance % spacing) + spacing) % spacing;
             const start = Math.floor(left / spacing) * spacing - phase;
@@ -121,6 +169,26 @@ export class FxWeather {
         }
     }
     emit(kind: Ambience, left: number, top: number, right: number, bottom: number): boolean {
+        if (kind === 'swamp' || kind === 'fog' || kind === 'river' || kind === 'rain' || kind === 'storm') {
+            const x = this.ctx.rng.range(left, right), rain = kind === 'rain' || kind === 'storm';
+            if (rain) { return true;            } else {
+                const mist = kind === 'fog' || ((kind === 'swamp' || kind === 'river') && this.ctx.rng.chance(.22));
+                const fly = kind === 'swamp' && !mist && this.ctx.rng.chance(.5);
+                const floor = this.ctx.physics.groundBelow(x, top, bottom - top) ?? bottom - 4;
+                const s = this.pool.spawn('ambient', mist ? 'fx_smoke_drift' : fly ? 'fx_firefly_pulse' : 'fx_snow_v1', x, mist || kind === 'river' ? floor - this.ctx.rng.range(4, 12) : floor - this.ctx.rng.range(12, 60));
+                if (s) {
+                    s.life = mist ? 2300 : 1500; s.fade = 600; s.loop = fly;
+                    s.vx = kind === 'river' ? -Math.max(40, Math.abs(this.drift)) * .6 : mist ? -16 : this.ctx.rng.range(-8, 8);
+                    s.vy = mist ? -2 : this.ctx.rng.range(-4, 4); s.alpha = mist ? .22 : fly ? .95 : .5;
+                    s.image.setDepth(DEPTH.ENEMIES - 1);
+                    if (fly) s.image.setBlendMode(Phaser.BlendModes.ADD).setScale(1.3);
+                    if (mist) s.image.setScale(2, .5).setTint(0x6ab9a4);
+                    else if (kind === 'river') s.image.setScale(7, .5).setTint(0x82cddd);
+                    else if (!fly) s.image.setScale(.5).setTint(0x6ab9a4);
+                }
+            }
+            return true;
+        }
         if (kind !== 'train' && kind !== 'blizzard' && kind !== 'tunnel') return false;
         if (kind === 'tunnel') return true;
         if (this.pool.countTexture('fx_snow') >= FX.weather.snowCap) return true;
@@ -143,5 +211,63 @@ export class FxWeather {
         s.image.setRotation(train ? 0 : -0.2);
         return true;
     }
-    destroy(): void { this.veil.destroy(); for (const lamp of this.lamps) lamp.destroy(); }
+    /** Fixed 32/48 analytic drops replace short-lived scaled snow pixels. No emitter or per-drop allocation. */
+    private rain(storm: boolean, left: number, top: number, right: number, bottom: number): void {
+        const count = storm ? 48 : 32, width = right - left;
+        const wind = storm ? 5 + this.stats.gust * 9 : 4;
+        for (let i = 0; i < count && this.weatherMotes + this.ambientOccupied < 64; i++, this.weatherMotes++) {
+            const d = this.drops[i], far = i % 3 === 0;
+            const x = left + ((i * .754877666 + .13) % 1) * width;
+            if (this.clock - d.sampled > 250 || d.floor < top || d.floor > bottom) {
+                d.floor = this.ctx.physics.groundBelow(x, top, bottom - top) ?? bottom;
+                d.sampled = this.clock;
+            }
+            const cycle = far ? 1250 : storm ? 650 : 850;
+            const u = (this.clock / cycle + d.phase) % 1;
+            const floor = Math.min(bottom, d.floor), travel = Math.max(16, floor - top);
+            const g = far ? this.farRain : this.nearRain;
+            if (u < .86) {
+                const y = top + u / .86 * travel;
+                const len = far ? 5 : storm ? 14 : 10;
+                const dx = far ? 2 : wind;
+                g.lineStyle(1, 0x82cddd, far ? .3 : storm ? .65 : .55)
+                    .lineBetween(Math.round(x + dx * (1 - u)), Math.round(y), Math.round(x + dx * (1 - u) - dx), Math.round(Math.min(floor, y + len)));
+            } else if (!far && floor < bottom) {
+                const spread = (u - .86) / .14 * 5;
+                g.lineStyle(1, 0xa8d4f0, .6 * (1 - (u - .86) / .14))
+                    .lineBetween(x - spread, floor - 1, x - spread - 2, floor - 3)
+                    .lineBetween(x + spread, floor - 1, x + spread + 2, floor - 3);
+            }
+        }
+        this.stats.motes = this.weatherMotes;
+    }
+    private marsh(river: boolean, left: number, top: number, right: number, bottom: number): void {
+        const width = right - left, g = this.veil;
+        for (let i = 0; i < 6 && this.weatherMotes + this.ambientOccupied < 64; i++, this.weatherMotes++) {
+            const b = this.banks[i];
+            const speed = river ? Math.max(40, Math.abs(this.drift)) * .5 : 12;
+            const x = left + ((i * width / 6 - this.clock * speed / 1000) % (width + 80) + width + 80) % (width + 80) - 40;
+            if (this.clock - b.sampled > 250 || b.floor < top || b.floor > bottom) {
+                b.floor = this.ctx.physics.groundBelow(x, top, bottom - top) ?? this.ctx.physics.groundBelow((left + right) / 2, top, bottom - top) ?? bottom - 24; b.sampled = this.clock;
+            }
+            const floor = b.floor;
+            // Three shallow overlapping contours; stays at feet rather than floating midway up the screen.
+            g.fillStyle(0x6ab9a4, .16).fillEllipse(Math.round(x), floor - 5, 76, 12);
+            g.fillStyle(0x82cddd, .14).fillEllipse(Math.round(x + 10), floor - 9, 50, 9);
+            g.fillStyle(0x6ab9a4, .18).fillEllipse(Math.round(x - 8), floor - 3, 60, 6);
+            if (!river) for (let j = 0; j < 3 && this.weatherMotes + this.ambientOccupied < 64; j++, this.weatherMotes++) {
+                const t = this.clock / 1000;
+                const gx = Math.round(x + 12 * Math.sin(t * 2 + i + j * 2));
+                const gy = Math.round(floor - 18 - j * 4 + Math.sin(t * 4 + i * 3 + j) * 4);
+                g.fillStyle(0xa7b6b8, .65).fillRect(gx, gy, 1, 1);
+            }
+            if (river) for (let j = 0; j < 3 && this.weatherMotes + this.ambientOccupied < 64; j++, this.weatherMotes++) {
+                const rx = Math.round(x + j * 15), ry = Math.round(floor - 3 - j * 3);
+                g.fillStyle(0x82cddd, .55).fillRect(rx, ry, 8 + j * 4, 1);
+                g.fillStyle(0xa8d4f0, .35).fillRect(rx + 5, ry + 2, 5, 1);
+            }
+        }
+        this.stats.motes = this.weatherMotes;
+    }
+    destroy(): void { this.farRain.destroy(); this.nearRain.destroy(); this.veil.destroy(); for (const lamp of this.lamps) lamp.destroy(); }
 }

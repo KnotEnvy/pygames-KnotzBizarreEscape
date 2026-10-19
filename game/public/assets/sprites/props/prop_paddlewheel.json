@@ -1,0 +1,83 @@
+{ "frames": {
+   "prop_paddlewheel#0": {
+    "frame": { "x": 0, "y": 0, "w": 128, "h": 104 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 104 },
+    "sourceSize": { "w": 128, "h": 104 },
+    "duration": 70
+   },
+   "prop_paddlewheel#1": {
+    "frame": { "x": 129, "y": 0, "w": 128, "h": 104 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 104 },
+    "sourceSize": { "w": 128, "h": 104 },
+    "duration": 70
+   },
+   "prop_paddlewheel#2": {
+    "frame": { "x": 258, "y": 0, "w": 128, "h": 104 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 104 },
+    "sourceSize": { "w": 128, "h": 104 },
+    "duration": 70
+   },
+   "prop_paddlewheel#3": {
+    "frame": { "x": 0, "y": 105, "w": 128, "h": 104 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 104 },
+    "sourceSize": { "w": 128, "h": 104 },
+    "duration": 70
+   },
+   "prop_paddlewheel#4": {
+    "frame": { "x": 129, "y": 105, "w": 128, "h": 104 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 104 },
+    "sourceSize": { "w": 128, "h": 104 },
+    "duration": 70
+   },
+   "prop_paddlewheel#5": {
+    "frame": { "x": 258, "y": 105, "w": 128, "h": 104 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 104 },
+    "sourceSize": { "w": 128, "h": 104 },
+    "duration": 70
+   },
+   "prop_paddlewheel#6": {
+    "frame": { "x": 0, "y": 210, "w": 128, "h": 104 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 104 },
+    "sourceSize": { "w": 128, "h": 104 },
+    "duration": 70
+   },
+   "prop_paddlewheel#7": {
+    "frame": { "x": 129, "y": 210, "w": 128, "h": 104 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 104 },
+    "sourceSize": { "w": 128, "h": 104 },
+    "duration": 70
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "prop_paddlewheel.png",
+  "format": "RGBA8888",
+  "size": { "w": 386, "h": 314 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "prop_paddlewheel_spin", "from": 0, "to": 7, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

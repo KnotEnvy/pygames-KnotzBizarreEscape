@@ -18,6 +18,7 @@ import { registerUi } from '../ui';
 import { FIRST_PART, partById, type CarryState, type GameStartData, type PartDef } from '../config/campaign';
 import { LEVEL } from '../config/tuning/level';
 import { PARAMS } from '../core/params';
+import { missionsToLoad, type MissionLoadData } from '../core/missionPacks';
 
 type Registrar = [name: string, fn: (ctx: RegisterContext) => void];
 
@@ -37,6 +38,8 @@ export class GameScene extends Phaser.Scene {
 
     private startPart: PartDef = FIRST_PART;
     private startCarry: CarryState | null = null;
+    /** This start only hands off to Preload to load a mission's packs (it restarts Game with the same data). */
+    private loadingMission = false;
 
     constructor() { super('Game'); }
 
@@ -50,6 +53,17 @@ export class GameScene extends Phaser.Scene {
         // Phaser keeps the old settings.data when a later start() passes none (Title → Game after a Part II run):
         // consume it so that start is a fresh run, not a replay of the stale part + carry.
         this.sys.settings.data = {};
+        // Phase G: mission N >= 2 packs load on demand (core/missionPacks.ts). Not loaded yet: let Preload load them
+        // (its bar, retries and error screen), then it starts Game again with the same part and carry.
+        const missions = missionsToLoad(this.startPart);
+        this.loadingMission = missions.length > 0 && sceneExists(this, 'Preload');
+        if (this.loadingMission) {
+            setReady(false);
+            const next: GameStartData = { part: this.startPart.id };
+            if (this.startCarry) next.carry = this.startCarry;
+            const load: MissionLoadData = { missions, next: { scene: 'Game', data: next } };
+            this.scene.start('Preload', load);
+        }
     }
 
     /**
@@ -69,6 +83,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     create(): void {
+        if (this.loadingMission) return; // Preload takes over at the next scene-manager step
         const { ctx, internals } = createGameContext(this, this.resolvePart(this.startPart));
         this.ctx = ctx;
         this.internals = internals;
@@ -115,6 +130,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     update(_time: number, delta: number): void {
+        if (this.loadingMission) return;
         const { ctx, internals } = this;
         internals.flow.update(delta);
         const dt = ctx.time.dt(delta);

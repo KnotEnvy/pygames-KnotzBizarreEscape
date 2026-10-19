@@ -57,8 +57,8 @@ export const CAMPAIGN: MissionDef[] = [
                 id: '2-1', mission: 2, part: 1, title: 'CYPRESS DEEP', location: 'Blackwater Bayou',
                 map: 'm2p1', music: 'music_m2p1', final: false,
                 briefing: [
-                    'Bad news, Knotz. When MOOSEZILLA fell, Von Antler opened the pens. His war mechs are loose and heading for Port Delacroix.',
-                    'The trail runs through Blackwater Bayou. Hunt them down before they reach the city.'
+                    'Bad news, Knotz. Von Antler opened the pens. His war mechs are loose and heading for Port Delacroix.',
+                    'Their trail runs through Blackwater Bayou. Hunt them down.'
                 ]
             },
             {
@@ -91,6 +91,12 @@ export function nextPart(id: PartId): PartDef | null {
         if (i >= 0) return m.parts[i + 1] ?? null;
     }
     return null;
+}
+
+/** Phase G: the first part of the mission after `id`'s mission, else null (the last mission). */
+export function nextMissionStart(id: PartId): PartDef | null {
+    const i = CAMPAIGN.findIndex(m => m.parts.some(p => p.id === id));
+    return i >= 0 ? CAMPAIGN[i + 1]?.parts[0] ?? null : null;
 }
 
 export function missionOf(id: PartId): MissionDef | undefined {

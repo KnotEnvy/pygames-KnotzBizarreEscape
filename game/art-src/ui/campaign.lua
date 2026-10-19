@@ -1,6 +1,7 @@
 -- KBE Phase E campaign UI art: the radio icon (Hazel's briefing box), the escape-route map pictograms and the
--- Pine Ridge route map used by the PART CLEAR screen. Build: bash tools/build-art.sh art-src/ui/campaign.lua
--- Outputs -> public/assets/ui/ui_radio.png/.json, ui_map.png/.json, map_m1.png ; previews -> /tmp/kbe-ui/campaign*.png
+-- Pine Ridge route map used by the PART CLEAR screen. Phase G adds the Mission 2 pictograms (cypress, riverboat, mill) and the
+-- Blackwater Bayou route map (map_m2). Build: bash tools/build-art.sh art-src/ui/campaign.lua
+-- Outputs -> public/assets/ui/ui_radio.png/.json, ui_map.png/.json, map_m1.png, map_m2.png ; previews -> /tmp/kbe-ui/campaign*.png
 local U = dofile(app.params.root .. "/art-src/ui/lib/ui.lua")
 local K = U.K
 local SRC = U.ROOT .. "/art-src/ui/"
@@ -18,7 +19,7 @@ local KEYS = {
   s = "sand2", S = "sand3", t = "sand4", T = "sand5",
   n = "dirt2", N = "dirt3", m = "dirt4", M = "dirt5",
   v = "weird2", V = "weird3", W = "weird4", u = "weird5",
-  l = "leaf2", L = "leaf3", e = "leaf4", b = "sky3", c = "sky4", d = "sky5",
+  l = "leaf2", L = "leaf3", e = "leaf4", b = "sky3", c = "sky4", d = "sky5", a = "sky2",
 }
 local function grid(w, h, rows, ox, oy) local img = U.newImage(w, h); K.grid(img, rows, KEYS, ox or 0, oy or 0); return img end
 local function copy(img) local c = U.newImage(img.width, img.height); U.blit(c, img, 0, 0); return c end
@@ -125,6 +126,58 @@ MAP.lake = grid(16, 16, {
   "................",
   "................",
   "................" })
+-- Phase G: Mission 2 pictograms. A cypress over black water, the BAYOU QUEEN sternwheeler, the Drowned Mill with its waterwheel.
+MAP.bayou = grid(16, 16, {
+  "......oo........",
+  ".....oLLo..o....",
+  "....oLeLLooLo...",
+  "...oLLeLLLoLo...",
+  "..oLeLLLeLLLLo..",
+  "...oLLLeLLoLo...",
+  "....ooNNooooo...",
+  ".....oNno.o.....",
+  ".....oNno.o.....",
+  "....oNNnNo......",
+  "ooooNNnNNNoooooo",
+  "oaabcabbabcabaao",
+  "oabaabbbaabbaabo",
+  "oooooooooooooooo",
+  "................",
+  "................" })
+MAP.boat = grid(16, 16, {
+  "................",
+  "....oo..oo......",
+  "....oxo.oxo.....",
+  "...ooAAooAAo....",
+  "...oIIIIIIIIoo..",
+  "..ooIIIIIIIIIoo.",
+  ".oRRRRRRRRRRRRpo",
+  ".oIIIIIIIIIIIRpo",
+  ".oBBBBBBBBBBBRpo",
+  "..ooooooooooooo.",
+  "obbbcbbbbcbbbbbo",
+  "obcbbbbbbbbbcbbo",
+  "oooooooooooooooo",
+  "................",
+  "................",
+  "................" })
+MAP.mill = grid(16, 16, {
+  "................",
+  ".......oo.......",
+  "......oNNo......",
+  ".....oNnnNo.....",
+  "....oNnnnnNo....",
+  "...oooooooooo...",
+  "...oMmmmmMoBo...",
+  "...oMmxxmMoBo...",
+  "...oMmxxmMoBo...",
+  "...oooooooooBo..",
+  "....oNo.oNoBo...",
+  "ooooNNooNNNBoooo",
+  "oaaboNobbbBBBaao",
+  "oabaabbbaaaBabao",
+  "oooooooooooooooo",
+  "................" })
 local PIN = {
   "......oooo......",
   ".....oyzzyo.....",
@@ -155,6 +208,7 @@ local knotz2 = grid(16, 16, KNOTZ2)
 U.sheet{ name = "ui_map", w = 16, h = 16, src = SRC .. "ui_map.aseprite", sheet = OUT .. "ui_map.png", data = OUT .. "ui_map.json",
   entries = {
     { name = "map_camp", img = MAP.camp }, { name = "map_train", img = MAP.train }, { name = "map_lake", img = MAP.lake },
+    { name = "map_bayou", img = MAP.bayou }, { name = "map_boat", img = MAP.boat }, { name = "map_mill", img = MAP.mill },
     { name = "map_pin", ms = 110, frames = pins },
     { name = "map_knotz", ms = 260, frames = { knotz1, knotz2 } },
   } }
@@ -220,11 +274,87 @@ U.drawText(map, F_PLAIN, 4, 3, "PINE RIDGE", "ink1")
 U.drawText(map, F_PLAIN, 148, 3, "N", "ink1"); K.px(map, 150, 10, "ink1"); K.rect(map, 149, 11, 3, 1, "ink1"); K.px(map, 150, 12, "ink1")
 U.saveImage(map, OUT .. "map_m1.png", SRC .. "map_m1.aseprite")
 
+-- ============================================================== map_m2 (160x72): Blackwater Bayou escape route (Phase G)
+-- Knotz comes down from Pine Ridge (north edge) and follows the Blackwater south-east: the dock and cypress deep (I, north-west),
+-- the river run with the stilt village and the BAYOU QUEEN (II, centre) and the Drowned Mill in the black water (III, south-east).
+-- Port Delacroix is off the south edge. The route polyline matches UI.partClear.maps[2].route (src/config/tuning/ui.ts).
+local map2 = U.newImage(MW, MH)
+for y = 0, MH - 1 do for x = 0, MW - 1 do K.px(map2, x, y, ((x + y) % 2 == 0) and "sand4" or "sand3") end end
+for y = 0, MH - 1 do for x = 0, MW - 1 do if (x * 7 + y * 13) % 29 == 0 then K.px(map2, x, y, "sand2") end end end
+K.rect(map2, 0, 0, MW, 1, "sand1"); K.rect(map2, 0, MH - 1, MW, 1, "sand1"); K.rect(map2, 0, 0, 1, MH, "sand1"); K.rect(map2, MW - 1, 0, 1, MH, "sand1")
+-- the Pine Ridge foothills along the north edge (where Mission 1 ended), dark pines under them
+for _, p in ipairs({ { 10, 1, 14 }, { 36, 0, 16 }, { 60, 2, 12 }, { 120, 1, 14 }, { 146, 0, 16 } }) do
+  for y = p[2], 9 do local w = math.floor((y - p[2]) * p[3] / math.max(1, 9 - p[2])); K.rect(map2, p[1] - w, y, w * 2 + 1, 1, "steel2") end
+end
+for i = 0, 38 do pine(4 + i * 4, 9 + (i * 5) % 3, (i % 3 == 0) and "leaf1" or "leaf2") end
+-- the Blackwater river: from the north edge, winding south-east to the mill and off the map
+local river = { { 96, 0 }, { 84, 14 }, { 68, 30 }, { 62, 39 }, { 72, 42 }, { 84, 44 }, { 96, 47 }, { 106, 51 }, { 118, 56 }, { 132, 64 }, { 148, 71 } }
+local function thick(pts, w, col)
+  for i = 1, #pts - 1 do
+    local a, b = pts[i], pts[i + 1]
+    for d = -w, w do K.line(map2, a[1] + d, a[2], b[1] + d, b[2], col); K.line(map2, a[1], a[2] + d, b[1], b[2] + d, col) end
+  end
+end
+thick(river, 3, "sky2"); thick(river, 2, "sky3")
+for i = 1, #river - 1 do local a, b = river[i], river[i + 1]; if i % 2 == 0 then K.line(map2, a[1], a[2], b[1], b[2], "sky4") end end
+-- the bayou (north-west): black water with a channel to the river, cypress knees and moss
+local function blob(cx, cy, rx, ry, col, col2)
+  for y = -ry, ry do for x = -rx, rx do
+    if (x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1 then K.px(map2, cx + x, cy + y, (((x + y) % 3 == 0) and col2) or col) end
+  end end
+end
+blob(26, 30, 20, 9, "sky2", "sky3"); blob(44, 36, 12, 6, "sky2", "sky3"); K.line(map2, 52, 38, 62, 39, "sky2"); K.line(map2, 52, 39, 62, 40, "sky3")
+local function cypress(x, y, col) K.px(map2, x, y, col); K.rect(map2, x - 1, y + 1, 3, 1, col); K.px(map2, x, y + 2, col); K.px(map2, x, y + 3, "dirt2") end
+for _, t in ipairs({ { 8, 22 }, { 14, 34 }, { 20, 24 }, { 30, 36 }, { 36, 26 }, { 44, 30 }, { 50, 44 }, { 12, 44 }, { 24, 46 }, { 40, 50 }, { 56, 28 }, { 76, 56 }, { 88, 62 }, { 100, 64 }, { 112, 66 }, { 70, 62 }, { 76, 30 }, { 90, 24 }, { 104, 30 }, { 116, 24 }, { 128, 34 }, { 140, 26 }, { 150, 40 }, { 144, 50 }, { 122, 44 }, { 110, 40 }, { 6, 44 }, { 46, 22 }, { 62, 20 }, { 150, 18 } }) do
+  cypress(t[1], t[2], (t[1] % 8 == 0) and "leaf2" or "leaf3")
+end
+-- moss strands and reeds
+for _, m in ipairs({ { 10, 28 }, { 34, 32 }, { 22, 40 }, { 48, 36 }, { 136, 54 }, { 150, 62 } }) do K.rect(map2, m[1], m[2], 1, 3, "olive3") end
+-- the dock at the bayou edge (I): planks into the water
+K.rect(map2, 24, 20, 8, 2, "dirt3"); K.rect(map2, 30, 20, 1, 4, "dirt2")
+-- the stilt village (II approach): shacks on stilts over the river bank
+for _, h in ipairs({ { 70, 34 }, { 76, 36 }, { 82, 38 } }) do
+  K.rect(map2, h[1], h[2], 5, 3, "dirt3"); K.rect(map2, h[1] + 1, h[2] - 1, 3, 1, "red3"); K.px(map2, h[1], h[2] + 3, "dirt2"); K.px(map2, h[1] + 4, h[2] + 3, "dirt2")
+end
+-- the pump station (bog) and the fog bank
+K.rect(map2, 54, 50, 6, 4, "steel2"); K.rect(map2, 56, 48, 2, 2, "steel3")
+for x = 96, 112, 3 do K.px(map2, x, 57, "ink6") end
+-- the Drowned Mill (III) on pilings in black water, DANGER cage pens
+blob(136, 62, 14, 6, "sky2", "sky3")
+K.rect(map2, 132, 52, 8, 5, "outline"); K.rect(map2, 133, 53, 6, 3, "sand3"); K.rect(map2, 134, 50, 4, 2, "dirt3")
+K.rect(map2, 140, 53, 1, 5, "steel3"); K.px(map2, 141, 54, "steel4"); K.px(map2, 141, 56, "steel4")
+K.px(map2, 128, 60, "weird4"); K.px(map2, 144, 59, "weird4")
+-- the trail: dotted dirt path along the route from the dock down to the mill
+local route2 = { { 28, 25 }, { 38, 30 }, { 50, 34 }, { 62, 39 }, { 72, 42 }, { 84, 44 }, { 96, 47 }, { 106, 51 }, { 116, 54 }, { 126, 58 }, { 136, 61 } }
+for i = 1, #route2 - 1 do
+  local a, b = route2[i], route2[i + 1]
+  local steps = math.max(math.abs(b[1] - a[1]), math.abs(b[2] - a[2]))
+  for st = 0, steps, 3 do
+    local x = math.floor(a[1] + (b[1] - a[1]) * st / steps + 0.5); local y = math.floor(a[2] + (b[2] - a[2]) * st / steps + 0.5)
+    K.px(map2, x, y - 2, "dirt5")
+  end
+end
+-- lettering (bottom-left, clear of the pictograms): the region, the city off the south edge with an arrow, the compass top-right
+U.drawText(map2, F_PLAIN, 4, 54, "BLACKWATER BAYOU", "ink1")
+U.drawText(map2, F_PLAIN, 10, 63, "DELACROIX", "ink1"); K.rect(map2, 5, 63, 1, 5, "ink1"); K.px(map2, 4, 67, "ink1"); K.px(map2, 6, 67, "ink1")
+U.drawText(map2, F_PLAIN, 148, 3, "N", "ink1"); K.px(map2, 150, 10, "ink1"); K.rect(map2, 149, 11, 3, 1, "ink1"); K.px(map2, 150, 12, "ink1")
+U.saveImage(map2, OUT .. "map_m2.png", SRC .. "map_m2.aseprite")
+
 -- ============================================================== preview
 local prev = U.newImage(200, 120)
 K.rect(prev, 0, 0, 200, 120, "ink1")
 U.blit(prev, map, 4, 4)
 U.blit(prev, MAP.camp, 18, 36); U.blit(prev, MAP.train, 82, 20); U.blit(prev, MAP.lake, 134, 34); U.blit(prev, pins[1], 82, 6); U.blit(prev, knotz1, 50, 30)
+local prev2 = U.newImage(200, 120)
+K.rect(prev2, 0, 0, 200, 120, "ink1")
+U.blit(prev2, map2, 4, 4)
+U.blit(prev2, MAP.bayou, 24, 10); U.blit(prev2, MAP.boat, 80, 29); U.blit(prev2, MAP.mill, 132, 46); U.blit(prev2, knotz1, 36, 14); U.blit(prev2, pins[1], 80, 14)
+local ix2 = 8
+for _, im in ipairs({ MAP.bayou, MAP.boat, MAP.mill }) do U.blit(prev2, im, ix2, 90); ix2 = ix2 + 20 end
+local big2 = U.newImage(prev2.width * 3, prev2.height * 3)
+for y = 0, prev2.height - 1 do for x = 0, prev2.width - 1 do local p = prev2:getPixel(x, y)
+  for j = 0, 2 do for i = 0, 2 do big2:drawPixel(x * 3 + i, y * 3 + j, p) end end end end
+U.saveImage(big2, PREV .. "campaign_m2_x3.png")
 U.blit(prev, radio({ 3, 5, 7 }), 8, 84); U.blit(prev, radio({ 3 }), 36, 84); U.blit(prev, radio({}), 64, 84)
 local ix = 100
 for _, im in ipairs({ MAP.camp, MAP.train, MAP.lake, pins[1], knotz1, knotz2 }) do U.blit(prev, im, ix, 90); ix = ix + 16 end

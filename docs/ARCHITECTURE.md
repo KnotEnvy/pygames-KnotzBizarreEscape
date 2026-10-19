@@ -31,7 +31,8 @@ Shared contract files (marked 🔒) are owned by the Engine team; others propose
 | `tools/shot.mjs`, `tools/build-art.sh`, `tools/aseprite/kbe.lua`, `docs/*.md` | Lead |
 
 **Mission asset packs (Phase G):** from Mission 2 on, each team lists that mission's assets in `public/assets/packs/<team>.m<N>.json`
-(the team owns it, same format as its main pack). Engine loads them when a part of mission N starts. Mission 1 stays in the main packs.
+(the team owns it, same format as its main pack). Engine loads them when a part of mission N starts (`src/core/missionPacks.ts`;
+names: engine, player, enemies, gatorgeddon, level, fx, ui, imagegen). Mission 1 stays in the main packs. Imagegen owns `packs/imagegen.m<N>.json`.
 
 **Enemies A/B split (Phase G):** Enemies B owns everything under Enemies' paths except Enemies A's files, including
 `src/entities/enemies/**`, `MachineBoss.ts`, `src/config/tuning/enemies.ts`, `packs/enemies.m2.json` and `docs/teams/enemies.md`.
@@ -158,9 +159,11 @@ uses `delta` from `update(time, delta)` and Phaser timers, so it respects time s
 - Map properties: `music`, `parallax` (background set id), `name`.
 
 ## Debug and test hooks (Engine implements; QA depends on them)
-URL params: `?scene=Title|Game&stage=1&part=1-2&x=<warpX>&god=1&debug=1&mute=1&seed=<n>&difficulty=casual&fast=1` (fast skips intros).
-`window.__KBE` = `{ ready: boolean, game, version, state(): {...snapshot}, cheats: { god(on), warp(x), give(weapon), kill(), killEnemies(), hurt(dmg?), bombs(n), boss(), part(id, keepRun?), clearPart() }, press(action, ms?) }`.
-`state()` returns `{ scene, part, fps, player:{x,y,alive,weapon,ammo,bombs,lives}, score, rescued, enemies, cameraX, bossHp, errors }`.
+URL params: `?scene=Title|Game&stage=1&part=1-2&x=<warpX>&god=1&debug=1&mute=1&seed=<n>&difficulty=casual&fast=1&turbo=<n>` (fast skips intros).
+Phase G (cheat-gated): `?mission=<n>` also loads mission n's packs for any part; `?enemytest=<kind>` loads every mission's packs.
+`window.__KBE` = `{ ready: boolean, game, version, state(): {...snapshot}, cheats: { god(on), warp(x), give(weapon), kill(), killEnemies(), killVisible(), damageBoss(amount?) → boolean (false: no live boss hurtbox, e.g. submerged), hurt(dmg?), bombs(n), boss(), part(id, keepRun?), clearPart(), bg(id) → boolean (Phase G: fire a background moment through the Levels director) }, press(action, ms?), sim }`.
+`state()` returns `{ scene, part, fps, player:{x,y,alive,weapon,ammo,bombs,lives}, score, rescued, enemies, cameraX, bossHp, errors, missionPacks /* loaded missions, e.g. [1, 2] */ }`.
+`ready` is false while a mission's packs load (Preload's mission mode) and turns true once Game has created.
 Teams may add fields with `registerDebug(key, () => value)`.
 
 ## Rules for every agent

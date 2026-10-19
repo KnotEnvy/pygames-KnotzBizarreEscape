@@ -1,6 +1,6 @@
 // window.__KBE test/debug hooks (QA depends on these). Installed by main.ts before the game boots.
 //   __KBE.ready, __KBE.game, __KBE.version, __KBE.state(), __KBE.press(action, ms)
-//   __KBE.cheats.{god,warp,give,kill,killEnemies,killVisible,damageBoss,hurt,bombs,boss,part,clearPart}
+//   __KBE.cheats.{god,warp,give,kill,killEnemies,killVisible,damageBoss,hurt,bombs,boss,part,clearPart,bg}
 //   __KBE.sim.{freeze,resume,advance,render,turbo,events,actors,stats} (turbo simulation, see sim.ts)
 // kill() kills the PLAYER (QA's death/game-over flow); killEnemies() clears every live enemy hurtbox (even frozen
 // off-screen ones); killVisible() only the ones a player could reach (hurtbox inside the camera view).
@@ -16,6 +16,7 @@ import { partById, type GameStartData } from '../../config/campaign';
 import type { RunStateStore } from '../state';
 import { createSim, notifySimContext, type SimHandle } from './sim';
 import { spawnTagOf } from '../spawn';
+import { loadedMissions } from '../missionPacks';
 
 type CheatFn = (...args: never[]) => void;
 
@@ -190,13 +191,14 @@ const defaultCheats = {
      * MOOSEZILLA's core), else the first live hurtbox inside the view, else any live one. Phases, armour and damage
      * multipliers apply as in play, so phases progress naturally.
      */
-    damageBoss(amount = 5): void {
-        if (!active) return;
+    damageBoss(amount = 5): boolean {
+        if (!active) return false;
         const ctx = active;
         const v = ctx.camera.view();
         const boxes: Hurtbox[] = [];
+        // Phase G: a boss with no live hurtbox (GATORGEDDON fully submerged) is a no-op: returns false.
         ctx.damage.forEach(h => { if (h.team === 'enemy' && h.alive() && isBossBox(h)) boxes.push(h); });
-        if (!boxes.length) return;
+        if (!boxes.length) return false;
         const inView = (h: Hurtbox): boolean => { const r = ctx.damage.rectOf(h); return r.right >= v.left && r.x <= v.right && r.bottom >= v.top && r.y <= v.bottom; };
         const weak = boxes.filter(h => inView(h) && isWeakBox(h, boxes));
         const h = weak[0] ?? boxes.find(inView) ?? boxes[0];
@@ -204,6 +206,7 @@ const defaultCheats = {
         const p = ctx.player();
         const dirX = p && p.x > r.centerX ? -1 : 1;
         ctx.damage.deal(h, { damage: amount, source: 'player', x: r.centerX, y: r.centerY, dirX, dirY: 0, kind: 'bullet', weapon: 'cheat' });
+        return true;
     },
     bombs(n = 30): void {
         if (active) active.state.bombs = n;
@@ -234,13 +237,26 @@ const defaultCheats = {
     /** Phase E: clear the current part now (emits stage:clear; the engine flow fills part/final and moves on). */
     clearPart(): void {
         if (active) active.events.emit('stage:clear', { stage: active.level.stage ?? active.params.stage });
+    },
+    /**
+     * Phase G: fire a background-director moment by id ('gator_glimpse'). Calls the Levels director
+     * (`window.__KBE_LEVEL.bg`, or a `ctx.debug.cheat('bg', ...)` override). Returns whether it fired.
+     */
+    bg(id: string): boolean {
+        const lvl = (window as unknown as { __KBE_LEVEL?: { bg(id: string): boolean } }).__KBE_LEVEL;
+        if (!active || !lvl) { console.warn(`[__KBE.cheats.bg] no background director in this run ('${id}' not fired)`); return false; }
+        const ok = !!lvl.bg(String(id));
+        if (!ok) console.warn(`[__KBE.cheats.bg] unknown or unavailable moment '${id}' in part ${active.part.id}`);
+        return ok;
     }
 };
+
+const BOSS_KINDS = new Set(['moosezilla', 'snowcat', 'ironhorn', 'shellshock', 'skeeter', 'gatorgeddon']);
 
 /** A hurtbox of the boss (spawned as type 'boss'), by spawn tag, with the known boss kinds as a fallback. */
 function isBossBox(h: Hurtbox): boolean {
     if (h.owner && spawnTagOf(h.owner)?.type === 'boss') return true;
-    return h.kind === 'moosezilla' || h.kind === 'snowcat' || h.kind === 'ironhorn';
+    return BOSS_KINDS.has(h.kind ?? '');
 }
 
 /**
@@ -260,8 +276,7 @@ function cheat<K extends keyof typeof defaultCheats>(name: K): (typeof defaultCh
             return;
         }
         const o = cheatOverrides.get(name);
-        if (o) (o as (...a: unknown[]) => void)(...args);
-        else (defaultCheats[name] as (...a: unknown[]) => void)(...args);
+        return o ? (o as (...a: unknown[]) => unknown)(...args) : (defaultCheats[name] as (...a: unknown[]) => unknown)(...args);
     }) as (typeof defaultCheats)[K];
 }
 
@@ -300,7 +315,8 @@ function snapshot(): Record<string, unknown> {
         shotsFired: ctx ? (ctx.state as { stats?: { shots: number } }).stats?.shots ?? 0 : 0,
         part: ctx ? ctx.part.id : null,
         level: ctx ? { stage: ctx.level.stage ?? null, name: ctx.level.name ?? null, sandbox: isSandboxLevel(ctx.level) } : null,
-        errors: errors.slice(-20)
+        errors: errors.slice(-20),
+        missionPacks: loadedMissions()
     };
     for (const [k, fn] of extras) {
         try { out[k] = fn(); } catch (e) { out[k] = `error: ${(e as Error).message}`; }
@@ -317,9 +333,13 @@ export interface KbeHandle {
     cheatsEnabled: boolean;
     cheats: {
         god(on?: boolean): void; warp(x: number): void; give(weapon: string, ammo?: number): void; kill(): void;
-        killEnemies(): void; killVisible(): void; damageBoss(amount?: number): void;
+        killEnemies(): void; killVisible(): void;
+        /** One normal hit on the boss; false when it has no live hurtbox (e.g. submerged), undefined if cheats are off. */
+        damageBoss(amount?: number): boolean | undefined;
         hurt(damage?: number): void; bombs(n?: number): void; boss(): void;
         part(id: string, keepRun?: boolean): void; clearPart(): void;
+        /** Phase G: fire a background moment by id; false if no director or unknown id (or cheats disabled). */
+        bg(id: string): boolean | undefined;
     };
     press(action: Action, ms?: number): void;
     params: unknown;
@@ -343,7 +363,8 @@ export function installKbe(game: Phaser.Game, version: string): KbeHandle {
         cheats: {
             god: cheat('god'), warp: cheat('warp'), give: cheat('give'), kill: cheat('kill'), killEnemies: cheat('killEnemies'),
             killVisible: cheat('killVisible'), damageBoss: cheat('damageBoss'),
-            hurt: cheat('hurt'), bombs: cheat('bombs'), boss: cheat('boss'), part: cheat('part'), clearPart: cheat('clearPart')
+            hurt: cheat('hurt'), bombs: cheat('bombs'), boss: cheat('boss'), part: cheat('part'), clearPart: cheat('clearPart'),
+            bg: cheat('bg')
         },
         press(action: Action, ms?: number) {
             if (!ACTIONS.includes(action)) { console.warn(`[__KBE.press] unknown action '${action}'`); return; }

@@ -13,7 +13,8 @@ export function bounded(value: number | undefined, fallback: number, low: number
 export type Ambience = 'snow' | 'embers' | 'fireflies' | 'steam' | 'train' | 'tunnel' | 'blizzard' | 'swamp' | 'rain' | 'storm' | 'fog' | 'river' | null;
 export function ambience(value: unknown): Ambience {
     return value === 'snow' || value === 'embers' || value === 'fireflies' || value === 'steam' ||
-        value === 'train' || value === 'tunnel' || value === 'blizzard' ? value : null;
+        value === 'train' || value === 'tunnel' || value === 'blizzard' || value === 'swamp' ||
+        value === 'rain' || value === 'storm' || value === 'fog' || value === 'river' ? value : null;
 }
 
 /** Fixed-capacity spatial drawings and crash schedule; no gameplay timers or damage. */

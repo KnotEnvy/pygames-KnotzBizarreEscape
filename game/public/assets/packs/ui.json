@@ -66,6 +66,11 @@
       },
       {
         "type": "image",
+        "key": "ui_map_m2",
+        "url": "assets/ui/map_m2.png"
+      },
+      {
+        "type": "image",
         "key": "ui_panel",
         "url": "assets/ui/panel.png"
       },
@@ -900,6 +905,13 @@
       },
       {
         "type": "audio",
+        "key": "warning_major",
+        "url": [
+          "assets/audio/sfx/warning_major.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "warning_siren",
         "url": [
           "assets/audio/sfx/warning_siren.ogg"
@@ -1005,6 +1017,6 @@
     "app": "Knotz Bizarre Escape",
     "team": "ui-audio",
     "generated_by": "tools/audio/make_pack.py",
-    "version": "1.0"
+    "version": "1.1"
   }
 }

@@ -154,7 +154,87 @@ export const SFX_META: Record<string, SfxMeta> = {
     amb_river: { vol: 1, loop: true, max: 1 },
     amb_outpost: { vol: 1, loop: true, max: 1 },
     amb_lake: { vol: 1, loop: true, max: 1 },
-    amb_lab: { vol: 1, loop: true, max: 1 }
+    amb_lab: { vol: 1, loop: true, max: 1 },
+    // Phase G (Mission 2): player and water. Wading steps arrive every ~180 ms: fatigue them like the HMG so wading settles under the music.
+    shotgun_fire: { vol: 1, vary: 30, max: 2, minMs: 80 },
+    shotgun_pump: { vol: 0.8, vary: 40, max: 2, minMs: 100 },
+    wade_step: { vol: 0.7, vary: 90, max: 2, minMs: 120, burst: { ms: 260, step: 0.08, floor: 0.55 } },
+    mud_step: { vol: 0.8, vary: 90, max: 2, minMs: 120, burst: { ms: 260, step: 0.08, floor: 0.55 } },
+    splash_s: { vol: 0.8, vary: 80, max: 3, minMs: 60, burst: { ms: 300, step: 0.1, floor: 0.5 } },
+    splash_m: { vol: 0.9, vary: 60, max: 3, minMs: 80 },
+    splash_l: { vol: 1, vary: 40, max: 2, minMs: 120 },
+    splash_xl: { vol: 1, vary: 30, max: 2, minMs: 200 },
+    drown: { vol: 1, max: 1, minMs: 500 },
+    // Phase G: regular enemies (the two loops are positional handles: `getAudio(scene).loop(key, { x })`, one per enemy, max 4 / 2)
+    lurker_rise: { vol: 0.9, vary: 60, max: 3, minMs: 80 },
+    piranha_leap: { vol: 0.8, vary: 80, max: 3, minMs: 60 },
+    piranha_bite: { vol: 0.9, vary: 60, max: 3, minMs: 50 },
+    hopper_croak: { vol: 0.9, vary: 80, max: 2, minMs: 150 },
+    hopper_hop: { vol: 0.8, vary: 80, max: 3, minMs: 60 },
+    hopper_tongue: { vol: 0.9, vary: 50, max: 2, minMs: 100 },
+    gnat_buzz: { vol: 0.5, loop: true, max: 4 },
+    airboat_motor: { vol: 0.7, loop: true, max: 2 },
+    airboat_gun: { vol: 0.8, vary: 30, max: 2, minMs: 120 },
+    // Phase G: SHELLSHOCK
+    turtle_hiss: { vol: 0.9, max: 1, minMs: 300 },
+    turtle_snap: { vol: 1, vary: 40, max: 2, minMs: 150 },
+    shell_clank: { vol: 0.8, vary: 90, max: 3, minMs: 40, burst: { ms: 200, step: 0.1, floor: 0.5 } },
+    shell_spin: { vol: 0.8, loop: true, max: 1 },
+    egg_lob: { vol: 0.9, vary: 60, max: 3, minMs: 60 },
+    egg_beep: { vol: 0.7, vary: 30, max: 3, minMs: 60 },
+    // Phase G: MEGA-SKEETER
+    skeeter_whine: { vol: 0.7, loop: true, max: 1 },
+    skeeter_laser: { vol: 0.9, max: 1, minMs: 300 },
+    skeeter_dive: { vol: 1, vary: 40, max: 1, minMs: 300 },
+    skeeter_drill: { vol: 1, max: 1, minMs: 300 },
+    larva_pop: { vol: 0.9, vary: 80, max: 3, minMs: 60 },
+    stinger_fire: { vol: 0.9, vary: 40, max: 2, minMs: 150 },
+    // Phase G: GATORGEDDON (the headline: hot tiers, few voices)
+    gator_roar: { vol: 1, max: 1, minMs: 800 },
+    gator_snap: { vol: 1, vary: 40, max: 2, minMs: 150 },
+    gator_hiss: { vol: 0.9, max: 1, minMs: 300 },
+    gator_tail: { vol: 1, vary: 40, max: 1, minMs: 300 },
+    gator_submerge: { vol: 1, max: 1, minMs: 500 },
+    gator_surface: { vol: 1, max: 1, minMs: 500 },
+    gator_roll: { vol: 1, max: 1, minMs: 800 },
+    gator_missile: { vol: 0.9, vary: 60, max: 4, minMs: 60 },
+    gator_gatling: { vol: 0.9, vary: 30, max: 2, minMs: 120 },
+    gator_gas: { vol: 0.9, max: 1, minMs: 400 },
+    gator_flame: { vol: 1, max: 1, minMs: 400 },
+    gator_death: { vol: 1, max: 1 },
+    // Phase G: level props and hazards
+    log_bob: { vol: 0.8, vary: 80, max: 3, minMs: 100 },
+    log_sink: { vol: 0.9, vary: 50, max: 2, minMs: 150 },
+    gas_bubble: { vol: 0.8, vary: 90, max: 3, minMs: 120 },
+    gas_vent: { vol: 1, vary: 40, max: 2, minMs: 150 },
+    boardwalk_creak: { vol: 0.8, vary: 120, max: 2, minMs: 200 },
+    boat_horn: { vol: 1, max: 1, minMs: 800 },
+    branch_whoosh: { vol: 0.9, vary: 50, max: 2, minMs: 120 },
+    paddlewheel: { vol: 0.8, loop: true, max: 1 },
+    mill_wheel: { vol: 0.8, loop: true, max: 1 },
+    thunder: { vol: 1, vary: 80, max: 2, minMs: 600 },
+    plank_break: { vol: 0.9, vary: 60, max: 3, minMs: 60 },
+    warning_major: { vol: 1, max: 1, minMs: 1500 },
+    // Phase G: Mission 2 background moments (distant tiers)
+    bg_herons: { vol: 1, vary: 60, max: 2, minMs: 400 },
+    bg_patrol_boat: { vol: 1, max: 1, minMs: 2000 },
+    bg_wisps: { vol: 1, vary: 40, max: 1, minMs: 2500 },
+    bg_pond_wake: { vol: 1, max: 1, minMs: 2000 },
+    bg_gator_pod: { vol: 1, max: 1, minMs: 2500 },
+    bg_burning_barge: { vol: 1, max: 1, minMs: 2500 },
+    bg_skeeter_swarm: { vol: 1, max: 1, minMs: 2500 },
+    bg_airboat_race: { vol: 1, max: 1, minMs: 2500 },
+    bg_mill_creak: { vol: 1, vary: 60, max: 1, minMs: 2000 },
+    bg_den_glow: { vol: 1, max: 1, minMs: 2000 },
+    bg_gator_roar: { vol: 1, max: 1, minMs: 1500 },
+    bg_wreck_collapse: { vol: 1, max: 1, minMs: 2000 },
+    bg_thunder: { vol: 1, vary: 120, max: 2, minMs: 700 },
+    // Phase G: ambient beds by fx:ambience kind (UI.audio.ambienceKinds), 1 voice each
+    amb_swamp: { vol: 1, loop: true, max: 1 },
+    amb_rain: { vol: 1, loop: true, max: 1 },
+    amb_storm: { vol: 1, loop: true, max: 1 },
+    amb_fog: { vol: 1, loop: true, max: 1 },
+    amb_riverboat: { vol: 1, loop: true, max: 1 }
 };
 
 /** One alias target. `keys` picks randomly; `loopMs` runs the key as a loop for that long; `also` layers more keys. */
@@ -261,10 +341,51 @@ export const SFX_ALIASES: Record<string, AliasSpec> = {
     bg_gorge: { key: 'amb_river', volume: 0.5, detune: -200, loopMs: 6000 },
     /** MOOSEZILLA's silhouette stomping behind the lab: the stomp, small, low and far. */
     bg_stomp: { key: 'boss_stomp', volume: 0.3, detune: -400 },
-    thunder: { key: 'bg_artillery', detune: -300 },
-    bg_thunder: { key: 'bg_artillery', detune: -300 },
     far_roar: { key: 'bg_roar' },
-    distant_roar: { key: 'bg_roar' }
+    distant_roar: { key: 'bg_roar' },
+    // Phase G (Mission 2) synonyms: the MISSION2.md keys are real files; these are the guesses teams are likely to make.
+    shotgun: { key: 'shotgun_fire' },
+    pump: { key: 'shotgun_pump' },
+    wade: { key: 'wade_step' },
+    splash: { key: 'splash_m' },
+    water_splash: { key: 'splash_m' },
+    sink: { key: 'drown' },
+    mud: { key: 'mud_step' },
+    squelch: { key: 'mud_step' },
+    gnat: { key: 'gnat_buzz' },
+    airboat: { key: 'airboat_motor' },
+    hopper_leap: { key: 'hopper_hop' },
+    tongue: { key: 'hopper_tongue' },
+    piranha: { key: 'piranha_leap' },
+    lurker: { key: 'lurker_rise' },
+    turtle_roar: { key: 'turtle_hiss' },
+    shellshock_roar: { key: 'turtle_hiss' },
+    shell_hit: { key: 'shell_clank' },
+    egg: { key: 'egg_lob' },
+    egg_pop: { key: 'explo_s', volume: 0.8 },
+    skeeter_roar: { key: 'skeeter_dive' },
+    skeeter_crash: { key: 'splash_xl', also: ['explo_l'] },
+    larva: { key: 'larva_pop' },
+    stinger: { key: 'stinger_fire' },
+    gator: { key: 'gator_roar' },
+    gator_lunge: { key: 'gator_snap' },
+    gator_bite: { key: 'gator_snap' },
+    gator_dive: { key: 'gator_submerge' },
+    gator_rise: { key: 'gator_surface' },
+    gator_slam: { key: 'boss_stomp', also: ['plank_break'] },
+    gator_rocket: { key: 'gator_missile' },
+    gator_explode: { key: 'gator_death', also: ['explo_xl'] },
+    vent: { key: 'gas_vent' },
+    bubbles: { key: 'gas_bubble' },
+    creak: { key: 'boardwalk_creak' },
+    horn_boat: { key: 'boat_horn' },
+    riverboat_horn: { key: 'boat_horn' },
+    branch: { key: 'branch_whoosh' },
+    lightning: { key: 'thunder' },
+    plank: { key: 'plank_break' },
+    plank_crack: { key: 'ice_crack', detune: -200 },
+    /** The riverboat's horn far off (map `clearSfx` after SHELLSHOCK): small and low. */
+    boat_horn_far: { key: 'boat_horn', volume: 0.5, detune: -250 }
 };
 
 export interface MusicMeta { loop: boolean; durationMs: number }
@@ -280,13 +401,29 @@ export const MUSIC_META: Record<string, MusicMeta> = {
     music_m1p2: { loop: true, durationMs: 76800 },
     music_m1p3: { loop: true, durationMs: 75000 },
     music_midboss: { loop: true, durationMs: 43636 },
-    part_clear_jingle: { loop: false, durationMs: 4800 }
+    part_clear_jingle: { loop: false, durationMs: 4800 },
+    // Phase G (Mission 2)
+    music_m2p1: { loop: true, durationMs: 88889 },
+    music_m2p2: { loop: true, durationMs: 70244 },
+    music_m2p3: { loop: true, durationMs: 93913 },
+    music_boss_m2: { loop: true, durationMs: 44651 },
+    music_boss_gator: { loop: true, durationMs: 89600 }
 };
 
-/** Phase E: which looping track a `boss:spawn` picks, by boss name (upper-cased, substring match). Default: the mid-boss theme. */
+/**
+ * Phase E/G: which looping track a `boss:spawn` picks, by boss name (upper-cased, substring match). Mission 1's main boss keeps
+ * `music_boss`, GATORGEDDON gets its own epic theme, the Mission 2 mid-bosses share `music_boss_m2`; anything else is Mission 1's mid-boss theme.
+ */
 export function bossMusicFor(name: string): string {
-    return /MOOSEZILLA|KING ANTLER/.test(name.toUpperCase()) ? 'music_boss' : 'music_midboss';
+    const n = name.toUpperCase();
+    if (/MOOSEZILLA|KING ANTLER/.test(n)) return 'music_boss';
+    if (/GATOR/.test(n)) return 'music_boss_gator';
+    if (/SHELLSHOCK|TURTLE|SKEETER|MOSQUITO/.test(n)) return 'music_boss_m2';
+    return 'music_midboss';
 }
+
+/** Phase G: the main-boss WARNING variant (bigger banner, deeper siren) keys on these names. */
+export const MAJOR_BOSS = /GATORGEDDON|MOOSEZILLA/;
 
 /** Phase E: loop keys the Audio layer counts as gameplay music (restored after a continue, left alone by part:start). */
 export const GAMEPLAY_MUSIC = /^music_(stage|boss|midboss|m\d+p\d+)/;
@@ -303,7 +440,13 @@ export const MUSIC_ALIASES: Record<string, string> = {
     stage2: 'music_m1p2', music_stage2: 'music_m1p2', train: 'music_m1p2', music_train: 'music_m1p2',
     stage3: 'music_m1p3', music_stage3: 'music_m1p3', lake: 'music_m1p3', lab: 'music_m1p3', music_lake: 'music_m1p3',
     midboss: 'music_midboss', music_midboss1: 'music_midboss', boss_snowcat: 'music_midboss', boss_ironhorn: 'music_midboss',
-    music_snowcat: 'music_midboss', music_ironhorn: 'music_midboss', music_part_clear: 'part_clear_jingle', jingle_part_clear: 'part_clear_jingle'
+    music_snowcat: 'music_midboss', music_ironhorn: 'music_midboss', music_part_clear: 'part_clear_jingle', jingle_part_clear: 'part_clear_jingle',
+    // Phase G (Mission 2)
+    m2p1: 'music_m2p1', m2p2: 'music_m2p2', m2p3: 'music_m2p3', bayou: 'music_m2p1', music_bayou: 'music_m2p1', swamp: 'music_m2p1', music_swamp: 'music_m2p1',
+    river: 'music_m2p2', music_river: 'music_m2p2', riverboat: 'music_m2p2', storm: 'music_m2p3', music_storm: 'music_m2p3', mill: 'music_m2p3', music_mill: 'music_m2p3',
+    music_midboss2: 'music_boss_m2', midboss2: 'music_boss_m2', boss_m2: 'music_boss_m2', music_shellshock: 'music_boss_m2', music_skeeter: 'music_boss_m2',
+    boss_shellshock: 'music_boss_m2', boss_skeeter: 'music_boss_m2', music_gator: 'music_boss_gator', music_gatorgeddon: 'music_boss_gator',
+    boss_gator: 'music_boss_gator', boss_gatorgeddon: 'music_boss_gator', boss2: 'music_boss_gator', music_boss2: 'music_boss_gator'
 };
 
 export function isMusicKey(key: string): boolean {

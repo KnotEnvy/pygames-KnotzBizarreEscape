@@ -4,7 +4,11 @@
 //                speed. Its bottom sits at standing height on the boxcar roofs (`y`, default 234 = roof 256 − 22): a
 //                standing player there is hit through ctx.damage (contact), a crouching one clears it, and anyone on a
 //                lower car (logs/coal 272, decks 304) or inside a boxcar is safe. Enemies caught on a roof are smashed.
-//                Properties: y (beam bottom, px), count (beams, default 1), gap (ms between beams).
+//                Properties: y (beam bottom, px), count (beams, default 1), gap (ms between beams), kind (Mission 2's river:
+//                `branch` = a mossy cypress limb, warned by the boat horn and a LOW BRANCHES! sign; LEVEL.train.sweep.kinds).
+//   fog:         (Mission 2) the feet enter the rect → a fog bank `ms` long slides over the view at drift speed (the river), or at
+//                its own `speed` (px/s; `width` px) over a static map: a moving fx:zone of kind 'fog' (FX draws it), ambience
+//                override 'fog', lanterns (`lantern` prop kind, default buoy; `lanternY`) drifting past inside it.
 //   tunnel:      the feet enter the rect → a tunnel `ms` long (at drift speed) slides over the train from the right:
 //                rock portal edges, a dark rock wall behind the cars and a rock ceiling band in front, plus an FX zone
 //                of kind 'tunnel' (FX draws the darkness and the passing lamps) that moves with it. Visual only.
@@ -15,7 +19,9 @@ import type { Parallax } from './parallax';
 import { num, type LevelObject } from './types';
 
 interface Beam { sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle; y: number; entered: boolean }
-interface Sweep { t: number; beamsLeft: number; nextBeam: number; gap: number; y: number; sign: Phaser.GameObjects.GameObject & { x: number } | null; beams: Beam[] }
+interface Sweep { t: number; beamsLeft: number; nextBeam: number; gap: number; y: number; sign: Phaser.GameObjects.GameObject & { x: number } | null; beams: Beam[];
+    sprite: string; whoosh: string; width: number }
+interface Fog { id: string; x0: number; len: number; speed: number; lanterns: Phaser.GameObjects.Sprite[] }
 interface Tunnel {
     id: string;
     x0: number;
@@ -33,20 +39,22 @@ const KEYS = { wall: 'bg2_tunnel_wall', ceiling: 'bg2_tunnel_ceiling', edge: 'bg
 export class TrainSystem {
     private readonly sweeps: Sweep[] = [];
     private readonly tunnels: Tunnel[] = [];
+    private readonly fogs: Fog[] = [];
+    private fogSeq = 0;
     private readonly pending: LevelObject[];
     private readonly rect = new Phaser.Geom.Rectangle();
     private readonly hits: Hurtbox[] = [];
     private tunnelSeq = 0;
     /** Debug: beams spawned / player hits. */
-    stats = { sweeps: 0, beams: 0, hits: 0, tunnels: 0 };
+    stats = { sweeps: 0, beams: 0, hits: 0, tunnels: 0, fogs: 0 };
 
     constructor(private readonly ctx: GameContext, triggers: LevelObject[], private readonly drift: number,
-        private readonly parallax: Parallax, private readonly setAmbience: (kind: 'tunnel' | null) => void, private readonly mapH: number) {
-        this.pending = triggers.filter(t => t.type === 'hazard_sweep' || t.type === 'tunnel');
+        private readonly parallax: Parallax, private readonly setAmbience: (kind: 'tunnel' | 'fog' | null) => void, private readonly mapH: number) {
+        this.pending = triggers.filter(t => t.type === 'hazard_sweep' || t.type === 'tunnel' || t.type === 'fog');
         ctx.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroy());
     }
 
-    get active(): boolean { return this.sweeps.length > 0 || this.tunnels.length > 0; }
+    get active(): boolean { return this.sweeps.length > 0 || this.tunnels.length > 0 || this.fogs.length > 0; }
 
     update(dt: number): void {
         const p = this.ctx.player();
@@ -55,7 +63,7 @@ export class TrainSystem {
                 const t = this.pending[i];
                 if (p.x < t.x || p.x > t.x + t.width || p.y - 1 < t.y || p.y - 1 > t.y + t.height) continue;
                 this.pending.splice(i, 1);
-                if (t.type === 'hazard_sweep') this.startSweep(t); else this.startTunnel(t);
+                if (t.type === 'hazard_sweep') this.startSweep(t); else if (t.type === 'fog') this.startFog(t); else this.startTunnel(t);
             }
         }
         const step = this.drift * dt / 1000;
@@ -71,28 +79,40 @@ export class TrainSystem {
             if (x1 < v.left - 64) { this.endTunnel(tn); this.tunnels.splice(i, 1); continue; }
             this.ctx.events.emit('fx:zone', { id: tn.id, kind: 'tunnel', active: true, x: tn.x0, y: 0, width: tn.len, height: this.mapH });
         }
+        let fogged = false;
+        for (let i = this.fogs.length - 1; i >= 0; i--) {
+            const f = this.fogs[i];
+            const fs = f.speed * dt / 1000;
+            f.x0 -= fs;
+            for (const l of f.lanterns) l.x -= fs;
+            if (p && p.x >= f.x0 && p.x <= f.x0 + f.len) fogged = true;
+            if (f.x0 + f.len < v.left - 64) { this.endFog(f); this.fogs.splice(i, 1); continue; }
+            this.ctx.events.emit('fx:zone', { id: f.id, kind: 'fog', active: true, x: f.x0, y: 0, width: f.len, height: this.mapH });
+        }
         this.parallax.setTunnelCover(cover);
-        this.setAmbience(inside ? 'tunnel' : null);
+        this.setAmbience(inside ? 'tunnel' : fogged ? 'fog' : null);
     }
 
     // ------------------------------------------------------------------------------------------ low bridges
 
     private startSweep(t: LevelObject): void {
         const S = LEVEL.train.sweep;
+        const K = S.kinds[String(t.props.kind ?? '')];
         const v = this.ctx.camera.view();
-        this.ctx.audio.sfx('train_horn');
-        this.ctx.events.emit('ui:prompt', { text: S.prompt, ms: S.promptMs });
+        this.ctx.audio.sfx(K?.horn ?? 'train_horn');
+        this.ctx.events.emit('ui:prompt', { text: K?.prompt ?? S.prompt, ms: S.promptMs });
         let sign: Sweep['sign'] = null;
-        if (this.ctx.scene.textures.exists(KEYS.sign)) {
-            sign = this.ctx.scene.add.sprite(v.right + 24, S.signY, KEYS.sign).setOrigin(0.5, 1).setDepth(DEPTH.BG_NEAR + 3);
+        const signKey = K?.sign ?? KEYS.sign;
+        if (this.ctx.scene.textures.exists(signKey)) {
+            sign = this.ctx.scene.add.sprite(v.right + 24, K?.signY ?? S.signY, signKey).setOrigin(0.5, 1).setDepth(DEPTH.BG_NEAR + 3);
         }
-        this.sweeps.push({ t: 0, beamsLeft: Math.max(1, num(t.props.count, 1)), nextBeam: S.warnMs, gap: num(t.props.gap, S.gapMs), y: num(t.props.y, S.y), sign, beams: [] });
+        this.sweeps.push({ t: 0, beamsLeft: Math.max(1, num(t.props.count, 1)), nextBeam: S.warnMs, gap: num(t.props.gap, S.gapMs), y: num(t.props.y, S.y), sign, beams: [],
+            sprite: K?.sprite ?? KEYS.bridge, whoosh: K?.whoosh ?? 'bridge_whoosh', width: K?.width ?? S.width });
         this.stats.sweeps++;
     }
 
     /** Returns true when the sweep is over. */
     private tickSweep(s: Sweep, dt: number, step: number): boolean {
-        const S = LEVEL.train.sweep;
         const v = this.ctx.camera.view();
         s.t += dt;
         if (s.sign) {
@@ -102,33 +122,37 @@ export class TrainSystem {
         if (s.beamsLeft > 0 && s.t >= s.nextBeam) {
             s.beamsLeft--;
             s.nextBeam += s.gap;
-            s.beams.push({ sprite: this.makeBeam(v.right + S.width / 2 + 8, s.y), y: s.y, entered: false });
+            s.beams.push({ sprite: this.makeBeam(v.right + s.width / 2 + 8, s.y, s.sprite, s.width), y: s.y, entered: false });
             this.stats.beams++;
         }
         for (let i = s.beams.length - 1; i >= 0; i--) {
             const b = s.beams[i];
             b.sprite.x -= step;
-            if (!b.entered && b.sprite.x - S.width / 2 < v.right) { b.entered = true; this.ctx.audio.sfx('bridge_whoosh', { x: b.sprite.x }); }
-            this.strike(b);
-            if (b.sprite.x + S.width / 2 < v.left - 8) { b.sprite.destroy(); s.beams.splice(i, 1); }
+            if (!b.entered && b.sprite.x - s.width / 2 < v.right) { b.entered = true; this.ctx.audio.sfx(s.whoosh, { x: b.sprite.x }); }
+            this.strike(b, s.width);
+            if (b.sprite.x + Math.max(s.width, b.sprite.displayWidth) / 2 < v.left - 8) { b.sprite.destroy(); s.beams.splice(i, 1); }
         }
         return s.beamsLeft === 0 && s.beams.length === 0 && !s.sign;
     }
 
     /** One girder per beam (a handful per part): created when it enters, destroyed when it leaves the view. */
-    private makeBeam(x: number, y: number): Beam['sprite'] {
+    private makeBeam(x: number, y: number, key: string, width: number): Beam['sprite'] {
         const S = LEVEL.train.sweep;
         const scene = this.ctx.scene;
-        const sprite = scene.textures.exists(KEYS.bridge)
-            ? scene.add.sprite(x, y, KEYS.bridge).setOrigin(0.5, 1)
-            : scene.add.rectangle(x, y, S.width, S.reach, 0x2f3d52).setOrigin(0.5, 1);
+        const sprite = scene.textures.exists(key)
+            ? scene.add.sprite(x, y, key).setOrigin(0.5, 1)
+            : scene.add.rectangle(x, y, width, S.reach, 0x2f3d52).setOrigin(0.5, 1);
+        if (sprite instanceof Phaser.GameObjects.Sprite) {
+            const idle = `${key}_idle`;
+            if (scene.anims.get(idle)?.frames.length) sprite.play({ key: idle, repeat: -1 });
+        }
         return sprite.setDepth(DEPTH.TILES_FRONT + 1);
     }
 
     /** Damage what the girder touches: the player (contact, respects god/i-frames), and enemies on the roofs. */
-    private strike(b: Beam): void {
+    private strike(b: Beam, width: number): void {
         const S = LEVEL.train.sweep;
-        const r = this.rect.setTo(b.sprite.x - S.width / 2, b.y - S.reach, S.width, S.reach);
+        const r = this.rect.setTo(b.sprite.x - width / 2, b.y - S.reach, width, S.reach);
         const dmg = this.ctx.damage;
         this.hits.length = 0;
         for (const h of dmg.queryRect(r, 'enemy')) this.hits.push(h);   // what the enemy team can hit = the player
@@ -208,13 +232,42 @@ export class TrainSystem {
         this.ctx.events.emit('fx:zone', { id: tn.id, kind: 'tunnel', active: false, x: 0, y: 0, width: 0, height: 0 });
     }
 
+    // ------------------------------------------------------------------------------------------ fog banks
+
+    private startFog(t: LevelObject): void {
+        const F = LEVEL.train.fog;
+        const v = this.ctx.camera.view();
+        // `speed` (px/s): a bank rolling over a static map (2-1's bog); default the map's drift (the river).
+        const speed = num(t.props.speed, this.drift);
+        const len = Math.max(64, num(t.props.width, speed * num(t.props.ms, F.ms) / 1000));
+        const f: Fog = { id: `level_fog_${++this.fogSeq}`, x0: v.right + 16, len, speed, lanterns: [] };
+        // Lanterns drift past inside the bank (FX draws the light pools around them): buoys on the river, or `lantern`.
+        const key = `prop_${String(t.props.lantern ?? 'buoy')}`, ly = num(t.props.lanternY, F.lanternY);
+        if (this.ctx.scene.textures.exists(key)) {
+            for (let x = 120; x < len - 40; x += F.lanternEveryPx) {
+                const b = this.ctx.scene.add.sprite(f.x0 + x, ly, key).setOrigin(0.5, 1).setDepth(DEPTH.BG_NEAR + 4);
+                if (this.ctx.scene.anims.get(`${key}_idle`)?.frames.length) b.play({ key: `${key}_idle`, repeat: -1 });
+                f.lanterns.push(b);
+            }
+        }
+        if (F.prompt) this.ctx.events.emit('ui:prompt', { text: F.prompt, ms: 2000 });
+        this.fogs.push(f);
+        this.stats.fogs++;
+    }
+
+    private endFog(f: Fog): void {
+        for (const l of f.lanterns) l.destroy();
+        this.ctx.events.emit('fx:zone', { id: f.id, kind: 'fog', active: false, x: 0, y: 0, width: 0, height: 0 });
+    }
+
     private destroy(): void {
         for (const tn of this.tunnels) tn.off?.();
         this.tunnels.length = 0;
+        this.fogs.length = 0;
         this.sweeps.length = 0;
     }
 
     debug(): unknown {
-        return { ...this.stats, drift: this.drift, sweeping: this.sweeps.length, tunnels: this.tunnels.map(t => Math.round(t.x0)), pending: this.pending.length };
+        return { ...this.stats, drift: this.drift, sweeping: this.sweeps.length, tunnels: this.tunnels.map(t => Math.round(t.x0)), fog: this.fogs.map(f => Math.round(f.x0)), pending: this.pending.length };
     }
 }

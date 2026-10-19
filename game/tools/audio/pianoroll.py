@@ -12,13 +12,16 @@ import music as M  # noqa: E402
 COLORS = {
     "lead": (255, 174, 34), "lead2": (255, 224, 102), "brass": (255, 174, 34), "brass2": (240, 224, 168), "harm": (166, 76, 196),
     "bass": (106, 162, 220), "pad": (68, 132, 60), "arp": (57, 217, 138), "bell": (255, 255, 255), "drums": (212, 72, 58),
+    # Phase G tracks
+    "slide": (255, 140, 60), "slide2": (255, 200, 140), "banjo": (210, 184, 120), "harp": (182, 255, 106), "choir": (168, 212, 240),
+    "chug": (154, 106, 60), "organ": (166, 76, 196), "wind": (120, 120, 140),
 }
 
 
 def main():
     key = sys.argv[1]
     out = sys.argv[2]
-    fn, _ = M.SONGS[key]
+    fn = M.SONGS[key][0]
     song, tracks = fn()
     b0 = int(sys.argv[3]) if len(sys.argv) > 3 else 0
     b1 = int(sys.argv[4]) if len(sys.argv) > 4 else song.bars
