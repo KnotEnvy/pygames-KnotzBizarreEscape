@@ -1,0 +1,7 @@
+[tool.pyinstaller]
+name = "KnotzBizarreEscape"
+icon = "icon.ico"
+version = "0.1.0"
+onefile = true
+console = true
+hiddenimports = ["numpy", "pandas"]

@@ -1,0 +1,189 @@
+{
+  "player": {
+    "files": [
+      {
+        "type": "aseprite",
+        "key": "flame",
+        "textureURL": "assets/sprites/player/flame.png",
+        "atlasURL": "assets/sprites/player/flame.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "grenade",
+        "textureURL": "assets/sprites/player/grenade.png",
+        "atlasURL": "assets/sprites/player/grenade.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "hmg_bullet",
+        "textureURL": "assets/sprites/player/hmg_bullet.png",
+        "atlasURL": "assets/sprites/player/hmg_bullet.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "knotz_full",
+        "textureURL": "assets/sprites/player/knotz_full.png",
+        "atlasURL": "assets/sprites/player/knotz_full.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "knotz_legs",
+        "textureURL": "assets/sprites/player/knotz_legs.png",
+        "atlasURL": "assets/sprites/player/knotz_legs.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "knotz_torso_heavy",
+        "textureURL": "assets/sprites/player/knotz_torso_heavy.png",
+        "atlasURL": "assets/sprites/player/knotz_torso_heavy.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "knotz_torso_pistol",
+        "textureURL": "assets/sprites/player/knotz_torso_pistol.png",
+        "atlasURL": "assets/sprites/player/knotz_torso_pistol.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_b",
+        "textureURL": "assets/sprites/player/pickup_b.png",
+        "atlasURL": "assets/sprites/player/pickup_b.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_chicken",
+        "textureURL": "assets/sprites/player/pickup_chicken.png",
+        "atlasURL": "assets/sprites/player/pickup_chicken.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_f",
+        "textureURL": "assets/sprites/player/pickup_f.png",
+        "atlasURL": "assets/sprites/player/pickup_f.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_fish",
+        "textureURL": "assets/sprites/player/pickup_fish.png",
+        "atlasURL": "assets/sprites/player/pickup_fish.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_h",
+        "textureURL": "assets/sprites/player/pickup_h.png",
+        "atlasURL": "assets/sprites/player/pickup_h.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_life",
+        "textureURL": "assets/sprites/player/pickup_life.png",
+        "atlasURL": "assets/sprites/player/pickup_life.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_medal",
+        "textureURL": "assets/sprites/player/pickup_medal.png",
+        "atlasURL": "assets/sprites/player/pickup_medal.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_r",
+        "textureURL": "assets/sprites/player/pickup_r.png",
+        "atlasURL": "assets/sprites/player/pickup_r.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_ration",
+        "textureURL": "assets/sprites/player/pickup_ration.png",
+        "atlasURL": "assets/sprites/player/pickup_ration.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_s",
+        "textureURL": "assets/sprites/player/pickup_s.png",
+        "atlasURL": "assets/sprites/player/pickup_s.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pistol_bullet",
+        "textureURL": "assets/sprites/player/pistol_bullet.png",
+        "atlasURL": "assets/sprites/player/pistol_bullet.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pow",
+        "textureURL": "assets/sprites/player/pow.png",
+        "atlasURL": "assets/sprites/player/pow.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "rocket",
+        "textureURL": "assets/sprites/player/rocket.png",
+        "atlasURL": "assets/sprites/player/rocket.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "spread_bullet",
+        "textureURL": "assets/sprites/player/spread_bullet.png",
+        "atlasURL": "assets/sprites/player/spread_bullet.json"
+      },
+      {
+        "type": "json",
+        "key": "knotz_meta",
+        "url": "assets/sprites/player/knotz_meta.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "laser_beam",
+        "textureURL": "assets/sprites/player/laser_beam.png",
+        "atlasURL": "assets/sprites/player/laser_beam.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "laser_muzzle",
+        "textureURL": "assets/sprites/player/laser_muzzle.png",
+        "atlasURL": "assets/sprites/player/laser_muzzle.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "laser_impact",
+        "textureURL": "assets/sprites/player/laser_impact.png",
+        "atlasURL": "assets/sprites/player/laser_impact.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_l",
+        "textureURL": "assets/sprites/player/pickup_l.png",
+        "atlasURL": "assets/sprites/player/pickup_l.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "knotz_torso_spread",
+        "textureURL": "assets/sprites/player/knotz_torso_spread.png",
+        "atlasURL": "assets/sprites/player/knotz_torso_spread.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "knotz_torso_laser",
+        "textureURL": "assets/sprites/player/knotz_torso_laser.png",
+        "atlasURL": "assets/sprites/player/knotz_torso_laser.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "knotz_torso_rocket",
+        "textureURL": "assets/sprites/player/knotz_torso_rocket.png",
+        "atlasURL": "assets/sprites/player/knotz_torso_rocket.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "knotz_torso_flame",
+        "textureURL": "assets/sprites/player/knotz_torso_flame.png",
+        "atlasURL": "assets/sprites/player/knotz_torso_flame.json"
+      }
+    ]
+  },
+  "meta": {
+    "app": "Knotz Bizarre Escape",
+    "version": "1.0"
+  }
+}

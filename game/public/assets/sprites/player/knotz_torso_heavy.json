@@ -1,0 +1,556 @@
+{ "frames": {
+   "knotz_torso_heavy#0": {
+    "frame": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 360
+   },
+   "knotz_torso_heavy#1": {
+    "frame": { "x": 49, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_heavy#2": {
+    "frame": { "x": 98, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 620
+   },
+   "knotz_torso_heavy#3": {
+    "frame": { "x": 147, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 80
+   },
+   "knotz_torso_heavy#4": {
+    "frame": { "x": 196, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#5": {
+    "frame": { "x": 245, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#6": {
+    "frame": { "x": 98, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#7": {
+    "frame": { "x": 294, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 360
+   },
+   "knotz_torso_heavy#8": {
+    "frame": { "x": 343, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_heavy#9": {
+    "frame": { "x": 0, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 620
+   },
+   "knotz_torso_heavy#10": {
+    "frame": { "x": 49, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 80
+   },
+   "knotz_torso_heavy#11": {
+    "frame": { "x": 98, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#12": {
+    "frame": { "x": 147, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#13": {
+    "frame": { "x": 0, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#14": {
+    "frame": { "x": 196, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 360
+   },
+   "knotz_torso_heavy#15": {
+    "frame": { "x": 245, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_heavy#16": {
+    "frame": { "x": 294, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 620
+   },
+   "knotz_torso_heavy#17": {
+    "frame": { "x": 196, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 80
+   },
+   "knotz_torso_heavy#18": {
+    "frame": { "x": 343, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#19": {
+    "frame": { "x": 0, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#20": {
+    "frame": { "x": 294, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#21": {
+    "frame": { "x": 49, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 360
+   },
+   "knotz_torso_heavy#22": {
+    "frame": { "x": 98, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_heavy#23": {
+    "frame": { "x": 147, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 620
+   },
+   "knotz_torso_heavy#24": {
+    "frame": { "x": 196, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 80
+   },
+   "knotz_torso_heavy#25": {
+    "frame": { "x": 245, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#26": {
+    "frame": { "x": 294, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#27": {
+    "frame": { "x": 147, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#28": {
+    "frame": { "x": 343, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 360
+   },
+   "knotz_torso_heavy#29": {
+    "frame": { "x": 0, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_heavy#30": {
+    "frame": { "x": 49, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 620
+   },
+   "knotz_torso_heavy#31": {
+    "frame": { "x": 98, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 80
+   },
+   "knotz_torso_heavy#32": {
+    "frame": { "x": 147, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#33": {
+    "frame": { "x": 196, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#34": {
+    "frame": { "x": 49, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#35": {
+    "frame": { "x": 245, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 360
+   },
+   "knotz_torso_heavy#36": {
+    "frame": { "x": 294, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_heavy#37": {
+    "frame": { "x": 343, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 620
+   },
+   "knotz_torso_heavy#38": {
+    "frame": { "x": 0, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 80
+   },
+   "knotz_torso_heavy#39": {
+    "frame": { "x": 49, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#40": {
+    "frame": { "x": 98, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#41": {
+    "frame": { "x": 343, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#42": {
+    "frame": { "x": 147, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 360
+   },
+   "knotz_torso_heavy#43": {
+    "frame": { "x": 196, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_heavy#44": {
+    "frame": { "x": 245, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 620
+   },
+   "knotz_torso_heavy#45": {
+    "frame": { "x": 294, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 80
+   },
+   "knotz_torso_heavy#46": {
+    "frame": { "x": 343, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#47": {
+    "frame": { "x": 0, "y": 245, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#48": {
+    "frame": { "x": 245, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#49": {
+    "frame": { "x": 49, "y": 245, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 360
+   },
+   "knotz_torso_heavy#50": {
+    "frame": { "x": 98, "y": 245, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_torso_heavy#51": {
+    "frame": { "x": 147, "y": 245, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 620
+   },
+   "knotz_torso_heavy#52": {
+    "frame": { "x": 196, "y": 245, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 80
+   },
+   "knotz_torso_heavy#53": {
+    "frame": { "x": 245, "y": 245, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#54": {
+    "frame": { "x": 294, "y": 245, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#55": {
+    "frame": { "x": 147, "y": 245, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 45
+   },
+   "knotz_torso_heavy#56": {
+    "frame": { "x": 343, "y": 245, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 55
+   },
+   "knotz_torso_heavy#57": {
+    "frame": { "x": 0, "y": 294, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 55
+   },
+   "knotz_torso_heavy#58": {
+    "frame": { "x": 49, "y": 294, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 55
+   },
+   "knotz_torso_heavy#59": {
+    "frame": { "x": 98, "y": 294, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 55
+   },
+   "knotz_torso_heavy#60": {
+    "frame": { "x": 147, "y": 294, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 55
+   },
+   "knotz_torso_heavy#61": {
+    "frame": { "x": 196, "y": 294, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_torso_heavy#62": {
+    "frame": { "x": 245, "y": 294, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_torso_heavy#63": {
+    "frame": { "x": 294, "y": 294, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_torso_heavy#64": {
+    "frame": { "x": 343, "y": 294, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "knotz_torso_heavy.png",
+  "format": "RGBA8888",
+  "size": { "w": 391, "h": 342 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "knotz_heavy_aim_fwd", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_aim_fwd_shoot", "from": 4, "to": 6, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_aim_up45", "from": 7, "to": 10, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_aim_up45_shoot", "from": 11, "to": 13, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_aim_up", "from": 14, "to": 17, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_aim_up_shoot", "from": 18, "to": 20, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_aim_down45", "from": 21, "to": 24, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_aim_down45_shoot", "from": 25, "to": 27, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_aim_down", "from": 28, "to": 31, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_aim_down_shoot", "from": 32, "to": 34, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_crouch_fwd", "from": 35, "to": 38, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_crouch_fwd_shoot", "from": 39, "to": 41, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_crouch_down45", "from": 42, "to": 45, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_crouch_down45_shoot", "from": 46, "to": 48, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_crouch_down", "from": 49, "to": 52, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_crouch_down_shoot", "from": 53, "to": 55, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_knife", "from": 56, "to": 60, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_heavy_grenade_throw", "from": 61, "to": 64, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

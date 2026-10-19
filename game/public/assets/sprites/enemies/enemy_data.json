@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 1,
+  "status": "Phase B design; no AI implemented",
+  "units": {
+    "time": "ms",
+    "speed": "px/s",
+    "acceleration": "px/s^2",
+    "offsets": "unflipped source pixels"
+  },
+  "shared": {
+    "activationMargin": 32,
+    "despawnBehindCamera": 96,
+    "gravity": 900,
+    "maxActiveEnemies": 24,
+    "enemyProjectilePool": 64,
+    "enemyGrenadePool": 12,
+    "corpsePool": 16,
+    "bulletDamage": 1,
+    "hitFlashMs": 70,
+    "hurtInvulnerabilityMs": 60,
+    "offscreenAttacks": false,
+    "deathImpulse": {
+      "vx": 100,
+      "vy": -240
+    },
+    "deathCollision": false
+  },
+  "enemies": {
+    "grunt": {
+      "hp": 3,
+      "score": 100,
+      "walkSpeed": 28,
+      "panicSpeed": 72,
+      "sightRange": 160,
+      "sightHalfAngleDeg": 55,
+      "patrolRadius": 48,
+      "alertMs": 360,
+      "burstMin": 1,
+      "burstMax": 3,
+      "burstIntervalMs": 180,
+      "cooldownMs": [
+        1000,
+        1500
+      ],
+      "bulletSpeed": 110,
+      "panicRadius": 72,
+      "panicChance": 0.3,
+      "panicMs": 900,
+      "crouchChance": 0.25,
+      "muzzle": [
+        44,
+        26
+      ],
+      "crouchMuzzle": [
+        44,
+        34
+      ],
+      "body": [
+        18,
+        14,
+        16,
+        34
+      ],
+      "releaseMuzzle": [
+        42,
+        26
+      ],
+      "crouchReleaseMuzzle": [
+        42,
+        34
+      ]
+    },
+    "grenadier": {
+      "hp": 4,
+      "score": 150,
+      "walkSpeed": 24,
+      "retreatSpeed": 52,
+      "preferredDistance": 120,
+      "retreatBelow": 80,
+      "stopRetreatAbove": 112,
+      "throwCooldownMs": [
+        2200,
+        2800
+      ],
+      "grenadeVx": 105,
+      "grenadeVy": -230,
+      "grenadeGravity": 650,
+      "grenadeFuseMs": 1650,
+      "grenadeBlastRadius": 26,
+      "grenadeDamage": 1,
+      "bounceRestitution": 0.35,
+      "handRelease": [
+        34,
+        13
+      ],
+      "body": [
+        18,
+        14,
+        16,
+        34
+      ]
+    },
+    "shield": {
+      "hp": 6,
+      "score": 200,
+      "walkSpeed": 18,
+      "shieldHp": 10,
+      "shieldFrontHalfAngleDeg": 65,
+      "shieldRect": [
+        31,
+        19,
+        12,
+        27
+      ],
+      "body": [
+        18,
+        14,
+        16,
+        34
+      ],
+      "bulletSpeed": 110,
+      "cooldownMs": [
+        1500,
+        1900
+      ],
+      "exposeAtMs": 320,
+      "muzzle": [
+        44,
+        26
+      ],
+      "shieldBlocks": [
+        "bullet"
+      ],
+      "shieldBypass": [
+        "melee",
+        "explosion",
+        "flame"
+      ],
+      "blockSparkFrame": 3,
+      "releaseMuzzle": [
+        42,
+        26
+      ]
+    },
+    "turret": {
+      "hp": 12,
+      "score": 300,
+      "sightRange": 192,
+      "windupMs": 500,
+      "burstCount": 5,
+      "burstIntervalMs": 120,
+      "cooldownMs": 1600,
+      "bulletSpeed": 130,
+      "body": [
+        8,
+        8,
+        18,
+        21
+      ],
+      "aimOrigin": [
+        16,
+        14
+      ],
+      "aimVectors": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          0,
+          -1
+        ],
+        [
+          -1,
+          -1
+        ],
+        [
+          -1,
+          0
+        ],
+        [
+          -1,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "muzzleRadius": [
+        12,
+        10
+      ],
+      "lockAimOnWindup": true
+    },
+    "drone": {
+      "hp": 2,
+      "score": 150,
+      "flySpeed": 44,
+      "sineAmplitude": 12,
+      "sinePeriodMs": 1800,
+      "detectRange": 144,
+      "diveWindupMs": 320,
+      "diveSpeed": 125,
+      "diveDurationMs": 700,
+      "recoverMs": 900,
+      "body": [
+        9,
+        5,
+        20,
+        15
+      ],
+      "contactDamage": 1
+    },
+    "paratrooper": {
+      "hp": 3,
+      "score": 150,
+      "chuteHp": 1,
+      "descentSpeed": 28,
+      "chuteTornGravity": 550,
+      "maxFallSpeed": 190,
+      "landingMs": 300,
+      "graceAfterLandingMs": 360,
+      "body": [
+        18,
+        14,
+        16,
+        30
+      ],
+      "chuteOffsetFromFeet": [
+        0,
+        -33
+      ],
+      "chuteRect": [
+        3,
+        5,
+        42,
+        18
+      ],
+      "convertsTo": "grunt",
+      "landingDealsDamage": false
+    }
+  },
+  "boss": {
+    "kind": "moosezilla",
+    "hp": 400,
+    "weakPointMultiplier": 2,
+    "phaseThresholds": [
+      0.6,
+      0.25
+    ],
+    "walkSpeed": 18,
+    "arenaEdgeMargin": 24,
+    "cannonBulletSpeed": 105,
+    "cannonSpreadDeg": [
+      -18,
+      0,
+      18
+    ],
+    "cannonVolleyIntervalMs": 1800,
+    "antlerHp": 45,
+    "antlerScore": 500,
+    "stompWindupMs": 360,
+    "stompShockwaveSpeed": 90,
+    "stompRecoverMs": 700,
+    "mouthWindupMs": 400,
+    "flameRange": 88,
+    "flameActiveMs": 900,
+    "flameSweepDeg": [
+      -15,
+      25
+    ],
+    "flameTickMs": 120,
+    "droneSpawnWindupMs": 500,
+    "maxBossDrones": 3,
+    "droneSpawnIntervalMs": 450,
+    "chargeWindupMs": 500,
+    "chargeSpeed": 130,
+    "chargeRecoverMs": 700,
+    "chargeContactDamage": 1,
+    "deathSequenceMs": 3000,
+    "deathExplosionIntervalMs": 180,
+    "deathScore": 5000,
+    "phaseTransitionGraceMs": 700,
+    "rootHurtbox": [
+      -65,
+      -80,
+      105,
+      62
+    ],
+    "coreCircle": [
+      -16,
+      -50,
+      10
+    ]
+  },
+  "animationEvents": {
+    "grunt_shoot": {
+      "releaseFrame": 4,
+      "releaseMs": 420
+    },
+    "grunt_crouch_shoot": {
+      "releaseFrame": 3,
+      "releaseMs": 320
+    },
+    "grenadier_throw": {
+      "releaseFrame": 4,
+      "releaseMs": 400
+    },
+    "shield_shoot": {
+      "releaseFrame": 4,
+      "releaseMs": 420,
+      "exposeFrame": 3,
+      "exposeMs": 320
+    },
+    "turret_windup_0..7": {
+      "completeMs": 500
+    },
+    "turret_fire_0..7": {
+      "releaseFrame": 2,
+      "releaseMs": 80
+    },
+    "drone_dive": {
+      "movementAfterCompleteMs": 320
+    },
+    "moosezilla_antler_l_fire": {
+      "releaseFrame": 3,
+      "releaseMs": 320
+    },
+    "moosezilla_antler_r_fire": {
+      "releaseFrame": 3,
+      "releaseMs": 320
+    },
+    "moosezilla_legs_front_stomp": {
+      "releaseFrame": 3,
+      "releaseMs": 360
+    },
+    "moosezilla_legs_front_paw": {
+      "completeMs": 500
+    },
+    "moosezilla_head_flame": {
+      "releaseFrame": 3,
+      "releaseMs": 400
+    }
+  },
+  "animationPolicy": "Frame numbers are 1-based within a tag. All attack windups are non-looping; release once per action token at the documented elapsed time, or equivalent animation event, never both. Read durations from atlas JSON; do not replace with a fixed global frameRate. Locomotion, idle, core pulse and projectile shimmer loop. Deaths, landing, shield break, chute tear and armor fall play once; actor motion supplies world-space trajectories."
+}

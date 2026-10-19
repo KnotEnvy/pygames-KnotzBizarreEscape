@@ -1,0 +1,63 @@
+GIMP Palette
+Name: Knotz Bizarre Escape
+Columns: 6
+#
+ 26  18  32	outline
+ 43  38  53	ink1
+ 72  64  90	ink2
+110 102 128	ink3
+154 147 168	ink4
+201 195 209	ink5
+244 240 246	ink6
+ 90  46  34	skin1
+142  75  50	skin2
+196 122  82	skin3
+232 168 120	skin4
+255 214 176	skin5
+ 31  42  20	olive1
+ 52  70  31	olive2
+ 79 107  43	olive3
+115 144  60	olive4
+162 184  90	olive5
+ 74  58  34	sand1
+122  98  54	sand2
+168 140  82	sand3
+210 184 120	sand4
+240 224 168	sand5
+ 58  15  20	red1
+107  26  30	red2
+160  42  38	red3
+212  72  58	red4
+240 122  90	red5
+ 28  36  51	steel1
+ 47  61  82	steel2
+ 76  96 117	steel3
+117 137 156	steel4
+169 188 203	steel5
+ 42  26  18	dirt1
+ 74  46  28	dirt2
+110  70  40	dirt3
+154 106  60	dirt4
+196 146  88	dirt5
+ 15  36  24	leaf1
+ 26  61  36	leaf2
+ 42  94  48	leaf3
+ 68 132  60	leaf4
+110 174  76	leaf5
+ 18  35  74	sky1
+ 31  63 122	sky2
+ 58 108 176	sky3
+106 162 220	sky4
+168 212 240	sky5
+ 92  20   8	fire1
+184  50  12	fire2
+240 106  16	fire3
+255 174  34	fire4
+255 224 102	fire5
+255 248 208	fire6
+ 60  20  82	weird1
+110  42 140	weird2
+166  76 196	weird3
+ 57 217 138	weird4
+182 255 106	weird5
+255 255 255	white

@@ -1,0 +1,1010 @@
+{
+  "ui": {
+    "files": [
+      {
+        "type": "bitmapFont",
+        "key": "font_callout_fire",
+        "textureURL": "assets/fonts/callout_fire.png",
+        "fontDataURL": "assets/fonts/callout_fire.xml"
+      },
+      {
+        "type": "bitmapFont",
+        "key": "font_callout_sand",
+        "textureURL": "assets/fonts/callout_sand.png",
+        "fontDataURL": "assets/fonts/callout_sand.xml"
+      },
+      {
+        "type": "bitmapFont",
+        "key": "font_callout_steel",
+        "textureURL": "assets/fonts/callout_steel.png",
+        "fontDataURL": "assets/fonts/callout_steel.xml"
+      },
+      {
+        "type": "bitmapFont",
+        "key": "font_callout_white",
+        "textureURL": "assets/fonts/callout_white.png",
+        "fontDataURL": "assets/fonts/callout_white.xml"
+      },
+      {
+        "type": "bitmapFont",
+        "key": "font_hud",
+        "textureURL": "assets/fonts/hud.png",
+        "fontDataURL": "assets/fonts/hud.xml"
+      },
+      {
+        "type": "bitmapFont",
+        "key": "font_hud_gold",
+        "textureURL": "assets/fonts/hud_gold.png",
+        "fontDataURL": "assets/fonts/hud_gold.xml"
+      },
+      {
+        "type": "bitmapFont",
+        "key": "font_hud_plain",
+        "textureURL": "assets/fonts/hud_plain.png",
+        "fontDataURL": "assets/fonts/hud_plain.xml"
+      },
+      {
+        "type": "image",
+        "key": "ui_bossbar_fill",
+        "url": "assets/ui/bossbar_fill.png"
+      },
+      {
+        "type": "image",
+        "key": "ui_bossbar_frame",
+        "url": "assets/ui/bossbar_frame.png"
+      },
+      {
+        "type": "aseprite",
+        "key": "ui_logo",
+        "textureURL": "assets/ui/logo.png",
+        "atlasURL": "assets/ui/logo.json"
+      },
+      {
+        "type": "image",
+        "key": "ui_map_m1",
+        "url": "assets/ui/map_m1.png"
+      },
+      {
+        "type": "image",
+        "key": "ui_panel",
+        "url": "assets/ui/panel.png"
+      },
+      {
+        "type": "image",
+        "key": "ui_panel_thin",
+        "url": "assets/ui/panel_thin.png"
+      },
+      {
+        "type": "aseprite",
+        "key": "ui_countdown",
+        "textureURL": "assets/ui/ui_countdown.png",
+        "atlasURL": "assets/ui/ui_countdown.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "ui_hud",
+        "textureURL": "assets/ui/ui_hud.png",
+        "atlasURL": "assets/ui/ui_hud.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "ui_icons",
+        "textureURL": "assets/ui/ui_icons.png",
+        "atlasURL": "assets/ui/ui_icons.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "ui_map",
+        "textureURL": "assets/ui/ui_map.png",
+        "atlasURL": "assets/ui/ui_map.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "ui_prompts",
+        "textureURL": "assets/ui/ui_prompts.png",
+        "atlasURL": "assets/ui/ui_prompts.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "ui_radio",
+        "textureURL": "assets/ui/ui_radio.png",
+        "atlasURL": "assets/ui/ui_radio.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "ui_rank",
+        "textureURL": "assets/ui/ui_rank.png",
+        "atlasURL": "assets/ui/ui_rank.json"
+      },
+      {
+        "type": "image",
+        "key": "ui_keyart_title",
+        "url": "assets/ui/keyart/title_bg.png"
+      },
+      {
+        "type": "audio",
+        "key": "amb_camp",
+        "url": [
+          "assets/audio/sfx/amb_camp.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "amb_forest",
+        "url": [
+          "assets/audio/sfx/amb_forest.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "amb_lab",
+        "url": [
+          "assets/audio/sfx/amb_lab.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "amb_lake",
+        "url": [
+          "assets/audio/sfx/amb_lake.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "amb_outpost",
+        "url": [
+          "assets/audio/sfx/amb_outpost.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "amb_river",
+        "url": [
+          "assets/audio/sfx/amb_river.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "ammo_click",
+        "url": [
+          "assets/audio/sfx/ammo_click.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_artillery",
+        "url": [
+          "assets/audio/sfx/bg_artillery.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_aurora",
+        "url": [
+          "assets/audio/sfx/bg_aurora.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_avalanche",
+        "url": [
+          "assets/audio/sfx/bg_avalanche.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_crows",
+        "url": [
+          "assets/audio/sfx/bg_crows.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_engine",
+        "url": [
+          "assets/audio/sfx/bg_engine.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_fissure",
+        "url": [
+          "assets/audio/sfx/bg_fissure.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_flak",
+        "url": [
+          "assets/audio/sfx/bg_flak.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_loco",
+        "url": [
+          "assets/audio/sfx/bg_loco.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_plane",
+        "url": [
+          "assets/audio/sfx/bg_plane.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_roar",
+        "url": [
+          "assets/audio/sfx/bg_roar.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_searchlight",
+        "url": [
+          "assets/audio/sfx/bg_searchlight.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_siren",
+        "url": [
+          "assets/audio/sfx/bg_siren.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_tesla",
+        "url": [
+          "assets/audio/sfx/bg_tesla.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_train_pass",
+        "url": [
+          "assets/audio/sfx/bg_train_pass.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_waterfall",
+        "url": [
+          "assets/audio/sfx/bg_waterfall.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bg_zeppelin",
+        "url": [
+          "assets/audio/sfx/bg_zeppelin.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "boss_cannon",
+        "url": [
+          "assets/audio/sfx/boss_cannon.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "boss_charge",
+        "url": [
+          "assets/audio/sfx/boss_charge.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "boss_death",
+        "url": [
+          "assets/audio/sfx/boss_death.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "boss_hurt",
+        "url": [
+          "assets/audio/sfx/boss_hurt.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "boss_roar",
+        "url": [
+          "assets/audio/sfx/boss_roar.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "boss_steam",
+        "url": [
+          "assets/audio/sfx/boss_steam.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "boss_stomp",
+        "url": [
+          "assets/audio/sfx/boss_stomp.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "bridge_whoosh",
+        "url": [
+          "assets/audio/sfx/bridge_whoosh.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "buzzard_rotor",
+        "url": [
+          "assets/audio/sfx/buzzard_rotor.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "callout",
+        "url": [
+          "assets/audio/sfx/callout.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "checkpoint",
+        "url": [
+          "assets/audio/sfx/checkpoint.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "chute_open",
+        "url": [
+          "assets/audio/sfx/chute_open.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "cinder",
+        "url": [
+          "assets/audio/sfx/cinder.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "combo_sting",
+        "url": [
+          "assets/audio/sfx/combo_sting.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "continue_final",
+        "url": [
+          "assets/audio/sfx/continue_final.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "continue_tick",
+        "url": [
+          "assets/audio/sfx/continue_tick.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "crate_break",
+        "url": [
+          "assets/audio/sfx/crate_break.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "drone_buzz",
+        "url": [
+          "assets/audio/sfx/drone_buzz.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "drone_dive",
+        "url": [
+          "assets/audio/sfx/drone_dive.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "enemy_alert",
+        "url": [
+          "assets/audio/sfx/enemy_alert.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "enemy_death_1",
+        "url": [
+          "assets/audio/sfx/enemy_death_1.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "enemy_death_2",
+        "url": [
+          "assets/audio/sfx/enemy_death_2.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "enemy_death_3",
+        "url": [
+          "assets/audio/sfx/enemy_death_3.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "enemy_panic",
+        "url": [
+          "assets/audio/sfx/enemy_panic.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "enemy_shoot",
+        "url": [
+          "assets/audio/sfx/enemy_shoot.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "explo_l",
+        "url": [
+          "assets/audio/sfx/explo_l.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "explo_m",
+        "url": [
+          "assets/audio/sfx/explo_m.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "explo_s",
+        "url": [
+          "assets/audio/sfx/explo_s.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "explo_xl",
+        "url": [
+          "assets/audio/sfx/explo_xl.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "flame_crackle",
+        "url": [
+          "assets/audio/sfx/flame_crackle.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "flame_loop",
+        "url": [
+          "assets/audio/sfx/flame_loop.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "flame_start",
+        "url": [
+          "assets/audio/sfx/flame_start.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "game_over",
+        "url": [
+          "assets/audio/sfx/game_over.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "gate_smash",
+        "url": [
+          "assets/audio/sfx/gate_smash.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "grenade_bounce",
+        "url": [
+          "assets/audio/sfx/grenade_bounce.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "grenade_throw",
+        "url": [
+          "assets/audio/sfx/grenade_throw.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "hmg",
+        "url": [
+          "assets/audio/sfx/hmg.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "hmg_punch",
+        "url": [
+          "assets/audio/sfx/hmg_punch.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "hound_bark",
+        "url": [
+          "assets/audio/sfx/hound_bark.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "hound_growl",
+        "url": [
+          "assets/audio/sfx/hound_growl.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "ice_crack",
+        "url": [
+          "assets/audio/sfx/ice_crack.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "ice_shatter",
+        "url": [
+          "assets/audio/sfx/ice_shatter.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "impact_body",
+        "url": [
+          "assets/audio/sfx/impact_body.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "impact_dirt",
+        "url": [
+          "assets/audio/sfx/impact_dirt.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "impact_metal",
+        "url": [
+          "assets/audio/sfx/impact_metal.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "impact_wood",
+        "url": [
+          "assets/audio/sfx/impact_wood.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "jump",
+        "url": [
+          "assets/audio/sfx/jump.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "land",
+        "url": [
+          "assets/audio/sfx/land.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "laser",
+        "url": [
+          "assets/audio/sfx/laser.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "laser_tail",
+        "url": [
+          "assets/audio/sfx/laser_tail.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "loco_cannon",
+        "url": [
+          "assets/audio/sfx/loco_cannon.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "loco_steam",
+        "url": [
+          "assets/audio/sfx/loco_steam.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "melee_hit",
+        "url": [
+          "assets/audio/sfx/melee_hit.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "melee_slash",
+        "url": [
+          "assets/audio/sfx/melee_slash.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "mission_complete",
+        "url": [
+          "assets/audio/sfx/mission_complete.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "mission_start",
+        "url": [
+          "assets/audio/sfx/mission_start.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "mortar_thump",
+        "url": [
+          "assets/audio/sfx/mortar_thump.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "one_up",
+        "url": [
+          "assets/audio/sfx/one_up.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "pickup",
+        "url": [
+          "assets/audio/sfx/pickup.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "pickup_bombs",
+        "url": [
+          "assets/audio/sfx/pickup_bombs.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "pistol",
+        "url": [
+          "assets/audio/sfx/pistol.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "player_death",
+        "url": [
+          "assets/audio/sfx/player_death.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "pow_freed",
+        "url": [
+          "assets/audio/sfx/pow_freed.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "pow_salute",
+        "url": [
+          "assets/audio/sfx/pow_salute.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "radio_blip",
+        "url": [
+          "assets/audio/sfx/radio_blip.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "radio_static",
+        "url": [
+          "assets/audio/sfx/radio_static.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "rank_stamp",
+        "url": [
+          "assets/audio/sfx/rank_stamp.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "respawn",
+        "url": [
+          "assets/audio/sfx/respawn.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "rocket_launch",
+        "url": [
+          "assets/audio/sfx/rocket_launch.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "rocket_punch",
+        "url": [
+          "assets/audio/sfx/rocket_punch.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "rocket_whoosh",
+        "url": [
+          "assets/audio/sfx/rocket_whoosh.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "score_tally",
+        "url": [
+          "assets/audio/sfx/score_tally.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "shield_tink",
+        "url": [
+          "assets/audio/sfx/shield_tink.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "snowcat_engine",
+        "url": [
+          "assets/audio/sfx/snowcat_engine.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "snowcat_tread",
+        "url": [
+          "assets/audio/sfx/snowcat_tread.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "spread",
+        "url": [
+          "assets/audio/sfx/spread.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "steam_hiss",
+        "url": [
+          "assets/audio/sfx/steam_hiss.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "train_clack",
+        "url": [
+          "assets/audio/sfx/train_clack.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "train_horn",
+        "url": [
+          "assets/audio/sfx/train_horn.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "train_whistle",
+        "url": [
+          "assets/audio/sfx/train_whistle.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "turret_fire",
+        "url": [
+          "assets/audio/sfx/turret_fire.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "turret_windup",
+        "url": [
+          "assets/audio/sfx/turret_windup.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "ui_back",
+        "url": [
+          "assets/audio/sfx/ui_back.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "ui_move",
+        "url": [
+          "assets/audio/sfx/ui_move.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "ui_pause",
+        "url": [
+          "assets/audio/sfx/ui_pause.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "ui_select",
+        "url": [
+          "assets/audio/sfx/ui_select.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "ui_start",
+        "url": [
+          "assets/audio/sfx/ui_start.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "ui_unpause",
+        "url": [
+          "assets/audio/sfx/ui_unpause.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "warning_siren",
+        "url": [
+          "assets/audio/sfx/warning_siren.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "weapon_get",
+        "url": [
+          "assets/audio/sfx/weapon_get.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "wind",
+        "url": [
+          "assets/audio/sfx/wind.ogg"
+        ]
+      },
+      {
+        "type": "json",
+        "key": "sfx_manifest",
+        "url": "assets/audio/sfx/sfx_manifest.json"
+      },
+      {
+        "type": "audio",
+        "key": "jingle_complete",
+        "url": [
+          "assets/audio/music/jingle_complete.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "jingle_gameover",
+        "url": [
+          "assets/audio/music/jingle_gameover.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_boss",
+        "url": [
+          "assets/audio/music/music_boss.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_continue",
+        "url": [
+          "assets/audio/music/music_continue.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_m1p2",
+        "url": [
+          "assets/audio/music/music_m1p2.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_m1p3",
+        "url": [
+          "assets/audio/music/music_m1p3.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_midboss",
+        "url": [
+          "assets/audio/music/music_midboss.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_stage1",
+        "url": [
+          "assets/audio/music/music_stage1.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "music_title",
+        "url": [
+          "assets/audio/music/music_title.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "part_clear_jingle",
+        "url": [
+          "assets/audio/music/part_clear_jingle.ogg"
+        ]
+      },
+      {
+        "type": "json",
+        "key": "music_manifest",
+        "url": "assets/audio/music/music_manifest.json"
+      }
+    ]
+  },
+  "meta": {
+    "app": "Knotz Bizarre Escape",
+    "team": "ui-audio",
+    "generated_by": "tools/audio/make_pack.py",
+    "version": "1.0"
+  }
+}

@@ -1,0 +1,35 @@
+{ "frames": {
+   "prop_lamp_post#0": {
+    "frame": { "x": 0, "y": 0, "w": 16, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 48 },
+    "sourceSize": { "w": 16, "h": 48 },
+    "duration": 500
+   },
+   "prop_lamp_post#1": {
+    "frame": { "x": 17, "y": 0, "w": 16, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 48 },
+    "sourceSize": { "w": 16, "h": 48 },
+    "duration": 120
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "prop_lamp_post.png",
+  "format": "RGBA8888",
+  "size": { "w": 33, "h": 48 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "prop_lamp_post_idle", "from": 0, "to": 1, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

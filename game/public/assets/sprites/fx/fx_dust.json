@@ -1,0 +1,133 @@
+{ "frames": {
+   "fx_dust#0": {
+    "frame": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#1": {
+    "frame": { "x": 33, "y": 0, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#2": {
+    "frame": { "x": 66, "y": 0, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#3": {
+    "frame": { "x": 99, "y": 0, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#4": {
+    "frame": { "x": 0, "y": 21, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#5": {
+    "frame": { "x": 33, "y": 21, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#6": {
+    "frame": { "x": 66, "y": 21, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#7": {
+    "frame": { "x": 99, "y": 21, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#8": {
+    "frame": { "x": 0, "y": 42, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#9": {
+    "frame": { "x": 33, "y": 42, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#10": {
+    "frame": { "x": 66, "y": 21, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#11": {
+    "frame": { "x": 99, "y": 21, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#12": {
+    "frame": { "x": 0, "y": 42, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   },
+   "fx_dust#13": {
+    "frame": { "x": 33, "y": 42, "w": 32, "h": 20 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 20 },
+    "sourceSize": { "w": 32, "h": 20 },
+    "duration": 65
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "fx_dust.png",
+  "format": "RGBA8888",
+  "size": { "w": 131, "h": 62 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "fx_dust_land", "from": 0, "to": 5, "direction": "forward", "color": "#000000ff" },
+   { "name": "fx_dust_skid", "from": 6, "to": 9, "direction": "forward", "color": "#000000ff" },
+   { "name": "fx_dust_run", "from": 10, "to": 13, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

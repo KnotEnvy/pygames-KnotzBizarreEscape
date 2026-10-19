@@ -1,0 +1,94 @@
+{
+  "waterfall": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. A tall isolated snowy cliff piece with a narrow cascading waterfall dropping beside a river bridge, broken slate ledges, frozen rivulets, muted mist at base. Non-tiling cutout, no bridge. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_waterfall.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "chimneys": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. An isolated side-view cluster of military outpost chimneys and industrial smokestacks with pipes, catwalks, frosted brick, small subdued smoke wisps. Non-tiling cutout. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_chimneys.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "camp_pines": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. Wide continuous horizontally tiling strip of rich snowy pine forest, three depth planes of staggered conifers, detailed clumped branches, occasional exposed trunks, snow pillows. Vary heights, no outlines, no ground rectangle. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_camp_pines.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "gorge": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. Wide continuous horizontally tiling far canyon wall panorama, dramatic deep winter river gorge viewed from an elevated railway trestle, distant blue slate cliffs, layered ledges, tiny pines on slopes. Transparent sky above, cliff bases at bottom. No bridge or foreground. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_gorge.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "river": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. Wide horizontally tiling deep river valley far below an elevated railway trestle: thin winding muted blue river between snowy banks and miniature pine clusters, layered descending slopes. Upper half transparent air, valley occupies lower half, no sky, no trestle. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_river.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "train_pines": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. Wide horizontally tiling near pine and snowbank strip for snowy mountain railway, richly clustered frosted pine branches, exposed trunks and rounded snowbanks, varied heights, layered depth. No tracks or sky. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_train_pines.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "lab_towers": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. Wide isolated closer military science lab towers in snowy night, tesla coils, copper ring stacks, branching antler antennas, cables, frosted metal catwalks, small muted teal windows. Side view, non-tiling transparent cutout. No lightning flashes, no ground rectangle. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_lab_towers.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "ice": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. Wide horizontally tiling frozen lakeshore ice ridges, fractured layered blue ice slabs, muted snowy edges, small frozen reeds and stones, transparent upper half. Side view, low quiet irregular ridge. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_ice.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "zeppelin": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. Single Regime military zeppelin, side view facing left, elongated armored airship, gondola, fins, tiny propellers, visible spiral-eye insignia on flank (eye with spiral pupil). Muted blue slate silhouette with restrained rivet details. Fully isolated, non-tiling, ample transparent margin. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_zeppelin.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "plane": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. Single twin-prop military transport airplane silhouette, side view facing left, two visible propellers on wings, bulky fuselage, broad tail, muted dark slate detail, isolated transparent non-tiling cutout. No contrails. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_plane.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "train": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. Single armored enemy train silhouette, side view facing left, locomotive and three coupled armored cars, visible wheels, low gun turrets, riveted plates, tiny muted windows. Entire train fully in frame on transparent background, no tracks, no ground, no smoke. Wide panorama. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_train.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "moose": {
+    "prompt": "Use case: stylized-concept. Asset: detailed pixel-art parallax background for a Metal Slug/Contra inspired snowy run-and-gun. Single gigantic mechanical moose silhouette, exact side view facing left, four powerful articulated mechanical legs, massive shoulders, broad branching antlers, armored torso, tiny muted eye, dark slate against transparent background. Full body and antlers comfortably in frame. No ground, no sky, no glow, no outline. Readable at 140 pixels tall. Top-left lighting, restrained low contrast desaturated blue gray palette, background detail must stay quieter than red enemies and yellow-white bullets. Actual transparent background, no checkerboard, no text, no watermark. Crisp clustered pixel-art shapes with rich environmental detail. Distant forms have no outlines.",
+    "source": "raw_f_moose.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "camp": {
+    "prompt": "Use case: stylized-concept. Asset: wide horizontal parallax strip for a Metal Slug/Contra inspired snowy pixel-art run-and-gun. Far military winter camp with watchtower silhouettes, tiny muted amber lit windows, low barracks, fences and sparse snowy pines. Transparent background, no sky or ground rectangle. Continuous side-view panorama, terrain meets same height at left/right for horizontal tiling. Detailed clustered pixel shapes, no outlines, subdued slate blue gray palette, low contrast atmospheric distance, top-left lighting. No text, no watermark. Full strip comfortably inside canvas.",
+    "source": "raw_f_camp.png",
+    "mode": "built-in imagegen",
+    "transparent_background": true
+  },
+  "aurora": {
+    "prompt": "Use case: stylized-concept. Asset: opaque 2D pixel-art night sky ONLY, wide parallax backdrop. Broad smooth flowing aurora ribbons across the top half, three simple continuous sweeping curtain bands, strongly readable wavy shapes, slate teal #75999c and dusty lavender #9a93a8 against flat midnight slate #2f3d52. Quiet empty lower half in #2f3d52. Sparse tiny dim stars. Chunky deliberate pixel clusters, clean broad tonal areas with NO granular texture, NO speckling, NO dithering, NO dramatic cloud masses. Lower contrast than gameplay. Top-left soft light. No terrain, no text. Horizontally repeating composition. Fully opaque.",
+    "source": "raw_f_aurora.png",
+    "mode": "built-in imagegen",
+    "transparent_background": false
+  },
+  "aurora_v1": {
+    "prompt": "Use case: stylized-concept. Opaque night-sky parallax background for snowy pixel-art run-and-gun, wide panorama of Moose Lake sky ONLY, dark desaturated midnight blue and slate clouds, gently curving layered aurora curtains in muted teal and violet across upper sky, sparse tiny dim stars, calm darker lower sky for gameplay readability. Detailed clustered pixel art, top-left moonlight, no terrain, no silhouettes, no text, no watermark. Low contrast, no white or yellow highlights. Seamless horizontally repeating composition.",
+    "source": "raw_f_aurora_v1.png",
+    "mode": "built-in imagegen",
+    "transparent_background": false,
+    "selected": false
+  }
+}
+

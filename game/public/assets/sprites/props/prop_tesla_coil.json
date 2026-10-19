@@ -1,0 +1,51 @@
+{ "frames": {
+   "prop_tesla_coil#0": {
+    "frame": { "x": 0, "y": 0, "w": 24, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 24, "h": 64 },
+    "sourceSize": { "w": 24, "h": 64 },
+    "duration": 90
+   },
+   "prop_tesla_coil#1": {
+    "frame": { "x": 25, "y": 0, "w": 24, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 24, "h": 64 },
+    "sourceSize": { "w": 24, "h": 64 },
+    "duration": 90
+   },
+   "prop_tesla_coil#2": {
+    "frame": { "x": 0, "y": 65, "w": 24, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 24, "h": 64 },
+    "sourceSize": { "w": 24, "h": 64 },
+    "duration": 90
+   },
+   "prop_tesla_coil#3": {
+    "frame": { "x": 25, "y": 65, "w": 24, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 24, "h": 64 },
+    "sourceSize": { "w": 24, "h": 64 },
+    "duration": 90
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "prop_tesla_coil.png",
+  "format": "RGBA8888",
+  "size": { "w": 49, "h": 129 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "prop_tesla_coil_idle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

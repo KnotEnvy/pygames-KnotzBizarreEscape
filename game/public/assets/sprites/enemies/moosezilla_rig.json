@@ -1,0 +1,246 @@
+{
+  "version": 1,
+  "units": "pixels",
+  "facing": "right",
+  "root": "ground center",
+  "designBounds": {
+    "x": -80,
+    "y": -121,
+    "width": 168,
+    "height": 121
+  },
+  "assembly": "Place each sprite at root + attach; origin = pivot / sourceSize. Mirror the entire container around root for facing left. z is local, within ENEMIES depth band. Do not mirror each sprite independently.",
+  "parts": [
+    {
+      "id": "legs_back",
+      "key": "moosezilla_legs_back",
+      "parent": "root",
+      "sourceSize": [
+        104,
+        48
+      ],
+      "pivot": [
+        52,
+        48
+      ],
+      "attach": [
+        -8,
+        -3
+      ],
+      "z": 0,
+      "idleTag": "moosezilla_legs_back_idle"
+    },
+    {
+      "id": "antler_l",
+      "key": "moosezilla_antler_l",
+      "parent": "root",
+      "sourceSize": [
+        80,
+        48
+      ],
+      "pivot": [
+        72,
+        44
+      ],
+      "attach": [
+        24,
+        -81
+      ],
+      "z": 1,
+      "idleTag": "moosezilla_antler_l_idle"
+    },
+    {
+      "id": "body",
+      "key": "moosezilla_body",
+      "parent": "root",
+      "sourceSize": [
+        112,
+        64
+      ],
+      "pivot": [
+        56,
+        54
+      ],
+      "attach": [
+        -14,
+        -26
+      ],
+      "z": 2,
+      "idleTag": "moosezilla_body_idle"
+    },
+    {
+      "id": "core",
+      "key": "moosezilla_core",
+      "parent": "root",
+      "sourceSize": [
+        32,
+        32
+      ],
+      "pivot": [
+        16,
+        16
+      ],
+      "attach": [
+        -16,
+        -50
+      ],
+      "z": 3,
+      "idleTag": "moosezilla_core_pulse"
+    },
+    {
+      "id": "armor",
+      "key": "moosezilla_armor",
+      "parent": "root",
+      "sourceSize": [
+        80,
+        40
+      ],
+      "pivot": [
+        40,
+        20
+      ],
+      "attach": [
+        -16,
+        -52
+      ],
+      "z": 4,
+      "idleTag": "moosezilla_armor_intact"
+    },
+    {
+      "id": "legs_front",
+      "key": "moosezilla_legs_front",
+      "parent": "root",
+      "sourceSize": [
+        104,
+        48
+      ],
+      "pivot": [
+        52,
+        48
+      ],
+      "attach": [
+        -14,
+        0
+      ],
+      "z": 5,
+      "idleTag": "moosezilla_legs_front_idle"
+    },
+    {
+      "id": "head",
+      "key": "moosezilla_head",
+      "parent": "root",
+      "sourceSize": [
+        64,
+        56
+      ],
+      "pivot": [
+        12,
+        28
+      ],
+      "attach": [
+        28,
+        -60
+      ],
+      "z": 6,
+      "idleTag": "moosezilla_head_idle"
+    },
+    {
+      "id": "jaw",
+      "key": "moosezilla_jaw",
+      "parent": "root",
+      "sourceSize": [
+        40,
+        24
+      ],
+      "pivot": [
+        4,
+        4
+      ],
+      "attach": [
+        45,
+        -47
+      ],
+      "z": 7,
+      "idleTag": "moosezilla_jaw_closed"
+    },
+    {
+      "id": "antler_r",
+      "key": "moosezilla_antler_r",
+      "parent": "root",
+      "sourceSize": [
+        80,
+        48
+      ],
+      "pivot": [
+        72,
+        44
+      ],
+      "attach": [
+        38,
+        -74
+      ],
+      "z": 8,
+      "idleTag": "moosezilla_antler_r_idle"
+    }
+  ],
+  "sockets": {
+    "mouth": {
+      "part": "head",
+      "point": [
+        61,
+        43
+      ]
+    },
+    "cannon_l": {
+      "part": "antler_l",
+      "point": [
+        70,
+        28
+      ]
+    },
+    "cannon_r": {
+      "part": "antler_r",
+      "point": [
+        70,
+        28
+      ]
+    },
+    "steam": {
+      "part": "body",
+      "point": [
+        58,
+        3
+      ]
+    },
+    "core": {
+      "part": "core",
+      "point": [
+        16,
+        16
+      ]
+    },
+    "stomp": {
+      "rootPoint": [
+        58,
+        0
+      ]
+    }
+  },
+  "detach": {
+    "antler_l": {
+      "hp": 45,
+      "score": 500,
+      "atHpFraction": 0.6
+    },
+    "antler_r": {
+      "hp": 45,
+      "score": 500,
+      "atHpFraction": 0.6
+    },
+    "armor": {
+      "atHpFraction": 0.25,
+      "hurtbox": false
+    }
+  },
+  "note": "Part HP is independent; part damage also subtracts from shared boss HP. Core is rendered behind armor and gains a hurtbox only at phase 3. Jaw is cosmetic; head owns mouth attack socket."
+}

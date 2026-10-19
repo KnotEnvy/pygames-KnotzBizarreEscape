@@ -1,0 +1,83 @@
+{ "frames": {
+   "bg_fissure#0": {
+    "frame": { "x": 0, "y": 0, "w": 160, "h": 10 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 10 },
+    "sourceSize": { "w": 160, "h": 10 },
+    "duration": 60
+   },
+   "bg_fissure#1": {
+    "frame": { "x": 161, "y": 0, "w": 160, "h": 10 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 10 },
+    "sourceSize": { "w": 160, "h": 10 },
+    "duration": 60
+   },
+   "bg_fissure#2": {
+    "frame": { "x": 322, "y": 0, "w": 160, "h": 10 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 10 },
+    "sourceSize": { "w": 160, "h": 10 },
+    "duration": 60
+   },
+   "bg_fissure#3": {
+    "frame": { "x": 0, "y": 11, "w": 160, "h": 10 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 10 },
+    "sourceSize": { "w": 160, "h": 10 },
+    "duration": 60
+   },
+   "bg_fissure#4": {
+    "frame": { "x": 161, "y": 11, "w": 160, "h": 10 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 10 },
+    "sourceSize": { "w": 160, "h": 10 },
+    "duration": 60
+   },
+   "bg_fissure#5": {
+    "frame": { "x": 322, "y": 11, "w": 160, "h": 10 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 10 },
+    "sourceSize": { "w": 160, "h": 10 },
+    "duration": 60
+   },
+   "bg_fissure#6": {
+    "frame": { "x": 0, "y": 22, "w": 160, "h": 10 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 10 },
+    "sourceSize": { "w": 160, "h": 10 },
+    "duration": 60
+   },
+   "bg_fissure#7": {
+    "frame": { "x": 161, "y": 22, "w": 160, "h": 10 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 10 },
+    "sourceSize": { "w": 160, "h": 10 },
+    "duration": 60
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "bg_fissure.png",
+  "format": "RGBA8888",
+  "size": { "w": 482, "h": 32 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "bg_fissure_crack", "from": 0, "to": 7, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

@@ -1,0 +1,259 @@
+{ "frames": {
+   "knotz_legs#0": {
+    "frame": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_legs#1": {
+    "frame": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_legs#2": {
+    "frame": { "x": 49, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_legs#3": {
+    "frame": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 140
+   },
+   "knotz_legs#4": {
+    "frame": { "x": 98, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_legs#5": {
+    "frame": { "x": 147, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_legs#6": {
+    "frame": { "x": 196, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_legs#7": {
+    "frame": { "x": 245, "y": 0, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_legs#8": {
+    "frame": { "x": 0, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_legs#9": {
+    "frame": { "x": 49, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_legs#10": {
+    "frame": { "x": 98, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_legs#11": {
+    "frame": { "x": 147, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 75
+   },
+   "knotz_legs#12": {
+    "frame": { "x": 196, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 80
+   },
+   "knotz_legs#13": {
+    "frame": { "x": 245, "y": 49, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 80
+   },
+   "knotz_legs#14": {
+    "frame": { "x": 0, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 35
+   },
+   "knotz_legs#15": {
+    "frame": { "x": 49, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 55
+   },
+   "knotz_legs#16": {
+    "frame": { "x": 98, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 100
+   },
+   "knotz_legs#17": {
+    "frame": { "x": 147, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 100
+   },
+   "knotz_legs#18": {
+    "frame": { "x": 196, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 65
+   },
+   "knotz_legs#19": {
+    "frame": { "x": 245, "y": 98, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 65
+   },
+   "knotz_legs#20": {
+    "frame": { "x": 0, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 65
+   },
+   "knotz_legs#21": {
+    "frame": { "x": 49, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 65
+   },
+   "knotz_legs#22": {
+    "frame": { "x": 49, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 150
+   },
+   "knotz_legs#23": {
+    "frame": { "x": 98, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 100
+   },
+   "knotz_legs#24": {
+    "frame": { "x": 147, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 100
+   },
+   "knotz_legs#25": {
+    "frame": { "x": 196, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 100
+   },
+   "knotz_legs#26": {
+    "frame": { "x": 245, "y": 147, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 100
+   },
+   "knotz_legs#27": {
+    "frame": { "x": 0, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 100
+   },
+   "knotz_legs#28": {
+    "frame": { "x": 49, "y": 196, "w": 48, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 48 },
+    "sourceSize": { "w": 48, "h": 48 },
+    "duration": 100
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "knotz_legs.png",
+  "format": "RGBA8888",
+  "size": { "w": 293, "h": 244 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "knotz_legs_idle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_legs_run", "from": 4, "to": 11, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_legs_skid", "from": 12, "to": 13, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_legs_jump_rise", "from": 14, "to": 16, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_legs_jump_fall", "from": 17, "to": 17, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_legs_land", "from": 18, "to": 19, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_legs_crouch_enter", "from": 20, "to": 21, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_legs_crouch_idle", "from": 22, "to": 22, "direction": "forward", "color": "#000000ff" },
+   { "name": "knotz_legs_crouch_walk", "from": 23, "to": 28, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

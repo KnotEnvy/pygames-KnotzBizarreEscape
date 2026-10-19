@@ -1,0 +1,51 @@
+{ "frames": {
+   "bg_waterfall#0": {
+    "frame": { "x": 0, "y": 0, "w": 40, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 112 },
+    "sourceSize": { "w": 40, "h": 112 },
+    "duration": 100
+   },
+   "bg_waterfall#1": {
+    "frame": { "x": 41, "y": 0, "w": 40, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 112 },
+    "sourceSize": { "w": 40, "h": 112 },
+    "duration": 100
+   },
+   "bg_waterfall#2": {
+    "frame": { "x": 0, "y": 113, "w": 40, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 112 },
+    "sourceSize": { "w": 40, "h": 112 },
+    "duration": 100
+   },
+   "bg_waterfall#3": {
+    "frame": { "x": 41, "y": 113, "w": 40, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 112 },
+    "sourceSize": { "w": 40, "h": 112 },
+    "duration": 100
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "bg_waterfall.png",
+  "format": "RGBA8888",
+  "size": { "w": 81, "h": 225 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "bg_waterfall_flow", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

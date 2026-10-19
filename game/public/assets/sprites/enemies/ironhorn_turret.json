@@ -1,0 +1,183 @@
+{ "frames": {
+   "ironhorn_turret#0": {
+    "frame": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#1": {
+    "frame": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#2": {
+    "frame": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#3": {
+    "frame": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#4": {
+    "frame": { "x": 49, "y": 0, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#5": {
+    "frame": { "x": 98, "y": 0, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#6": {
+    "frame": { "x": 0, "y": 33, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#7": {
+    "frame": { "x": 49, "y": 33, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#8": {
+    "frame": { "x": 98, "y": 33, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#9": {
+    "frame": { "x": 98, "y": 33, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#10": {
+    "frame": { "x": 98, "y": 33, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#11": {
+    "frame": { "x": 98, "y": 33, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#12": {
+    "frame": { "x": 0, "y": 66, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 80
+   },
+   "ironhorn_turret#13": {
+    "frame": { "x": 49, "y": 66, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 80
+   },
+   "ironhorn_turret#14": {
+    "frame": { "x": 0, "y": 66, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 80
+   },
+   "ironhorn_turret#15": {
+    "frame": { "x": 0, "y": 66, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 80
+   },
+   "ironhorn_turret#16": {
+    "frame": { "x": 98, "y": 66, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#17": {
+    "frame": { "x": 98, "y": 66, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#18": {
+    "frame": { "x": 98, "y": 66, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   },
+   "ironhorn_turret#19": {
+    "frame": { "x": 98, "y": 66, "w": 48, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 32 },
+    "sourceSize": { "w": 48, "h": 32 },
+    "duration": 160
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "ironhorn_turret.png",
+  "format": "RGBA8888",
+  "size": { "w": 146, "h": 98 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "ironhorn_turret_idle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "ironhorn_turret_intro", "from": 4, "to": 7, "direction": "forward", "color": "#000000ff" },
+   { "name": "ironhorn_turret_aim", "from": 8, "to": 11, "direction": "forward", "color": "#000000ff" },
+   { "name": "ironhorn_turret_fire", "from": 12, "to": 15, "direction": "forward", "color": "#000000ff" },
+   { "name": "ironhorn_turret_broken", "from": 16, "to": 19, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

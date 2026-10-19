@@ -1,0 +1,51 @@
+{ "frames": {
+   "prop_coupling#0": {
+    "frame": { "x": 0, "y": 0, "w": 48, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 16 },
+    "sourceSize": { "w": 48, "h": 16 },
+    "duration": 90
+   },
+   "prop_coupling#1": {
+    "frame": { "x": 49, "y": 0, "w": 48, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 16 },
+    "sourceSize": { "w": 48, "h": 16 },
+    "duration": 90
+   },
+   "prop_coupling#2": {
+    "frame": { "x": 0, "y": 17, "w": 48, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 16 },
+    "sourceSize": { "w": 48, "h": 16 },
+    "duration": 90
+   },
+   "prop_coupling#3": {
+    "frame": { "x": 49, "y": 17, "w": 48, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 48, "h": 16 },
+    "sourceSize": { "w": 48, "h": 16 },
+    "duration": 90
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "prop_coupling.png",
+  "format": "RGBA8888",
+  "size": { "w": 97, "h": 33 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "prop_coupling_idle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

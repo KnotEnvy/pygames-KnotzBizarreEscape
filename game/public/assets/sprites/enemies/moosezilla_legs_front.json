@@ -1,0 +1,247 @@
+{ "frames": {
+   "moosezilla_legs_front#0": {
+    "frame": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 160
+   },
+   "moosezilla_legs_front#1": {
+    "frame": { "x": 105, "y": 0, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 160
+   },
+   "moosezilla_legs_front#2": {
+    "frame": { "x": 210, "y": 0, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 160
+   },
+   "moosezilla_legs_front#3": {
+    "frame": { "x": 105, "y": 0, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 160
+   },
+   "moosezilla_legs_front#4": {
+    "frame": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_legs_front#5": {
+    "frame": { "x": 315, "y": 0, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_legs_front#6": {
+    "frame": { "x": 420, "y": 0, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_legs_front#7": {
+    "frame": { "x": 0, "y": 49, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_legs_front#8": {
+    "frame": { "x": 105, "y": 49, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_legs_front#9": {
+    "frame": { "x": 210, "y": 49, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_legs_front#10": {
+    "frame": { "x": 315, "y": 49, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_legs_front#11": {
+    "frame": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 130
+   },
+   "moosezilla_legs_front#12": {
+    "frame": { "x": 420, "y": 49, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 100
+   },
+   "moosezilla_legs_front#13": {
+    "frame": { "x": 0, "y": 98, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 100
+   },
+   "moosezilla_legs_front#14": {
+    "frame": { "x": 105, "y": 98, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 100
+   },
+   "moosezilla_legs_front#15": {
+    "frame": { "x": 210, "y": 98, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 100
+   },
+   "moosezilla_legs_front#16": {
+    "frame": { "x": 315, "y": 98, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 100
+   },
+   "moosezilla_legs_front#17": {
+    "frame": { "x": 420, "y": 98, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 100
+   },
+   "moosezilla_legs_front#18": {
+    "frame": { "x": 0, "y": 147, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 100
+   },
+   "moosezilla_legs_front#19": {
+    "frame": { "x": 105, "y": 147, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 100
+   },
+   "moosezilla_legs_front#20": {
+    "frame": { "x": 210, "y": 147, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 180
+   },
+   "moosezilla_legs_front#21": {
+    "frame": { "x": 210, "y": 147, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 180
+   },
+   "moosezilla_legs_front#22": {
+    "frame": { "x": 315, "y": 147, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 70
+   },
+   "moosezilla_legs_front#23": {
+    "frame": { "x": 315, "y": 147, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 160
+   },
+   "moosezilla_legs_front#24": {
+    "frame": { "x": 0, "y": 98, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 125
+   },
+   "moosezilla_legs_front#25": {
+    "frame": { "x": 420, "y": 147, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 125
+   },
+   "moosezilla_legs_front#26": {
+    "frame": { "x": 0, "y": 196, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 125
+   },
+   "moosezilla_legs_front#27": {
+    "frame": { "x": 105, "y": 196, "w": 104, "h": 48 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 104, "h": 48 },
+    "sourceSize": { "w": 104, "h": 48 },
+    "duration": 125
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "moosezilla_legs_front.png",
+  "format": "RGBA8888",
+  "size": { "w": 524, "h": 244 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "moosezilla_legs_front_idle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_legs_front_intro", "from": 4, "to": 11, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_legs_front_walk", "from": 12, "to": 19, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_legs_front_stomp", "from": 20, "to": 23, "direction": "forward", "color": "#000000ff" },
+   { "name": "moosezilla_legs_front_paw", "from": 24, "to": 27, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}
