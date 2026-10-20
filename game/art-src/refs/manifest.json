@@ -1,0 +1,158 @@
+{
+  "hopper": {
+    "status": "ready",
+    "visible": [
+      40,
+      32
+    ],
+    "files": [
+      "hopper/concept.png",
+      "hopper/pixel.png",
+      "hopper/pixel_4x.png",
+      "sheet_hopper.png",
+      "hopper/poses.png",
+      "hopper/poses_pixel.png",
+      "hopper/parts.png",
+      "hopper/parts_pixel.png"
+    ],
+    "notes": "Design guide only: redraw/animate in Aseprite. Top-left lighting; master palette and binary alpha on pixel references. Tongue reaches 64px in final animation. Pose sheet is a guide; isolate overlapping cable manually."
+  },
+  "airboat": {
+    "status": "ready",
+    "visible": [
+      88,
+      44
+    ],
+    "files": [
+      "airboat/concept.png",
+      "airboat/pixel.png",
+      "airboat/pixel_4x.png",
+      "sheet_airboat.png",
+      "airboat/poses.png",
+      "airboat/poses_pixel.png",
+      "airboat/parts.png",
+      "airboat/parts_pixel.png"
+    ],
+    "notes": "Design guide only: redraw/animate in Aseprite. Top-left lighting; master palette and binary alpha on pixel references. "
+  },
+  "buzzard": {
+    "status": "ready",
+    "visible": [
+      96,
+      40
+    ],
+    "files": [
+      "buzzard/concept.png",
+      "buzzard/pixel.png",
+      "buzzard/pixel_4x.png",
+      "sheet_buzzard.png",
+      "buzzard/poses.png",
+      "buzzard/poses_pixel.png",
+      "buzzard/parts.png",
+      "buzzard/parts_pixel.png"
+    ],
+    "notes": "Design guide only: redraw/animate in Aseprite. Top-left lighting; master palette and binary alpha on pixel references.  96px rotor envelope; hull target 88x40."
+  },
+  "piranha": {
+    "status": "ready",
+    "visible": [
+      30,
+      20
+    ],
+    "files": [
+      "piranha/concept.png",
+      "piranha/pixel.png",
+      "piranha/pixel_4x.png",
+      "sheet_piranha.png",
+      "piranha/poses.png",
+      "piranha/poses_pixel.png"
+    ],
+    "notes": "Design guide only: redraw/animate in Aseprite. Top-left lighting; master palette and binary alpha on pixel references. "
+  },
+  "gnat": {
+    "status": "ready",
+    "visible": [
+      22,
+      18
+    ],
+    "files": [
+      "gnat/concept.png",
+      "gnat/pixel.png",
+      "gnat/pixel_4x.png",
+      "sheet_gnat.png",
+      "gnat/poses.png",
+      "gnat/poses_pixel.png"
+    ],
+    "notes": "Design guide only: redraw/animate in Aseprite. Top-left lighting; master palette and binary alpha on pixel references. "
+  },
+  "hound": {
+    "status": "ready",
+    "visible": [
+      36,
+      24
+    ],
+    "files": [
+      "hound/concept.png",
+      "hound/pixel.png",
+      "hound/pixel_4x.png",
+      "sheet_hound.png",
+      "hound/poses.png",
+      "hound/poses_pixel.png",
+      "hound/parts.png",
+      "hound/parts_pixel.png"
+    ],
+    "notes": "Design guide only: redraw/animate in Aseprite. Top-left lighting; master palette and binary alpha on pixel references. "
+  },
+  "lurker": {
+    "status": "ready",
+    "visible": [
+      22,
+      34
+    ],
+    "files": [
+      "lurker/concept.png",
+      "lurker/pixel.png",
+      "lurker/pixel_4x.png",
+      "sheet_lurker.png",
+      "lurker/poses.png",
+      "lurker/poses_pixel.png"
+    ],
+    "notes": "Design guide only: redraw/animate in Aseprite. Top-left lighting; master palette and binary alpha on pixel references. "
+  },
+  "skeeter": {
+    "status": "ready",
+    "visible": [
+      144,
+      104
+    ],
+    "files": [
+      "skeeter/concept.png",
+      "skeeter/pixel.png",
+      "skeeter/pixel_4x.png",
+      "sheet_skeeter.png",
+      "skeeter/poses.png",
+      "skeeter/poses_pixel.png",
+      "skeeter/parts.png",
+      "skeeter/parts_pixel.png"
+    ],
+    "notes": "Design guide only: redraw/animate in Aseprite. Top-left lighting; master palette and binary alpha on pixel references.  Provisional reference envelope; match existing boss body and hurtboxes."
+  },
+  "gatorgeddon_legs": {
+    "status": "ready",
+    "visible": [
+      88,
+      64
+    ],
+    "files": [
+      "gatorgeddon_legs/concept.png",
+      "gatorgeddon_legs/pixel.png",
+      "gatorgeddon_legs/pixel_4x.png",
+      "sheet_gatorgeddon_legs.png",
+      "gatorgeddon_legs/poses.png",
+      "gatorgeddon_legs/poses_pixel.png",
+      "gatorgeddon_legs/parts.png",
+      "gatorgeddon_legs/parts_pixel.png"
+    ],
+    "notes": "Design guide only: redraw/animate in Aseprite. Top-left lighting; master palette and binary alpha on pixel references.  Provisional reference envelope; match existing boss body and hurtboxes."
+  }
+}

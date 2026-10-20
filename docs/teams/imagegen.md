@@ -177,3 +177,36 @@ All 18 outputs passed exact master-palette membership and binary-alpha assertion
 - Levels: integrate the pack keys using the table; tune Y against terrain/camera, reveal once-only village/boat/mill/den locally, and crossfade sky variants with reduced-flash settings. Animate wheel, glow, rain and small background actors separately.
 - Engine/QA: extend arena audit to Mission 2, then run acceptance after map and art integration. Runtime inspection URLs after integration: `/?scene=Game&part=2-1&fast=1&god=1&mute=1`, likewise `part=2-2` and `part=2-3`.
 
+
+## Phase H — enemy facelift references
+
+Delivered all nine kinds under `game/art-src/refs/`: hopper, airboat, buzzard, piranha, gnat, hound, lurker, skeeter and gatorgeddon_legs. Published `manifest.json` individually as each kind became ready, starting hopper → airboat → Buzzard. No runtime, pack, final enemy art or git state changes. Built-in image generation made every source; 34 unmodified source PNGs (including the rejected Buzzard parts variant) and every exact prompt are retained. Full file/pose inventory and one-line native-scale verdicts are in `game/art-src/refs/README.md`; offline rebuild is `process_refs.py`.
+
+Each kind has a transparent right-facing concept, palette/binary-alpha game-scale pixel reference, nearest 4x preview, key-pose sheet and pixel pose sheet. Hopper, airboat, Buzzard, hound, skeeter and Gatorgeddon legs also have exploded parts and pixel parts. Every `sheet_<kind>.png` compares it with actual grunt/Knotz atlas frames at 1x and 4x. Selected Buzzard parts were regenerated into a single row after review rejected the initial two-row arrangement.
+
+Rebuild from repo root:
+
+```sh
+UV_CACHE_DIR=/tmp/kbe-imagegen/uv-cache /home/knotz2/.local/bin/uv run --offline --with pillow,numpy python3 -I game/art-src/refs/process_refs.py
+```
+
+Optional kind arguments rebuild only those manifest entries. Processing reuses Phase G's palette and alpha approach, then samples modal palette RGBA per game-grid cell without blur/dithering and removes isolated specks. Every final pixel, pose and parts reference asserts palette membership and binary alpha. All nine manifest entries and file paths validate.
+
+Opened and inspected every source, all nine `game/art-src/refs/sheet_<kind>.png` comparisons, and these final review galleries:
+
+- `/tmp/kbe-imagegen/h-concepts.png` — every concept against a neutral backing (confirms true transparency; invisible source RGB can look like haze in some viewers).
+- `/tmp/kbe-imagegen/h-pixel-gallery.png` — all nine native references with enlarged clusters.
+- `/tmp/kbe-imagegen/h-poses_pixel-3x.png` — all final pose strips.
+- `/tmp/kbe-imagegen/h-parts_pixel-3x.png` — all six final exploded sheets, including selected Buzzard revision and hound addition.
+
+Also inspected Lead's read-only `ref.png`, `hopper.png`, `airboat.png`, `buzzard.png`, `small.png`, `bosses1.png`, `bosses2.png`, `ctx_hopper.png`, `ctx_airboat.png`, and `ctx_buzzard.png` under `/tmp/kbe-lead/polish/` for the house style and map context. These are existing runtime images, not integration of the new references.
+
+Validation: `npm --prefix game run check` PASS (115 Phaser files, zero errors/warnings); `npm --prefix game run audit` PASS (reach and turbo arena acceptance for all six parts, no off-view members); `npm --prefix game run selftest` PASS (760 nonempty animations, all core/campaign/mission checks, no page errors). Checks ran sequentially where browsers were involved; their owned browsers/servers closed on completion. No real-time bot playthroughs or persistent dev server started.
+
+Decisions/limits: references guide the required hand-cleaned Aseprite rebuild; they are not final sprite frames. Use 3-4 selected tones per material in final art. Some source poses have slight depth/perspective or tight gaps; isolate hopper tongue/cue overlap and rebuild its full 64px cable. Gnat legs need deliberate one-pixel strokes. Lurker is a moss/color-blocking guide: preserve the house soldier anatomy. Buzzard reference uses a 96x40 total envelope (88x40 hull target). PHASE-H gives no numeric boss envelopes: skeeter's 144x104 and Gatorgeddon leg pair's 88x64 are provisional design canvases; preserve existing gameplay bounds and match boss pivots.
+
+### Requests for other teams
+
+- Enemies A/B: consume ready manifest entries, redraw/clean/animate in Aseprite, retain timings/hurtboxes and flesh material for hound. Pose strips provide anticipation and breakup direction, not finished cycles.
+- Levels: match airboat fan/crew silhouette, red/steel gunship, and slim mosquito silhouette in far actors at the existing far-actor scale.
+- Lead/QA: review the rebuilt sprites in their real map locations after integration; no reference PNG was installed as runtime art by Imagegen.
