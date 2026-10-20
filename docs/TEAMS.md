@@ -60,3 +60,16 @@
   - A detail pass on SHELLSHOCK and MEGA-SKEETER.
   - `check`: 0 warnings. `audit`: all six parts PASS. `selftest`: 49/49.
   - **Next:** owner playtest of Mission 2.
+- **Owner playtest 4 (2026-10-20):** "Mission 2 looks incredible." Before Mission 3, polish the newer enemies:
+  - the frog (hopper) is rough;
+  - the helicopter (Buzzard) needs another pass;
+  - the airboats could be better.
+  Work from Imagegen references, then rebuild in Aseprite.
+- **Phase H (enemy facelift), plan in `docs/PHASE-H.md`, briefs in `docs/briefs/phase-h/`:**
+  - **H1:**
+    - Imagegen: references in `art-src/refs/`.
+    - Enemies A: Buzzard and hound.
+    - Enemies B: hopper, airboat, piranha, gnat, lurker.
+    - FX: `rotor_wash`, `boat_wake`, `mech_pop`, `smoke_trail`.
+    - UI/Audio: five sounds and the title card / radio overlap.
+  - **H2:** QA and Rules review, the MEGA-SKEETER and GATORGEDDON leg passes, far background actors.
