@@ -652,3 +652,39 @@ All verification attempts were bounded below ten minutes. No real-time bot playt
 
 - **Engine / QA:** investigate the two camera selftest failures and the focused retry's held-Enter/fresh-pause failure above; rerun under settled browser load. The deterministic Enemies probes and every arena pass.
 - **Lead / QA:** review the five reference-driven redraws and the inspected sheets/sequences for H2; sustained SwiftShader performance acceptance remains with the integration review. No new shared contract or map changes are requested.
+
+## Phase H2 — Enemies B: mosquito silhouette and hopper squash/stretch (2026-10-20)
+
+Rebuilt MEGA-SKEETER from the existing Imagegen concept, pixel, pose and parts references under `game/art-src/refs/skeeter/`, plus `refs/sheet_skeeter.png`. The final pixels are authored in Lua/Aseprite. The body now has a narrow red/steel thorax, a long pointed segmented abdomen, a bright pulsing fuel window, faceted compound eyes and a long drill needle. Four swept glass-pane wings use steel rims, veins and four flutter shapes; six fine jointed legs twitch independently. The 33% tier tears a trailing pane with real transparent pixels and exposes a bright tank crack. Every tag and both damage tiers were redrawn. Death has **10 breakup frames per tier**, while the existing runtime still spins/falls into the river on its original clock.
+
+### Paths and rebuild
+
+- `game/art-src/enemies/phase-g.lua` calls the new `lib/phase-h-skeeter.lua` rig and supports selective `KBE_ART_ONLY=skeeter` / `hopper` builds. MEGA-SKEETER has five editable Aseprite layers: wings, far legs, body, near legs and effects.
+- `game/art-src/enemies/lib/phase-h-roster.lua` draws extended hopper hind pistons and reaching front feet in the air, replaces the folded foreground haunch, and bakes much deeper crouch/landing squash and a taller/narrower airborne body into the existing frames.
+- Rebuilt only `game/art-src/enemies/{skeeter,hopper}.aseprite` and `game/public/assets/sprites/enemies/{skeeter,hopper}.{png,json}`. MEGA-SKEETER remains **144×88**, **27 tags / 174 frames**; hopper remains **64×56**, **9 tags / 46 frames**. Master palette and binary alpha only.
+- **Gameplay unchanged:** no TypeScript, tuning, hurtboxes, HP, multipliers, phases, larva caps, clamps or telegraph code changed. Tank remains 1.5× / 2×; laser/fan anticipation remains 700/600 ms. Hopper's six airborne frames still total **720 ms** and landing remains three 60 ms frames within the original recovery. Unrelated hopper poses are pixel-identical to H1; all existing non-death frame durations match the baseline.
+
+```sh
+KBE_ART_ONLY=skeeter bash game/tools/build-art.sh art-src/enemies/phase-g.lua
+KBE_ART_ONLY=hopper bash game/tools/build-art.sh art-src/enemies/phase-g.lua
+```
+
+To see MEGA-SKEETER, use `?scene=Game&fast=1&mute=1&god=1&part=2-2`, freeze with `__KBE.sim.freeze()`, call `__KBE.cheats.boss()`, and advance fixed-step input into the authored foredeck. The exact bounded runner is `/tmp/kbe-enemies-b/h2/capture.mjs` (one browser, one page). Hopper fixture: `?scene=Game&fast=1&mute=1&god=1&enemytest=hopper`; sequence runner `/tmp/kbe-enemies-b/h2/hopper-sequence.mjs` deliberately uses the dev sandbox and a fresh centred hopper. The sandbox logs its expected missing-map/placeholder warnings; it has no page/runtime errors. These are visual fixtures, with real-map arena acceptance supplied separately by `audit`.
+
+### Evidence and verification
+
+All scratch is under **`/tmp/kbe-enemies-b/h2/`**. Opened and inspected:
+
+- `compare-skeeter-{1x,2x,4x}.png`: before/after idle, laser and dive beside a grunt and Knotz. Baseline atlases are in `before/`.
+- `states-skeeter-{intact,damaged,critical}-2x.png`: every tag, all six ordinary frames; `death-skeeter-2x.png` contains all ten breakup frames for all three tiers. `hopper-poses-3x.png` shows all crouch/hop/landing poses.
+- `arena-states.png` and the original `arena-skeeter-{intro,idle,laser,dive,stuck,larva,fan_cue,fan,damaged-66,critical-33,critical-laser,death-early,death-late,death-flip}.png`: actual **2-2 riverboat foredeck**, with debug hurtboxes. The intro deliberately includes the normal warning overlay; later shots are unobscured. Capture metadata: `arena-captures.json`; zero console/page errors.
+- `hopper-sequence.png`: idle, croak, crouch, launch, 180/360/540 ms airborne and landing; originals `seq-hopper-*.png`, metadata `sequences.json`. Also inspected full-size crouch, hop180, hop360 and landing. The actor completes the hop and its later death cleans up.
+- `art-audit.log`: palette/binary-alpha checks, unchanged tag names/canvases/non-death durations, unrelated hopper poses pixel-identical, no duplicate global tags. Living source alpha envelope **(0,4)..(138,85)** fits the existing horizontal/vertical clamps; includes the extended feet and stuck sparks.
+
+Verification attempts are bounded to under ten minutes each; captures are serial and use fixed-step advance. No real-time bot playthroughs, git state changes, root `playtest/` writes, dependencies or non-owned source edits. Runners close their own browser and Vite server.
+
+### Known issues and requests for other teams
+
+No known functional regressions. Sustained 60-FPS performance was not benchmarked. **Requests for other teams: none.**
+
+**Acceptance:** `npm --prefix game run check` **PASS**, 115 files / zero Phaser errors or warnings (`check.log`); `npm --prefix game run audit` **PASS** for reach and all six parts, all bosses phases 1/2/3 and the expected PartClear/Results, zero off-view time including **2-2** (`audit.log`); `npm --prefix game run selftest` **all passed** (`selftest.log`). The final abdomen silhouette retains approximately the prior body envelope (a longer taper and narrower thorax within the same 144×88 rig); the runtime pivot and actual needle socket stay fixed.

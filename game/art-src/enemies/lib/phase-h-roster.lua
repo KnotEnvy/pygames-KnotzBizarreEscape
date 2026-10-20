@@ -23,11 +23,25 @@ local function hopper(im,p,f,n,layer)
  if dead then y=math.floor(t*6) end
  if layer=='hydraulics' then
   if t<.8 then
-   local stretch=p=='hop' and 5 or 0
+   if p=='hop' then
+    -- Two long trailing hind limbs replace the folded Z, with splayed front feet.
+    local trail=({0,-2,-3,-2,0,3})[f];local lift=({3,0,-2,-1,2,5})[f]
+    for j=0,1 do local x=j*5;local yy=j*3
+     D.limb(im,16+x,30+y+yy,4+x+trail,34+lift+yy,'olive2','olive5',3)
+     D.limb(im,4+x+trail,34+lift+yy,-4+x+trail,39+lift+yy,'steel2','steel5',2)
+     D.disc(im,4+x+trail,34+lift+yy,2,'steel1');D.rivet(im,3+x+trail,33+lift+yy)
+     D.line(im,10+x,31+y+yy,2+x+trail,35+lift+yy,'sand3')
+     D.line(im,-4+x+trail,39+lift+yy,2+x+trail,42+lift+yy,'steel4',2)
+    end
+    D.limb(im,34,29+y,40,33+y,'olive2','olive5',2);D.limb(im,40,33+y,47,34+y+f,'steel2','steel5',1)
+    D.box(im,43,34+y+f,9,3,'steel3','steel5','steel1')
+   else
+   local stretch=0
    D.limb(im,13,30+y,7,35+stretch,'olive1','olive4',4);D.limb(im,7,35+stretch,15,42,'steel2','steel5',2);D.disc(im,7,35+stretch,2,'steel1');D.rivet(im,6,34+stretch);D.line(im,10,31+y,6,35+stretch,'olive5')
    D.line(im,8,33+stretch,13,40,'sand3');D.box(im,3,43,14,4,'steel2','steel4','outline');D.line(im,4,45,1,46,'steel4');D.line(im,10,45,13,46,'steel5')
    D.limb(im,26,31+y,32,37+stretch,'olive2','olive5',4);D.limb(im,32,37+stretch,23,43,'steel2','steel5',2)
    D.box(im,23,43,16,4,'steel2','steel5','outline');for _,x in ipairs({5,10,25,31,36}) do D.line(im,x,45,x+2,46,'steel4') end
+   end
   end
   if dead then for j=0,2 do local xx=12+j*12+math.floor((j-1)*t*10);D.box(im,xx,34+math.floor(t*8)-j*3,5,3,'steel2','steel5','outline') end end
  elseif layer=='armour' then
@@ -36,9 +50,13 @@ local function hopper(im,p,f,n,layer)
    D.line(im,21,23+y,19,30+y,'olive1');D.line(im,19,30+y,9,32+y,'olive1');D.rivet(im,13,25+y);D.rivet(im,24,25+y)
    D.box(im,8,21+y,8,6,'steel2','steel4','steel1');for j=0,2 do D.line(im,10+j*2,23+y,10+j*2,25+y,'outline') end
    D.box(im,16,28+y,10,6,'red2','red4','red1');D.eye(im,17,29+y,'sand4')
+   if p=='hop' then
+    oval(im,14,31+y,5,4,'outline');oval(im,13,30+y,4,3,'olive3');D.line(im,10,29+y,15,28+y,'olive5');D.rivet(im,13,30+y)
+   else
    -- Foreground folded haunch: broad knee plate over a polished hydraulic ram.
    oval(im,11,34+y,7,6,'outline');oval(im,10,33+y,6,5,'olive3');D.line(im,7,30+y,12,29+y,'olive5');D.line(im,8,34+y,5,40,'steel1',3);D.line(im,8,33+y,5,39,'steel5');D.line(im,10,36+y,15,41,'olive2',3);D.line(im,10,35+y,15,40,'olive4');D.disc(im,10,34+y,2,'steel2');D.rivet(im,9,33+y)
    D.limb(im,35,31+y,37,41,'olive2','olive4',2);D.box(im,34,43,10,3,'steel3','steel5','steel1')
+   end
   else D.box(im,16,39,20,6,'steel1','steel3','outline') end
   if dead then
    for j=0,2 do local xx=18+(j-1)*math.floor(4+t*17);local yy=25-math.floor(math.sin(t*math.pi)*18)+j*5;poly(im,{{xx-4,yy},{xx+4,yy-2},{xx+6,yy+3},{xx-3,yy+5}},'outline');poly(im,{{xx-3,yy},{xx+3,yy-1},{xx+4,yy+2},{xx-2,yy+3}},j==1 and 'red3' or 'olive3');D.line(im,xx-2,yy,xx+2,yy-1,'olive5');D.rivet(im,xx,yy+1) end
@@ -176,6 +194,17 @@ local function build(name,w,h,layers,poses,paint)
  local anims={};for _,p in ipairs(poses) do local tag,count,ms=p[1],p[2],p[3];local frames={}
   for i=1,count do local f=i;local fr={};for _,l in ipairs(layers) do local layer=l;fr[layer]=function(im)
     paint(im,tag,f,count,layer)
+    if name=='hopper' and (tag=='crouch' or tag=='land' or tag=='hop') then
+     -- Drawn pose deformation, anchored at the same planted feet; no runtime scaling.
+     local sx=tag=='hop' and .90 or tag=='crouch' and ({1.08,1.15,1.19})[f] or ({1.23,1.14,1.04})[f]
+     local sy=tag=='hop' and 1.17 or tag=='crouch' and ({.90,.80,.72})[f] or ({.69,.82,.96})[f]
+     if layer=='armour' or layer=='head' or tag~='hop' then
+      local tmp=Image(im);im:clear();local pivot=tag=='hop' and 32 or 46
+      for yy=0,h-1 do for xx=0,w-1 do local x=math.floor(23+(xx-23)/sx+.5);local y=math.floor(pivot+(yy-pivot)/sy+.5)
+       if x>=0 and x<w and y>=0 and y<h then im:drawPixel(xx,yy,tmp:getPixel(x,y)) end
+      end end
+     end
+    end
     if name=='airboat' or name=='hopper' then local tmp=Image(im);im:clear();im:drawImage(tmp,name=='hopper' and Point(8,8) or Point(4,9)) end
     if name=='piranha' and (tag=='leap' or tag=='fall') then
      local tmp=Image(im);im:clear();local angle=tag=='leap' and ({-.20,-.16,-.12,-.08,-.04,0})[f] or ({.04,.08,.12,.16})[f];local cs,sn=math.cos(angle),math.sin(angle)
@@ -188,6 +217,7 @@ local function build(name,w,h,layers,poses,paint)
    end end;frames[#frames+1]=fr end
   anims[#anims+1]={tag=name..'_'..tag,ms=ms,frames=frames}
  end
+ if (app.params.only or os.getenv('KBE_ART_ONLY'))=='hopper' and name~='hopper' then return end
  K.build{name=name,w=w,h=h,layers=layers,src=D.root..'/art-src/enemies/'..name..'.aseprite',sheet=D.root..'/public/assets/sprites/enemies/'..name..'.png',data=D.root..'/public/assets/sprites/enemies/'..name..'.json',anims=anims}
 end
 build('hopper',64,56,{'hydraulics','armour','head','motion'},{{'idle',6,140},{'croak',3,50},{'crouch',3,100},{'hop',6,120},{'land',3,60},{'tongue_cue',5,100},{'tongue',8,{30,30,30,20,20,30,30,30}},{'hurt',2,70},{'death',10,60}},hopper)

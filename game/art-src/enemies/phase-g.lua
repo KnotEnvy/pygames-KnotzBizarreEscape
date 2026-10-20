@@ -107,73 +107,34 @@ local function head(im,pose,f,n,tier)
  if tier>=1 then D.line(im,18,8+y,16,10+y,'steel1');K.px(im,17,9+y,'sand3') end
  if pose=='death' then for j=0,4 do D.line(im,24+j*4,15+(j%2)*4,28+j*4,19-(j%2)*4,'steel5') end end
 end
-local function skeeter(im,pose,f,n,tier)
- local flap=({-7,0,7,0,-5,2})[(f-1)%6+1];local y=(f%3==0) and 1 or 0
- -- Opaque, palette-limited speed echoes alternate with the four rotor blades.
- for j=0,1 do for side=-1,1,2 do local xx=72+side*(42+j*12);local yy=22+j*13+flap*(j==0 and 1 or -1)
-  if not(tier>=2 and j==1 and side==1) then
-   local echo=f%2==0 and 4 or -3
-   D.line(im,xx-side*19,yy+echo,xx+side*9,yy+echo-2,'steel2');D.line(im,xx-side*15,yy+echo+2,xx+side*6,yy+echo,'steel3')
-   D.limb(im,69,31,xx,yy,'steel2','steel5',3);D.limb(im,xx,yy,xx+side*10,yy-3,'steel3','sky5',2)
-   D.line(im,xx-side*18,yy-4,xx+side*10,yy-4,'steel4');D.line(im,xx-side*12,yy-3,xx-side*4,yy-3,'sky5');D.rivet(im,xx,yy-1)
-  else D.line(im,75,32,97,39,'steel5',2);D.line(im,93,36,96,41,'steel2');D.rivet(im,92,36) end
- end end
- for j=0,2 do local xx=51+j*18;local knee=62+(f+j)%2*2
-  piston(im,xx,48+y,xx-11,knee);piston(im,xx-11,knee,xx-5,76)
-  D.line(im,xx+3,49+y,xx-7,knee,'outline');D.line(im,xx-7,knee,xx-1,72,'sand2');D.line(im,xx-10,knee+3,xx-7,knee+8,'steel4')
-  D.box(im,xx-10,72,13,5,'steel1','steel4','outline');D.rivet(im,xx-7,73)
-  if pose=='fan_cue' or pose=='fan' then D.rect(im,xx-7,76,8,2,pose=='fan' and 'white' or 'fire4') end
- end
- -- Curved glass tank, a moving meniscus, deep blood ramp and reflected strip lights.
- dome(im,96,43+y,28,22,'outline');dome(im,95,41+y,26,20,'steel1');dome(im,94,40+y,24,18,'red1')
- for yy=23,58 do for xx=71,119 do if (xx-94)^2/24^2+(yy-40)^2/18^2<=1 then
-  local level=34+math.floor((xx-94)*({-.08,-.12,-.06,.05,.12,.06})[f])+y
-  local c=yy+y<level and 'red1' or xx>110 and 'red2' or yy>51 and 'red2' or 'red3'
-  if yy+y==level then c='red5' elseif yy+y==level+1 then c='red4' elseif xx<85 and yy+y>level+2 and yy<47 then c='red4' end
-  K.px(im,xx,yy+y,c)
- end end end
- D.line(im,78,29+y,81,26+y,'steel4');D.line(im,78,30+y,76,37+y,'red5');D.line(im,76,38+y,76,43+y,'sand5');D.line(im,77,38+y,77,44+y,'red5')
- D.line(im,112,31+y,115,39+y,'red4');D.line(im,115,40+y,115,47+y,'red3');D.line(im,85,57+y,102,59+y,'red1')
- for j=0,2 do local xx=80+j*13;D.line(im,xx,24+y,xx+4,59+y,'steel1',3);D.line(im,xx+1,25+y,xx+5,57+y,'steel4');D.rivet(im,xx+1,28+y);D.rivet(im,xx+4,53+y) end
- D.box(im,99,36+y,15,12,'red1','sand4');D.eye(im,103,40+y)
- -- Thorax panel seams, vents, chipped edges and a rear pump coupling.
- dome(im,61,39+y,20,17,'outline');dome(im,59,37+y,18,15,'olive2');dome(im,56,33+y,15,11,'olive3');dome(im,53,29+y,10,6,'olive4')
- D.line(im,47,31+y,63,28+y,'olive5');D.line(im,63,28+y,70,34+y,'olive1');D.line(im,70,34+y,68,42+y,'olive1');D.line(im,68,42+y,49,43+y,'outline');D.line(im,49,41+y,64,41+y,'olive4')
- for j=0,3 do D.line(im,53+j*4,34+y,52+j*4,38+y,'olive1');K.px(im,54+j*4,34+y,'olive5') end
- D.rivet(im,48,32+y);D.rivet(im,65,31+y);D.line(im,59,28+y,62,28+y,'sand3')
- D.box(im,49,44+y,26,9,'steel2','steel5','steel1');for j=0,4 do D.line(im,53+j*4,47+y,53+j*4,50+y,'outline') end
- D.box(im,73,42+y,7,12,'steel1','steel3','outline');D.line(im,76,44+y,76,50+y,'fire4');D.rivet(im,73,44+y)
- dome(im,37,39+y,15,13,'outline');dome(im,35,37+y,13,11,'red1');dome(im,33,34+y,10,7,'red2')
- for j=0,2 do for k=0,1 do D.disc(im,28+j*6,32+k*7+y,2,(pose=='laser' or pose=='fan_cue') and 'fire5' or 'red5');K.px(im,27+j*6,31+k*7+y,'sand5') end end
- D.rivet(im,42,43+y);D.line(im,24,42+y,30,46+y,'steel2')
- -- Drill collar and helical ridges; incandescent tip only during the laser telegraph.
- D.limb(im,29,45+y,8,69,'steel2','steel5',3);D.disc(im,28,47+y,4,'steel1');D.line(im,25,45+y,29,48+y,'sand4')
- for j=0,4 do D.line(im,11+j*4,65-j*4,15+j*4,66-j*4,'steel1',2);D.line(im,11+j*4,65-j*4,15+j*4,66-j*4,'sand4') end
- D.line(im,8,69,5,77,'steel5',2)
- if pose=='laser' then D.disc(im,7,72,4,'red2');D.disc(im,7,73,3,f%2==0 and 'fire3' or 'red4');D.line(im,8,70,5,77,'fire5',2);D.line(im,7,73,5,77,'fire6');K.px(im,3,72,'red5');K.px(im,11,76,'fire4') end
- D.limb(im,32,28,25,19,'steel1','steel4',1);D.disc(im,24,18,2,'fire4');K.px(im,23,17,'fire6')
- if pose=='larva' then for j=0,2 do D.disc(im,78+j*12,64+j%2*4,4,'sand4');D.line(im,76+j*12,64,80+j*12,64,'red3') end end
- if tier>=1 then D.line(im,97,24,91,39,'outline',2);D.line(im,91,39,103,48,'sand1',2);D.line(im,103,48,95,60,'outline',2);D.line(im,98,25,93,37,'steel5');D.line(im,104,49,98,58,'red5') end
- if tier>=2 then
-  D.box(im,88,34,18,20,'red1','steel5','steel1');D.box(im,90,36,14,16,'red3','fire4','red2')
-  for j=0,2 do D.rect(im,92+j*4,38,2,12,(j+f)%2==0 and 'fire5' or 'red4') end
-  for _,p in ipairs({{87,33},{104,34},{88,54},{105,53}}) do D.rivet(im,p[1],p[2]) end
-  D.line(im,107,52,110,57,'red4');D.line(im,110,57,109,62,'red2')
- end
- if pose=='stuck' then D.line(im,0,79,18,79,'sand4');D.line(im,1,76,4,72,'fire5');D.line(im,14,75,19,72,'fire4') end
-end
+-- H2 mosquito rig: source-authored panes, taper, dangling limbs and breakup.
+local skeeter=dofile(app.params.root..'/art-src/enemies/lib/phase-h-skeeter.lua')
 -- Rebuild this roster through build-art.sh without rewriting the unchanged bosses.
 -- KBE_ART_ONLY=roster bash tools/build-art.sh art-src/enemies/phase-g.lua
 local only=app.params.only or os.getenv('KBE_ART_ONLY')
 local silhouette=app.params.silhouette=='1'
 if only~='roster' then
 for _,spec in ipairs({{'shellshock',112,80,shell},{'shellshock_head',48,32,head},{'skeeter',144,88,skeeter}}) do
+ if not only or only=='bosses' or only==spec[1] then
  local A={};local poses=silhouette and {'idle'} or spec[1]=='shellshock_head' and {'idle','hiss','cue_high','cue_low','snap','death'} or spec[1]=='shellshock' and {'idle','intro','eggs','spin_cue','spin','death'} or {'idle','intro','laser','dive','stuck','larva','fan_cue','fan','death'}
- for tier=0,(silhouette and 0 or 2) do for _,pose in ipairs(poses) do A[#A+1]=D.anim(spec[1]..'_'..pose..(tier==0 and '' or tier==1 and '_damaged' or '_critical'),6,pose=='intro' and 180 or 100,function(im,f,n) spec[4](im,pose,f,n,tier) end) end end
- D.build(spec[1],spec[2],spec[3],A)
+ local layers=spec[1]=='skeeter' and {'wings','far_legs','body','near_legs','effects'} or {'main'}
+ for tier=0,(silhouette and 0 or 2) do for _,pose in ipairs(poses) do
+  local count=spec[1]=='skeeter' and pose=='death' and 10 or 6
+  local frames={}
+  for i=1,count do local f=i;local fr={}
+   for _,name in ipairs(layers) do local layer=name
+    fr[layer]=function(im) spec[4](im,pose,f,count,tier,spec[1]=='skeeter' and layer or nil) end
+   end
+   frames[#frames+1]=fr
+  end
+  A[#A+1]={tag=spec[1]..'_'..pose..(tier==0 and '' or tier==1 and '_damaged' or '_critical'),ms=pose=='intro' and 180 or 100,frames=frames}
+ end end
+ K.build{name=spec[1],w=spec[2],h=spec[3],layers=layers,src=D.root..'/art-src/enemies/'..spec[1]..'.aseprite',sheet=D.root..'/public/assets/sprites/enemies/'..spec[1]..'.png',data=D.root..'/public/assets/sprites/enemies/'..spec[1]..'.json',anims=A}
+
+ end
 end
 end
-if not silhouette and only~='bosses' then
+if not silhouette and (not only or only=='roster' or only=='hopper') then
  dofile(app.params.root..'/art-src/enemies/lib/phase-h-roster.lua')
- D.build('turtle_egg',16,20,{D.anim('turtle_egg_blink',4,120,function(im,f) dome(im,8,11,6,8,'outline');dome(im,7,10,5,7,'sand4');D.line(im,4,8,10,8,'olive3',2);D.rect(im,6,4,4,3,f%2==0 and 'fire5' or 'red2') end)})
+ if only~='hopper' then D.build('turtle_egg',16,20,{D.anim('turtle_egg_blink',4,120,function(im,f) dome(im,8,11,6,8,'outline');dome(im,7,10,5,7,'sand4');D.line(im,4,8,10,8,'olive3',2);D.rect(im,6,4,4,3,f%2==0 and 'fire5' or 'red2') end)}) end
 end
