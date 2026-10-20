@@ -597,3 +597,58 @@ Real-arena runner: **`node /tmp/kbe-enemies-b/detail-pass/capture.mjs`**, output
 G2: `BayouBoss`, `BayouEnemy` and the existing `AssaultEnemy` buzzard now check `LoopHandle.active` and retry refused/stolen voices at most every **500 raw ms** while audible. Positional updates use active handles; death, exit, destruction and shutdown retain their cleanup. G6: Bayou cues allocate Graphics lazily, retain unchanged geometry/style, clear once when unused and hide while empty/offscreen. G7: Bayou poses compare tag/phase before constructing animation keys or requesting playback; SHELLSHOCK's head caches its pose independently.
 
 **PASS:** `npm --prefix game run check` (114 files, zero Enemies warnings or `loop-handle-no-active-check` findings; three unrelated `offset-returns-array` warnings in Levels' `background.ts`). **PASS:** `node game/tools/arena-audit.mjs --part 2-1,2-2,2-3`, all waves/bosses, phases 1/2/3 and expected PartClear/Results; zero off-view time. Eight fixed-step fixtures (both mid-bosses, lurker, piranha, hopper, gnat, airboat, buzzard) pass with no runtime/page errors. Forced inactive/refused and stolen handle probes recover at 500 ms; death prevents retries and spin exit stops audio. Unchanged poses/cues produce zero redundant play/clear calls; changed geometry and boss damage tiers update correctly. Evidence: `/tmp/kbe-enemies-b/rules-fix/{check.log,fixtures.mjs,fixtures.log,fixtures.json}` and `/tmp/kbe-enemies-b/rules-arena-audit.log`. No git operations, GATORGEDDON edits or bot playthroughs.
+
+## Phase H — Enemies B: bayou roster facelift (2026-10-20)
+
+Rebuilt **hopper, airboat, piranha and gnat** with independent, layered Aseprite animation sets and cleaned the **lurker** ghillie on every tag. All five Imagegen reference sets arrived through `game/art-src/refs/manifest.json`; inspected each concept, pixel preview and pose sheet before completing the redraw. Their pixels are design guides only: the shipped art is drawn in palette-keyed Lua, with binary alpha and no sampled/quantized generated sprites.
+
+### Implementation and decisions
+
+- **Art source:** `game/art-src/enemies/lib/phase-h-roster.lua`, called by `phase-g.lua`. Editable sources and PNG/JSON outputs are the five existing `{hopper,airboat,piranha,gnat,lurker}` assets under `art-src/enemies/` and `public/assets/sprites/enemies/`. Layers separate hydraulics/armour/head/motion, fan/crew/hull/weapon, fins/scales/jaw/surface, wings/body, and soldier/ghillie/water. `lib/phase-g-preview.lua` now names the new poses. `lib/phase-h-contact.py` produces every-tag/every-frame sheets at 1× and 4×, with a grunt and Knotz on each row.
+- **Hopper: 46 frames / 9 tags.** Six-frame sac/lens/steam idle; croak → compressed haunches; six airborne frames spanning the existing 720 ms hop; a 180 ms landing squash inside the existing recovery; five-frame inflated tongue cue, eight mouth frames, two hurt frames and ten breakup frames. The amber lenses spring out and armour separates. A retained Graphics object draws the segmented red cable and steel claw to the actual sinusoidal **64 px** hit line at **y−17**, then retracts over the existing **220 ms**. Landing requests `hopper_land` and terrain-specific water splash / `mud_splat` / `dust_land`; death requests `mech_pop` sound and FX at **0.8**. The canvas is **64×56**, with transparent padding and an offset that preserves the original world anchor; this keeps spring lenses inside the death frames.
+- **Airboat: 38 frames / 8 tags.** Olive fan cage, four propeller phases, readable red-cap crew, jerrycan/rope, rivets/rust, red stripe and spiral, raised bow, bob and spray; six-frame gun cue and a fresh three-frame flash/recoil animation on **each** shot. Cruise/cue/fire have persistent ≤50% HP variants. Moving boats request `boat_wake` every **100 ms**, damaged boats request `smoke_trail` every **150 ms**. Ten sink frames occupy the unchanged **1200 ms** death, with cage sparks, nose dip and tumbling crew; death requests `airboat_sink`, **1.5** `mech_pop` FX and the existing splash. Canvas **104×64** provides fan/debris space and seats the keel at the waterline. Original shot socket/timing/targets and leaper drops remain intact.
+- **Piranha: 38 frames / 7 tags.** Fin/periscope and surface bulge, six drawn leap angles, jaw snap, descending poses, submerging splash and ten breakup frames with separating scales/jaw. Body pixels are omitted below the swim surface rather than fading the entire fish; vulnerability and trajectory remain unchanged. Death requests `mech_pop` sound and FX at **0.6**. Canvas **40×28**.
+- **Gnat: 28 frames / 5 tags.** Tapered segmented red fuel bulb, needle, thin legs, four pale-pane wing phases, glowing dive cue, tucked dive legs, recovery and ten wing/bulb breakup frames. Death requests `mech_pop` sound and FX at **0.5**. Canvas **32×28**; original swarm cap, weave, fixed dive target and flight clamps retained.
+- **Lurker: 67 frames / 12 existing tags.** Five large moss clumps, readable reeds/cattail, wet trouser hems and drips replace the noisy stripes. Clothing follows crouch/run and rotates with the soldier in launched/explosion deaths. Three deaths now have eight frames each. Rise remains **700 ms**; the grunt rifle AI is unchanged. Canvas **48×48**.
+- **Runtime:** only `game/src/entities/enemies/BayouEnemy.ts` changed. Cosmetic pose clocks do not delay combat. Hurtbox dimensions/anchors, HP, damage, scoring, cues, attack trajectories and entry rules are unchanged. Shotgun displacement still uses the existing safe-ground probes. Pose/cue caching and loop cleanup are retained; a hit cannot hide an airboat shot flash, sleep flinches clear, and boats cruise while exiting. `BossFlash` continues handling reduced flash. No tuning, map, shared-contract, Enemies A, GATORGEDDON or H2 MEGA-SKEETER changes.
+
+### Rebuild and reproduce
+
+From the repository root, rebuild only this roster through the normal pipeline:
+
+```sh
+KBE_ART_ONLY=roster bash game/tools/build-art.sh art-src/enemies/phase-g.lua
+UV_CACHE_DIR=/tmp/kbe-imagegen/uv-cache /home/knotz2/.local/bin/uv run --offline --with pillow,numpy python3 -I game/art-src/enemies/lib/phase-h-contact.py
+```
+
+`phase-g.lua` still accepts Aseprite's `--script-param only=roster` / `only=bosses`; the default full build retains the original bosses and egg. The roster-only build also deterministically rebuilds the unchanged turtle egg.
+
+Exact context URLs, appended to the local dev origin:
+
+- Hopper: `?scene=Game&fast=1&mute=1&god=1&part=2-1&x=2640`
+- Airboat: `?scene=Game&fast=1&mute=1&god=1&part=2-2&x=600`
+- Piranha: `?scene=Game&fast=1&mute=1&god=1&part=2-1&x=1000`
+- Gnat: `?scene=Game&fast=1&mute=1&god=1&part=2-1&x=1700`
+- Lurker: `?scene=Game&fast=1&mute=1&god=1&part=2-3&x=350`
+
+Add `debug=1` for hurtboxes. Each kind also works with `?scene=Game&fast=1&mute=1&god=1&enemytest=<kind>`.
+
+### Inspected evidence and verification
+
+All scratch is **`/tmp/kbe-enemies-b/phase-h/`**. Opened and visually inspected:
+
+- **Every frame/tag at 4× beside grunt/Knotz:** `contact-hopper-4x.png`, `contact-airboat-4x.png`, `contact-piranha-4x.png`, `contact-gnat-4x.png`, `contact-lurker-4x.png`. Matching `contact-<kind>-1x.png` files are also generated. Compact `review-<kind>.png` pose sheets helped refine haunches, throat volume, fish plates and wing panes.
+- **Before/after real-map comparisons:** `compare-context-hopper.png`, `compare-context-airboat.png`, `compare-context-piranha.png`, `compare-context-gnat.png`, `compare-context-lurker.png`. Sources are `before-context-<kind>.png` and `after-context-<kind>.png`; `before-context.json` / `after-context.json` record locations and states. The final boat/fish shots use nearby lower, standable positions to show the waterline; these are contextual comparisons, not identical camera frames. The final capture calls the HUD card's hide helper to expose the actors. All five final contexts report **zero console/page errors**.
+- **51 corrected fixed-step fixture captures:** `sequence-hopper.png`, `sequence-airboat.png`, `sequence-piranha.png`, `sequence-gnat.png`; originals `seq-<kind>-<sample>.png`, metadata `sequences.json`. These include the complete hop/crouch/landing, tongue extension/retraction, all three gun flashes, damaged boat/sink, fish bulge/leap/bite/fall/splash, gnat cue/dive/recovery and every kind's breakup. Specifically opened full-size `seq-hopper-tongue110.png` (**64 px** measured cable), `seq-airboat-fire2.png`, `seq-airboat-death-middle.png`, and `seq-piranha-bite.png`. Initial obscured/entry-wipe captures were replaced by the corrected run, which finishes the entry then seeds a fresh actor away from the left edge. The sandbox fixture deliberately intercepts only the level pack; real-map context captures and arena audits load actual maps.
+- **Acceptance probes:** `probes.json` / `probes.log`: dirt/mud/water landings, spawn-facing, sleep flinch completion, firing during hurt, exit cruise, original hopper hurtbox, **100 unchanged pose requests / zero redundant plays**, exactly one kill after two lethal-hit attempts and released corpse. All four sequence fixtures destroy their corpses and have zero page/game errors. Recorded wake intervals are **100 ms**, smoke **150 ms**; the hopper still moves during a shotgun shove. The early death/landing fixtures recorded missing Phase H sound warnings; UI/Audio subsequently landed all three catalog entries, pack entries and OGG files before handoff (final cache check: `audio-integration.log`).
+- **Art validation PASS:** `art-audit.log`, all nine Phase G assets **599 frames / 105 unique prefixed tags**, master-palette source pixels and binary alpha; five changed assets contain **217 frames / 41 tags**. `global-tags.log`: **696 unique atlas tags, zero duplicates** across the entire sprite tree. `build-final.log` records the successful normal-pipeline roster build.
+- **`npm --prefix game run check`: PASS**, TypeScript and Phaser checker, **115 files / zero errors or warnings** (`check-final.log`).
+- **`npm --prefix game run audit`: PASS**, reach and arenas for all six parts (`audit.log`). Final post-runtime-edit **`node game/tools/arena-audit.mjs --part 2-1,2-2,2-3`: PASS**, all Mission 2 waves and boss phases **1/2/3 → PartClear / Results**, **zero off-view time** (`audit-m2-final.log`).
+- **`npm --prefix game run selftest`: FAIL, 2 Engine camera checks**, `letterbox/focus/zoomPunch render only and release cleanly` and `scene running (unlock blend progressed)` (`selftest.log`). Every other full-run check passes, including frame resolution, projectile pool, campaign/mission flow, load recovery and listener stability; zero page/game errors. One bounded `--only core` retry repeats both camera failures and additionally fails the held-Enter/fresh-pause input timing check (`selftest-core-retry.log`). These files are outside Enemies ownership and were left untouched. No selftest pass is claimed.
+
+All verification attempts were bounded below ten minutes. No real-time bot playthrough, repo-root `playtest/` edit, new dependency or git state change. All started servers/browsers and the reference poller exited. Fixed-step correctness and visual review were checked; no sustained FPS benchmark is claimed.
+
+### Requests for other teams
+
+- **Engine / QA:** investigate the two camera selftest failures and the focused retry's held-Enter/fresh-pause failure above; rerun under settled browser load. The deterministic Enemies probes and every arena pass.
+- **Lead / QA:** review the five reference-driven redraws and the inspected sheets/sequences for H2; sustained SwiftShader performance acceptance remains with the integration review. No new shared contract or map changes are requested.

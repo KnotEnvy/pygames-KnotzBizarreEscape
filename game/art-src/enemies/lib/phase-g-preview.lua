@@ -24,5 +24,6 @@ if app.params.silhouette~='1' then
  end end end;save(im,'states-'..k)
  end
  local keys={'lurker','piranha','hopper','gnat','airboat'};local im=Image(400,500,ColorMode.RGB);K.rect(im,0,0,400,500,'ink1')
- for row,k in ipairs(keys) do for col,p in ipairs(k=='lurker' and {'idle','rise','shoot','death_launched'} or {'idle','cue','attack','death'}) do draw(im,k,p,col-1,col*100-50,row*100-10) end end;save(im,'states-roster')
+ local poses={lurker={'idle','rise','shoot','death_launched'},hopper={'idle','crouch','tongue_cue','death'},airboat={'cruise','gun_cue','fire','sink'},piranha={'swim','bulge','bite','break'},gnat={'hover','dive_cue','dive','pop'}}
+ for row,k in ipairs(keys) do for col,p in ipairs(poses[k]) do draw(im,k,p,col-1,col*100-50,row*100-10) end end;save(im,'states-roster')
 end

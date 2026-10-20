@@ -5,7 +5,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 80
    },
    "gnat#1": {
     "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
@@ -13,26 +13,26 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 80
    },
    "gnat#2": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 66, "y": 0, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 80
    },
    "gnat#3": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 99, "y": 0, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 80
    },
    "gnat#4": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 132, "y": 0, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -40,7 +40,7 @@
     "duration": 100
    },
    "gnat#5": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 0, "y": 29, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -48,7 +48,7 @@
     "duration": 100
    },
    "gnat#6": {
-    "frame": { "x": 66, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 33, "y": 29, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -56,7 +56,7 @@
     "duration": 100
    },
    "gnat#7": {
-    "frame": { "x": 0, "y": 29, "w": 32, "h": 28 },
+    "frame": { "x": 66, "y": 29, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -64,7 +64,7 @@
     "duration": 100
    },
    "gnat#8": {
-    "frame": { "x": 66, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 99, "y": 29, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -72,7 +72,7 @@
     "duration": 100
    },
    "gnat#9": {
-    "frame": { "x": 0, "y": 29, "w": 32, "h": 28 },
+    "frame": { "x": 132, "y": 29, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -80,7 +80,7 @@
     "duration": 100
    },
    "gnat#10": {
-    "frame": { "x": 66, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 0, "y": 58, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -88,7 +88,7 @@
     "duration": 100
    },
    "gnat#11": {
-    "frame": { "x": 0, "y": 29, "w": 32, "h": 28 },
+    "frame": { "x": 33, "y": 58, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -96,7 +96,7 @@
     "duration": 100
    },
    "gnat#12": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 99, "y": 29, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -104,7 +104,7 @@
     "duration": 100
    },
    "gnat#13": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 132, "y": 29, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -128,7 +128,7 @@
     "duration": 100
    },
    "gnat#16": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 66, "y": 0, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -136,7 +136,7 @@
     "duration": 100
    },
    "gnat#17": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 99, "y": 0, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
@@ -144,196 +144,84 @@
     "duration": 100
    },
    "gnat#18": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 66, "y": 58, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 60
    },
    "gnat#19": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 99, "y": 58, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 60
    },
    "gnat#20": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 132, "y": 58, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 60
    },
    "gnat#21": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 0, "y": 87, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 60
    },
    "gnat#22": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 33, "y": 87, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 60
    },
    "gnat#23": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 66, "y": 87, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 60
    },
    "gnat#24": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 99, "y": 87, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 60
    },
    "gnat#25": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 132, "y": 87, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 60
    },
    "gnat#26": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 0, "y": 116, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 60
    },
    "gnat#27": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
+    "frame": { "x": 33, "y": 116, "w": 32, "h": 28 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
     "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#28": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#29": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#30": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#31": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#32": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#33": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#34": {
-    "frame": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#35": {
-    "frame": { "x": 33, "y": 0, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#36": {
-    "frame": { "x": 33, "y": 29, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#37": {
-    "frame": { "x": 66, "y": 29, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#38": {
-    "frame": { "x": 33, "y": 29, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#39": {
-    "frame": { "x": 66, "y": 29, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#40": {
-    "frame": { "x": 33, "y": 29, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
-   },
-   "gnat#41": {
-    "frame": { "x": 66, "y": 29, "w": 32, "h": 28 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 28 },
-    "sourceSize": { "w": 32, "h": 28 },
-    "duration": 100
+    "duration": 60
    }
  },
  "meta": {
@@ -341,19 +229,19 @@
   "version": "1.3.18.6-dev",
   "image": "gnat.png",
   "format": "RGBA8888",
-  "size": { "w": 98, "h": 57 },
+  "size": { "w": 164, "h": 144 },
   "scale": "1",
   "frameTags": [
-   { "name": "gnat_idle", "from": 0, "to": 5, "direction": "forward", "color": "#000000ff" },
-   { "name": "gnat_cue", "from": 6, "to": 11, "direction": "forward", "color": "#000000ff" },
-   { "name": "gnat_attack", "from": 12, "to": 17, "direction": "forward", "color": "#000000ff" },
-   { "name": "gnat_tongue_cue", "from": 18, "to": 23, "direction": "forward", "color": "#000000ff" },
-   { "name": "gnat_tongue", "from": 24, "to": 29, "direction": "forward", "color": "#000000ff" },
-   { "name": "gnat_fire", "from": 30, "to": 35, "direction": "forward", "color": "#000000ff" },
-   { "name": "gnat_death", "from": 36, "to": 41, "direction": "forward", "color": "#000000ff" }
+   { "name": "gnat_hover", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "gnat_dive_cue", "from": 4, "to": 7, "direction": "forward", "color": "#000000ff" },
+   { "name": "gnat_dive", "from": 8, "to": 13, "direction": "forward", "color": "#000000ff" },
+   { "name": "gnat_recover", "from": 14, "to": 17, "direction": "forward", "color": "#000000ff" },
+   { "name": "gnat_pop", "from": 18, "to": 27, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
-   { "name": "main", "opacity": 255, "blendMode": "normal" }
+   { "name": "wings", "opacity": 255, "blendMode": "normal" },
+   { "name": "body", "opacity": 255, "blendMode": "normal" },
+   { "name": "motion", "opacity": 255, "blendMode": "normal" }
   ],
   "slices": [
   ]

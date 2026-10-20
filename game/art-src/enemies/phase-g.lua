@@ -162,44 +162,18 @@ local function skeeter(im,pose,f,n,tier)
  end
  if pose=='stuck' then D.line(im,0,79,18,79,'sand4');D.line(im,1,76,4,72,'fire5');D.line(im,14,75,19,72,'fire4') end
 end
+-- Rebuild this roster through build-art.sh without rewriting the unchanged bosses.
+-- KBE_ART_ONLY=roster bash tools/build-art.sh art-src/enemies/phase-g.lua
+local only=app.params.only or os.getenv('KBE_ART_ONLY')
 local silhouette=app.params.silhouette=='1'
+if only~='roster' then
 for _,spec in ipairs({{'shellshock',112,80,shell},{'shellshock_head',48,32,head},{'skeeter',144,88,skeeter}}) do
  local A={};local poses=silhouette and {'idle'} or spec[1]=='shellshock_head' and {'idle','hiss','cue_high','cue_low','snap','death'} or spec[1]=='shellshock' and {'idle','intro','eggs','spin_cue','spin','death'} or {'idle','intro','laser','dive','stuck','larva','fan_cue','fan','death'}
  for tier=0,(silhouette and 0 or 2) do for _,pose in ipairs(poses) do A[#A+1]=D.anim(spec[1]..'_'..pose..(tier==0 and '' or tier==1 and '_damaged' or '_critical'),6,pose=='intro' and 180 or 100,function(im,f,n) spec[4](im,pose,f,n,tier) end) end end
  D.build(spec[1],spec[2],spec[3],A)
 end
-if not silhouette and app.params.only~='bosses' then
- local poses={'idle','walk','alert','shoot','crouch_idle','crouch_shoot','sleep','panic','rise','death_launched','death_flame','death_explosion'};local A={}
- for _,p in ipairs(poses) do A[#A+1]=D.anim('lurker_'..p,p=='walk' and 8 or p=='rise' and 7 or 4,100,function(im,f,n)
-  if p:find('death') then D.death(im,'grunt',p:find('flame') and 'flame' or 'launched',f,n) else D.soldier(im,'grunt',p=='rise' and 'idle' or p,f,n) end
-  for j=0,6 do local x=16+j*3;D.line(im,x,11,x-1,18+(f+j)%4,'leaf2',2);D.line(im,x+1,12,x,17,'leaf4') end
-  for j=0,4 do D.line(im,17+j*3,23,15+j*3,34+(j+f)%3,'olive2',2);K.px(im,17+j*3,27,'olive5') end
-  if p=='rise' then local top=48-math.floor(f/n*40);for y=0,top do for x=0,47 do im:drawPixel(x,y,0) end end;D.line(im,10,46,38,46,'sky4');D.line(im,14,44,34,44,'steel3') end
- end) end;D.build('lurker',48,48,A)
- local function small(im,name,pose,f,n)
-  if name=='hopper' then
-   local squat=pose=='cue' or pose=='tongue_cue';local yy=squat and 5 or (f%3==0 and 1 or 0)
-   D.limb(im,13,27+yy,7,37,'olive2','olive5',5);D.limb(im,32,27+yy,40,37,'olive2','olive5',5);D.box(im,4,37,13,5,'steel2','steel5','outline');D.box(im,31,37,14,5,'steel2','steel5','outline')
-   dome(im,24,27+yy,17,12,'outline');dome(im,23,25+yy,15,10,'olive3');D.box(im,14,23+yy,22,7,'steel2','steel5','steel1');D.line(im,13,31+yy,34,31+yy,'outline',2)
-   for _,x in ipairs({14,31}) do D.disc(im,x,15+yy,7,'outline');D.disc(im,x,14+yy,5,'olive4');D.rect(im,x-3,13+yy,6,2,'fire5');D.rect(im,x,12+yy,2,4,'red2') end
-   dome(im,25,34+yy,pose=='tongue_cue' and 10 or 6,5,pose=='tongue_cue' and 'red5' or 'red2');D.eye(im,21,22+yy)
-  elseif name=='piranha' then
-   dome(im,19,14,13,9,'outline');dome(im,18,13,11,7,'steel3');D.limb(im,29,13,37,7,'red2','red5',3);D.limb(im,29,14,37,21,'red2','red4',3);D.limb(im,17,7,21,2,'olive2','olive5',2)
-   D.disc(im,11,10,4,'red1');D.rect(im,8,9,6,2,'fire5');D.line(im,5,15,19,15,'outline',2);for j=0,3 do D.line(im,6+j*3,15,7+j*3,18,'sand5') end
-  elseif name=='gnat' then
-   for j=0,1 do D.limb(im,16,10,4+j*24,3+(f%2)*4,'steel2','sky5',2) end;dome(im,20,14,7,5,'red2');D.box(im,10,10,9,9,'steel2','steel5','steel1');D.disc(im,10,13,3,pose=='cue' and 'fire5' or 'red5');D.line(im,10,17,6,23,'steel5');D.line(im,18,18,22,22,'steel4')
-  else
-   -- Low planing hull, exposed fan cage, driver and gunner.
-   D.box(im,5,35,81,12,'olive2','olive5','steel1');D.line(im,9,47,80,47,'sky4',2);D.line(im,2,41,14,35,'sand4',2)
-   dome(im,70,22,17,18,'outline');dome(im,70,21,15,16,'steel3');dome(im,70,21,12,13,'steel1');D.line(im,55,21,85,21,'steel5');D.line(im,70,5,70,37,'steel5');D.line(im,59,10,81,32,'steel4');D.line(im,81,10,59,32,'steel4')
-   D.limb(im,70,21,70+math.floor(math.cos(f*1.3)*10),21+math.floor(math.sin(f*1.3)*10),'sand3','sand5',2)
-   for j=0,1 do local x=23+j*21;D.box(im,x,23,10,11,'red3','red5','red1');D.disc(im,x+5,20,5,'skin4');D.box(im,x-1,13,12,6,'red2','red5','outline') end
-   D.box(im,9,27,27,5,'steel2','steel5','steel1');D.box(im,27,31,5,5,'sand3','sand5');if pose=='fire' then D.flash(im,7,28,0) end
-  end
-  if pose=='death' then D.line(im,8,9,26,29,'outline',2);D.line(im,20,8,10,30,'red5',2) end
- end
- for _,spec in ipairs({{'hopper',48,48},{'piranha',40,28},{'gnat',32,28},{'airboat',96,56}}) do local A={}
- for _,pose in ipairs({'idle','cue','attack','tongue_cue','tongue','fire','death'}) do A[#A+1]=D.anim(spec[1]..'_'..pose,6,100,function(im,f,n) small(im,spec[1],pose,f,n) end) end
- D.build(spec[1],spec[2],spec[3],A) end
+end
+if not silhouette and only~='bosses' then
+ dofile(app.params.root..'/art-src/enemies/lib/phase-h-roster.lua')
  D.build('turtle_egg',16,20,{D.anim('turtle_egg_blink',4,120,function(im,f) dome(im,8,11,6,8,'outline');dome(im,7,10,5,7,'sand4');D.line(im,4,8,10,8,'olive3',2);D.rect(im,6,4,4,3,f%2==0 and 'fire5' or 'red2') end)})
 end
