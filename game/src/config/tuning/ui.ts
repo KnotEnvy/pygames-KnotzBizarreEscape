@@ -102,8 +102,7 @@ export const UI = {
         x: 8, y: 30, w: 368, h: 25, hiddenDy: -12, openMs: 240, closeMs: 180,
         /** Icon / speaker label / text columns inside the strip (the 24×24 radio art is drawn at frame x 3..22). */
         iconX: -1, iconY: 1, labelX: 26, labelY: 8, textX: 66, textY: 9,
-        /** Opens this long after the title card starts: as the card's title leaves (titleAt + holdMs = 2840), so it never stacks with it. */
-        delayMs: 2650,
+        /** No open delay: the strip opens when the title card's out-tween completes (Phase H, src/ui/titlecard.ts), so it never stacks with the title. */
         /** Typewriter speed and how long a fully typed page stays before the next one / the box closes. */
         charMs: 26, pageHoldMs: 1700, lastPageHoldMs: 2400,
         /** Text area: characters per row and rows per page (one row at a time; longer briefing lines paginate). */

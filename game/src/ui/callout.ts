@@ -15,6 +15,8 @@ export interface CalloutOptions {
     /** Smaller line under the main text (font_hud). */
     sub?: string;
     y?: number;
+    /** Called once the out-tween has finished and the text is gone (Phase H: the title card opens Hazel's radio on it). Dropped if a new show() replaces this one first. */
+    onHidden?: () => void;
 }
 
 type Phase = 'idle' | 'drop' | 'hold' | 'out';
@@ -30,6 +32,7 @@ export class Callout {
     private flashLeft = 0;
     private flashTick = 0;
     private tint = 0xffffff;
+    private onHidden: (() => void) | null = null;
 
     constructor(private readonly scene: Phaser.Scene, y: number = UI.hud.callout.y, depth = 50) {
         this.baseY = y;
@@ -46,6 +49,7 @@ export class Callout {
         this.hold = opts.holdMs ?? K.holdMs;
         this.tint = opts.tint ?? 0xffffff;
         this.baseY = opts.y ?? this.baseY;
+        this.onHidden = opts.onHidden ?? null;
         this.scene.tweens.killTweensOf([this.main, this.sub]);
         this.main.setFont(this.font).setText(str).setTint(this.tint).setAlpha(1).setVisible(true).setPosition(W / 2, this.baseY - 36);
         this.sub.setText(opts.sub ?? '').setAlpha(0).setVisible(!!opts.sub).setPosition(W / 2, this.baseY + 16);
@@ -73,7 +77,10 @@ export class Callout {
         this.scene.tweens.add({ targets: this.main, y: this.baseY - 28, alpha: 0, duration: UI.hud.callout.outMs, ease: 'Quad.easeIn' });
         this.scene.tweens.add({
             targets: this.sub, alpha: 0, duration: UI.hud.callout.outMs,
-            onComplete: () => { this.phase = 'idle'; this.main.setVisible(false); this.sub.setVisible(false); }
+            onComplete: () => {
+                this.phase = 'idle'; this.main.setVisible(false); this.sub.setVisible(false);
+                const done = this.onHidden; this.onHidden = null; done?.();
+            }
         });
     }
 

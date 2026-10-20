@@ -13,6 +13,13 @@
     "peak_db": -11.8,
     "rms_db": -20.2
   },
+  "airboat_sink": {
+    "duration": 2.013,
+    "file": "assets/audio/sfx/airboat_sink.ogg",
+    "loop": false,
+    "peak_db": -5.6,
+    "rms_db": -18.1
+  },
   "amb_camp": {
     "duration": 3.2,
     "file": "assets/audio/sfx/amb_camp.ogg",
@@ -377,6 +384,13 @@
     "peak_db": -2.9,
     "rms_db": -16.5
   },
+  "buzzard_gun": {
+    "duration": 0.34,
+    "file": "assets/audio/sfx/buzzard_gun.ogg",
+    "loop": false,
+    "peak_db": -7.8,
+    "rms_db": -15.5
+  },
   "buzzard_rotor": {
     "duration": 0.9,
     "file": "assets/audio/sfx/buzzard_rotor.ogg",
@@ -699,6 +713,13 @@
     "peak_db": -5.3,
     "rms_db": -20.0
   },
+  "heli_crash": {
+    "duration": 2.183,
+    "file": "assets/audio/sfx/heli_crash.ogg",
+    "loop": false,
+    "peak_db": -5.6,
+    "rms_db": -16.8
+  },
   "hmg": {
     "duration": 0.07,
     "file": "assets/audio/sfx/hmg.ogg",
@@ -726,6 +747,13 @@
     "loop": false,
     "peak_db": -2.9,
     "rms_db": -18.8
+  },
+  "hopper_land": {
+    "duration": 0.33,
+    "file": "assets/audio/sfx/hopper_land.ogg",
+    "loop": false,
+    "peak_db": -2.7,
+    "rms_db": -16.4
   },
   "hopper_tongue": {
     "duration": 0.261,
@@ -859,6 +887,13 @@
     "loop": false,
     "peak_db": -6.8,
     "rms_db": -19.7
+  },
+  "mech_pop": {
+    "duration": 0.335,
+    "file": "assets/audio/sfx/mech_pop.ogg",
+    "loop": false,
+    "peak_db": -1.9,
+    "rms_db": -16.9
   },
   "melee_hit": {
     "duration": 0.15,

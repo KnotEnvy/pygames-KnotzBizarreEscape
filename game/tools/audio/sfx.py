@@ -3,6 +3,7 @@ Phase F adds the WARNING siren, HUD ticks, weapon layers, the bg_* background mo
 Phase G (Mission 2 "Bayou Blackout") adds the shotgun, water (splash_s..xl, wade/mud steps, drown), the bayou enemies, the three mechs
 (SHELLSHOCK, MEGA-SKEETER, GATORGEDDON), the level props (logs, vents, horn, branches, paddlewheel, mill wheel, thunder, planks), the
 Mission 2 bg_* moments and the amb_* beds keyed by fx:ambience kind (swamp, rain, storm, fog, riverboat).
+Phase H (enemy facelift) adds buzzard_gun, heli_crash, hopper_land, mech_pop and airboat_sink.
 usage: uv run --with numpy,scipy,soundfile,pillow python3 -I tools/audio/sfx.py [--wav] [names...]
 Output: public/assets/audio/sfx/<key>.ogg + sfx_manifest.json (duration/peak/rms/loop per key).
 """
@@ -1292,6 +1293,74 @@ def airboat_gun():
     return declick(place([(0, one), (0.075, one * 0.95), (0.15, one * 0.9)]))
 
 
+# ---- Phase H: enemy facelift sounds (Buzzard chin gun and crash, hopper landing, small mech death, airboat sinking)
+def buzzard_gun():
+    """Buzzard chin-gun burst, 0.34 s: four chunky cracks at ~14/s, lower and rounder than the HMG, over a short turret whir."""
+    one = mix(burst(0.07, 0.011, hp=380, lp=5200, attack=0.0004), thump(0.1, 200, 70, 0.026, drive=2.3),
+              bandpass(noise(0.05), 850, 2.0) * perc(0.05, 0.0005, 0.012) * 0.6)
+    one = distort(one, 1.6)
+    dur = 0.34
+    whir = lowpass(saw(expsweep(dur, 150, 230), dur) * (0.6 + 0.4 * square(60, dur, 0.5)), 1200) * lin(dur, [(0, 0), (0.02, 1), (0.27, 1), (dur, 0)]) * 0.12
+    ev = [(i * 0.072, one * (1.0 - i * 0.04)) for i in range(4)] + [(0, whir)]
+    return declick(place(ev))
+
+
+def heli_crash():
+    """Buzzard death, 2.2 s: the turbine shrieks up then winds down while the blade thumps slow, metal tears and groans,
+    then a heavy impact with clanking debris and a short rumble tail."""
+    dur = 2.0
+    f = np.concatenate([expsweep(0.3, 1850, 2600), expsweep(dur - 0.3, 2600, 260)])
+    shriek = lowpass(saw(f, dur) * 0.6 + saw(f * 1.5, dur) * 0.3, 5000) * lin(dur, [(0, 0.8), (0.3, 1), (1.3, 0.5), (1.7, 0)]) * 0.3
+    ev = []
+    t0, per = 0.0, 1 / 13.3
+    while t0 < 1.5:
+        ev.append((t0, mix(burst(0.05, 0.012, lp=420, attack=0.001), sine(58, 0.05) * perc(0.05, 0.001, 0.02) * 0.6) * (1 - t0 / 2.2)))
+        per *= 1.09
+        t0 += per
+    thumps = place(ev, total=dur)
+    tear = distort(bandpass(noise(0.9), 1400, 1.5) + bandpass(noise(0.9), 3200, 2.0) * 0.6, 4.0, "hard")
+    tear = tear * (0.5 + 0.5 * square(23, 0.9, 0.5)) * (0.6 + 0.4 * square(7, 0.9, 0.5)) * lin(0.9, [(0, 0), (0.05, 1), (0.9, 0)]) * 0.45
+    groan = formant(saw(expsweep(0.6, 220, 130), 0.6), (350, 760), 5.0) * lin(0.6, [(0, 0), (0.1, 1), (0.6, 0)]) * 0.4
+    impact = explo(1.0, 110, 28, 0.2, 0.16, 2.8, rumble=0.8)
+    clank = mix(ring(0.3, [620, 980, 1460], 0.06, [1, 0.6, 0.35]), burst(0.03, 0.004, hp=2000) * 0.6)
+    ev2 = [(0, shriek), (0, thumps), (0.35, tear), (0.4, groan), (1.15, impact), (1.22, clank * 0.6), (1.42, clank * 0.4), (1.6, clank * 0.25)]
+    return declick(reverb(place(ev2, total=dur + 0.3), 0.5, 0.2))
+
+
+def hopper_land():
+    """Hopper landing, 0.45 s: a heavy hydraulic thud, the leg pistons hissing as they take the weight, and a wet slap."""
+    thud = thump(0.22, 150, 45, 0.05, drive=2.2)
+    crunch = distort(burst(0.08, 0.015, hp=250, lp=2500, attack=0.0005), 3.0, "hard") * 0.4
+    slap = filter_sweep(noise(0.18, "pink"), "lp", expsweep(0.18, 3200, 500), 0.9) * perc(0.18, 0.001, 0.045) * 0.9
+    hiss = burst(0.3, 0.09, hp=1800, lp=7000, attack=0.01) * 0.65
+    creak = formant(pulse(expsweep(0.2, 130, 100), 0.2, 0.15), (400, 820), 5.0) * lin(0.2, [(0, 0), (0.03, 1), (0.2, 0)]) * 0.18
+    return declick(place([(0, thud), (0, crunch), (0.005, slap), (0.03, hiss), (0.04, creak)]))
+
+
+def mech_pop():
+    """Small mech death, 0.42 s: a crunch of plates, a cartoon spring 'boing' and a sprinkle of glass (comic, capped short for gnat swarms)."""
+    crunch = mix(thump(0.1, 260, 90, 0.03) * 0.8, distort(burst(0.07, 0.012, hp=500, lp=4500), 3.0, "hard") * 0.5)
+    plates = place([(0.015 + i * 0.03, bandpass(noise(0.06), f, 3.0) * perc(0.06, 0.001, 0.015) * 0.7) for i, f in enumerate((900, 1400, 1100))])
+    bf = expsweep(0.3, 520, 300) * vib(0.3, 28, 0.12)
+    boing = (sine(bf, 0.3) * 0.6 + tri(bf, 0.3) * 0.4) * perc(0.3, 0.003, 0.08) * 0.8
+    glass = place([(0.08 + i * 0.045, ring(0.12, [f, f * 1.5], 0.025, [1, 0.5]) * 0.35) for i, f in enumerate((4200, 5600, 4800, 6300))])
+    return declick(place([(0, crunch), (0, plates), (0.03, boing), (0, glass)]))
+
+
+def airboat_sink():
+    """Airboat death, 2.3 s: the fan and engine wind down (chop slowing, putter dropping to a stall), steam hisses off the
+    engine block, and the hull gurgles under with descending bubbles."""
+    dur = 1.3
+    eng = pulse(expsweep(dur, 55, 14), dur, 0.2) + pulse(expsweep(dur, 110, 28), dur, 0.4) * 0.5
+    eng = lowpass(distort(eng, 2.5), 700) * lin(dur, [(0, 0.6), (0.9, 0.5), (dur, 0)])
+    chop = lowpass(noise(dur, "pink"), 1800) * (0.55 + 0.45 * (0.5 + 0.5 * sine(expsweep(dur, 27, 4), dur)) ** 2) * lin(dur, [(0, 1), (1.0, 0.6), (dur, 0)])
+    whine = lowpass(saw(expsweep(dur, 1300, 200), dur), 2500) * lin(dur, [(0, 0.08), (dur, 0)])
+    hiss = burst(1.2, 0.4, hp=1500, lp=6500, attack=0.03) * 0.4
+    gurgle = lowpass(noise(1.2, "pink"), 600) * (0.5 + 0.5 * square(expsweep(1.2, 11, 5), 1.2, 0.5)) * lin(1.2, [(0, 0), (0.1, 1), (1.2, 0)]) * 0.6
+    bubbles = place([(i * 0.11, blip(0.07, 700 - i * 45, 300 - i * 20, sine, 0.5, 0.025) * 0.3) for i in range(8)])
+    return declick(reverb(place([(0, eng), (0, chop), (0, whine), (0.6, hiss), (0.9, gurgle), (1.0, lowpass(bubbles, 2000))], total=2.3), 0.3, 0.15))
+
+
 # ---- SHELLSHOCK
 def turtle_hiss():
     """SHELLSHOCK's hiss, 0.9 s: a reptile hiss (high noise with a shimmer) over a low pulsed growl and a steam bleed."""
@@ -1907,7 +1976,7 @@ def amb_riverboat():
     return _bed(dur, xf, (rush, spray, wheel, low))
 
 
-# ----------------------------------------------------------------- catalog: key -> (fn, loudness dBFS, loop)
+# ----------------------------------------------------------------- catalog: key -> (fn, loudness dBFS, loop[, peak ceiling])
 CATALOG = {
     # weapons
     "pistol": (pistol, -15, False), "hmg": (hmg, -16, False), "spread": (spread, -13, False),
@@ -1969,6 +2038,9 @@ CATALOG = {
     "lurker_rise": (lurker_rise, -17, False), "piranha_leap": (piranha_leap, -17, False), "piranha_bite": (piranha_bite, -16, False),
     "hopper_croak": (hopper_croak, -17, False), "hopper_hop": (hopper_hop, -18, False), "hopper_tongue": (hopper_tongue, -16, False),
     "gnat_buzz": (gnat_buzz, -24, True), "airboat_motor": (airboat_motor, -20, True), "airboat_gun": (airboat_gun, -16, False),
+    # Phase H: enemy facelift (4th field = peak ceiling before encoding; the Phase H rule is <= 0.8)
+    "buzzard_gun": (buzzard_gun, -15, False, 0.8), "heli_crash": (heli_crash, -11, False, 0.8), "hopper_land": (hopper_land, -16, False, 0.8),
+    "mech_pop": (mech_pop, -15, False, 0.8), "airboat_sink": (airboat_sink, -14, False, 0.8),
     # Phase G: SHELLSHOCK
     "turtle_hiss": (turtle_hiss, -16, False), "turtle_snap": (turtle_snap, -13, False), "shell_clank": (shell_clank, -15, False), "shell_spin": (shell_spin, -20, True),
     "egg_lob": (egg_lob, -17, False), "egg_beep": (egg_beep, -18, False),
@@ -2008,10 +2080,11 @@ def trim_tail(x, thresh_db=-54.0, pad=0.03):
 
 
 def render(key):
-    fn, loud, loop = CATALOG[key]
+    fn, loud, loop, *rest = CATALOG[key]
+    ceiling = rest[0] if rest else 0.89
     S.seed(sum(ord(c) for c in key) * 7919 & 0xFFFF)
     x = fn()
-    x = S.set_loudness(x, loud, 0.89)
+    x = S.set_loudness(x, loud, ceiling)
     if not loop:
         x = declick(trim_tail(x), 1.0)
     return x.astype(np.float32), loop

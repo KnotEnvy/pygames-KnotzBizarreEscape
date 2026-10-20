@@ -17,6 +17,13 @@
       },
       {
         "type": "audio",
+        "key": "airboat_sink",
+        "url": [
+          "assets/audio/sfx/airboat_sink.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "amb_fog",
         "url": [
           "assets/audio/sfx/amb_fog.ogg"
@@ -300,6 +307,13 @@
         "key": "hopper_hop",
         "url": [
           "assets/audio/sfx/hopper_hop.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "hopper_land",
+        "url": [
+          "assets/audio/sfx/hopper_land.ogg"
         ]
       },
       {

@@ -30,6 +30,9 @@ MISSION_AUDIO = {
         "bg_herons", "bg_patrol_boat", "bg_wisps", "bg_pond_wake", "bg_gator_pod", "bg_burning_barge", "bg_skeeter_swarm", "bg_airboat_race",
         "bg_mill_creak", "bg_den_glow", "bg_gator_roar", "bg_wreck_collapse", "bg_thunder",
         "amb_swamp", "amb_rain", "amb_storm", "amb_fog", "amb_riverboat",
+        # Phase H: the hopper and the airboat only fly in Mission 2. buzzard_gun / heli_crash / mech_pop stay in the main pack
+        # (the Buzzard is a Mission 1 enemy, and its death plays mech_pop too).
+        "hopper_land", "airboat_sink",
     },
 }
 

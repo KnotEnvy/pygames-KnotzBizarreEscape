@@ -73,7 +73,8 @@ def analyze(path, out_dir, pngs=True):
     r = math.sqrt(float(np.mean(mono ** 2)))
     w = int(sr * 0.3)
     if len(mono) > w:
-        e = np.sqrt(np.convolve(mono ** 2, np.ones(w) / w, mode="valid"))
+        c = np.concatenate([[0.0], np.cumsum(mono ** 2)])
+        e = np.sqrt(np.maximum(c[w:] - c[:-w], 0.0) / w)
         rmax = float(e.max())
     else:
         rmax = r

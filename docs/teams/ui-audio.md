@@ -883,3 +883,73 @@ node tools/shot.mjs --out /tmp/kbe-ui/g10-results-c.png --query "scene=Title&deb
 # thunder timing/gate (in-page poller diffs audio.played / audio.recent every 40 ms)
 node tools/shot.mjs --out /tmp/kbe-ui/thunder-probe3.png --query "scene=Game&part=2-1&debug=1&fast=1&god=1&x=600" --wait 3000 --steps "$(cat /tmp/kbe-ui/thunder-steps3.json)"
 ```
+
+## 15. Phase H: enemy facelift sounds and the title card / radio hand-off
+
+Scratch: `/tmp/kbe-ui/audio/sheet_phaseh.png` (spectrogram + waveform of the five new keys), `/tmp/kbe-ui/h_card/sheet_{11,12,13,21,22,23}.png`
+(28 frames at 0.25 s from each part's start), `sheet_mid12.png` (PART CLEAR 1-1 → 1-2 with a carry, 28 frames from 1-2's start),
+`sheet_fine11.png` / `sheet_fine21.png` (16 frames at 50 ms across the hand-off, 3.05–3.80 s). `npm run check` clean, `npm run audit` PASS ×6, `npm run selftest` all passed.
+
+### Five new enemy sounds (`tools/audio/sfx.py` "Phase H" block; Enemies plays them with `ctx.audio.sfx`)
+| Key | Pack | Length | Peak / RMS / loudest 300 ms (dBFS, encoded) | Family reference | Recipe |
+|---|---|---|---|---|---|
+| `buzzard_gun` | `ui.json` | 0.34 s | −7.4 / −15.5 / −15.0 | `hmg` −7.6/−16.1, `airboat_gun` −2.6/−16.0 | four cracks at ~14/s (hp 380 + 200→70 Hz thump, drive 2.3), lower and rounder than the HMG, over a short 150→230 Hz turret whir |
+| `heli_crash` | `ui.json` | 2.18 s | −5.6 / −16.7 / −10.9 | `explo_l` −3.2/−13.1/−9.5, `boss_death` −9.0 | turbine shriek up then down (1850→2600→260 Hz) while the 13 Hz blade thumps slow ×1.09 per beat, gated hard-clipped metal tear + a formant groan, then `explo(1.0 s)` with three clanks and a rumble tail |
+| `hopper_land` | `ui.m2.json` | 0.33 s | −3.4 / −16.4 / −16.0 | `hopper_hop` −2.5/−18.8, `hopper_croak` −6.7/−18.2 | 150→45 Hz thud (drive 2.2) + a hard-clipped crunch, a low-pass-swept wet slap, the leg-piston hiss (hp 1800) and a short servo creak |
+| `mech_pop` | `ui.json` | 0.34 s | −2.2 / −16.9 / −16.4 | `crate_break` −3.0/−17.0, `larva_pop` −1.7/−17.0 | plate crunch (thump + three band-passed clicks), a cartoon spring boing (520→300 Hz with 28 Hz vibrato), four glass tinkles at 4.2–6.3 kHz |
+| `airboat_sink` | `ui.m2.json` | 2.01 s | −5.4 / −18.0 / −14.0 | `drown` −5.2/−18.3/−13.0, `log_sink` −4.1/−20.3 | the V8 putter and fan chop wind down (55→14 Hz, chop 27→4 Hz) to a stall, steam hiss from 0.6 s, a gurgle gated at 11→5 Hz and eight descending bubbles |
+
+- **Catalog** (`src/audio/catalog.ts`): `buzzard_gun` vol .8 vary 40 max 2 minMs 150; `heli_crash` vol 1 vary 30 max 1 minMs 300; `hopper_land` vol .85
+  vary 60 max 3 minMs 60; **`mech_pop` vol .9 vary 120 max 3 minMs 50 + burst fatigue (220 ms, −.12/shot, floor .5)** so a 6-gnat swarm dying in one
+  burst is three punchy pops settling to half, not a wall; `airboat_sink` vol .9 vary 40 max 1 minMs 300.
+- **Packs** (`tools/audio/make_pack.py` `MISSION_AUDIO[2]`): `hopper_land` and `airboat_sink` are Mission 2 only (`ui.m2.json` 78 files); `buzzard_gun`,
+  `heli_crash` and `mech_pop` stay in `ui.json` (152 files) because the Buzzard flies (and dies) in Mission 1.
+- **Peak rule:** the SFX `CATALOG` tuple takes an optional 4th field, the peak ceiling before encoding; the five new keys use **0.8** (Vorbis overshoots
+  ~1 dB; `mech_pop` encodes at −2.2 dBFS). Older keys keep the 0.89 default, so nothing else re-renders differently.
+- **Pipeline fix:** `kbe_synth.set_loudness` and `analyze.py` measured the loudest 300 ms window with `np.convolve` over a 13 230-sample box, which is
+  O(N·w) and took minutes on a 2 s sound (the render looked hung). Both now use a cumulative sum (same numbers, linear time).
+- **Run it offline:** `uv run` without `--offline` waits on the network for minutes in this sandbox. Use
+  `/home/knotz2/.local/bin/uv run --offline --with numpy,scipy,soundfile,pillow python3 -I tools/audio/sfx.py --wav <keys>` (the default `~/.cache/uv` has the wheels).
+
+### Title card / radio hand-off (`src/ui/titlecard.ts`, `src/ui/callout.ts`, `src/config/tuning/ui.ts`)
+- **Before:** the radio opened on a fixed `UI.radio.delayMs` (2650) while the title held until `titleAt + holdMs` (2840) plus the Callout's drop (220) and
+  out (220), so Hazel's strip (y 30..55) dropped onto the big title text (Lead's `ctx_hopper_1.png`).
+- **Now, event-driven:** `Callout.show()` takes `onHidden`, fired when its out-tween completes. The card shows the title with
+  `onHidden: () => openRadio(info)`; `out()` (the card's hold timeout **or** a `cut()` from a weapon callout / `boss:intro`) hides the title together
+  with the mission line and location, and the radio opens only when the title is fully gone. A `cut()` before the title ever showed (inside the first
+  240 ms) opens the radio after `outMs`. `hide()` (stage clear, game over, a new `show()`) clears the owed part (`radioFor`), so a stale title's
+  `onHidden` can't open a briefing for the wrong part. `UI.radio.delayMs` is gone.
+- **Measured** (frozen fixed-step sim, `card.state` + shots every 250 ms, then every 50 ms): in every part the title is on screen 0.75–3.25 s
+  (1-3: 1.0–3.5 s, its restart passes the loader), the out-tween runs 3.19–3.41 s, the strip starts fading in at 3.45 s and types from 3.70 s. No frame
+  shows both. The briefing's first page is fully typed by ~4.75 s; the openings keep their first threat ≥ 224 px out (Mission 2 QA), so it still reads
+  before anything shoots. The radio now opens ~0.8 s later than before (3.41 s vs 2.65 s).
+- **Mid-run flow** (`PartClear` 1-1 → auto-advance → `Game 1-2` with the carry): same order, `sheet_mid12.png`.
+
+### See it
+```sh
+# frames at 0.25 s from a part's start (restart the Game under a frozen sim, advance 250 ms, render, shot; 28 frames) — steps JSON from /tmp/kbe-ui/h_steps.py
+node tools/shot.mjs --out /tmp/kbe-ui/h_card/21_final.png --query "debug=1&scene=Game&fast=1&mute=1&god=1&part=2-1" --wait 4000 --steps "$(python3 -I /tmp/kbe-ui/h_steps.py 2-1 28)"
+# 50 ms frames across the hand-off (pre-roll 3.0 s in rendered 250 ms chunks: a scene restart only lands on a rendered frame)
+node tools/shot.mjs --out /tmp/kbe-ui/h_card/fine21_final.png --query "debug=1&scene=Game&fast=1&mute=1&god=1&part=2-1" --wait 4500 --steps "$(python3 -I /tmp/kbe-ui/h_steps.py 2-1 16 restart 50 3000 fine21)"
+# PART CLEAR → next part (Title → PartClear with real from/next/result, auto-advance, stop at 1-2's card, then 28 frames)
+node tools/shot.mjs --out /tmp/kbe-ui/h_card/mid12_final.png --query "debug=1&scene=Title&fast=1&mute=1" --wait 4500 --steps "$(python3 -I /tmp/kbe-ui/h_steps.py 1-2 28 partclear 250 0 mid12)"
+# audio: render the five keys, split the packs, analyze against the references
+/home/knotz2/.local/bin/uv run --offline --with numpy,scipy,soundfile,pillow python3 -I tools/audio/sfx.py --wav buzzard_gun heli_crash hopper_land mech_pop airboat_sink
+/home/knotz2/.local/bin/uv run --offline --with numpy python3 -I tools/audio/make_pack.py
+/home/knotz2/.local/bin/uv run --offline --with numpy,scipy,soundfile,pillow python3 -I tools/audio/analyze.py /tmp/kbe-ui/audio public/assets/audio/sfx/{buzzard_gun,heli_crash,hopper_land,mech_pop,airboat_sink,hmg,airboat_gun,hopper_hop,explo_l,crate_break,drown}.ogg
+```
+
+### Known issues
+- Nobody has heard the five sounds; levels are numeric against the Mission 1–2 references.
+- Test-harness only: booting with `--wait 1500` while other teams load the machine sometimes starts the probe before Preload has finished, so the
+  HUD icons come up magenta, UI audio keys log as unknown and the Title logo stays over the Game. Not a game bug (plain boots are clean); use
+  `--wait 4000+` (Mission 2: 4500).
+- Optional item 3 (other strip/callout overlaps): desk check only. The strip (30..55) is under the top HUD and above the weapon callout (74),
+  the WARNING band (84..140), the prompts (178/200) and the boss bar (198); the one known offender is the Buzzard cruising up into the strip,
+  which Enemies A is moving to the 62–110 flier band.
+
+### Requests for other teams
+- **Enemies A/B:** play `buzzard_gun` per burst, `heli_crash` + `explosion l` on the Buzzard death, `hopper_land` on the landing squash,
+  `mech_pop` on every small-mech death (hopper, airboat, piranha, gnat, Buzzard), `airboat_sink` with the airboat's splash. All five are in the catalog;
+  unknown keys stay silent, so nothing breaks before the wiring lands.
+- **Engine/Lead:** none.

@@ -433,7 +433,9 @@ def set_loudness(x, target_rms_db, ceiling=0.95):
     x = np.asarray(x, dtype=float)
     w = n(0.3)
     if len(x) > w:
-        e = np.sqrt(np.convolve(np.square(x), np.ones(w) / w, mode="valid"))
+        # Windowed mean of x² by cumulative sum (np.convolve with a 13k-sample box is O(N·w): minutes on a 2 s sound).
+        c = np.concatenate([[0.0], np.cumsum(np.square(x))])
+        e = np.sqrt(np.maximum(c[w:] - c[:-w], 0.0) / w)
         cur = float(e.max())
     else:
         cur = rms(x)

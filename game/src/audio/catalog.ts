@@ -175,6 +175,18 @@ export const SFX_META: Record<string, SfxMeta> = {
     gnat_buzz: { vol: 0.5, loop: true, max: 4 },
     airboat_motor: { vol: 0.7, loop: true, max: 2 },
     airboat_gun: { vol: 0.8, vary: 30, max: 2, minMs: 120 },
+    // Phase H: enemy facelift. buzzard_gun / heli_crash / mech_pop ship in the main pack (the Buzzard flies in Mission 1);
+    // hopper_land / airboat_sink are Mission 2 only (ui.m2.json).
+    /** Chin-gun burst (4 cracks, 0.34 s): one per burst, so two gunships can't stack a wall of it. */
+    buzzard_gun: { vol: 0.8, vary: 40, max: 2, minMs: 150 },
+    /** Gunship death (2.2 s): rotor wind-down, tearing metal, the impact. One at a time; Enemies layers explosion `l` with it. */
+    heli_crash: { vol: 1, vary: 30, max: 1, minMs: 300 },
+    /** Hydraulic frog landing: beside hopper_hop (vol 0.8) but heavier; several hoppers can land in a row. */
+    hopper_land: { vol: 0.85, vary: 60, max: 3, minMs: 60 },
+    /** Small mech death (0.34 s). A 6-gnat swarm dies in a burst: 3 voices, 50 ms apart, fatiguing to half so the kill chain stays punchy, not a wall. */
+    mech_pop: { vol: 0.9, vary: 120, max: 3, minMs: 50, burst: { ms: 220, step: 0.12, floor: 0.5 } },
+    /** Airboat death (2.0 s): fan wind-down, steam, gurgle. One boat sinks at a time. */
+    airboat_sink: { vol: 0.9, vary: 40, max: 1, minMs: 300 },
     // Phase G: SHELLSHOCK
     turtle_hiss: { vol: 0.9, max: 1, minMs: 300 },
     turtle_snap: { vol: 1, vary: 40, max: 2, minMs: 150 },
