@@ -148,3 +148,50 @@ All final evidence is under **`/tmp/kbe-enemies-a/`**, opened directly or as the
 - **UI/Audio:** land/verify the agreed `buzzard_gun` and `heli_crash` keys. Enemies A already calls them at each burst and at crash impact; no enemy-side alias is needed.
 - **Lead / Engine / QA:** triage the six selftest failures in `/tmp/kbe-enemies-a/selftest.log`, preferably after concurrent SwiftShader work settles. Do not treat this delivery as a green full selftest. Review the three explicitly staged wave-location images alongside the passing native arena audit.
 - No gameplay, map, pack or shared-helper source changes requested. GATORGEDDON's H2 work is untouched.
+
+## Phase H2 — GATORGEDDON legs and claws — 2026-10-20
+
+Rebuilt the front/back leg pairs from `game/art-src/refs/gatorgeddon_legs/{concept,pixel_4x,poses,parts}.png` and the same-scale reference sheet. The provisional reference envelope is fitted to the original **112×40 canvases and production pivots**. All pixels are drawn in Lua/Aseprite; reference bitmaps are not pasted into runtime art. No git state changes, real-time bot playthroughs, `playtest/` changes, H1 changes or edits to other teams' source.
+
+### Built and decisions
+
+- `game/art-src/enemies/gatorgeddon.lua`: broad olive haunch/shoulder plates, distinct front/hind joint bends, elbow/knee caps, vented shin armour, exposed steel hydraulic rams with red collars, broad palms and three separate curved steel claws per foot. Back limbs use darker olive/steel. Top-left light, selective outline and clean clusters match the existing hull. Structure, armour, hydraulics and claws are **four editable layers** in each rebuilt `gatorgeddon_legs_{front,back}.aseprite`.
+- Each pair has **94 frames / 13 prefixed tags**: six-frame idle, eight-frame walk, six-frame loaded crouch and eight-frame stomp, each in healthy, `_damaged` and `_critical` versions; plus ten-frame `death`. Planted palms stay at the original floor row, the walk lifts alternate feet, crouch spreads toes and compresses the joints, and stomp begins on contact then compresses/rebounds. Crouch/stomp/death play once and hold; idle/walk loop. Ten distinct buckle frames finish before the existing 1800 ms belly-up flip.
+- `game/public/assets/sprites/enemies/gatorgeddon_legs_{front,back}.{png,json}` rebuilt. No pack changes are needed. Other parts rebuild identically from the existing script; their exports have no diff.
+- `game/src/entities/bosses/Gatorgeddon.ts`: leg poses choose damage variants at the existing 300/150 HP thresholds, including during attacks. Cracks, torn plates and an animated leaking ram persist; critical near-leg art and pooled FX spark. Animation start/contact frames emit `dust_land` at the planted foot; the intro landing and existing stomp plant all four feet. Damaged hydraulics emit a small `mud_splat` beneath the leaking rear ram. Recovery uses the walk animation while the existing root backs away. Both pairs buckle during the existing death chain; the hull settles **visually by 9 px**, with no root/collision change. Existing synchronized BossFlash, detached jaw, debris, belly-up sink, ordnance cleanup and single defeat remain in use.
+- **Gameplay preserved exactly:** no tuning edits; all six original hurtbox definitions, seven rig joints/pivots, HP, phase thresholds, damage, attack/telegraph/recovery clocks, travel and scoring are unchanged. The art audit compares the full rig and all `this.box(...)` definitions against the preserved pre-H2 source. No body/head/tail silhouette redesign or extra underside/jaw redraw was necessary after composite review.
+
+### See it / reproduce
+
+```sh
+bash game/tools/build-art.sh art-src/enemies/gatorgeddon.lua
+timeout 600s node /tmp/kbe-enemies-a/h2/capture.mjs
+UV_CACHE_DIR=/tmp/kbe-imagegen/uv-cache /home/knotz2/.local/bin/uv run --offline --with pillow,numpy python3 -I /tmp/kbe-enemies-a/h2/contact.py
+UV_CACHE_DIR=/tmp/kbe-imagegen/uv-cache /home/knotz2/.local/bin/uv run --offline --with pillow,numpy python3 -I /tmp/kbe-enemies-a/h2/review.py
+```
+
+Real arena URL: `?scene=Game&part=2-3&x=4000&fast=1&god=1&mute=1` (add `debug=1` for hurtboxes). Fixture: `?scene=Game&enemytest=gatorgeddon&fast=1&god=1&mute=1`.
+
+The scratch harness uses `shot.mjs`'s documented Vite/Chromium workflow: **one browser, serial captures, fixed-step `__KBE.sim`, 600 s bound, resources closed in `finally`**. It starts inside the real arena, retains the native boss intro/arena geometry, and hides only the part title card for art review. Controlled public `setHp(300/150/0)` calls expose damage/death; player teleports position Knotz for tail and ambush captures. No private attack-state or timing edits, no real-time navigation, and no arena-clear cheats. Those controlled captures establish visual fit; the independent native arena audit establishes progression. The final player loses a life to the authored breakable pier hole during this controlled sequence; no collision fix is claimed or made.
+
+### Inspected evidence
+
+All H2 output is in **`/tmp/kbe-enemies-a/h2/`**, separate from H1 and Phase G evidence. Opened the final images directly or through the following inspected sheets:
+
+- `legs-before-{front,back}-page-1.png`: all original leg tags at 4×, beside grunt/Knotz. The unmodified old atlases and TS/Lua sources are preserved under `before/`.
+- `legs-after-{front,back}-page-{1,2,3,4}.png`: every new healthy/damaged/critical/death frame at 4×. Full native sheets `legs-after-{front,back}-1x.png` were also opened. Full 4× contact files are available, with the page crops used for close inspection.
+- `composite-1x.png`, `composite-4x.png`: production rig idle, walk, compressed stomp, 66%, 33% and buckle, all beside same-scale Knotz.
+- `review-arena-{1,2,3,4,5,6}.png`: real 2-3 intro, recovery walk, all cue/release pairs, phases, submerge/surface/climb, stomp compression and full death. `walk.png`, `slam-release.png` and `stomp-compression.png` are the full-size walk/stomp sources. The recovery captures use walk tags; true idle art is shown in the composite.
+- `verification.json` / `capture.log`: **5/5 targeted checks PASS**: fully submerged hurtboxes/depth, committed ambush marker, stomp event, one defeat/one boss kill/6000 points after the chain, and **66 cosmetic foot-plant events**. Both phases crossed, no console warnings or page errors. Per-shot leg keys/frame numbers prove critical stomp on both pairs and death held on frame ten.
+- `art-audit.log`: **188 leg frames / 26 unique leg tags**, master palette only, binary alpha, no duplicate animation tags anywhere in the sprite tree. Every walk and death frame is distinct. Healthy idle/crouch/stomp include intentional repeated poses; damaged/critical variants animate ram drips/sparks through those holds.
+
+### Verification / known issues
+
+- `npm --prefix game run check`: **PASS**, TypeScript plus Phaser 4 checker, **115 files / zero errors / zero warnings** (`check-final.log`).
+- `npm --prefix game run audit`: **PASS**, reach and arenas for all six parts (`audit.log`). **2-3 GATORGEDDON phases 1/2/3 → Results**, no off-view failures, 7.6 simulated seconds submerged. **Final-code rerun also PASS** (`audit-2-3-final.log`): 2-3 waves complete, GATORGEDDON phases 1/2/3 → Results in 32.4 simulated seconds, zero off-view time; whole part 5.1 s wall time.
+- `npm --prefix game run selftest`: **completed within the 600 s bound with one failing assertion** (`selftest.log`): `missions: no page errors around the mission load-error screen`, reporting two `Unexpected end of JSON input` errors. Cause is not established. This is the shared mission-pack load-error recovery scenario; no owned atlas/pack was being written while selftest ran, and the targeted GATORGEDDON capture had no console/page errors. All animation/frame-resolution, projectile-pool, input, camera, campaign, mission-chain and remaining load-recovery assertions passed. The full selftest is **not claimed green**.
+- No owned runtime/art issue identified. Captures are muted and fixed-step: no audible mix or sustained 60-FPS benchmark is claimed. All owned browsers and servers are closed at handoff; existing unrelated/shared servers are left alone.
+
+### Requests for other teams
+
+**Lead / Engine / QA:** triage the one shared selftest load-error recovery failure in `/tmp/kbe-enemies-a/h2/selftest.log` (two JSON parse errors). No gameplay, map, shared helper, FX, audio or pack changes are requested for this leg pass.

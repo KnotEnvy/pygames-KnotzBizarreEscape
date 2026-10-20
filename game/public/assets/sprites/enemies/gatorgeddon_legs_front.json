@@ -16,7 +16,7 @@
     "duration": 150
    },
    "gatorgeddon_legs_front#2": {
-    "frame": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "frame": { "x": 226, "y": 0, "w": 112, "h": 40 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
@@ -32,118 +32,6 @@
     "duration": 150
    },
    "gatorgeddon_legs_front#4": {
-    "frame": { "x": 226, "y": 0, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 80
-   },
-   "gatorgeddon_legs_front#5": {
-    "frame": { "x": 339, "y": 0, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 80
-   },
-   "gatorgeddon_legs_front#6": {
-    "frame": { "x": 0, "y": 41, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 80
-   },
-   "gatorgeddon_legs_front#7": {
-    "frame": { "x": 113, "y": 41, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 80
-   },
-   "gatorgeddon_legs_front#8": {
-    "frame": { "x": 113, "y": 41, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 80
-   },
-   "gatorgeddon_legs_front#9": {
-    "frame": { "x": 0, "y": 41, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 80
-   },
-   "gatorgeddon_legs_front#10": {
-    "frame": { "x": 339, "y": 0, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 80
-   },
-   "gatorgeddon_legs_front#11": {
-    "frame": { "x": 226, "y": 0, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 80
-   },
-   "gatorgeddon_legs_front#12": {
-    "frame": { "x": 226, "y": 41, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 150
-   },
-   "gatorgeddon_legs_front#13": {
-    "frame": { "x": 339, "y": 41, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 150
-   },
-   "gatorgeddon_legs_front#14": {
-    "frame": { "x": 226, "y": 41, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 150
-   },
-   "gatorgeddon_legs_front#15": {
-    "frame": { "x": 339, "y": 41, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 150
-   },
-   "gatorgeddon_legs_front#16": {
-    "frame": { "x": 0, "y": 82, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 150
-   },
-   "gatorgeddon_legs_front#17": {
-    "frame": { "x": 113, "y": 82, "w": 112, "h": 40 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
-    "sourceSize": { "w": 112, "h": 40 },
-    "duration": 150
-   },
-   "gatorgeddon_legs_front#18": {
     "frame": { "x": 0, "y": 0, "w": 112, "h": 40 },
     "rotated": false,
     "trimmed": false,
@@ -151,8 +39,712 @@
     "sourceSize": { "w": 112, "h": 40 },
     "duration": 150
    },
+   "gatorgeddon_legs_front#5": {
+    "frame": { "x": 339, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#6": {
+    "frame": { "x": 452, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#7": {
+    "frame": { "x": 565, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#8": {
+    "frame": { "x": 678, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#9": {
+    "frame": { "x": 791, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#10": {
+    "frame": { "x": 904, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#11": {
+    "frame": { "x": 0, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#12": {
+    "frame": { "x": 113, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#13": {
+    "frame": { "x": 226, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#14": {
+    "frame": { "x": 339, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#15": {
+    "frame": { "x": 452, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#16": {
+    "frame": { "x": 565, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#17": {
+    "frame": { "x": 678, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#18": {
+    "frame": { "x": 678, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
    "gatorgeddon_legs_front#19": {
+    "frame": { "x": 791, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#20": {
+    "frame": { "x": 791, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#21": {
+    "frame": { "x": 678, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#22": {
+    "frame": { "x": 791, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#23": {
+    "frame": { "x": 904, "y": 41, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#24": {
+    "frame": { "x": 0, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#25": {
     "frame": { "x": 113, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#26": {
+    "frame": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#27": {
+    "frame": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#28": {
+    "frame": { "x": 113, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#29": {
+    "frame": { "x": 226, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#30": {
+    "frame": { "x": 339, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#31": {
+    "frame": { "x": 452, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#32": {
+    "frame": { "x": 565, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#33": {
+    "frame": { "x": 678, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#34": {
+    "frame": { "x": 791, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#35": {
+    "frame": { "x": 904, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#36": {
+    "frame": { "x": 0, "y": 123, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#37": {
+    "frame": { "x": 113, "y": 123, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#38": {
+    "frame": { "x": 226, "y": 123, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#39": {
+    "frame": { "x": 339, "y": 123, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#40": {
+    "frame": { "x": 452, "y": 123, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#41": {
+    "frame": { "x": 565, "y": 123, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#42": {
+    "frame": { "x": 678, "y": 123, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#43": {
+    "frame": { "x": 791, "y": 123, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#44": {
+    "frame": { "x": 904, "y": 123, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#45": {
+    "frame": { "x": 0, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#46": {
+    "frame": { "x": 113, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#47": {
+    "frame": { "x": 226, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#48": {
+    "frame": { "x": 339, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#49": {
+    "frame": { "x": 113, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#50": {
+    "frame": { "x": 226, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#51": {
+    "frame": { "x": 452, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#52": {
+    "frame": { "x": 565, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#53": {
+    "frame": { "x": 678, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#54": {
+    "frame": { "x": 113, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#55": {
+    "frame": { "x": 565, "y": 82, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#56": {
+    "frame": { "x": 791, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#57": {
+    "frame": { "x": 904, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#58": {
+    "frame": { "x": 0, "y": 205, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#59": {
+    "frame": { "x": 113, "y": 205, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#60": {
+    "frame": { "x": 226, "y": 205, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#61": {
+    "frame": { "x": 339, "y": 205, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#62": {
+    "frame": { "x": 452, "y": 205, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#63": {
+    "frame": { "x": 565, "y": 205, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#64": {
+    "frame": { "x": 678, "y": 205, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#65": {
+    "frame": { "x": 791, "y": 205, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#66": {
+    "frame": { "x": 904, "y": 205, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#67": {
+    "frame": { "x": 0, "y": 246, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#68": {
+    "frame": { "x": 113, "y": 246, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#69": {
+    "frame": { "x": 226, "y": 246, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 80
+   },
+   "gatorgeddon_legs_front#70": {
+    "frame": { "x": 339, "y": 246, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#71": {
+    "frame": { "x": 452, "y": 246, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#72": {
+    "frame": { "x": 565, "y": 246, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#73": {
+    "frame": { "x": 678, "y": 246, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#74": {
+    "frame": { "x": 791, "y": 246, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#75": {
+    "frame": { "x": 904, "y": 246, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 100
+   },
+   "gatorgeddon_legs_front#76": {
+    "frame": { "x": 0, "y": 287, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#77": {
+    "frame": { "x": 791, "y": 246, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#78": {
+    "frame": { "x": 904, "y": 246, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#79": {
+    "frame": { "x": 113, "y": 287, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#80": {
+    "frame": { "x": 226, "y": 287, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#81": {
+    "frame": { "x": 339, "y": 287, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#82": {
+    "frame": { "x": 791, "y": 164, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#83": {
+    "frame": { "x": 226, "y": 205, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 65
+   },
+   "gatorgeddon_legs_front#84": {
+    "frame": { "x": 452, "y": 287, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#85": {
+    "frame": { "x": 565, "y": 287, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#86": {
+    "frame": { "x": 678, "y": 287, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#87": {
+    "frame": { "x": 791, "y": 287, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#88": {
+    "frame": { "x": 904, "y": 287, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#89": {
+    "frame": { "x": 0, "y": 328, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#90": {
+    "frame": { "x": 113, "y": 328, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#91": {
+    "frame": { "x": 226, "y": 328, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#92": {
+    "frame": { "x": 339, "y": 328, "w": 112, "h": 40 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
+    "sourceSize": { "w": 112, "h": 40 },
+    "duration": 150
+   },
+   "gatorgeddon_legs_front#93": {
+    "frame": { "x": 452, "y": 328, "w": 112, "h": 40 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 40 },
@@ -165,16 +757,28 @@
   "version": "1.3.18.6-dev",
   "image": "gatorgeddon_legs_front.png",
   "format": "RGBA8888",
-  "size": { "w": 451, "h": 122 },
+  "size": { "w": 1016, "h": 368 },
   "scale": "1",
   "frameTags": [
-   { "name": "gatorgeddon_legs_front_idle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
-   { "name": "gatorgeddon_legs_front_walk", "from": 4, "to": 11, "direction": "forward", "color": "#000000ff" },
-   { "name": "gatorgeddon_legs_front_crouch", "from": 12, "to": 15, "direction": "forward", "color": "#000000ff" },
-   { "name": "gatorgeddon_legs_front_stomp", "from": 16, "to": 19, "direction": "forward", "color": "#000000ff" }
+   { "name": "gatorgeddon_legs_front_idle", "from": 0, "to": 5, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_walk", "from": 6, "to": 13, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_crouch", "from": 14, "to": 19, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_stomp", "from": 20, "to": 27, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_idle_damaged", "from": 28, "to": 33, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_walk_damaged", "from": 34, "to": 41, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_crouch_damaged", "from": 42, "to": 47, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_stomp_damaged", "from": 48, "to": 55, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_idle_critical", "from": 56, "to": 61, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_walk_critical", "from": 62, "to": 69, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_crouch_critical", "from": 70, "to": 75, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_stomp_critical", "from": 76, "to": 83, "direction": "forward", "color": "#000000ff" },
+   { "name": "gatorgeddon_legs_front_death", "from": 84, "to": 93, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
-   { "name": "main", "opacity": 255, "blendMode": "normal" }
+   { "name": "structure", "opacity": 255, "blendMode": "normal" },
+   { "name": "armour", "opacity": 255, "blendMode": "normal" },
+   { "name": "hydraulics", "opacity": 255, "blendMode": "normal" },
+   { "name": "claws", "opacity": 255, "blendMode": "normal" }
   ],
   "slices": [
   ]

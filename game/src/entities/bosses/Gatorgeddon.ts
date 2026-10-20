@@ -78,6 +78,10 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
         for (const p of RIG) {
             const s = ctx.scene.add.sprite(p.x, p.y, `gatorgeddon_${p.id}`).setOrigin(p.px / p.w, p.py / p.h);
             this.parts.set(p.id, s); this.add(s); this.pose(p.id, 'idle');
+            if (p.id === 'legs_front' || p.id === 'legs_back') {
+                const plant = () => this.footfall(p.id, s);
+                s.on('animationstart', plant); s.on('animationupdate', plant);
+            }
         }
         this.cue = ctx.scene.add.graphics().setDepth(DEPTH.ENEMIES + 1);
         this.wake = ctx.scene.add.graphics().setDepth(DEPTH.TILES_BACK + 1.2);
@@ -108,8 +112,30 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
     private info() { return { name: 'GATORGEDDON', hp: this.hp, maxHp: T.hp, phase: this.phase, x: this.x, y: this.floor }; }
     private pose(id: PartId, tag: string): void {
         const s = this.parts.get(id); if (!s || !s.active) return;
-        const key = `gatorgeddon_${id}_${tag}`;
-        if (s.anims.currentAnim?.key !== key) animate(s, key, true);
+        const leg = id === 'legs_front' || id === 'legs_back';
+        const suffix = leg && tag !== 'death' ? this.damageTier === 2 ? '_critical' : this.damageTier === 1 ? '_damaged' : '' : '';
+        const key = `gatorgeddon_${id}_${tag}${suffix}`;
+        if (s.anims.currentAnim?.key !== key) animate(s, key, !leg || (tag === 'idle' || tag === 'walk'));
+    }
+    /** The animation's contact frames own cosmetic plants; no collision or attack clock changes. */
+    private footfall(id: PartId, sprite: Phaser.GameObjects.Sprite): void {
+        if (this.hp <= 0 || !sprite.visible || this.isUnder() || Math.abs(this.y - this.floor) > 2) return;
+        if (!sprite.anims.currentAnim?.key.includes('_walk')) return;
+        const frame = sprite.anims.currentFrame?.index;
+        if (frame !== 1 && frame !== 5) return;
+        const far = id === 'legs_back';
+        const j = (frame === 1 ? 0 : 1) ^ (far ? 1 : 0);
+        this.plant(id, j, .55);
+    }
+    private plant(id: PartId, foot: number, scale: number): void {
+        // Walk contact is stride -4; match the art's toe fan centre, not the old tread.
+        const localX = (id === 'legs_back' ? -4 : -10) - 56 + 25 + foot * 63 - 8;
+        this.ctx.events.emit('fx:emit', { effect: 'dust_land', x: this.x + localX * this.direction, y: this.floor, scale, material: 'wood' });
+    }
+    private plantAll(scale: number): void {
+        for (const id of ['legs_back', 'legs_front'] as const) {
+            this.plant(id, 0, scale); this.plant(id, 1, scale);
+        }
     }
     private isUnder(): boolean {
         return (this.state === 'roll' && this.elapsed >= T.rollCue) || this.state === 'wake' || this.state === 'ambush_cue' || (this.state === 'dive' && this.elapsed >= 300) || (this.state === 'intro' && this.elapsed < 650);
@@ -168,6 +194,10 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
         }
         this.ctx.events.emit('boss:hp', this.info());
         this.pose('body', tier === 2 ? 'critical' : tier === 1 ? 'damaged' : 'idle');
+        for (const id of ['legs_back', 'legs_front'] as const) {
+            const key = this.parts.get(id)?.anims.currentAnim?.key ?? '';
+            this.pose(id, !this.hp ? 'death' : key.includes('_walk') ? 'walk' : key.includes('_stomp') ? 'stomp' : key.includes('_crouch') ? 'crouch' : 'idle');
+        }
         if (!this.hp) {
             this.enter('death', T.deathMs); this.y = this.floor; this.rotation = 0; const hull = this.parts.get('body'); if (hull) hull.rotation = 0; this.underwater(false);
             this.clearOrdnance(); this.ctx.projectiles.clear('enemy');
@@ -177,7 +207,7 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
             this.ctx.events.emit('fx:hitstop', { ms: 120 });
             this.ctx.events.emit('fx:flash', { color: 0xffe066, ms: 100 });
             this.ctx.events.emit('fx:shake', { tier: 4 });
-            this.detachJaw();
+            this.detachJaw(); this.plantAll(.9);
         }
         if (!this.hp) this.flash.start([...this.parts.values(), ...this.scraps.map(s => s.sprite)], true);
         else this.flash.start(this.parts.values());
@@ -287,7 +317,7 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
         if (this.state === 'intro') {
             this.y = this.floor + 56 * (1 - Phaser.Math.Clamp((e - 650) / 700, 0, 1));
             if (e >= 650 && !this.fired) { this.fired++; this.underwater(false); this.splash('surface'); this.pose('head', 'roar'); this.pose('jaw', 'open'); this.ctx.audio.sfx('gator_roar'); }
-            if (e >= this.duration) this.recover();
+            if (e >= this.duration) { this.plantAll(.7); this.recover(); }
         } else if (this.state === 'lunge') {
             if (e >= cue) {
                 if (!this.fired) { this.fired++; this.pose('head', 'roar'); this.pose('jaw', 'open'); this.ctx.audio.sfx('gator_snap'); this.pose('legs_front', 'walk'); this.pose('legs_back', 'walk'); }
@@ -351,7 +381,7 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
         } else if (this.state === 'slam') {
             this.x = Phaser.Math.Linear(this.fromX, this.toX, Math.min(1, e / T.slamCue));
             if (e >= T.slamCue && !this.fired) {
-                this.fired++; this.pose('tail', 'slam'); this.pose('legs_front', 'stomp');
+                this.fired++; this.pose('tail', 'slam'); this.pose('legs_front', 'stomp'); this.pose('legs_back', 'stomp'); this.plantAll(.95);
                 this.ctx.events.emit('boss:stomp', { x: this.targetX, y: this.floor, power: 2 });
                 this.ctx.events.emit('fx:shake', { tier: 3 }); this.ctx.audio.sfx('gator_tail');
                 this.ctx.events.emit('fx:emit', { effect: 'debris', x: this.targetX, y: this.floor, count: 8, material: 'wood' });
@@ -368,7 +398,12 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
             if (e >= this.duration) this.recover();
         } else if (this.state === 'recover' || this.state === 'roar') {
             if (this.state === 'roar') { this.pose('head', 'roar'); this.pose('jaw', 'open'); }
-            else { const [a, b] = this.limits(); const home = this.direction < 0 ? b : a; this.x += Phaser.Math.Clamp(home - this.x, -dt * .06, dt * .06); }
+            else {
+                const [a, b] = this.limits(); const home = this.direction < 0 ? b : a;
+                const moving = Math.abs(home - this.x) > 1;
+                this.x += Phaser.Math.Clamp(home - this.x, -dt * .06, dt * .06);
+                this.pose('legs_front', moving ? 'walk' : 'idle'); this.pose('legs_back', moving ? 'walk' : 'idle');
+            }
             if (e >= this.duration && this.lifeMs >= T.spawnGraceMs) this.attack();
         }
         this.draw();
@@ -387,7 +422,11 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
             if (this.isUnder()) this.ctx.events.emit('fx:emit', { effect: 'gas_bubble', x: this.x + this.ctx.rng.range(-60, 60), y: this.waterY, count: 2 });
             else {
                 this.ctx.events.emit('fx:emit', { effect: this.damageTier || !this.podHp ? 'smoke_stack' : 'vent_steam', x: this.x - 14 * this.direction, y: this.y - 60, scale: .4 });
-                if (this.damageTier) this.ctx.events.emit('fx:emit', { effect: 'shield_spark', x: this.x + 8, y: this.y - 40, count: 2 });
+                if (this.damageTier) {
+                    this.ctx.events.emit('fx:emit', { effect: 'shield_spark', x: this.x + 8, y: this.y - 40, count: 2 });
+                    this.ctx.events.emit('fx:emit', { effect: 'mud_splat', x: this.x - 42 * this.direction, y: this.floor - 2, scale: .25 });
+                    if (this.damageTier === 2) this.ctx.events.emit('fx:emit', { effect: 'shield_spark', x: this.x + 22 * this.direction, y: this.y - 21, count: 2 });
+                }
             }
         }
     }
@@ -408,6 +447,7 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
             this.boom(this.x + (-100 + this.fired * 17) * this.direction, this.floor - 25 - (this.fired % 3) * 16, this.fired % 4 ? 'm' : 'l'); this.fired++;
         }
         this.rotation = Math.sin(e / 90) * .025;
+        const hull = this.parts.get('body'); if (hull) hull.y = -14 + Math.min(9, e / 150);
         if (e >= 1800) {
             this.setScale(this.direction, -1); this.y = this.floor - 65 + Math.max(0, e - 2200) * .065;
             if (e >= 2600) { this.setDepth(DEPTH.TILES_BACK + .5); this.setAlpha(Math.max(0, (4000 - e) / 1400)); }

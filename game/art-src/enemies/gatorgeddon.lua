@@ -92,16 +92,108 @@ local function tail(im,f,pose)
  poly(im,{{5,15-lift},{11,7-lift},{14,16-lift},{22,22-lift},{16,23-lift}},'steel4');D.line(im,6,15-lift,11,8-lift,'steel5')
  D.disc(im,79,22,8,'outline');D.disc(im,79,22,6,'sand2');D.rivet(im,78,20)
 end
-local function legs(im,f,far,pose)
- for j=0,1 do local x=25+j*63;local stride=pose=='walk' and ({-4,-2,2,4,4,2,-2,-4})[(f-1+(far and 4 or 0))%8+1] or f%2
-  local lift=pose=='crouch' and 5 or pose=='stomp' and j==1 and f<3 and 12 or 0
-  D.limb(im,x,6,x-10,17,far and 'steel1' or 'steel2','steel4',5)
-  D.limb(im,x-10,17,x+stride-7,31-lift,'sand2',far and 'sand3' or 'sand5',3)
-  D.line(im,x+2,9,x+stride-2,29-lift,'steel5',2);D.line(im,x+4,9,x+stride,27-lift,'steel1')
-  D.disc(im,x-10,17,5,'outline');D.disc(im,x-10,17,3,far and 'steel2' or 'red3');D.rivet(im,x-11,16)
-  D.box(im,x+stride-13,29-lift,23,9,far and 'steel1' or 'olive2','olive4','outline')
-  for k=0,2 do D.box(im,x+stride-9+k*7,34-lift,6,5,'steel3','sand5','outline') end
+-- H2: hand-built plated crocodile limbs, guided by refs/gatorgeddon_legs.
+-- The original 112x40 canvases/pivots are retained; soles stay on row 39.
+-- Structure, armour, exposed hydraulics and individual claws remain editable layers.
+local function legs(im,f,far,pose,tier,layer)
+ local stride={-4,-1,3,5,5,2,-2,-5}
+ local lift={0,0,0,3,7,8,5,1}
+ local compress={4,5,4,3,2,1,0,0}
+ local bucklex={0,1,2,4,6,8,10,11,12,12}
+ local buckley={0,1,3,5,7,9,11,12,13,13}
+ for j=0,1 do
+  local x=25+j*63;local n=(f-1+(far and 4 or 0)+j*4)%8+1
+  local dx=pose=='walk' and stride[n] or 0
+  local up=pose=='walk' and lift[n] or 0
+  local squash=pose=='crouch' and ({1,2,3,5,5,4})[f] or pose=='stomp' and compress[f] or 0
+  local dying=pose=='death'
+  if dying then squash=buckley[f];dx=bucklex[f]*(j==0 and -1 or 1) end
+  local hipy=6+squash+(pose=='idle' and ({0,1,2,1,0,-1})[f] or 0)
+  local kx=x+(j==0 and 8 or -9)+math.floor(dx/2)
+  local ky=19+math.floor(squash*.6)-math.floor(up*.4)
+  local ax=x-4+dx;local ay=30-up
+  if dying then ax=x-4;ay=30; kx=x+(j==0 and -1 or 1)*math.min(14,7+f) end
+  local base=far and 'olive2' or 'olive3'
+  local hi=far and 'olive3' or 'olive4'
+  local rim=far and 'olive4' or 'olive5'
+  if layer=='structure' then
+   D.limb(im,x,hipy,kx,ky,'steel1','steel3',7)
+   D.limb(im,kx,ky,ax,ay,'steel2','steel4',5)
+   D.disc(im,kx,ky,6,'outline');D.disc(im,kx,ky,4,'steel3')
+   D.line(im,kx-3,ky-2,kx,ky-3,'steel5');D.disc(im,kx,ky,2,'steel1')
+   D.disc(im,ax,ay,5,'outline');D.disc(im,ax,ay,3,far and 'steel3' or 'steel4');D.rivet(im,ax-1,ay-1)
+  elseif layer=='armour' then
+   -- Broad scapula/haunch plates, with distinct front and hind silhouettes.
+   poly(im,{{x-11,hipy-5},{x-6,hipy-8},{x+5,hipy-7},{x+11,hipy-1},{kx+6,ky-4},{kx-3,ky-1},{x-11,hipy+6}},'outline')
+   poly(im,{{x-9,hipy-4},{x-5,hipy-6},{x+4,hipy-5},{x+8,hipy},{kx+3,ky-5},{kx-3,ky-3},{x-9,hipy+4}},base)
+   D.line(im,x-8,hipy-4,x-3,hipy-6,rim);D.line(im,x-3,hipy-6,x+4,hipy-5,hi,2)
+   D.line(im,x-8,hipy-2,x-7,hipy+2,hi,2);D.rivet(im,x+3,hipy-2)
+   -- Elbow/knee cap and vented greave leave the ram visibly exposed.
+   poly(im,{{kx+2,ky-4},{kx+9,ky-3},{kx+10,ky+5},{ax+7,ay+1},{ax,ay-2},{kx+2,ky+2}},'outline')
+   poly(im,{{kx+3,ky-2},{kx+7,ky-2},{kx+8,ky+4},{ax+6,ay-1},{ax+1,ay-3},{kx+3,ky+1}},base)
+   D.line(im,kx+3,ky-3,kx+6,ky-2,rim)
+   D.line(im,kx+4,ky+1,ax+3,ay-4,hi,2)
+   D.line(im,x-7,hipy-2,x-7,hipy+1,'olive1');D.line(im,x-4,hipy-2,x-4,hipy,'olive1')
+   D.line(im,kx+5,ky-2,kx+6,ky,'red3',2)
+   if tier>0 or dying then
+    D.line(im,x-2,hipy-5,x+1,hipy-1,'outline');D.line(im,x+1,hipy-1,x-2,hipy+3,'outline')
+    D.line(im,x-1,hipy-5,x+2,hipy-2,'sand4')
+   end
+   if tier==2 or dying then
+    poly(im,{{x-9,hipy+2},{x-3,hipy},{x+2,hipy+4},{kx-2,ky-3},{x-7,hipy+7}},'steel1')
+    D.line(im,x-6,hipy+3,kx-3,ky-5,'steel4');D.line(im,x-4,hipy+4,kx-2,ky-4,'red3')
+   end
+  elseif layer=='hydraulics' then
+   -- Ram socket follows the compressed hip, while the shaft follows the knee.
+   local rx=x-4;local ry=hipy+5;local tx=kx-2;local ty=ky+3
+   D.limb(im,rx,ry,tx,ty,'steel2','steel4',3)
+   D.line(im,rx-1,ry,tx-1,ty,'steel5',2)
+   D.line(im,rx-3,ry-1,rx+1,ry+1,'red3',2);D.line(im,tx-3,ty-1,tx+1,ty+1,'red3',2)
+   if tier>0 or dying then
+    D.line(im,tx,ty+1,tx-2,ty+5,'dirt1',2);K.px(im,tx-2,ty+5+(f%3),'dirt3')
+   end
+   if tier==2 and f%3==0 and not far then
+    D.line(im,rx-3,ry+1,rx-6,ry-2,'fire4');K.px(im,rx-7,ry-3,'fire5')
+   end
+  elseif layer=='claws' then
+   -- Broad palms, separate toe knuckles and three hooked, splayed steel claws.
+   local spread=(pose=='crouch' or pose=='stomp' and f<4) and 1 or 0
+   local fy=31-up
+   poly(im,{{ax-10,fy+1},{ax-5,fy-3},{ax+3,fy-3},{ax+11,fy+1},{ax+14,fy+7},{ax-13,fy+7}},'outline')
+   poly(im,{{ax-9,fy+1},{ax-4,fy-1},{ax+2,fy-1},{ax+9,fy+2},{ax+11,fy+6},{ax-11,fy+6}},base)
+   D.line(im,ax-7,fy,ax-2,fy-2,rim);D.line(im,ax-2,fy-2,ax+3,fy-1,hi)
+   for k=0,2 do
+    local toe=ax-11+k*9+(k-1)*spread
+    local yy=fy+(k==1 and 2 or 1)
+    poly(im,{{toe,yy},{toe+4,yy-1},{toe+7,yy+1},{toe+9,yy+5},{toe+9,yy+6},{toe+5,yy+5},{toe+1,yy+5}},'outline')
+    poly(im,{{toe+1,yy},{toe+4,yy},{toe+6,yy+2},{toe+7,yy+5},{toe+4,yy+3},{toe+1,yy+3}},far and 'steel3' or 'steel4')
+    D.line(im,toe+1,yy,toe+4,yy,'steel5');K.px(im,toe+5,yy+1,'steel5')
+    D.line(im,toe,yy-1,toe+3,yy-2,hi);D.rivet(im,toe,yy+1)
+   end
+   if dying and f>=5 then
+    -- A loose ankle plate slides free; the toe fan remains flat under the hull.
+    D.box(im,ax-15,26+math.min(9,f),5,3,'olive2','olive4','outline')
+   end
+  end
  end
+end
+local function buildLegs(far)
+ local name='gatorgeddon_legs_'..(far and 'back' or 'front')
+ local layers={'structure','armour','hydraulics','claws'};local anims={}
+ for tier=0,2 do for _,pose in ipairs({'idle','walk','crouch','stomp'}) do
+  local count=pose=='walk' and 8 or pose=='stomp' and 8 or 6
+  local frames={}
+  for i=1,count do local f=i;local frame={}
+   for _,l in ipairs(layers) do local layer=l;frame[layer]=function(im) legs(im,f,far,pose,tier,layer) end end
+   frames[#frames+1]=frame
+  end
+  local suffix=tier==1 and '_damaged' or tier==2 and '_critical' or ''
+  anims[#anims+1]={tag=name..'_'..pose..suffix,ms=pose=='walk' and 80 or pose=='stomp' and 65 or pose=='crouch' and 100 or 150,frames=frames}
+ end end
+ local frames={}
+ for i=1,10 do local f=i;local frame={};for _,l in ipairs(layers) do local layer=l;frame[layer]=function(im) legs(im,f,far,'death',2,layer) end end;frames[#frames+1]=frame end
+ anims[#anims+1]={tag=name..'_death',ms=150,frames=frames}
+ K.build{name=name,w=112,h=40,layers=layers,anims=anims,anchor='bottom-center',src=D.root..'/art-src/enemies/'..name..'.aseprite',sheet=D.root..'/public/assets/sprites/enemies/'..name..'.png',data=D.root..'/public/assets/sprites/enemies/'..name..'.json'}
 end
 local function pod(im,f,pose)
  D.box(im,12,23,17,20,'steel1','steel4','outline');D.rect(im,16,25,3,15,'steel5');D.rect(im,24,25,3,15,'sand3');D.box(im,6,39,29,6,'steel2','steel4','outline')
@@ -122,7 +214,7 @@ build('gatorgeddon_body',112,64,function(im,f,p) hull(im,f,p=='critical' and 2 o
 build('gatorgeddon_head',88,48,head,{'cue','roar','gun','gas'})
 build('gatorgeddon_jaw',88,24,jaw,{'open'})
 build('gatorgeddon_tail',88,40,tail,{'coil','slam'})
-for _,s in ipairs({'back','front'}) do build('gatorgeddon_legs_'..s,112,40,function(im,f,p) legs(im,f,s=='back',p) end,{'walk','crouch','stomp'}) end
+buildLegs(true);buildLegs(false)
 build('gatorgeddon_pod',40,48,pod,{'cue','broken'})
 if not static then
  D.build('gatorgeddon_wave',40,24,{D.anim('gatorgeddon_wave_fly',4,90,function(im,f)
