@@ -349,3 +349,88 @@ node game/tests/bot/production-smoke.mjs
 `final-verification.mjs` repeats the original Phase C fixtures, checks the boss corner against the **old silhouette rectangle** (the new core rectangle is intentionally damageable), samples the 88 px off-view descent band, and monitors HUD GO visibility through the real boss defeat/stage-clear events. `production-smoke.mjs` uses installed Vite preview to serve dist, starts through Title with real keyboard input, attempts production URL/API cheats without debug, and observes 20 seconds of gameplay with WebAudio running. Neither launcher changes gameplay files.
 
 Final recorded outcomes: consecutive E2E **17/19, 18/19, 17/19**; flow ×5 **14/15**. These are failed runs with retained traces. Host network churn is timestamp-correlated; a required-asset failure also exposes the new conditional S1 E04. All eight original findings are resolved. The detailed verdict and evidence in qa-bugs.md remain authoritative.
+
+
+## Phase H — H2 visual and regression review (2026-10-20)
+
+Report only: three S4 findings are at the top of [qa-bugs.md](qa-bugs.md): Buzzard crash canvas crop, airboat sink outside the locked viewport, and Buzzard fire recovery frame omitted. No production code/art changes or git state changes. QA modified only these two QA documents; all review scripts, exports and evidence live under `/tmp/kbe-qa/phase-h/`.
+
+### Baseline and method
+
+Starting shared HEAD: `df3d3c726d65b6245d75cf1070f8e323f6a58830`. It adds H2 briefs after the requested H1 target `97d8e5c`. Since other teams were editing shared art, QA exported **97d8e5c** with read-only `git archive` into `/tmp/kbe-qa/phase-h/h1/`, reusing the installed node_modules through a scratch symlink. Every visual, gameplay and browser audit here uses that fixed source. The Phase G comparator is **3704ab1** (`enemy-diff.txt`); enemy tuning, engine selftest and mission loader/recovery sources are unchanged across that range. The final live typecheck was at `f9736c3ec603eaca8c0ad94fb93c175b6f259337`; subsequent H2 art is not accepted by this H1 report.
+
+Read PHASE-H, ART-STYLE, LESSONS, ARCHITECTURE, PHASER4-RULES and previous QA notes. Reused the repository's shot/Vite/Chromium setup: Linux, ANGLE Vulkan SwiftShader, Arcade, seed 731, 1152×648 viewport, 384×216 canvas. One QA browser at a time, serial pages/captures, fixed-step `__KBE.sim.advance`; no real-time bot traversal. Each invocation had a 580 s cap and the attempts stopped within that budget. Browser/server cleanup is in each scratch harness's `finally`; no review server or browser remains running.
+
+### Required verification results
+
+| Check | Result | Evidence |
+|---|---|---|
+| Pinned H1 `npm --prefix /tmp/kbe-qa/phase-h/h1/game run check` | PASS: typecheck; 115 files, 0 errors, 0 warnings | `check-h1.log` |
+| Required final live `npm --prefix game run check` | PASS: typecheck; 115 files, 0 errors, 0 warnings | `check-live-final.log` |
+| Pinned H1 `npm --prefix /tmp/kbe-qa/phase-h/h1/game run audit` | PASS: reach + arena audits for all six parts, no skips | `audit-h1.log`; exported `h1/game/tests/artifacts/arena-audit-*.json` |
+| Full pinned `npm --prefix /tmp/kbe-qa/phase-h/h1/game run selftest` | **NOT GREEN**: 44 PASS assertions then 30 s wait timeout after mission load-error → Title; the later reload/resume assertions did not run | `selftest-h1.log` |
+| Isolated mission diagnostic, unchanged assertions/timeouts plus logging | 18 PASS / 0 FAIL in its log, including reload/resume/stale/blocked storage | `selftest-missions-diagnostic.log`; scratch `h1/game/tools/selftest-diagnostic.mjs` |
+| One unmodified full-selftest rerun | **NOT GREEN**: initial readiness wait timed out before any assertion | `selftest-h1-final.log` |
+
+No successful full-selftest exit is claimed. The isolated diagnostic and final rerun's tool sessions ended with transport status 143; no exit-marker file was returned, although their scripts logged their respective all-passed/failure summaries. The original full run reported a failed selftest. After these bounded attempts QA stopped retrying. The failure is not established as an H1 gameplay defect: the tested engine/loader code is unchanged, ordinary review starts are healthy, and isolated mission assertions pass. The cause remains unresolved. Engine/Lead should reproduce this before sign-off; do not convert the isolated 18-pass log into whole-suite acceptance.
+
+Arena coverage: bridge/bunker/guncar/labgate/stilts/pump/crane/mill finish all authored waves with every member killed in view and **maxOff=0 ms**. All six bosses reach phases 1/2/3 and expected PartClear/Results. The audit, rather than presentation warps/direct hits, establishes progression acceptance.
+
+### Visual, state and regression evidence
+
+Opened and inspected: `context-contact-0.png` (17 natural map panels), `fixture-contact-0.png` through `fixture-contact-5.png`, `arena-contact-0.png` / `arena-contact-1.png`, seven `roster-<kind>-1x-4x.png` sheets beside Knotz and a grunt, all seven per-kind tag sheets, the Buzzard/hound/hopper/airboat/piranha/gnat death sequences, `hurtbox-contact-0.png`, `ui-contact-0.png`, `transition-contact-0.png`, `wash-contact-0.png`, `perf-contact-0.png`, and each specific screenshot cited in the H findings. The original Lead hopper/airboat/Buzzard/small/soldier reference sheets were also inspected. New art is visibly more articulated, with readable crew/pilot/animal-mech identity and distinct deaths.
+
+`review-contexts.json` records the actual query, camera, actors and state for every natural capture. `review-fixtures.json` records per-state pose/death traces. All hopper tongue frames, piranha leap/bite/fall/splash and gnat dive/recovery frames appear; H03 is the omitted Buzzard firing frame. Live actors were mirrored separately in `facing-clean-*` and other fixture shots. Hound's separate helmet layer does detach during its tumble; it is not an unresolved placeholder.
+
+`mechanics.json`: hopper cue **500 ms**, drawn/actual reach **63 / 63.35 px** at the sampled near-peak, visual cable on the five-pixel collision strip, nonlethal shotgun displacement **9.34 px**. Airboat fires **3** shots at ~170 ms intervals after its ~600 ms cue and spawns two leapers. Buzzard has a ~700 ms strafe cue and five shots; hound cue **450 ms**. These clocks, HP, damage and scoring remain consistent with the Phase G source. The requested H1 hurtbox adjustments are small: hound 30×18→34×21; Buzzard 66×26→70×30; Bayou body rectangles unchanged. Debug box screenshots and `hurtboxes.json` support body fit, with appendages outside core body boxes.
+
+`focused.json`: actual pump/crane wave-2 Buzzards, stilts/mill hopper contexts and their deaths, damaged art/smoke and terrain wash. `airboat-death.json` reproduces the new sink ending on the real crane wave-1 boat. `recheck.json` contains a clean controlled crash over solid ground: god off, player remains alive at `(420,336)`, **3 lives**. An earlier crash probe teleported the player above a gap and drowned; it is a rejected setup, not crash damage.
+
+Rotor wash on actual mud/wood/metal surfaces, boat wake, machine breakup and damaged-machine smoke appear. Snow/mud/water recipes were also explicitly injected/rendered (`recipe-wash-*`); these are recipe fixtures, not proof of an authored helicopter flying low over every material. The scratch capture named `wash-snow` actually probes a wooden train deck, and the high `wash-water` helicopter emits no wash because it is outside the 90 px surface range. Neither filename is treated as natural snow/water integration acceptance.
+
+Fresh 1-2 and 2-1 starts and actual native PartClear 2-1→2-2 have **zero title/radio overlap** at 50 ms samples. Fresh starts survive five idle seconds with god off; the briefing types after the title leaves. The first two transition attempts pressed confirm before the native tally was ready; `transition.json` and `transition-confirmed-*` are the accepted two-confirm flow, not those premature attempts. The next-part diagnostic overlay was retained in these accepted transition shots.
+
+All five sound keys (`buzzard_gun`, `heli_crash`, `hopper_land`, `mech_pop`, `airboat_sink`) are present in the loaded audio cache and observed in corresponding gameplay call logs. Review logs contain **no missing keys, unknown keys, warning entries or page exceptions**. No listening/mix judgment is claimed. Palette scan: no off-palette opaque pixels, alpha only 0/255. No duplicate global animation names among **696** sprite tags. Every reviewed death has at least eight frames; durations are 600 ms small mechs, 800 ms hound, 1200 ms Buzzard/airboat.
+
+Coverage limits: the late optional guncar wave-2 screenshot boot timed out after all seven hurtbox captures had succeeded; no H1 error was logged. The delayed guncar Buzzard was not obtained in a clean dedicated photograph. Its arena passes the stock audit; the other 1-2 Buzzards and actual 2-1/2-2 arena Buzzards were photographed. Lurker flame/explosion death variants were inspected in atlas metadata/art, not every variant forced in a natural encounter. Out-of-scope H2 boss legs, MEGA-SKEETER, hopper hop poses and background actors were not filed against.
+
+### Performance: same-browser baselines and qualified stress results
+
+Stationary 10 s rAF windows, one QA browser at a time; this is not bot playthrough testing. Table FPS is computed from frame count / elapsed wall time, while displayed game FPS is separate. Full raw timings, renderer, workload states and host `uptime` load triples are retained in `performance.json` / `performance-corrected.json`.
+
+| Window | rAF FPS | Mean displayed FPS | p95 / p99 frame |
+|---|---:|---:|---:|
+| baseline-before | 60.02 | 58.19 | 16.7 / 16.8 ms |
+| mixed-2-2 | 47.97 | 45.01 | 49.9 / 83.3 ms |
+| baseline-after | 58.04 | 52.13 | 16.8 / 50.0 ms |
+| baseline-before-corrected | 57.97 | 55.33 | 16.8 / 49.9 ms |
+| buzzard-1-2-corrected | 60.11 | 59.69 | 16.7 / 16.8 ms |
+| gnat-kills-corrected | 59.93 | 58.60 | 16.7 / 16.8 ms |
+| baseline-after-corrected | 60.07 | 59.20 | 16.7 / 16.8 ms |
+
+The initial mixed 2-2 stress fixture retains **1 Buzzard, 3 airboats and 4 gnats** on the real map by a camera lock and supplemental spawns. It is an explicitly augmented stress case, not a claim that this exact combination naturally spawns together. It misses the 60 FPS target at **47.97**, with same-session baseline **60.02 before / 58.04 after**. Host load rises substantially (full triples in the report; one-minute load about 18→38 across the session). This remains a performance acceptance concern, not an attributed H1 regression or a measured quiet-host result.
+
+The corrected session holds the authored 1-2 Buzzard inside view through the entire window: **60.11 FPS**. Four-gnat death bursts fire 19 times, **76 actual kills**, at **59.93 FPS**; its baseline is **57.97 before / 60.07 after**. The initial 1-2 window had already lost its fly-by Buzzard, and the initial gnat pulse was limited by three surviving gnats; those two incorrect workloads are retained in the raw history but excluded from the acceptance table. No repeat mixed sample was used to replace the slower result. Displayed FPS smoothing includes warmup history; rAF intervals are not GPU timings. No quiet-host 60 FPS sign-off is claimed.
+
+### Reproduction and requests
+
+From repository root (every browser invocation serial, 580 s cap):
+
+```sh
+node /tmp/kbe-qa/phase-h/review.mjs contexts
+node /tmp/kbe-qa/phase-h/review.mjs fixtures
+node /tmp/kbe-qa/phase-h/mechanics.mjs
+node /tmp/kbe-qa/phase-h/focused.mjs
+node /tmp/kbe-qa/phase-h/recheck.mjs
+node /tmp/kbe-qa/phase-h/transition.mjs
+node /tmp/kbe-qa/phase-h/airboat-death.mjs
+node /tmp/kbe-qa/phase-h/hurtboxes.mjs
+node /tmp/kbe-qa/phase-h/perf.mjs
+node /tmp/kbe-qa/phase-h/perf-corrected.mjs
+npm --prefix /tmp/kbe-qa/phase-h/h1/game run check
+npm --prefix /tmp/kbe-qa/phase-h/h1/game run audit
+npm --prefix /tmp/kbe-qa/phase-h/h1/game run selftest
+npm --prefix game run check
+```
+
+Requests: **Enemies A** H01/H03; **Enemies B** H02 plus hopper contrast/gnat wing readability; **Engine/Lead** resolve or characterize the full-selftest timeouts; **FX/Lead** remeasure/profile the mixed fixture under a quiet, comparable host load. No implementation fix was made by QA.

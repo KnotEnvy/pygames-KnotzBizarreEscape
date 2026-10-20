@@ -1,3 +1,71 @@
+## Phase H — H2 review of the committed H1 enemy facelift (2026-10-20)
+
+**Verdict: three confirmed S4 presentation findings. Reach/arenas pass; full selftest remains unverified because of timeouts.** The required selftest and the shared-host performance caveats are recorded below. Review target is **`97d8e5c`**, compared with Phase G **`3704ab1`**. Starting shared HEAD was `df3d3c726d65b6245d75cf1070f8e323f6a58830` (H2 briefs only after H1); concurrent H2 art was excluded using a read-only `git archive` export under `/tmp/kbe-qa/phase-h/h1/`. No game code/art or git state was changed. Boss legs, MEGA-SKEETER, hopper hop changes and far actors are outside this review.
+
+Chromium, ANGLE Vulkan SwiftShader, Arcade, seed 731, keyboard/debug hooks, 1152×648 viewport / 384×216 game. Captures and scripts are under `/tmp/kbe-qa/phase-h/`. Substitute the capture server's free port for 8080 in these URLs.
+
+| Rank / ID | Severity | Owner | Finding |
+|---|---|---|---|
+| 1 · KBE-QA-H01 | S4 | Enemies A | Buzzard crash art clips its nose and rotor against its own sprite canvas |
+| 2 · KBE-QA-H02 | S4 | Enemies B | Airboat's final sink frames leave the locked crane view |
+| 3 · KBE-QA-H03 | S4 | Enemies A | Buzzard firing pose ends before the third animation frame |
+
+### KBE-QA-H01 — OPEN: crash pose is cropped before the ground impact
+
+- **Contract:** PHASE-H animation/death bar; QA criterion that death plays fully without clipping.
+- **URL:** `http://127.0.0.1:8080/?debug=1&scene=Game&fast=1&mute=1&god=1&seed=731&part=1-3&x=420&enemytest=buzzard`. Also reproduced on actual pump/crane wave-2 Buzzards in parts 2-1 and 2-2.
+- **Repro:** Freeze with `__KBE.sim.freeze()`. Find the live Buzzard through `Game.children.list`; deliver a lethal hit through the damage registry, then advance/render in 50 ms increments to death +900–1150 ms. The scratch scripts use a direct actor hit to isolate the presentation. `node /tmp/kbe-qa/phase-h/focused.mjs` captures the authored arena instances.
+- **Expected:** The bent rotor, snapped tail and nose remain complete throughout the crash pose and until the impact.
+- **Actual:** The 112×80 source canvas crops the increasingly vertical machine. Zero-based death poses 5–11 hit the bottom edge; the last four also lose rotor/tail pixels at the top. Pose 11 has 24 opaque pixels along the bottom boundary, producing a flat cut through the nose. This is baked into the atlas, independently of camera clipping. The actor's x clamp and the final crash event still work.
+- **Evidence, opened and inspected:** `/tmp/kbe-qa/phase-h/buzzard_death-sequence.png`; `/tmp/kbe-qa/phase-h/arena-2-2-buzzard-death-1100.png`; `/tmp/kbe-qa/phase-h/arena-2-1-buzzard-death-1100.png`. State: `focused.json`.
+- **Baseline:** This crop belongs to the new tilted H1 death artwork; the old Phase G sprite did not contain these vertical poses.
+
+### KBE-QA-H02 — OPEN: sink ending falls below the locked view
+
+- **Contract:** H2 death review: complete, unclipped death inside the locked view.
+- **URL:** `http://127.0.0.1:8080/?debug=1&scene=Game&fast=1&mute=1&god=1&seed=731&part=2-2&x=2320`.
+- **Repro:** Freeze, press right and advance 1800 ms to enter the real crane lock; lethally hit the wave-1 airboat and advance/render every 50 ms. Exact harness: `node /tmp/kbe-qa/phase-h/airboat-death.mjs`.
+- **Expected:** Crew exit, fan collapse and final debris remain visible through the ten-frame sink ending. Submergence can hide the hull beneath the water surface without cropping the remaining action at the viewport border.
+- **Actual:** The art already sinks within its canvas, while the actor also moves down at 35 px/s and rotates. In the locked view `y=152..368`, at capture +1000 ms the active frame-8 actor's root is `y=377.08`; at +1150 ms, frame 10 is at `y=382.33`. The fan/crew and final scraps are visibly cut by the bottom of the screen before cleanup. No arena progression failure results.
+- **Evidence, opened and inspected:** `/tmp/kbe-qa/phase-h/airboat-real-death-600.png`, `/tmp/kbe-qa/phase-h/airboat-real-death-1000.png`, `/tmp/kbe-qa/phase-h/airboat-real-death-1150.png`; `airboat-death.json` records the locked view and frames.
+- **Baseline:** The downward runtime motion predates H1; H1 adds the within-frame sinking/crew escape. This is an integration gap in the new death presentation, not a claim that H1 changed the sink speed.
+
+### KBE-QA-H03 — OPEN: firing animation's recovery frame never appears
+
+- **Contract:** H2 state/animation coverage; PHASE-H per-kind animation bar.
+- **URL:** Same Buzzard fixture as H01; the natural pump/crane Buzzards use the same path.
+- **Repro:** Freeze and advance at 16.67 ms intervals through a five-shot strafe; record `anims.currentAnim.key` and `anims.currentFrame.index`. Inspect `mechanics.json`, `mechanics[kind=buzzard].trace`.
+- **Expected:** All three frames of the 180 ms `buzzard_fire` clip, including its recoil recovery, are shown; the damaged equivalent has the same requirement.
+- **Actual:** `muzzleMs=120` selects the firing pose for 120 ms, while its three frames each last 60 ms. Only frame indices 1 and 2 appear before `visual()` switches back to strafe. The third frame is never reached in the measured five-shot burst. The damaged firing tag has the same timing mismatch in source. Projectile count/timing and `buzzard_gun` calls are correct.
+- **Evidence, opened and inspected:** `/tmp/kbe-qa/phase-h/buzzard-fire-frame-coverage.png` (atlas comparison; third panel explicitly labeled unobserved); `/tmp/kbe-qa/phase-h/fixture-buzzard-strafe-buzzard_fire.png` (runtime); `mechanics.json`.
+- **Baseline:** H1 introduces this firing tag and cosmetic timer; the Phase G attack clock remains unchanged.
+
+### Confirmed working
+
+- Seven enemies reviewed in fixtures and real-map galleries; scale sheets beside Knotz and a grunt at 1×/4× are `roster-<kind>-1x-4x.png`. The new silhouettes/materials read as the same family as the soldiers. Lurker ghillie uses clean clumps. Relevant natural arena waves were reviewed separately from direct map starts.
+- Hopper: **500 ms** tongue cue; at +100 ms extension, collision reach **63.35 px** and drawn cable **63 px**, aligned within a pixel horizontally and on the 5 px hit strip vertically. All eight tongue frames observed. A nonlethal shotgun hit still moves it **9.34 px** in the isolated probe. Hopper hop squash/stretch was not judged.
+- Airboat: three shots per volley, roughly 170 ms apart after the 600 ms gun cue; two actual leaper spawn calls. Damaged/fire variants, wake and smoke are present. Piranha swim/bulge/leap/bite/fall/splash and gnat hover/cue/dive/recovery all appear.
+- Buzzard: pilot, animated rotor, drawn tilt, five-shot strafe and damaged state appear. A separate controlled crash over solid ground leaves the unprotected player alive at **3 lives**; the crash calls no damage. Hound has a **450 ms** pounce cue, jointed run/leap/land, and retains flesh material/ordinary kill feel. Facing mirrors correctly in fresh live-actor captures.
+- Two fresh starts (1-2, 2-1) and native PartClear 2-1→2-2: **zero sampled title/radio overlap**. The fresh starts survive five idle seconds with god off; radio type is readable. `ui-contact-0.png`, `transition-contact-0.png` were opened.
+- All five new sound keys are loaded in the audio cache and observed at their corresponding action/death hooks, with **no unknown keys, missing-key warnings or page exceptions** in the review runs. Audible mix is not claimed.
+- New sprite art uses the master palette and binary alpha. No duplicate animation keys among **696** tags scanned under `sprites/`. Every new non-soldier death has 8–12 frames, and all three lurker deaths have 8.
+
+### Verification and limits
+
+Pinned H1 and final live `check`: PASS, 115 files / 0 errors / 0 warnings. Pinned `audit`: all six parts PASS. Full `selftest`: first run 44 PASS assertions then a 30 s mission-recovery timeout; final run timed out at initial readiness (0 assertions). An isolated mission diagnostic logged 18/18 PASS, but does not replace the full run. Long-running command sessions ended with transport status 143, so no successful full-suite exit is claimed. See the Phase H section in [qa.md](qa.md) for commands, performance windows and rejected harness setups. No real-time bot playthrough was run. Visual warps and direct hits are presentation probes; the stock arena audit supplies progression acceptance.
+
+### Top five visual improvements / Requests for other teams
+
+1. **Enemies A:** preserve the complete nose/rotor/tail silhouette through the Buzzard's last crash poses (H01).
+2. **Enemies B:** keep the airboat's crew escape and sink debris inside the visible water lane until their ending (H02).
+3. **Enemies A:** fit all three firing/recoil frames into the existing cosmetic firing window without changing attack timing (H03).
+4. **Enemies B:** strengthen the hopper's separation from olive ground and Knotz with a clearer lit belly/steel edge and a more legible red flank marking. Keep the current hop pass out of this request.
+5. **Enemies B:** make the gnat's glass wing panes read at 1×; the pale wing currently tends to read as a thin slash. Preserve its small body and dive hitbox.
+
+Additional requests: **Engine/Lead** investigate the full-selftest readiness/recovery timeouts before acceptance. **FX/Lead** recheck the mixed stress scene on a quieter host: it measured 47.97 FPS against its same-session 1-1 opening baseline of 58.04–60.02 FPS, while host load rose sharply; this is not attributed to an H1 regression. Corrected Buzzard and four-gnat burst windows are approximately 60 FPS.
+
+---
+
 ## Phase G — Mission 2 acceptance (2026-10-19)
 
 **Verdict: functional progression passes; visual/combat acceptance needs fixes.** Ranked open findings are below. No S1 crash or arena stall was established. Judged against `docs/MISSION2.md` and `docs/LESSONS.md`, especially §§2–5.
