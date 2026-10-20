@@ -592,3 +592,34 @@ fallbackPeak, doubleMs, doublePeak}` (dropped `reducedPeak`: FX dims), `LEVEL.bg
   stop) and `/tmp/kbe-level/fix/g3.mjs` (real slams, lightning cadence, glimpse, swarm extent, storm rain; `g3/report.json`).
 - Screenshots. Before: `/tmp/kbe-level/fix/before22/` and QA's originals. After: `/tmp/kbe-level/fix/after22/`, `after22b/`
   (Queen decks/roof), `after21/` (`w600c`, `pond6000c`, `mud4020`, zoom crops), `g3/` (slams, storm, glimpse, swarm, wreck shore).
+
+## Phase H2: far actors matching the facelifted enemies (2026-10-20)
+
+Phase H rebuilt the Buzzard, the airboat and the gnat from Imagegen references, so the three far actors that show them were
+redrawn at far scale in the house far style (no outline, atmospheric palette, low contrast, animated). All Levels paths.
+
+| Actor (moment) | Was | Now |
+|---|---|---|
+| `bg_buzzard` (`buzzard_circle`, 1-2 one-shots 100 and 284; no other users) | 24×12, 2 f, a dark toy silhouette | **34×14, 4 f @60 ms**: bulbous sky-tinted canopy with a dim red rim and a red-cap pilot pixel, engine hump with a mast cap and exhaust, door panel, stub-wing pod, long tapered tail boom with a red stripe and a fin, skids with an upturned front and a chin gun. Main rotor blur cycles long / dashed / short / dashed; the 2-blade tail rotor turns 45° per frame. Orbit extent: screen y 67–105 (radio strip ends at y 54) |
+| `bg_airboat` (`airboat_race`, 2-2 hook `start:crane`) | 32×14, a grey slab with a grey fan | **36×18, 4 f @60 ms**, origin bottom-centre (row 17 = waterline, same anchor): a round olive fan cage (dark mesh, spokes, lit rim) with a wooden 2-blade prop turning 45° per frame, an engine block and exhaust stack, the driver on a raised seat (red uniform, cap, face), a whip antenna with a fluttering red pennant, a jerrycan, the bow gunner behind a pintle MG and a shield plate, an olive hull with a red stripe, rivet seams, an upturned bow with an eye decal, rooster-tail spray, bow spray and waterline foam; 1 px chatter |
+| `bg_skeeter` (`skeeter_swarm`, 2-2 one-shot 240) | 6×4, 2 f, a dark speck | **8×5, 3 f @40 ms** (wings up / swept / down), the new gnat: glowing red fuel bulb at the back, dark thorax, red eye, steel needle, pale steel wing rims, hair legs |
+
+- **Swarm depth fix:** the swarm drew at `BG_FAR + 1.4`, behind the far riverbank treeline (`bg_m2p2_riverbank_far`, depth 2),
+  so it vanished wherever the far trees rose into its band, which includes the moon side. New tuning `LEVEL.bg.skeeters.depth = 2.5`:
+  in front of the far treeline, behind the QUEEN far view (3) and the mid bank (5). The y band is unchanged (QA-G08: opaque y 70–101).
+  The swarm still passes behind the QUEEN's cabin walls (map tiles): the trigger is in the open-air promenade stretch (238–245) on purpose.
+- No MEGA-SKEETER far actor exists, so nothing needed `refs/skeeter/`. The gator silhouette and ridges show only the waterline mass,
+  so GATORGEDDON's leg rework doesn't touch them. Plane, zeppelin, patrol boat and armoured train aren't facelifted kinds. No other changes.
+- Pack entries were unchanged (same keys and files; frame sizes come from the Aseprite JSON).
+
+### How to see it
+- Build: `bash tools/build-art.sh art-src/backgrounds/actors/bg_{buzzard,airboat,skeeter}.lua` (from `game/`).
+- In game: `?scene=Game&part=1-2&fast=1&mute=1&god=1&x=1500` then `__KBE.cheats.bg('buzzard_circle')`;
+  `part=2-2&x=2200` + `airboat_race`; `part=2-2&x=3700` + `skeeter_swarm` (or walk into x 3840 for the real trigger).
+- Gallery: `node /tmp/kbe-levels/gallery.mjs <part> <outdir> '<stops>'` (same tool as Phase G; turbo sim, renders every 50 ms).
+
+### Verification (H2)
+- Old/new contact sheet at 1× and 4× (8× for the skeeter) beside each enemy at 1×: `/tmp/kbe-levels/contact_old_new.png`.
+- In context, before → after: `/tmp/kbe-levels/before/` and `/tmp/kbe-levels/after/`, with zoomed crops `after/zoom_bz.png`
+  (circle, flip, peel-off), `after/zoom_ab.png`, `after/zoom_sk2.png` (swarm at the new depth), and `after/skr_*.png` (real trigger at x 3850).
+- `npm --prefix game run check`: clean (`check:phaser4` 115 files, 0/0). `audit`: reach and arenas PASS for 1-1…2-3. `selftest`: all passed.

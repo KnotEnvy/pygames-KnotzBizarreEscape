@@ -1,11 +1,13 @@
--- Background actor: far Regime airboat racing RIGHT. 32x14, origin BOTTOM-CENTRE (row 13 = waterline).
--- Flat jon-boat hull, engine block, driver on a raised seat, big caged fan at the stern (3/4 view oval) with rudders,
--- rooster-tail spray behind and bow spray. Dark steel; driver helmet steel3 with a faint red2 band.
--- Tag bg_airboat_run 4 f @60 ms: 2-blade fan rotates 45 deg/frame, spray churns, 1 px hull chatter.
+-- Background actor: far Regime airboat racing RIGHT (Phase H design, from enemies/airboat + art-src/refs/airboat).
+-- 36x18, origin BOTTOM-CENTRE (row 17 = waterline). Big round olive fan cage at the stern with a spinning 2-blade wooden
+-- prop, engine block + exhaust stack, driver on a raised seat (red uniform, cap), whip antenna with a Regime pennant,
+-- jerrycan, bow gunner behind a pintle MG + shield plate, olive hull with a red stripe and an upturned bow, spray + foam.
+-- Far style: no outline, dim olive/red, low contrast. Tag bg_airboat_run 4 f @60 ms: the prop turns 45 deg per frame,
+-- the pennant flutters, the spray churns, 1 px hull chatter.
 -- Build: bash tools/build-art.sh art-src/backgrounds/actors/bg_airboat.lua
 local K = dofile(app.params.kbe)
 local ROOT = app.params.root
-local W, HH = 32, 14
+local W, HH = 36, 18
 
 -- deterministic hash in [0,1)
 local function H(x, y, s)
@@ -56,70 +58,75 @@ local function flush(c) return function(img) for k, col in pairs(c) do img:drawP
 local function frame(f)
   return function(img)
     local c = {}
-    local by = (f % 2 == 0) and 1 or 0       -- hull chatter
-    -- rooster tail spray (behind the stern, drawn first)
-    for i = 0, 9 do
-      local x = 3 - math.floor(H(i, 1, f) * 4)
-      local y = 12 - math.floor(H(i, 2, f) * 4)
-      set(c, x, y, (H(i, 3, f) < 0.4) and "steel4" or "steel3")
+    local by = (f % 2 == 0) and 1 or 0       -- hull chatter (everything above the waterline)
+    -- rooster-tail spray behind the cage (the fan blows it back)
+    for i = 0, 11 do
+      local x = 2 - math.floor(H(i, 1, f) * 3)
+      local y = 16 - math.floor(H(i, 2, f) * 7)
+      set(c, x, y, (H(i, 3, f) < 0.35) and "steel4" or "steel3")
     end
-    set(c, 0, 12, "ink3"); set(c, 1, 13, "steel3")
-    -- hull
-    for x = 4, 29 do
-      local top = 10 + by
-      if x >= 26 then top = 10 + by - math.floor((x - 25) / 2) end
-      local bot = 12
-      if x >= 27 then bot = 12 - (x - 27) end
+    -- fan cage: dark mesh disc, crosshair spokes, olive ring lit top-left
+    local fx, fy = 8, 8 + by
+    for y = -7, 7 do for x = -7, 7 do
+      local d = math.sqrt(x * x + y * y)
+      if d <= 6.3 then
+        local col
+        if d > 5.1 then col = ((x + y) < 2) and "olive3" or "olive2"
+        elseif x == 0 or y == 0 then col = "olive2"
+        else col = "olive1" end
+        set(c, fx + x, fy + y, col)
+      end
+    end end
+    -- prop: 2 blades, 45 deg per frame (period 180 deg = 4 frames); leading half lighter
+    local ang = (f - 1) * math.pi / 4
+    for r = 1, 4 do
+      set(c, fx + math.cos(ang) * r, fy + math.sin(ang) * r, "sand3")
+      set(c, fx - math.cos(ang) * r, fy - math.sin(ang) * r, "sand2")
+    end
+    set(c, fx, fy, "steel3")
+    -- engine block in front of the cage + exhaust stack
+    rect(c, 14, 9 + by, 3, 4, "steel2"); rect(c, 14, 9 + by, 3, 1, "steel3")
+    set(c, 16, 7 + by, "steel1"); set(c, 16, 8 + by, "steel1")
+    -- whip antenna + Regime pennant (flutters)
+    for y = 0, 9 do set(c, 18, y + by, "ink3") end
+    if f <= 2 then rect(c, 19, 0 + by, 3, 1, "red3"); rect(c, 19, 1 + by, 2, 1, "red2")
+    else rect(c, 19, 0 + by, 2, 1, "red3"); set(c, 19, 1 + by, "red2"); set(c, 21, 1 + by, "red2"); set(c, 22, 1 + by, "red2") end
+    -- raised seat + driver (red uniform, cap with brim, pale face)
+    set(c, 19, 11 + by, "ink2"); set(c, 21, 11 + by, "ink2"); set(c, 19, 12 + by, "ink2"); set(c, 21, 12 + by, "ink2")
+    rect(c, 19, 7 + by, 3, 4, "red2"); set(c, 19, 7 + by, "red3"); set(c, 20, 7 + by, "red3")
+    set(c, 22, 9 + by, "red2")                                     -- arm to the stick
+    set(c, 20, 6 + by, "sand3"); set(c, 21, 6 + by, "sand3")      -- face
+    rect(c, 19, 5 + by, 3, 1, "red3"); set(c, 22, 5 + by, "red2")  -- cap + brim
+    -- jerrycan
+    rect(c, 23, 11 + by, 2, 2, "olive3"); set(c, 24, 12 + by, "olive2")
+    -- bow gunner behind a pintle MG with a shield plate
+    rect(c, 26, 10 + by, 2, 3, "red2"); set(c, 26, 10 + by, "red3")
+    set(c, 27, 9 + by, "sand3")
+    rect(c, 26, 8 + by, 2, 1, "red3"); set(c, 28, 8 + by, "red2")
+    for y = 9, 11 do set(c, 29, y + by, "steel2") end; set(c, 29, 9 + by, "steel3")
+    for x = 30, 33 do set(c, x, 10 + by, "steel1") end
+    set(c, 30, 11 + by, "steel1")
+    -- hull: flat bottom, olive with a top rim, red stripe, dark keel; the bow tips up
+    local TOP = { [30] = 12, [31] = 12, [32] = 11, [33] = 10, [34] = 10 }
+    local BOT = { [29] = 15, [30] = 15, [31] = 14, [32] = 13, [33] = 12, [34] = 11 }
+    for x = 3, 34 do
+      local top, bot = (TOP[x] or 13) + by, (BOT[x] or 16) + by
       for y = top, bot do
-        local col = (y == top) and "steel3" or ((y == bot) and "ink1" or "steel1")
+        local col = "olive2"
+        if y == top then col = "olive3" elseif y == bot then col = "olive1" elseif y == 15 + by then col = "red2" end
         set(c, x, y, col)
       end
     end
-    for x = 5, 26, 4 do set(c, x, 11 + by, "steel2") end   -- rivet ribs
-    -- rudders behind the fan
-    for y = 5 + by, 10 + by do set(c, 2, y, "ink2") end; set(c, 2, 5 + by, "steel2")
-    -- fan cage (3/4-view disc) centre (7, 5): dithered grill, solid rim lit top-left
-    local fx, fy = 7, 5 + by
-    for y = -6, 6 do for x = -5, 5 do
-      local nx, ny = x / 4.2, y / 5.6
-      local d = nx * nx + ny * ny
-      if d <= 1 then
-        local col
-        if d > 0.62 then col = ((x + y) < 0) and "steel3" or "steel2"
-        elseif (x + y + 20) % 2 == 0 then col = "ink2" end
-        if col then set(c, fx + x, fy + y, col) end
-      end
-    end end
-    -- blade blur: 2-blade prop rotating 45 deg per frame (period 180 deg = 4 frames)
-    local ang = (f - 1) * math.pi / 4
-    for r = -4, 4 do
-      local x, y = fx + math.cos(ang) * r * 0.7, fy + math.sin(ang) * r * 0.95
-      if r ~= 0 then set(c, x, y, "ink4") end
-    end
-    local ang2 = ang - math.pi / 8
-    for r = -3, 3, 2 do set(c, fx + math.cos(ang2) * r * 0.7, fy + math.sin(ang2) * r * 0.95, "ink3") end
-    set(c, fx, fy, "steel1")
-    -- cage stand
-    set(c, 7, 10 + by, "ink2"); set(c, 8, 10 + by, "ink2")
-    -- engine block in front of the fan
-    for x = 10, 13 do for y = 7 + by, 9 + by do set(c, x, y, (y == 7 + by) and "steel3" or "steel1") end end
-    set(c, 13, 8 + by, "ink1")
-    -- raised seat frame + driver
-    for y = 6 + by, 9 + by do set(c, 16, y, "ink2") end
-    set(c, 15, 6 + by, "ink2"); set(c, 17, 6 + by, "ink2")
-    for y = 3 + by, 5 + by do set(c, 16, y, "steel1"); set(c, 17, y, "steel1") end   -- torso
-    set(c, 18, 4 + by, "steel1"); set(c, 19, 5 + by, "steel1")                       -- arm to the stick
-    set(c, 16, 1 + by, "steel3"); set(c, 17, 1 + by, "steel3")                       -- helmet
-    set(c, 16, 2 + by, "red2"); set(c, 17, 2 + by, "skin2")                          -- band + face
-    set(c, 19, 6 + by, "ink2"); set(c, 19, 7 + by, "ink2")                           -- control stick
-    -- bow spray
-    for i = 0, 4 do
-      local x = 29 + math.floor(H(i, 5, f) * 3)
-      local y = 13 - math.floor(H(i, 6, f) * 3)
+    for x = 3, 4 do for y = 13 + by, 16 + by do set(c, x, y, (y == 13 + by) and "olive2" or "olive1") end end  -- stern face
+    for x = 7, 27, 5 do set(c, x, 14 + by, "olive1") end                                                        -- rivet seams
+    set(c, 32, 12 + by, "sand2")                                                                                -- bow eye decal
+    -- bow spray + waterline foam
+    for i = 0, 5 do
+      local x = 34 + math.floor(H(i, 5, f) * 2)
+      local y = 16 - math.floor(H(i, 6, f) * 4)
       set(c, x, y, (i % 2 == 0) and "steel4" or "steel3")
     end
-    -- waterline foam streak under the hull
-    for x = 0, 31 do if (x + f * 3) % 5 < 2 then set(c, x, 13, "steel3") end end
+    for x = 0, W - 1 do if (x + f * 3) % 5 < 3 then set(c, x, 17, (x > 30 or x < 4) and "steel4" or "steel3") end end
     flush(c)(img)
   end
 end

@@ -737,7 +737,7 @@ const M2_SHOTS: Record<string, (d: BackgroundDirector, o?: LevelObject, at?: { s
         const S = B.skeeters;
         for (let i = 0; i < S.count; i++) {
             const ox = d.rand(-S.spread[0], S.spread[0]), oy = d.rand(-S.spread[1], S.spread[1]), ph = d.rand(0, 6.28), w = d.rand(1.5, 3.5);
-            d.actor({ key: 'bg_skeeter', anim: 'bg_skeeter_buzz', origin: [0.5, 0.5], sf: S.sf, sx: 440 + ox, sy: S.y + oy, vx: S.speed * d.rand(0.85, 1.15), depth: FAR + 1.4,
+            d.actor({ key: 'bg_skeeter', anim: 'bg_skeeter_buzz', origin: [0.5, 0.5], sf: S.sf, sx: 440 + ox, sy: S.y + oy, vx: S.speed * d.rand(0.85, 1.15), depth: FAR + S.depth,
                 alpha: S.alpha, life: S.lifeMs, fadeIn: 500, fadeOut: 1200, offset: (a, out) => { out.y = Math.sin(a.age / 1000 * w + ph) * S.bob; } });
         }
         d.announce('skeeter_swarm', 330, S.y);

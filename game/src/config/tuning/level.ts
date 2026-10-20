@@ -139,8 +139,9 @@ export const LEVEL = {
         // vx is on top of the drift (bank layers slide left at drift × sf): these slide past slower than the bank
         gatorPod: { sf: 0.36, y: 146, count: 4, vx: 30, alpha: 0.85 },
         burningBarge: { sf: 0.23, y: 138, vx: 16, blastMs: 4200, alpha: 0.9, lifeMs: 15000 },
-        // KBE-QA-G08: every opaque pixel at screen y >= 62 (6×4 frames, centre origin): 86 - 10 - bob 3 - 2 = 71 .. 101
-        skeeters: { sf: 0.03, count: 30, y: 86, spread: [70, 10] as [number, number], bob: 3, speed: -38, lifeMs: 11000, alpha: 0.85 },
+        // KBE-QA-G08: every opaque pixel at screen y >= 62 (8×5 gnat frames, centre origin): 86 - 10 - bob 3 - 3 = 70 .. 101
+        // depth (over BG_FAR): in front of the far riverbank treeline (2), behind the QUEEN far view (3) and the mid bank (5)
+        skeeters: { sf: 0.03, count: 30, y: 86, spread: [70, 10] as [number, number], bob: 3, speed: -38, lifeMs: 11000, alpha: 0.85, depth: 2.5 },
         storm: { fadeMs: 4000, boltSx: 300, lightningAfterMs: 2500 },
         airboatRace: { sf: 0.23, y: 139, count: 3, speed: 150, alpha: 0.85 },
         // 2-3 GATOR'S DEN (and 2-2 after the storm front)

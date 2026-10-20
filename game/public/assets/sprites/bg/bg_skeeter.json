@@ -1,18 +1,26 @@
 { "frames": {
    "bg_skeeter#0": {
-    "frame": { "x": 0, "y": 0, "w": 6, "h": 4 },
+    "frame": { "x": 0, "y": 0, "w": 8, "h": 5 },
     "rotated": false,
     "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 6, "h": 4 },
-    "sourceSize": { "w": 6, "h": 4 },
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 8, "h": 5 },
+    "sourceSize": { "w": 8, "h": 5 },
     "duration": 40
    },
    "bg_skeeter#1": {
-    "frame": { "x": 7, "y": 0, "w": 6, "h": 4 },
+    "frame": { "x": 9, "y": 0, "w": 8, "h": 5 },
     "rotated": false,
     "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 6, "h": 4 },
-    "sourceSize": { "w": 6, "h": 4 },
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 8, "h": 5 },
+    "sourceSize": { "w": 8, "h": 5 },
+    "duration": 40
+   },
+   "bg_skeeter#2": {
+    "frame": { "x": 0, "y": 6, "w": 8, "h": 5 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 8, "h": 5 },
+    "sourceSize": { "w": 8, "h": 5 },
     "duration": 40
    }
  },
@@ -21,10 +29,10 @@
   "version": "1.3.18.6-dev",
   "image": "bg_skeeter.png",
   "format": "RGBA8888",
-  "size": { "w": 13, "h": 4 },
+  "size": { "w": 17, "h": 11 },
   "scale": "1",
   "frameTags": [
-   { "name": "bg_skeeter_buzz", "from": 0, "to": 1, "direction": "forward", "color": "#000000ff" }
+   { "name": "bg_skeeter_buzz", "from": 0, "to": 2, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "main", "opacity": 255, "blendMode": "normal" }
