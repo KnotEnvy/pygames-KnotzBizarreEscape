@@ -1,6 +1,7 @@
 // FX-owned budgets, in world pixels and milliseconds at 384 × 216.
 export const FX = {
     caps: { explosion: 12, muzzle: 8, impact: 16, dust: 12, smoke: 16, combat: 160, ambient: 64, casing: 32, decal: 16, glow: 8 },
+    machineRecipesEnabled: true, // Disable only these four recipes for paired performance probes.
     recipes: { rotor_wash: 36, boat_wake: 48, mech_pop: 56, smoke_trail: 8 },
     readability: { smokeAlpha: 0.28, coverage: 0.16, cloudCoverage: 0.08 },
     popup: { enabled: true, cap: 12, life: 700 }, // UI may set scene.registry 'fx.popups' = false.

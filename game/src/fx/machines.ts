@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { FX } from '../config/tuning/fx';
 import { settings, type GameContext } from '../core';
 import { bounded, type SpatialFx } from './campaign';
 import type { FxPool } from './pool';
@@ -12,6 +13,7 @@ export class MachineFx {
     emit(e: SpatialFx): boolean {
         const id = e.effect;
         if (id !== 'rotor_wash' && id !== 'boat_wake' && id !== 'mech_pop' && id !== 'smoke_trail') return false;
+        if (!FX.machineRecipesEnabled) return true;
         this.pool.recipeScope = id;
         try {
             const scale = bounded(e.scale, 1, .5, 1.5);

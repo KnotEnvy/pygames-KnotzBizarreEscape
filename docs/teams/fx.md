@@ -987,3 +987,88 @@ Final visual inspection: refreshed the mech-pop contact sheet after adding the b
 and opened `contact-context.png` containing all five final live-emitter shots.
 The final context run recorded zero page errors. The bolt atlas preview was
 refreshed and inspected, and the final code check remained clean.
+
+## Phase H3 — debris, drop accounting and paired performance (2026-10-20)
+
+- **Rules H6 fixed:** `game/src/fx/director.ts` skips the six generic metal
+  pieces for exactly gnat/hopper/piranha/airboat/buzzard, whose death paths
+  emit `mech_pop`. Machine hitstop is unchanged; turret/other machine scatter
+  and hound flesh effects remain. Six same-frame gnat kills avoid 36 duplicate
+  pieces. The real death probe recorded 86 combat slots / 110 total live slots,
+  including explosions and the capped 56-slot mech-pop recipe. Recipe throttling
+  still occurs during this deliberate saturation; this is not a zero-drop claim.
+- **Rules H7 fixed:** `game/src/fx/pool.ts` increments `recipeDropped` for
+  recipe-cap refusals. `state().fx.recipeDropped` exposes it through the director.
+  `dropped` retains its existing shared-budget failure meaning. Both counters
+  remain cumulative over the pool's lifetime, including `clear()`; live recipe
+  counts still release/reset normally.
+- **Performance check completed; no recipe trim warranted by this sample:**
+  `game/src/config/tuning/fx.ts` adds `machineRecipesEnabled` (default true),
+  consumed by `machines.ts`. False suppresses only rotor_wash, boat_wake,
+  mech_pop and smoke_trail. Existing particles expire normally. The harness
+  changes this tuning in browser memory before warmup, never on disk.
+
+Same Chromium/ANGLE Vulkan SwiftShader browser, serial pages, 1152×648,
+seed 731, ten-second stationary rAF windows, with 1-1 opening baselines:
+**60.00 before / 58.50 after FPS**. At the QA 2-2 x3900 stress location,
+recipes **ON: 55.71, 52.61 FPS (mean 54.16)**; **OFF: 54.21, 50.93 FPS
+(mean 52.57)**, in ON/OFF/OFF/ON order. Every sampled workload retains three
+live airboats, one Buzzard and four gnats (the spawn factory caps live gnats
+at four), plus the map actors and spawned passengers. This is an augmented
+stress scene, not an authored encounter. The script attempted six gnats but
+correctly recorded the actual four, matching QA's workload. ON has live wash
+and wake slots; OFF has zero slots in all four recipes. The stationary living
+actors do not emit death pops; six-death saturation is checked separately.
+
+No measured >2 FPS penalty from these recipes; the negative apparent cost is
+noise, not a claimed speedup. The scene **still misses 60 FPS even with recipes
+off**. Host one-minute load ranged roughly 13–29, so this is not quiet-host or
+whole-mission performance acceptance. No budgets, lifetimes, gameplay timings,
+HP, damage or hurtboxes changed.
+
+Reproduce from repo root, each invocation capped at 580 seconds:
+
+```sh
+timeout 580 node /tmp/kbe-fx/phase-h3/perf.mjs
+timeout 580 node /tmp/kbe-fx/phase-h3/verify.mjs
+timeout 580 npm --prefix game run audit
+timeout 580 npm --prefix game run selftest
+npm --prefix game run check
+```
+
+Scratch evidence: `/tmp/kbe-fx/phase-h3/`. `performance.json` retains raw frame
+intervals, renderer, load, actor samples and FX counters; `verification.json`
+records isolated kill routing, ninth-smoke recipe refusal, 161st-combat-slot
+exhaustion, clear/release accounting, six actual same-frame gnat kills and a
+natural airboat death. Both browser probes exit successfully with no page
+errors or warning/error logs. The six deaths are spawned/killed sequentially
+without advancing a frame, permitting the saturation check despite the live
+four-gnat cap.
+
+Opened and inspected `gnat-swarm-death.png`, `airboat-death.png`, `on-1.png`,
+`off-1.png`, `on-2.png`, `off-2.png`: explosion cores, sparks, broken wings and
+hardware still give the swarm a readable burst; the boat retains its crew/fan
+breakup, spray and debris. Death captures retain the live HUD/title/radio and
+use fixed-step advancement only. URLs: `?debug=1&scene=Game&fast=1&mute=1&god=1&seed=731&part=2-2&x=3900`
+(swarm/stress) and the same query with `x=600` (natural airboat).
+
+`audit.log`: PASS, reachability and arena audits for all six parts, every arena
+maxOff=0 ms and all boss phases complete. Initial `check.log`: PASS, 115 files,
+zero errors/warnings. Final check and selftest result follow below.
+
+Requests for other teams: **Lead/QA** retains the broader mixed-scene 60 FPS
+acceptance issue; remeasure/profile the scene under comparable quiet host load.
+This paired probe does not attribute the remaining deficit to the new recipes.
+
+Final gates: `check-final.log` PASS (115 files, zero errors/warnings), and
+`git diff --check` clean. Full `selftest.log` is **NOT GREEN**: 45 PASS
+assertions, then `FAIL run "page.waitForFunction: Timeout 30000ms exceeded."`
+and `engine-selftest: 1 failure(s)`. The three-retry RELOAD/carry-resume assertion
+passed; the following recovery checks did not finish. The tool session returned
+143, not a successful exit. The runner reached its summary after browser/server
+cleanup; its process has exited. No retry or foreign-code workaround was made.
+**Engine/QA:** investigate this remaining full-selftest recovery timeout before
+sign-off. All verification attempts stayed below ten minutes. Started FX
+capture/performance servers and browsers closed in `finally`; audit/selftest
+also finished cleanup. Only FX-owned production files and these notes edited;
+no git state-changing commands, bot traversal or repo-root playtest edits.

@@ -97,6 +97,8 @@ export class FxPool {
     readonly recipeLive: Record<Recipe, number> = { rotor_wash: 0, boat_wake: 0, mech_pop: 0, smoke_trail: 0 };
     ambientLive = 0;
     coverage = 0; cloudCoverage = 0;
+    // Recipe throttling is intentional; dropped still tracks shared-pool exhaustion.
+    recipeDropped = 0;
     dropped = 0; peak = 0; active = 0; hot = 0;
     /** Synchronous emission scope; reset by the director in finally. Existing slots retain their layer. */
     backgroundFactor: number | undefined;
@@ -114,7 +116,7 @@ export class FxPool {
 
     spawn(category: Category, tag: string, x: number, y: number, delay = 0, scale = 1, reclaim = false): Slot | null {
         const recipe = this.recipeScope;
-        if (recipe && this.recipeLive[recipe] >= FX.recipes[recipe]) { this.dropped++; return null; }
+        if (recipe && this.recipeLive[recipe] >= FX.recipes[recipe]) { this.recipeDropped++; return null; }
         const clip = this.art.get(tag);
         const view = this.ctx.camera.view();
         const factor = this.backgroundFactor ?? 1;

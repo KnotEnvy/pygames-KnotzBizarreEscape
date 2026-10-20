@@ -12,6 +12,8 @@ import { BayouFx } from './bayou';
 import { BackgroundFx } from './background';
 import type { Projectile } from '../core/projectiles';
 const MACHINE = /turret|drone|tank|moose|machine|snowcat|ironhorn|hopper|airboat|piranha|gnat|buzzard|skeeter|shellshock|gatorgeddon/i;
+// These actors already emit their own mech_pop hardware on death.
+const MECH_POP_KINDS = new Set(['gnat', 'hopper', 'piranha', 'airboat', 'buzzard']);
 const MUZZLES: Record<string, readonly [string, string]> = {
     pistol: ['fx_muzzle_pistol_right', 'fx_muzzle_pistol_diag'], hmg: ['fx_muzzle_hmg_right', 'fx_muzzle_hmg_diag'],
     spread: ['fx_muzzle_spread_right', 'fx_muzzle_spread_diag'], rocket: ['fx_muzzle_rocket_right', 'fx_muzzle_rocket_diag'],
@@ -42,7 +44,7 @@ export class FxDirector {
     private explicitDustUntil = 0;
     private lastSplash = -1000; private splashX = 0; private splashY = 0;
     private readonly popups: { text: Phaser.GameObjects.Text; age: number; y: number }[] = [];
-    private readonly stats = { active: 0, peak: 0, dropped: 0, cpuMs: 0, cpuPeakMs: 0, filters: 'plain', ambience: null as Ambience, popups: 0, impacts: 0, explosions: 0, splashes: 0, combat: null as FxPool['combatLive'] | null, coverage: 0, cloudCoverage: 0, cues: 0 };
+    private readonly stats = { active: 0, peak: 0, dropped: 0, recipeDropped: 0, cpuMs: 0, cpuPeakMs: 0, filters: 'plain', ambience: null as Ambience, popups: 0, impacts: 0, explosions: 0, splashes: 0, combat: null as FxPool['combatLive'] | null, coverage: 0, cloudCoverage: 0, cues: 0 };
     private readonly offUpdate: () => void;
     private ambience: Ambience = null;
     private previewAmbience: Ambience | undefined;
@@ -102,7 +104,9 @@ export class FxDirector {
             // Hound is an armoured dog: retain flesh pop and ordinary/melee kill feel.
             const machine = MACHINE.test(e.kind);
             this.feel(0, this.bossDying ? 0 : machine ? FX.feel.machineKill : e.cause === 'melee' ? FX.feel.meleeKill : FX.feel.kill);
-            if (machine) this.scatter(e.x, e.y, METAL, 6, 75, 320, 700, true);
+            if (machine) {
+                if (!MECH_POP_KINDS.has(e.kind)) this.scatter(e.x, e.y, METAL, 6, 75, 320, 700, true);
+            }
             else {
                 const pop = this.pool.spawn('impact', 'fx_hit_pop_burst', e.x, e.y - 8, 0, 1.15, true);
                 if (pop) { pop.life = 90; pop.fade = 40; pop.alpha = .9; }
@@ -625,6 +629,7 @@ export class FxDirector {
         }
         this.filters.update(this.pool.hot);
         this.stats.active = this.pool.active; this.stats.peak = this.pool.peak; this.stats.dropped = this.pool.dropped;
+        this.stats.recipeDropped = this.pool.recipeDropped;
         this.stats.filters = this.filters.mode; this.stats.ambience = this.ambience; this.stats.popups = popups;
         const elapsed = performance.now() - start;
         this.frameCpu += elapsed;
