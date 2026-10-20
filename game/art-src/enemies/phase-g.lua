@@ -134,7 +134,7 @@ for _,spec in ipairs({{'shellshock',112,80,shell},{'shellshock_head',48,32,head}
  end
 end
 end
-if not silhouette and (not only or only=='roster' or only=='hopper') then
+if not silhouette and (not only or only=='roster' or only=='hopper' or only=='gnat') then
  dofile(app.params.root..'/art-src/enemies/lib/phase-h-roster.lua')
- if only~='hopper' then D.build('turtle_egg',16,20,{D.anim('turtle_egg_blink',4,120,function(im,f) dome(im,8,11,6,8,'outline');dome(im,7,10,5,7,'sand4');D.line(im,4,8,10,8,'olive3',2);D.rect(im,6,4,4,3,f%2==0 and 'fire5' or 'red2') end)}) end
+ if not only or only=='roster' then D.build('turtle_egg',16,20,{D.anim('turtle_egg_blink',4,120,function(im,f) dome(im,8,11,6,8,'outline');dome(im,7,10,5,7,'sand4');D.line(im,4,8,10,8,'olive3',2);D.rect(im,6,4,4,3,f%2==0 and 'fire5' or 'red2') end)}) end
 end

@@ -38,6 +38,9 @@ export class BayouEnemy extends Phaser.GameObjects.Sprite {
     private fireMs = 0;
     private wakeMs = 0;
     private smokeMs = 0;
+    private deathVy = 0;
+    private deathFloor = 0;
+    private deathWater = false;
     private readonly flash = new BossFlash();
     private readonly rect = new Phaser.Geom.Rectangle();
     private readonly attack = new Phaser.Geom.Rectangle();
@@ -148,12 +151,17 @@ export class BayouEnemy extends Phaser.GameObjects.Sprite {
         this.hurtMs = 140;
         if (this.hp > 0 && this.kind === 'hopper' && h.weapon === 'shotgun' && this.state !== 'attack') { this.knockMs = 160; this.knockDir = Math.sign(h.dirX); }
         if (this.hp <= 0) {
+            // Corpses have no hurtbox: this fall changes presentation only.
+            this.deathFloor = this.kind === 'gnat' ? this.ctx.physics.groundBelow(this.x, this.y) ?? this.ctx.level.bounds.bottom : this.floor;
+            const water = this.ctx.physics.waterSurfaceAt(this.x);
+            this.deathWater = this.kind === 'piranha' || this.testWater || water !== null && water >= this.y && water <= this.deathFloor;
+            if (water !== null && water >= this.y && water < this.deathFloor) this.deathFloor = water;
             this.enter('death', this.kind === 'airboat' ? 1200 : 600); this.updatePose(); this.stopLoop(); this.clearCue();
             this.ctx.events.emit('enemy:killed', { kind: this.kind, x: this.x, y: this.y, score: ENEMIES[this.kind].score, cause: h.kind });
             this.ctx.events.emit('explosion', { x: this.x, y: this.y - 12, size: this.kind === 'airboat' ? 'm' : 's', team: 'enemy' });
             this.ctx.events.emit('fx:emit', { effect: 'mech_pop', x: this.x, y: this.y - (this.kind === 'hopper' ? 17 : this.kind === 'airboat' ? 20 : 0), material: 'metal', scale: this.kind === 'airboat' ? 1.5 : this.kind === 'hopper' ? .8 : this.kind === 'piranha' ? .6 : .5 });
             this.ctx.audio.sfx(this.kind === 'airboat' ? 'airboat_sink' : 'mech_pop', { x: this.x });
-            if (this.kind === 'airboat' || this.kind === 'piranha') this.splash('sink');
+            if (this.kind === 'airboat' || this.kind === 'piranha' && this.y >= this.deathFloor) this.splash('sink');
         }
         this.updatePose();
         return true;
@@ -199,16 +207,28 @@ export class BayouEnemy extends Phaser.GameObjects.Sprite {
         if (this.hp > 0 && !visible(this.ctx, this.x, this.y, this.kind === 'piranha' ? 0 : 32)) { this.clearCue(); if (this.kind === 'airboat' && this.age >= 9000 && !this.ctx.camera.isLocked()) this.destroy(); return; }
         this.elapsed += dt; this.age += dt; this.contactMs -= dt; this.cueUsed = false;
         this.hurtMs = Math.max(0, this.hurtMs - dt); this.landMs = Math.max(0, this.landMs - dt); this.splashMs = Math.max(0, this.splashMs - dt); this.fireMs = Math.max(0, this.fireMs - dt);
-        if (this.state === 'death') { this.stopLoop(); if (this.kind === 'airboat') { this.y += dt * .035; this.rotation -= dt * .0002; } if (this.elapsed >= this.duration) this.destroy(); return; }
+        if (this.state === 'death') {
+            this.stopLoop();
+            if (this.kind === 'airboat') {
+                // The authored sink already dips/rolls the hull and launches the crew.
+                // Keep its remaining fan and scraps in the water lane through cleanup.
+                this.y = Math.min(this.y + dt * .035, this.floor + 4, this.ctx.camera.view().bottom - 8);
+            } else if (this.y < this.deathFloor) {
+                this.deathVy += 900 * dt / 1000;
+                this.y = Math.min(this.deathFloor, this.y + this.deathVy * dt / 1000);
+                if (this.y === this.deathFloor && this.deathWater) this.ctx.events.emit('water:splash', { x: this.x, y: this.deathFloor, size: 's', kind: 'enter' });
+            }
+            if (this.elapsed >= this.duration) this.destroy(); return;
+        }
         const p = this.ctx.player();
         this.setFlipX(this.facing < 0);
         if (this.state === 'sleep') { this.clearCue(); if (p?.alive() && Math.abs(p.x - this.x) < 150) this.enter('idle', 700); this.updatePose(); return; }
         if (this.state === 'entry') { this.clearCue(); this.updatePose(); if (this.elapsed >= this.duration) this.enter('idle', 700); return; }
         if (this.knockMs > 0) { this.clearCue(); this.knockMs = Math.max(0, this.knockMs - dt); this.x = this.safeHopX(this.x + this.knockDir * dt * .13 * this.knockMs / 160); this.clamp(); this.updatePose(); return; }
         if (this.kind === 'piranha') {
-            if (this.state === 'idle') { this.setAlpha(1); this.y = this.floor; this.drawCue('ellipse', this.x, this.floor, 14 + Math.sin(this.age / 130) * 4, 4, 0xa9bccb, .6);
+            if (this.state === 'idle') { this.setAlpha(1); this.y = this.floor; this.drawCue('ellipse', this.x, this.floor, Math.round(14 + Math.sin(this.age / 130) * 4), 4, 0xa9bccb, .6);
                 if (this.elapsed >= this.duration && p?.alive() && Math.abs(p.x - this.x) < 180 && visible(this.ctx, this.x, this.floor) && (this.testWater || this.ctx.physics.hazardAt(this.x, this.floor + 8) === 'water')) { this.enter('cue', 500); this.targetX = this.x + (p.x < this.x ? -1 : 1) * 48; if (this.ctx.camera.isLocked()) { const v = this.ctx.camera.view(); this.targetX = Phaser.Math.Clamp(this.targetX, v.left + 26, v.right - 26); } }
-            } else if (this.state === 'cue') { this.drawCue('ellipse', this.x, this.floor, 28 + Math.sin(this.age / 60) * 4, 5, 0xffe066); if (this.elapsed >= 500) { this.fromX = this.x; this.enter('attack', 850); this.updatePose(); this.setAlpha(1); this.splash('leap'); this.ctx.audio.sfx('piranha_leap', { x: this.x }); } }
+            } else if (this.state === 'cue') { this.drawCue('ellipse', this.x, this.floor, Math.round(28 + Math.sin(this.age / 60) * 4), 5, 0xffe066); if (this.elapsed >= 500) { this.fromX = this.x; this.enter('attack', 850); this.updatePose(); this.setAlpha(1); this.splash('leap'); this.ctx.audio.sfx('piranha_leap', { x: this.x }); } }
             else { const t = Math.min(1, this.elapsed / 850); this.x = Phaser.Math.Linear(this.fromX, this.targetX, t); this.y = this.floor - Math.sin(t * Math.PI) * 80; this.touch(this.bounds()); if (!this.fired && t > .35) { this.fired++; this.ctx.audio.sfx('piranha_bite', { x: this.x }); } if (t >= 1) { this.splash('enter'); this.splashMs = 240; this.enter('idle', 1500); } }
         } else if (this.kind === 'hopper') {
             if (this.state === 'cue' && this.elapsed >= 450) { this.fromX = this.x; this.enter('attack', 720); this.updatePose(); this.ctx.audio.sfx('hopper_hop', { x: this.x }); }

@@ -31,16 +31,17 @@ local function hopper(im,p,f,n,layer)
      D.limb(im,4+x+trail,34+lift+yy,-4+x+trail,39+lift+yy,'steel2','steel5',2)
      D.disc(im,4+x+trail,34+lift+yy,2,'steel1');D.rivet(im,3+x+trail,33+lift+yy)
      D.line(im,10+x,31+y+yy,2+x+trail,35+lift+yy,'sand3')
-     D.line(im,-4+x+trail,39+lift+yy,2+x+trail,42+lift+yy,'steel4',2)
+     D.line(im,-4+x+trail,39+lift+yy,2+x+trail,42+lift+yy,'outline',3)
+     D.line(im,-4+x+trail,38+lift+yy,2+x+trail,41+lift+yy,'steel5')
     end
     D.limb(im,34,29+y,40,33+y,'olive2','olive5',2);D.limb(im,40,33+y,47,34+y+f,'steel2','steel5',1)
-    D.box(im,43,34+y+f,9,3,'steel3','steel5','steel1')
+    D.box(im,43,34+y+f,9,3,'steel3','steel5','outline')
    else
    local stretch=0
    D.limb(im,13,30+y,7,35+stretch,'olive1','olive4',4);D.limb(im,7,35+stretch,15,42,'steel2','steel5',2);D.disc(im,7,35+stretch,2,'steel1');D.rivet(im,6,34+stretch);D.line(im,10,31+y,6,35+stretch,'olive5')
-   D.line(im,8,33+stretch,13,40,'sand3');D.box(im,3,43,14,4,'steel2','steel4','outline');D.line(im,4,45,1,46,'steel4');D.line(im,10,45,13,46,'steel5')
+   D.line(im,8,33+stretch,13,40,'sand3');D.box(im,3,43,14,4,'steel2','steel5','outline');D.line(im,4,45,1,46,'outline',2);D.line(im,4,44,1,45,'steel5');D.line(im,10,45,13,46,'steel5')
    D.limb(im,26,31+y,32,37+stretch,'olive2','olive5',4);D.limb(im,32,37+stretch,23,43,'steel2','steel5',2)
-   D.box(im,23,43,16,4,'steel2','steel5','outline');for _,x in ipairs({5,10,25,31,36}) do D.line(im,x,45,x+2,46,'steel4') end
+   D.box(im,23,43,16,4,'steel2','steel5','outline');for _,x in ipairs({5,10,25,31,36}) do D.line(im,x,45,x+2,46,'outline');D.line(im,x,44,x+2,45,'steel5') end
    end
   end
   if dead then for j=0,2 do local xx=12+j*12+math.floor((j-1)*t*10);D.box(im,xx,34+math.floor(t*8)-j*3,5,3,'steel2','steel5','outline') end end
@@ -49,22 +50,24 @@ local function hopper(im,p,f,n,layer)
    oval(im,22,30+y,16,11,'outline');oval(im,21,28+y,15,9,'olive2');oval(im,19,25+y,12,6,'olive3');D.line(im,11,23+y,23,22+y,'olive5');D.line(im,12,24+y,24,23+y,'olive4')
    D.line(im,21,23+y,19,30+y,'olive1');D.line(im,19,30+y,9,32+y,'olive1');D.rivet(im,13,25+y);D.rivet(im,24,25+y)
    D.box(im,8,21+y,8,6,'steel2','steel4','steel1');for j=0,2 do D.line(im,10+j*2,23+y,10+j*2,25+y,'outline') end
-   D.box(im,16,28+y,10,6,'red2','red4','red1');D.eye(im,17,29+y,'sand4')
+   -- Pale belly rim and a red enamel flank stay distinct from olive terrain/Knotz.
+   D.line(im,16,37+y,27,38+y,'steel1',3);D.line(im,16,36+y,27,37+y,'steel5')
+   D.box(im,17,27+y,11,8,'red3','red5','outline');D.eye(im,19,29+y,'sand5')
    if p=='hop' then
     oval(im,14,31+y,5,4,'outline');oval(im,13,30+y,4,3,'olive3');D.line(im,10,29+y,15,28+y,'olive5');D.rivet(im,13,30+y)
    else
    -- Foreground folded haunch: broad knee plate over a polished hydraulic ram.
    oval(im,11,34+y,7,6,'outline');oval(im,10,33+y,6,5,'olive3');D.line(im,7,30+y,12,29+y,'olive5');D.line(im,8,34+y,5,40,'steel1',3);D.line(im,8,33+y,5,39,'steel5');D.line(im,10,36+y,15,41,'olive2',3);D.line(im,10,35+y,15,40,'olive4');D.disc(im,10,34+y,2,'steel2');D.rivet(im,9,33+y)
-   D.limb(im,35,31+y,37,41,'olive2','olive4',2);D.box(im,34,43,10,3,'steel3','steel5','steel1')
+   D.limb(im,35,31+y,37,41,'olive2','olive4',2);D.box(im,34,43,10,3,'steel3','steel5','outline')
    end
-  else D.box(im,16,39,20,6,'steel1','steel3','outline') end
+  else D.box(im,16,39,20,6,'steel1','steel5','outline') end
   if dead then
-   for j=0,2 do local xx=18+(j-1)*math.floor(4+t*17);local yy=25-math.floor(math.sin(t*math.pi)*18)+j*5;poly(im,{{xx-4,yy},{xx+4,yy-2},{xx+6,yy+3},{xx-3,yy+5}},'outline');poly(im,{{xx-3,yy},{xx+3,yy-1},{xx+4,yy+2},{xx-2,yy+3}},j==1 and 'red3' or 'olive3');D.line(im,xx-2,yy,xx+2,yy-1,'olive5');D.rivet(im,xx,yy+1) end
+   for j=0,2 do local xx=18+(j-1)*math.floor(4+t*17);local yy=25-math.floor(math.sin(t*math.pi)*18)+j*5;poly(im,{{xx-4,yy},{xx+4,yy-2},{xx+6,yy+3},{xx-3,yy+5}},'outline');poly(im,{{xx-3,yy},{xx+3,yy-1},{xx+4,yy+2},{xx-2,yy+3}},j==1 and 'red4' or 'olive3');D.line(im,xx-2,yy,xx+2,yy-1,'steel5');D.rivet(im,xx,yy+1) end
   end
  elseif layer=='head' then
   local swell=p=='tongue_cue' and math.floor(f*.8) or p=='croak' and f or (f%6==2 or f%6==3) and 2 or 0
   if t<.65 then
-   oval(im,30,35+y,10,6+swell,'outline');oval(im,29,34+y,9,5+swell,'sand3');oval(im,28,33+y,7,4+swell,'sand5');D.line(im,24,39+y+swell,34,39+y+swell,'sand2')
+   oval(im,30,35+y,10,6+swell,'outline');oval(im,29,34+y,9,5+swell,'sand4');oval(im,28,33+y,8,4+swell,'sand5');D.line(im,24,39+y+swell,34,39+y+swell,'sand2');D.line(im,22,37+y+swell,24,40+y+swell,'steel5');D.line(im,25,41+y+swell,34,41+y+swell,'steel3')
    poly(im,{{22,28+y},{39,26+y},{44,28+y},{44,32+y},{24,34+y}},'outline');poly(im,{{23,28+y},{39,27+y},{43,29+y},{43,31+y},{24,32+y}},'steel3');D.line(im,24,28+y,39,27+y,'steel5');D.line(im,24,32+y,42,31+y,'steel1');D.rivet(im,25,29+y);D.rivet(im,40,29+y)
    if p=='tongue_cue' or p=='tongue' or p=='croak' then D.rect(im,26,30+y,16,2+math.min(3,swell),'outline');D.line(im,29,32+y,40,32+y,'red2') end
   end
@@ -171,9 +174,13 @@ local function gnat(im,p,f,n,layer)
   local phase=(f-1)%4+1
   for j=0,1 do
    local detach=dead and (j==0 and -1 or 1)*math.floor(t*8) or 0
-   local xx=({5,6,7,6})[phase]+j*4+detach;local yy=({3,9,15,7})[phase]+j*3+(dead and math.floor(t*10) or 0);local x=16+detach
+   local xx=math.max(4,({5,6,7,6})[phase]+j*4+detach);local yy=math.min(24,({4,9,21,7})[phase]+j*3+(dead and math.floor(t*10) or 0));local x=16+detach
    if f<9 or not dead then
-    poly(im,{{x,11},{xx-2,yy-1},{xx,yy-2},{xx+3,yy},{x,13}},'steel2');poly(im,{{x-1,11},{xx,yy-1},{xx+2,yy},{x-1,12}},'sky5');D.line(im,xx-1,yy-1,x-1,11,'steel5');K.px(im,math.floor((xx+x)/2),math.floor((yy+12)/2),'steel3')
+    -- Broad glass panes: a one-pixel pale rim encloses a dark blue interior.
+    local pane={{x,11},{xx-3,yy-1},{xx-1,yy-3},{xx+3,yy-1},{x,14}}
+    poly(im,pane,'steel2')
+    for i,a in ipairs(pane) do local b=pane[i%#pane+1];D.line(im,a[1],a[2],b[1],b[2],'steel5') end
+    D.line(im,xx-2,yy-2,xx+1,yy-2,'sky5');K.px(im,math.floor((xx+x)/2),math.floor((yy+12)/2),'steel3')
     if not dead and phase%2==0 then D.line(im,xx-2,yy-3,xx+3,yy-2,'steel4') end
    end
   end
@@ -191,6 +198,8 @@ local function gnat(im,p,f,n,layer)
  end
 end
 local function build(name,w,h,layers,poses,paint)
+ local only=app.params.only or os.getenv('KBE_ART_ONLY')
+ if only and only~='roster' and only~=name then return end
  local anims={};for _,p in ipairs(poses) do local tag,count,ms=p[1],p[2],p[3];local frames={}
   for i=1,count do local f=i;local fr={};for _,l in ipairs(layers) do local layer=l;fr[layer]=function(im)
     paint(im,tag,f,count,layer)
@@ -217,7 +226,6 @@ local function build(name,w,h,layers,poses,paint)
    end end;frames[#frames+1]=fr end
   anims[#anims+1]={tag=name..'_'..tag,ms=ms,frames=frames}
  end
- if (app.params.only or os.getenv('KBE_ART_ONLY'))=='hopper' and name~='hopper' then return end
  K.build{name=name,w=w,h=h,layers=layers,src=D.root..'/art-src/enemies/'..name..'.aseprite',sheet=D.root..'/public/assets/sprites/enemies/'..name..'.png',data=D.root..'/public/assets/sprites/enemies/'..name..'.json',anims=anims}
 end
 build('hopper',64,56,{'hydraulics','armour','head','motion'},{{'idle',6,140},{'croak',3,50},{'crouch',3,100},{'hop',6,120},{'land',3,60},{'tongue_cue',5,100},{'tongue',8,{30,30,30,20,20,30,30,30}},{'hurt',2,70},{'death',10,60}},hopper)

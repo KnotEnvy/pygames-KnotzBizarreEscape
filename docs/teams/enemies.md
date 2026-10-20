@@ -688,3 +688,35 @@ Verification attempts are bounded to under ten minutes each; captures are serial
 No known functional regressions. Sustained 60-FPS performance was not benchmarked. **Requests for other teams: none.**
 
 **Acceptance:** `npm --prefix game run check` **PASS**, 115 files / zero Phaser errors or warnings (`check.log`); `npm --prefix game run audit` **PASS** for reach and all six parts, all bosses phases 1/2/3 and the expected PartClear/Results, zero off-view time including **2-2** (`audit.log`); `npm --prefix game run selftest` **all passed** (`selftest.log`). The final abdomen silhouette retains approximately the prior body envelope (a longer taper and narrower thorax within the same 144×88 rig); the runtime pivot and actual needle socket stay fixed.
+
+## Phase H3 — Enemies B: review fixes (2026-10-20)
+
+All five assigned items are **fixed**; no won't-fix items.
+
+- **KBE-QA-H02:** `BayouEnemy.ts` limits the airboat's cosmetic sink translation to lane +4 px and view bottom −8 px. Removed the additional runtime rotation: the ten authored frames already dip the hull, collapse the fan and launch the crew. The real 2-2 crane repro (`part=2-2&x=2320`, right +1800 ms, lethal damage-registry hit) keeps frames 8/10 at **y348**, inside the locked **y152..368** view, and cleans up on the unchanged 1200 ms death clock. Hull submergence remains in the art/water layer.
+- **Rules H4:** dead piranhas, hoppers and gnats fall cosmetically with gravity **900 px/s²**, stopping at their floor or the first water surface below them; gnats query the ground rather than using their cruising altitude. A water landing emits one splash. Dead actors remain non-damaging, and the existing 600 ms cleanup/score/kill events are retained. Fixed-step midpoint kills verified piranha **y256.34→336** in actual water (one landing splash), hopper **y262.06→320**, and gnat **y267.63→320**, followed by cleanup.
+- **Rules H5:** both piranha idle/cue ellipse widths are rounded before the existing cache comparison. A 60-step idle/cue probe measured **20/40 geometry changes**, respectively, with integer widths throughout, instead of 60 redraws each.
+- **QA suggestion 4:** `lib/phase-h-roster.lua` strengthens the hopper's lit sand belly, steel belly edge, outlined feet and red flank stencil across all tags, including hop and breakup. Existing squash/stretch and all frame durations remain intact.
+- **QA suggestion 5:** gnat wings have broader dark-blue panes enclosed by a 1 px pale steel rim. The downstroke extends below the body so it remains legible; detached panes stay inside the existing canvas. Body, needle and dive hitbox are unchanged. **Levels:** `bg_skeeter` copies this gnat design; carry over the broader rimmed panes/downstroke when next rebuilding that far actor. No Levels files were edited.
+
+Changed paths: `game/src/entities/enemies/BayouEnemy.ts`, `game/art-src/enemies/{phase-g.lua,lib/phase-h-roster.lua,hopper.aseprite,gnat.aseprite}`, and `game/public/assets/sprites/enemies/{hopper,gnat}.png`. Atlas JSONs remain identical. Added selective `KBE_ART_ONLY=gnat` support; both selective builds leave other sprites untouched. HP, damage, hurtboxes, attack/telegraph timings, living trajectories and spawn behavior are unchanged.
+
+Rebuild from the repository root:
+
+```sh
+KBE_ART_ONLY=hopper bash game/tools/build-art.sh art-src/enemies/phase-g.lua
+KBE_ART_ONLY=gnat bash game/tools/build-art.sh art-src/enemies/phase-g.lua
+timeout --signal=TERM --kill-after=10s 590s node /tmp/kbe-enemies-b/h3/verify.mjs
+```
+
+Evidence is under **`/tmp/kbe-enemies-b/h3/`**, opened and inspected:
+
+- Before/after every-frame sheets beside grunt/Knotz on olive ground: `compare-hopper-1x.png`, `compare-hopper-4x.png`, `compare-gnat-1x.png`, `compare-gnat-4x.png`; compact idle comparisons `compact-hopper.png`, `compact-gnat.png`.
+- Real-map 2-1 shots: `context-2-1-hopper.png` (`?scene=Game&fast=1&mute=1&god=1&part=2-1&x=2640`) and `context-2-1-gnat.png` (same, `x=1700`). Captures hide the title to expose the actors.
+- `airboat-sink-sequence.png` (real crane lock, +0..1350 ms), plus full-size `airboat-real-death-{600,1000,1150}.png`; `piranha-fall-sequence.png`, `hopper-fall-sequence.png`, `gnat-fall-sequence.png` (+0..750 ms). `runtime.json` records the actors, camera, landing events, cue widths and **zero console/page errors**. The final piranha probe uses the real x1144 water column, with `testWater=false`.
+- `art-audit.log`: unchanged tags/timings/canvases, binary alpha and master palette **PASS**. `global-tags.log`: **714 globally unique tags**, no duplicates at verification time.
+- `npm --prefix game run check`: **PASS**, 115 files / zero errors or warnings, including the final rerun (`check-final.log`). `npm --prefix game run audit`: **PASS** for reach and all six arenas/parts, zero off-view time (`audit.log`). `npm --prefix game run selftest`: **FAIL**, **23 passing assertions**, then `page.waitForFunction: Timeout 20000ms exceeded.` while waiting for Mission 1 Results after the 1-2→1-3 carry check (`game/tools/engine-selftest.mjs:442`, `selftest.log`). Animations, projectile pool, input, camera, asset-retry checks and earlier carry checks passed. Mission-pack checks after that point were not reached; no full-suite pass is claimed.
+
+Verification attempts are capped below ten minutes; captures run serially in one browser and use fixed-step simulation. No real-time bot playthroughs, git state changes, root `playtest/` edits or new dependencies. All started browsers and servers exited.
+
+**Known issues:** the full selftest Results timeout above remains unresolved; no functional issues found in the five fixes, and no sustained performance benchmark claimed. **Requests for other teams:** Engine/QA, investigate the selftest's Mission 1 Results timeout; Levels, keep `bg_skeeter`'s next art rebuild consistent with the wing changes above.
