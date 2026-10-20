@@ -623,3 +623,36 @@ redrawn at far scale in the house far style (no outline, atmospheric palette, lo
 - In context, before → after: `/tmp/kbe-levels/before/` and `/tmp/kbe-levels/after/`, with zoomed crops `after/zoom_bz.png`
   (circle, flip, peel-off), `after/zoom_ab.png`, `after/zoom_sk2.png` (swarm at the new depth), and `after/skr_*.png` (real trigger at x 3850).
 - `npm --prefix game run check`: clean (`check:phaser4` 115 files, 0/0). `audit`: reach and arenas PASS for 1-1…2-3. `selftest`: all passed.
+
+## Phase H3: fix round (2026-10-20)
+
+1. **Fixed: far `bg_airboat` racers competed with the gameplay layer in 2-2** (Lead note, LESSONS §5).
+   - `game/art-src/backgrounds/actors/bg_airboat.lua` now has a `HAZE` remap applied on output. The boats are still drawn
+     in design colours, but they are written out in river-fog tones:
+     - lit olive (`olive3`) becomes cool `steel3`, and `olive1` becomes `steel1`;
+     - `red3`, `sand3`, `sand2`, `steel4` and `ink3` each drop one step.
+   - The dark body tones (`olive2`, `red2`, `steel1..3`) stay. A first try that pushed every tone one step darker sank the
+     hull and fan into the dark treeline and lost the silhouette (`/tmp/kbe-levels/h3/after1/`), so I rejected it.
+   - Result: the steel rims still trace the round fan cage, the hull, the antenna and the crew, so the silhouette reads, but
+     it sits in the haze, well below Knotz and the crates in contrast.
+   - Same frames, size, anchor, tag and timing. No runtime or tuning change (alpha stays 0.85).
+   - Rebuilt `game/public/assets/sprites/bg/bg_airboat.png`; the JSON is unchanged.
+2. **`bg_buzzard`: no change.** Over the 1-2 sky it is small, darker than the clouds, and orbits at screen y 67–105, well
+   above the gameplay layer (`/tmp/kbe-levels/after/bz_b.png`, `after/zoom_bz.png`).
+3. **Optional `bg_skeeter` gnat match: left as is.** Enemies B's gnat wing rebuild was still being written while I worked.
+   It gives the gnat thicker glass panes and a downstroke below the body. The 8×5 far gnat already does both: 2 px
+   rim-and-pane wings on the upstroke, a 4 px swept pane, and a downstroke below the body. A thicker pane needs a taller
+   sprite, which would move QA-G08's checked y band (70–101).
+   - If the final gnat changes its wing silhouette further, the far frames are three text grids in `bg_skeeter.lua`.
+
+### How to see it
+- `?scene=Game&part=2-2&fast=1&mute=1&god=1&x=2200`, then run `__KBE.cheats.bg('airboat_race')`.
+- Or `node /tmp/kbe-levels/gallery.mjs 2-2 <outdir> '[{"name":"ab_a","x":2200,"ms":600,"eval":"window.__KBE.cheats.bg(\"airboat_race\")","after":{"ms":1000}},{"name":"ab_b","ms":700},{"name":"ab_c","ms":800}]'`.
+
+### Verification
+- Before and after in context, same stops: `/tmp/kbe-levels/h3/before/ab_{a,b,c}.png` and `h3/after2/ab_{a,b,c}.png`.
+  - Strips: `h3/cmp2_{a,b,c}.png` (top: before, bottom: after).
+  - 2.5× zoom: `h3/zoom2_b.png` (before / rejected all-darker try / final).
+- Sprite sheet at 4×, H2 above, H3 below: `h3/sheet_airboat_4x.png`.
+- `npm --prefix game run check`: clean (`check:phaser4` 115 files, 0/0).
+- `npm --prefix game run audit`: reach and arenas PASS for 1-1…2-3 (`/tmp/kbe-levels/h3/audit.log`).

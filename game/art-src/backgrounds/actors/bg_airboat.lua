@@ -2,7 +2,7 @@
 -- 36x18, origin BOTTOM-CENTRE (row 17 = waterline). Big round olive fan cage at the stern with a spinning 2-blade wooden
 -- prop, engine block + exhaust stack, driver on a raised seat (red uniform, cap), whip antenna with a Regime pennant,
 -- jerrycan, bow gunner behind a pintle MG + shield plate, olive hull with a red stripe and an upturned bow, spray + foam.
--- Far style: no outline, dim olive/red, low contrast. Tag bg_airboat_run 4 f @60 ms: the prop turns 45 deg per frame,
+-- Far style: no outline, river-haze palette (HAZE below), low contrast. Tag bg_airboat_run 4 f @60 ms: the prop turns 45 deg per frame,
 -- the pennant flutters, the spray churns, 1 px hull chatter.
 -- Build: bash tools/build-art.sh art-src/backgrounds/actors/bg_airboat.lua
 local K = dofile(app.params.kbe)
@@ -54,7 +54,17 @@ local function thick(c, x0, y0, x1, y1, r, col)
   for i = 0, n do local t = i / n; if r <= 0 then set(c, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, col) else disc(c, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, r, col) end end
 end
 local function copy(c) local o = {}; for k, v in pairs(c) do o[k] = v end; return o end
-local function flush(c) return function(img) for k, col in pairs(c) do img:drawPixel(k % W, k // W, K.color(col)) end end end
+-- H3 river haze: the racers run on the far water at Knotz's chest height, so they are pushed back atmospherically. The lit
+-- olive turns to the cool steel of the river fog (the rims still trace the cage and hull), and the bright red, sand and spray
+-- tones drop one step. The dark tones stay, so the boats don't sink into the treeline. Drawn in design colours, remapped on output.
+local HAZE = {
+  olive3 = "steel3", olive1 = "steel1",
+  red3 = "red2",
+  sand3 = "sand2", sand2 = "sand1",
+  steel4 = "steel3",
+  ink3 = "ink2",
+}
+local function flush(c) return function(img) for k, col in pairs(c) do img:drawPixel(k % W, k // W, K.color(HAZE[col] or col)) end end end
 local function frame(f)
   return function(img)
     local c = {}
