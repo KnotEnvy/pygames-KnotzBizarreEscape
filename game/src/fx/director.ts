@@ -7,10 +7,11 @@ import { FxFilters } from './filters';
 import { CampaignFx, ambience, type Ambience, type SpatialFx } from './campaign';
 import { FxWeather } from './weather';
 import { FxLightning } from './lightning';
+import { MachineFx } from './machines';
 import { BayouFx } from './bayou';
 import { BackgroundFx } from './background';
 import type { Projectile } from '../core/projectiles';
-const MACHINE = /turret|drone|tank|moose|machine|snowcat|ironhorn/i;
+const MACHINE = /turret|drone|tank|moose|machine|snowcat|ironhorn|hopper|airboat|piranha|gnat|buzzard|skeeter|shellshock|gatorgeddon/i;
 const MUZZLES: Record<string, readonly [string, string]> = {
     pistol: ['fx_muzzle_pistol_right', 'fx_muzzle_pistol_diag'], hmg: ['fx_muzzle_hmg_right', 'fx_muzzle_hmg_diag'],
     spread: ['fx_muzzle_spread_right', 'fx_muzzle_spread_diag'], rocket: ['fx_muzzle_rocket_right', 'fx_muzzle_rocket_diag'],
@@ -32,6 +33,7 @@ export class FxDirector {
     readonly weather: FxWeather;
     readonly background: BackgroundFx;
     readonly bayou: BayouFx;
+    readonly machines: MachineFx;
     private readonly impacts = Array.from({ length: FX.impactsPerFrame }, () => ({ x: 0, y: 0, material: 'flesh' as ImpactMaterial, primary: false, weapon: '' }));
     private impactCount = 0;
     private frameCpu = 0;
@@ -59,6 +61,8 @@ export class FxDirector {
 
     constructor(readonly ctx: GameContext) {
         this.pool = new FxPool(ctx);
+        this.machines = new MachineFx(ctx, this.pool);
+        ctx.debug.register('fxRecipes', () => this.pool.recipeLive);
         this.bayou = new BayouFx(ctx, this.pool);
         this.stats.combat = this.pool.combatLive;
         this.filters = new FxFilters(ctx);
@@ -95,6 +99,7 @@ export class FxDirector {
         });
         on('explosion', e => this.explosion(e.x, e.y, e.size));
         on('enemy:killed', e => {
+            // Hound is an armoured dog: retain flesh pop and ordinary/melee kill feel.
             const machine = MACHINE.test(e.kind);
             this.feel(0, this.bossDying ? 0 : machine ? FX.feel.machineKill : e.cause === 'melee' ? FX.feel.meleeKill : FX.feel.kill);
             if (machine) this.scatter(e.x, e.y, METAL, 6, 75, 320, 700, true);
@@ -457,6 +462,7 @@ export class FxDirector {
         // Campaign markers/chains sample terrain and schedule world effects: never run those in a backdrop.
         if (!e.bg && this.campaign.emit(e)) return;
         const scale = Math.max(0.25, Math.min(2, e.scale ?? 1));
+        if (this.machines.emit(e)) return;
         if (this.bayou.emit(e)) {
             if (e.effect === 'gas_flame' || e.effect === 'flame_jet') this.lightPool(e.x, e.y, 2, .25, 0xffad42);
             return;

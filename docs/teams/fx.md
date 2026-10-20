@@ -885,3 +885,105 @@ Verification artifacts: `/tmp/kbe-fx/phase-g-fix/`.
 
 No bot traversal/playthroughs; only debug warp/background requests and the
 explicitly requested standard arena audit. All fixture servers/browsers closed.
+
+## Phase H — enemy machine recipes (2026-10-20)
+
+FX-owned implementation: `game/src/fx/machines.ts`, `pool.ts`, `director.ts`,
+`gallery.ts`, `game/src/config/tuning/fx.ts`; authored
+`game/art-src/fx/machines.lua`, its `fx_machine_bits.aseprite` and
+`fx_boat_foam.aseprite`, exported FX PNG/JSON sheets, and the FX pack/catalog
+via `art-src/fx/zz_manifest.lua`. No gameplay, shared contracts, or git state changes.
+
+- `rotor_wash` clamps strength to 0–1 (zero emits nothing), width to 16–160 px.
+  Opposed streaks outline a flattened outward ring: snow powder, dirt/mud dust,
+  wood/metal grit, or water spray with an expanding ripple. 2–5 slots/emission.
+- `boat_wake` takes radians: a mirrored, upright white bow curl at +28×scale px
+  and a stern foam streak at −30×scale px. Foam lasts 600 ms, drifts opposite
+  travel and broadens. Left travel mirrors the curl instead of turning it under
+  water. No river-scroll dependency, so the same recipe works on still water.
+- `mech_pop` clamps scale to .5–1.5: metal hardware, a flexing spring, glass
+  shards, 6 sparks (3 at half alpha with reduced flash), and oily smoke. Hardware
+  uses pooled gravity/bounce; no physics bodies. The explosion stays a separate
+  enemy event. `smoke_trail` emits one rising, vertically stretching dark puff.
+- Per-recipe live slot caps: wash 36, wake 48, pop 56, smoke 8. Slots retain
+  their recipe charge until release; reclaim, expiry and reset release it.
+  The existing 344-image pool and coverage caps are unchanged. No per-frame
+  allocation, new timers, emitters, filters, camera flashes or shake requests.
+- MACHINE recognizes hopper, airboat, piranha, gnat, buzzard, skeeter, shellshock,
+  gatorgeddon. Hound deliberately remains a flesh kill (32 ms / melee 48 ms).
+  Existing max-coalescing and 160 ms hitstop gate prevent swarm stacking.
+- Gallery: `fxtest=phaseh` cycles all four; each ID also isolates a recipe.
+  Continuous galleries use 120 ms cadence, `mech_pop` uses 1200 ms. Material
+  follows the part; the river preview samples `waterSurfaceAt`.
+  `state().fxRecipes` exposes per-recipe live counts for QA.
+
+Reproduce from repo root (each browser fixture runs sequentially and closes its
+browser/server in `finally`; verification commands are wrapped in `timeout 600`):
+
+```sh
+bash game/tools/build-art.sh art-src/fx/machines.lua art-src/fx/zz_manifest.lua
+node game/tools/shot.mjs --out /tmp/kbe-fx/phase-h/gallery.png \
+  --query 'scene=Game&part=2-2&x=600&fast=1&mute=1&god=1&seed=7&fxtest=boat_wake' --wait 2500
+node /tmp/kbe-fx/phase-h/capture.mjs
+node /tmp/kbe-fx/phase-h/verify.mjs
+node /tmp/kbe-fx/phase-h/context.mjs
+```
+
+Evidence in `/tmp/kbe-fx/phase-h/`:
+- Opened and inspected `contact-rotor_wash.png`, `contact-boat_wake.png`,
+  `contact-mech_pop.png`, `contact-smoke_trail.png`: each contains Mission 1 snow,
+  2-2 river, 2-1 mud at 1× with a 4× effect crop. These are explicit event
+  fixtures over real map art, separate from the live-emitter context captures.
+- Opened both authored atlas previews `fx_machine_bits-4x.png` and
+  `fx_boat_foam-4x.png`. Palette/binary alpha pass; global tag scan has no duplicates.
+- `verification.json`: zero-strength/cap/reset checks, left-moving foam,
+  600 ms lifetime, smoke rise/stretch and reduced-flash sparks pass. Six same-frame
+  gnat kills produce one 55 ms stop; six more staggered within ~100 ms produce
+  no extra stop; hound produces 32 ms. Zero runtime errors in that fixture.
+- Ten-second stationary SwiftShader samples at 1152×648: baseline **33.37 FPS /
+  100.1 ms p95**, stress **26.00 FPS / 116.8 ms p95**, peak 111 pooled effects,
+  max FX moving-average CPU **.417 ms**. Stress repeats 3 wakes/100 ms,
+  wash/120 ms, six .5-scale pops/1200 ms. The host was running other teams'
+  browsers; these results **do not certify 60 FPS** or isolate a GPU regression.
+  Initial unpaired stress was 43.02 FPS. Caps held; intentional saturation in
+  the preceding functional tests is included in cumulative drop counts.
+
+Final gates / integration:
+- `check-final.log`: TypeScript and Phaser 4 scanner **PASS**, 115 files, zero
+  errors/warnings. `audit.log`: reachability and all six part/arena audits PASS
+  (run after the initial recipe implementation, before the other teams' final art).
+- `selftest.log`: completed in about 5 minutes, **4 failures**: input `latchHeld`,
+  Enter held through continue, camera letterbox/focus/zoomPunch release, and
+  camera unlock-blend progression. Animation/texture resolution, projectile pool,
+  campaign/mission flow and no-page-error checks passed. No foreign files edited.
+- Both enemy teams landed the emitters during verification. `context.json` records
+  the real events in `context-airboat-river.png` (2-2 x600),
+  `context-buzzard-snow.png` (1-2 x2000), `context-buzzard-river.png`
+  (2-2 x600 + enemytest=buzzard), `context-hopper-kill.png` (2-1 x2640),
+  `context-piranha-kill.png` (2-1 x1080). The river Buzzard is explicitly an enemy
+  fixture in the real river map; the others are authored map actors. Death shots
+  use targeted radial debug damage on the visible actor, with piranha vulnerable
+  during its leap. No arena clearing or traversal. The capture dismisses the HUD briefing card; the frozen exit tween leaves
+  the part name visible above the effects. The normal HUD stays visible.
+- Rotor wash in those Buzzard shots correctly selects the wooden train and metal
+  riverboat deck directly below the hull. The water-ring and snow-powder variants
+  are covered by the material contact sheets. No inferred water alignment is
+  claimed for a craft above a deck.
+- A contact capture briefly encountered a partially rewritten foreign Buzzard
+  atlas (Unexpected end of JSON input) while enemy art was building. It did not
+  prevent FX capture; the later integrated context run uses the completed atlas.
+- Late visual fix adds the explicit rotating bolt tag to the machine-bits atlas;
+  the final atlas retains palette/binary-alpha compliance. All started browser
+  and Vite fixtures are closed. No git mutations or repo-root playtest edits.
+
+Requests for other teams:
+- **Engine/QA:** investigate/recheck the four selftest failures above; run the
+  saved baseline/stress fixture during a quiet host window and certify the 60 FPS
+  gate. Current measurements do not meet it. No request to increase FX budgets.
+- **Enemies A/B:** no remaining FX contract changes requested; emitters were
+  observed producing the new recipes in the integrated fixtures.
+
+Final visual inspection: refreshed the mech-pop contact sheet after adding the bolt,
+and opened `contact-context.png` containing all five final live-emitter shots.
+The final context run recorded zero page errors. The bolt atlas preview was
+refreshed and inspected, and the final code check remained clean.

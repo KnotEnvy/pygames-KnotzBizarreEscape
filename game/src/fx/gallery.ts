@@ -24,18 +24,24 @@ export function installGallery(ctx: GameContext, fx: FxDirector): void {
     const sizes: ExplosionSize[] = ['s', 'm', 'l', 'xl'];
     const backgrounds = ['bg_flak', 'bg_explosion', 'bg_lightning', 'aurora', 'bg_birds', 'bg_smoke_plume', 'bg_avalanche', 'bg_mist', 'bg_wisp', 'bg_fireflies_swarm', 'bg_splash', 'bg_fire', 'bg_rain_curtain'];
     const bayou = ['bubbles', 'shotgun_pump', 'wake', 'drip', 'paddle_spray', 'bow_spray', 'mud_splat', 'gas_bubble', 'gas_cloud', 'gas_flame', 'flame_jet'];
+    const machines = ['rotor_wash', 'boat_wake', 'mech_pop', 'smoke_trail'];
     let elapsed = 0, step = 0;
     ctx.debug.register('fxGallery', () => ({ mode, step }));
     ctx.onUpdate(dt => {
         elapsed += dt;
-        if (elapsed < (mode === 'derail' ? 5200 : 1200)) return;
+        const machineMode = machines.includes(mode ?? '');
+        if (elapsed < (machineMode && mode !== 'mech_pop' ? 120 : mode === 'derail' ? 5200 : 1200)) return;
         elapsed = 0;
         const view = ctx.camera.view();
         const x = view.left + view.width * 0.62;
         const y = (ctx.physics.groundBelow(x, view.top) ?? view.bottom - 20) - 12;
         const emit = (e: SpatialFx): void => ctx.events.emit('fx:emit', e);
         if (weather || mode === 'clear') { step++; return; }
-        if (mode === 'water') {
+        if (mode === 'phaseh' || machineMode) {
+            const material = ctx.part?.id === '1-2' || ctx.part?.id === '1-1' ? 'snow' : ctx.part?.id === '2-2' ? 'water' : 'mud';
+            const surface = material === 'water' ? ctx.physics.waterSurfaceAt(x) ?? y + 12 : y + 12;
+            emit({ effect: mode === 'phaseh' ? machines[step % machines.length] : mode!, x, y: surface, material, width: 80, count: .8, angle: 0, scale: 1 });
+        } else if (mode === 'water') {
             ctx.events.emit('water:splash', { x, y, size: sizes[step % 4], kind: step % 2 ? 'surface' : 'sink' });
         } else if (mode === 'shotgun') {
             ctx.events.emit('player:shoot', { weapon: 'shotgun', x, y: y - 16, angle: (step % 8) * Math.PI / 4 });
