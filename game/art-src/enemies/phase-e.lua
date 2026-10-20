@@ -167,31 +167,7 @@ local function turret(im,p,f)
  if p=='broken' then D.rect(im,0,8,23,16,'outline');D.rect(im,0,0,17,24,'outline');D.box(im,20,15,10,12,'steel1','steel4');D.line(im,20,15,26,22,'fire4');D.rect(im,0,0,18,24,{26,18,32,0})end
 end
 local a={};for _,p in ipairs({'idle','intro','aim','fire','broken'})do a[#a+1]=D.anim('ironhorn_turret_'..p,4,p=='fire' and 80 or 160,function(im,f)turret(im,p,f)end)end;D.build('ironhorn_turret',48,32,a)
-local function hound(im,p,f)
- local run=p=='run';local leap=p=='leap';local crouch=p=='crouch' or p=='land';local cy=crouch and 18 or 14
- D.line(im,12,cy+3,4,cy-5+(f%2)*3,'dirt2',3);D.line(im,12,cy+2,5,cy-6+(f%2)*3,'dirt4')
- for i=0,3 do local x=13+i*6;local dx=run and ({-4,-2,2,4,4,2,-2,-4})[(f+i*2-1)%8+1] or leap and (i%2==0 and -5 or 5) or 0;local foot=leap and 22 or 30;D.limb(im,x,cy+3,x+dx,foot,'dirt2','dirt4',2);D.rect(im,x+dx-3,foot-1,6,2,'steel1')end
- for y=cy-3,cy+6 do local inset=(y==cy-3 or y==cy+6) and 3 or 0;D.rect(im,10+inset,y,26-inset*2,1,y<cy and 'dirt4' or y<cy+4 and 'dirt3' or 'dirt2')end
- D.disc(im,34,cy-4,7,'outline');D.disc(im,34,cy-5,6,'dirt3');D.disc(im,32,cy-7,3,'dirt4');D.box(im,35,cy-5,11,7,'dirt3','dirt5','dirt1');D.rect(im,43,cy-5,3,3,'steel1')
- D.line(im,29,cy-8,28,cy-14,'sand3',2);D.line(im,29,cy-10,25,cy-12,'sand4');D.line(im,36,cy-9,38,cy-15,'sand3',2);D.line(im,37,cy-12,41,cy-14,'sand4')
- D.rect(im,35,cy-8,4,2,'weird5');K.px(im,38,cy-8,'outline');D.rect(im,22,cy-4,5,10,'red2');D.rect(im,23,cy-4,2,9,'red4');D.rivet(im,24,cy+2)
- if p=='leap' or p=='crouch' then D.rect(im,37,cy+1,7,3,'red1');for j=0,2 do K.px(im,38+j*2,cy+1,'sand5')end end
- if p=='crouch' then D.line(im,35,cy-9,41,cy-8,'red1',2);D.rect(im,36,cy+2,6,2,'sand5') end
- if p=='death' then D.disc(im,32,cy-4,6,'ink2');D.line(im,29,cy-6,35,cy-1,'sand5');D.line(im,35,cy-6,29,cy-1,'sand5')end
-end
-local a={};for _,p in ipairs({'run','crouch','leap','land','death'})do a[#a+1]=D.anim('hound_'..p,p=='run' and 8 or 4,p=='run' and 70 or 110,function(im,f)hound(im,p,f)end)end;D.build('hound',48,32,a)
-local function buzzard(im,p,f)
- D.box(im,35,14,8,9,'steel2','steel5');D.line(im,8+(f%2)*8,12,85-(f%2)*8,12,'outline',3);D.line(im,8+(f%2)*8,12,85-(f%2)*8,12,'steel5')
- D.box(im,22,23,46,23,'steel3','steel5','steel1');D.disc(im,25,33,13,'outline');D.disc(im,25,32,11,'red3');D.disc(im,23,29,8,'red4');D.box(im,12,27,19,9,'steel1','steel5');D.rect(im,14,28,14,3,'sky4');D.rect(im,14,31,11,3,'sky2')
- D.box(im,36,24,15,18,'steel1','steel4');D.rect(im,39,28,10,13,'ink1');D.rect(im,41,30,5,9,'sand3');D.rect(im,45,32,3,3,'skin4')
- D.line(im,64,32,86,26,'steel1',6);D.line(im,65,31,85,25,'steel4',3);D.line(im,84,18,84,34,'red3',4);D.line(im,77,26,92,26,'steel5',2);D.box(im,68,36,8,6,'steel2','steel5')
- D.line(im,21,46,18,50,'steel1',3);D.line(im,48,46,53,50,'steel1',3);D.line(im,15,51,57,51,'steel4',2);D.box(im,25,45,9,6,'steel1','steel5')
- rivets(im,38,43,3);D.eye(im,55,29,'sand4')
- if p=='aim' then D.disc(im,30,51,3,'fire4');D.line(im,40,31,45,31,'skin5');D.line(im,45,32,47,35,'steel5',2) end
- if p=='strafe' and f%2==0 then D.flash(im,30,53,1)end
- if p=='death' then for i=1,3 do D.disc(im,17+i*15,35-(f+i)%3*6,8,'fire2');D.disc(im,16+i*15,31-(f+i)%3*6,5,'fire5')end end
-end
-local a={};for _,p in ipairs({'fly','aim','strafe','death'})do a[#a+1]=D.anim('buzzard_'..p,p=='fly' and 8 or 4,p=='fly' and 70 or 110,function(im,f)buzzard(im,p,f)end)end;D.build('buzzard',96,64,a)
+-- Hound and Buzzard now build in hound.lua / buzzard.lua (Phase H).
 -- Trackside raider's tucked entry and braced landing, followed by existing grunt AI.
 D.build('leaper',48,48,{D.anim('leaper_leap',6,150,function(im,f)D.soldier(im,'paratrooper','chute_torn',f%3+1,3)end),D.anim('leaper_landing',3,120,function(im,f)D.soldier(im,'paratrooper','landing',f,3)end)})
 for _,name in ipairs({'coal','cinder'})do D.build(name,12,12,{D.anim(name..'_fuse',4,100,function(im,f)D.disc(im,6,6,4,name=='coal' and 'steel1' or 'fire2');D.disc(im,5,5,2,name=='coal' and 'steel3' or 'fire4');K.px(im,4+(f%2),4,name=='coal' and 'steel5' or 'fire6');if name=='cinder'then D.line(im,6,1,7,4,'fire5')end end)})end

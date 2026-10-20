@@ -78,3 +78,73 @@ The real-fire completion is a fresh fixture run with **god mode, HMG and an ammo
 - **Levels / Lead QA:** land `m2p3`, then run `?part=2-3&debug=1&god=1&fast=1` plus `__KBE.cheats.boss()`, the real boss arena capture and `node game/tools/arena-audit.mjs --part 2-3`. Validate the channel strip at depth 21 / y328, ground at depth22 / y336, stomp-breakable pier planks and approximately five-second repairs. The current shared stomp consumer offsets holes by 56 px toward the player; verify that its resulting holes match the boss's committed slam mark and retain a survivable route.
 - **UI/Audio:** supply/verify all agreed keys: `gator_roar`, `gator_snap`, `gator_hiss`, `gator_tail`, `gator_submerge`, `gator_surface`, `gator_roll`, `gator_missile`, `gator_gatling`, `gator_gas`, `gator_flame`, `gator_death`, and main-boss music selection for `GATORGEDDON` / `music_boss_gator`.
 - **Enemies B / Engine:** no source changes requested. Existing `registerGatorgeddon(ctx, track)`, mission loading, shared debris/flash helpers and debug contract are used as supplied.
+
+## Phase H (Enemies A) — 2026-10-20
+
+Rebuilt the Buzzard and attack hound from Imagegen's progressively delivered references. Both were marked ready in `game/art-src/refs/manifest.json` before delivery. Inspected each concept, pixel preview and pose guide, plus Buzzard's parts guide; these are design references, not pasted or quantized sprite pixels. No git state changes, real-time bot playthroughs, `playtest/` edits or other team's source edits.
+
+### Delivery and decisions
+
+- `game/art-src/enemies/buzzard.lua` and `buzzard.aseprite`: five editable layers (tail, hull, turret, exhaust, rotor), 112×80 canvas, right-facing, centre anchor. Steel hull/red armour, spiral tail stencil, red-capped pilot behind curved blue canopy ribs, twin exhaust ports, rocket pod and skids. **69 frames / 10 tags**: `buzzard_cruise`, `aim`, `strafe`, `fire`, `damaged`, `damaged_aim`, `damaged_strafe`, `damaged_fire`, `hurt`, `death` (all names prefixed `buzzard_`). Eight-position main rotor and tail propeller, sparse blur arcs, hull bob and exhaust. The approximately 12° strafe tilt is baked into the art, with the turret progressively dropping during aim and staying down during fire. Twelve death frames ×100 ms detach the tail, bend the rotor and pitch the smoking hull down.
+- `game/art-src/enemies/hound.lua` and `hound.aseprite`: dog and detachable helmet layers, 48×40 canvas, bottom-centre anchor/paws y39. Brown fur, red back/shoulder armour, steel straps/buckles, amber goggle, antler helmet and snapping tan muzzle. **37 frames / seven tags**: `hound_idle` (6), `run` (8), `crouch` (4), `leap` (4), `land` (4), `hurt` (3), `death` (8), all prefixed `hound_`. Jointed near/far legs follow eight distinct gallop poses; crouch loads the haunches, leap stretches/gathers, landing squashes. Eight 100 ms death frames throw the helmet and tumble the dog without gore. Flight paths stay within the source canvas.
+- Corresponding `game/public/assets/sprites/enemies/{buzzard,hound}.{png,json}` rebuilt. Only these two old drawing blocks were removed from `game/art-src/enemies/phase-e.lua`, avoiding last-writer overwrites during a full art build. Other Phase E sprites and all shared drawing helpers were left alone.
+- `game/src/entities/enemies/AssaultEnemy.ts`: animation selection, damage states, sounds and spatial FX. Buzzard plays `buzzard_gun` for each of the existing five burst shots; below/equal 20 HP it uses damaged variants and emits `smoke_trail` every 150 scaled ms. Rotor wash probes the nearest water/deck/ground surface every 120 ms while within 90 px, preserving its actual terrain material. Hound landing emits `dust_land`; hit animations recover without pausing AI. Cached visual keys avoid animation-config/string creation on the ordinary per-frame path. Hit flashes use raw time and reduced-flash multiplication.
+- Buzzard cruise root stays at screen y90–106; strafing adds a 6 px dip. This leaves the hull in the intended sky band and rotor below the radio. Captured opaque sprite tops are y62.5–75.7 across the fixture sequence (`altitude-proof.json`), including death. Locked flight/crash uses a 56 px horizontal inset for the new rotor envelope. Death still lasts **1200 ms**, falls to a probed surface, and emits exactly one size-`l` explosion, scale-1.5 `mech_pop` and `heli_crash` at impact. Free passes still exit after eight seconds and retain their three paratrooper drops.
+- Hurtboxes only: Buzzard **66×26 → 70×30**, aligned 8 px toward the nose; hound **30×18 → 34×21**, aligned to torso/paws. Sizes are within the ±4 px allowance. Hound remains **`flesh`**. HP, damage, score, attack/telegraph/recovery clocks, pounce travel and projectile speed are unchanged. The chin muzzle's projectile/event origin follows the new gun. No tuning edits.
+- Palette/alpha audit: **106 frames, 17 globally unique tags**, no master-palette exceptions, no fractional alpha, no duplicate hound/Buzzard keys. Every gallop, crouch, leap, land and death frame is distinct. No new filters, timers or per-shot game objects; repeated smoke/wash/debris use shared FX recipes.
+
+### Reproduce / see it
+
+From the repository root:
+
+```sh
+bash game/tools/build-art.sh art-src/enemies/buzzard.lua art-src/enemies/hound.lua
+node game/tools/shot.mjs --out /tmp/kbe-enemies-a/manual-buzzard-h.png --query 'debug=1&scene=Game&fast=1&mute=1&god=1&enemytest=buzzard' --wait 1400 --steps '[{"eval":"(__KBE.sim.freeze(), __KBE.sim.advance(2000), __KBE.sim.render(), 1)"}]'
+node game/tools/shot.mjs --out /tmp/kbe-enemies-a/manual-hound-h.png --query 'debug=1&scene=Game&fast=1&mute=1&god=1&part=1-3&x=500' --wait 1400
+```
+
+Fixture URLs: `?debug=1&scene=Game&fast=1&mute=1&god=1&enemytest=buzzard` and the same with `enemytest=hound`.
+Production URLs use `?debug=1&scene=Game&fast=1&mute=1&god=1&part=<part>&x=<player x>`:
+
+- 1-2: x2004 (Buzzard authored x2104), x3268 (x3368), x4772 (x4872).
+- 2-1: x4868 (Buzzard x4968); 2-2: x2340 (Buzzard x2440).
+- 1-3: x500 and x1668 (hound packs authored around x600 and x1768).
+
+The scratch capture harness uses the repository `shot.mjs` Vite/Chromium setup and fixed-step `__KBE.sim`. Run **serially**, each bounded to 600 s:
+
+```sh
+timeout 600s node /tmp/kbe-enemies-a/capture-h.mjs
+timeout 600s node /tmp/kbe-enemies-a/supplemental-h.mjs
+UV_CACHE_DIR=/tmp/kbe-imagegen/uv-cache /home/knotz2/.local/bin/uv run --offline --with pillow,numpy python3 -I /tmp/kbe-enemies-a/contact.py
+UV_CACHE_DIR=/tmp/kbe-imagegen/uv-cache /home/knotz2/.local/bin/uv run --offline --with pillow,numpy python3 -I /tmp/kbe-enemies-a/review.py
+```
+
+For clear visual evidence the harness cuts only the centre title card; Hazel's radio remains. **Three wave-only production location captures stage a ship at its authored coordinates** while the real arena is on wave one (1-2 x3368, 2-1 x4968, 2-2 x2440). `verification-h.json` marks these `staged: true`; these images establish art/framing, not arena completion. The independent full audit verifies actual wave progression. Terrain under these authored coordinates is often a raised metal/wood/stone deck, so wash correctly uses that material; the fixture also proves snow wash. Water is selected when it is the nearest surface below the craft, rather than through an intervening deck.
+
+### Inspected evidence
+
+All final evidence is under **`/tmp/kbe-enemies-a/`**, opened directly or as the following inspected review sheets:
+
+- `buzzard-contact-1x.png`, `buzzard-contact-4x.png`, `buzzard-contact-page-{1,2,3,4}.png`; `hound-contact-1x.png`, `hound-contact-4x.png`: every tag/frame, with a same-scale grunt and composite Knotz. Four Buzzard page crops support close inspection of the tall full contact.
+- `review-context-buzzard-1.png`: all five production Buzzard placements, with debug hurtboxes. `review-hound-1.png` includes both real hound locations.
+- `review-strafe-1.png`: cruise, aim, lowered turret, burst and pass-end sequence, including Hazel's live radio strip.
+- `review-damage-death-{1,2}.png`: damaged holes/sparks/smoke, detached tail, pitching crash and impact.
+- `review-hound-{1,2,3}.png`: real map context, loaded crouch, charge, stretched leap, apex, land, recover, flinch, helmet ejection, tumble and final removal.
+- `buzzard-soft-hit.png`, `buzzard-soft-hit-cleared.png`: reduced flash and raw-time cleanup during hitstop. The supplemental log also verifies normal FILL flash.
+- Before art/context inspected from the Lead's read-only survey: `/tmp/kbe-lead/polish/buzzard.png`, `small.png`, `ctx_buzzard.png`, `ctx_hound.png`. Preserved pre-build atlas copies are `/tmp/kbe-enemies-a/{buzzard,hound}-before.{png,json}`.
+
+`verification-h.json` / `capture-h.log`: **7/7 passing** targeted checks: five rounds/five sounds, half-HP damaged art/smoke, snow rotor wash, exactly one kill/large crash/pop/sound, hound landing dust, flesh material and no page errors. `supplemental-h.json` / log: **5/5 passing** normal/reduced flash mode and raw-time clearing during a 100 ms hitstop, plus no page errors. `altitude-proof.json` checks the exact visible-frame source bounds against the captured camera and confirms the complete 112 px crash canvas remains horizontally inside the locked view. `art-audit.log` records palette/alpha and per-tag unique frames.
+
+### Verification status / known issues
+
+- Final `npm --prefix game run check`: **PASS**, TypeScript plus Phaser 4 lint, **115 files / zero errors / zero warnings** (`check-final.log`).
+- `npm --prefix game run audit`: full reach and all six arenas **PASS** (`audit.log`); final rerun after animation/muzzle/cache refinement also **PASS for all six parts** (`audit-final.log`).
+- `npm --prefix game run selftest`: completed within six minutes with **six failing assertions** (`selftest.log`): MOOSEZILLA projectile kill and re-entrant clear follow-up; held-key latch and continue-input fresh press; camera letterbox/focus release; camera unlock-blend progress. These concern code outside Enemies A's owned files; the cause was not established here. All global animation/frame-resolution, campaign, restart-listener/audio cleanup, mission-pack loading/material mapping, mission-chain and load-error recovery checks passed. No runtime page errors. The shared check is therefore **not claimed green**.
+- `buzzard_gun` and `heli_crash` are emitted using the agreed contract but were still absent from Audio's catalog at handoff inspection. Missing sounds degrade silently; captures are muted and no audible mix assessment is claimed.
+- No sustained 60-FPS benchmark is claimed in this shared SwiftShader session. Visual/arena runs used one owned browser at a time; all owned servers/browsers were closed by their harnesses. Early scratch-camera setup and one-step-short impact captures were corrected; only the final passing JSON/review sheets above are evidence.
+
+### Requests for other teams
+
+- **UI/Audio:** land/verify the agreed `buzzard_gun` and `heli_crash` keys. Enemies A already calls them at each burst and at crash impact; no enemy-side alias is needed.
+- **Lead / Engine / QA:** triage the six selftest failures in `/tmp/kbe-enemies-a/selftest.log`, preferably after concurrent SwiftShader work settles. Do not treat this delivery as a green full selftest. Review the three explicitly staged wave-location images alongside the passing native arena audit.
+- No gameplay, map, pack or shared-helper source changes requested. GATORGEDDON's H2 work is untouched.
