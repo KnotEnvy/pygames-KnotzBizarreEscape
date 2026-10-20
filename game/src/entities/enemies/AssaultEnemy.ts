@@ -32,20 +32,20 @@ export class AssaultEnemy extends Phaser.GameObjects.Sprite {
     private visualTag = '';
     private buzz: LoopHandle | null = null;
     private buzzRetryMs = 0;
-    private readonly cue: Phaser.GameObjects.Graphics;
+    private cue: Phaser.GameObjects.Graphics | null = null;
+    private cueUsed = false;
     private readonly rect = new Phaser.Geom.Rectangle();
     private readonly offs: Array<() => void> = [];
     constructor(private readonly ctx: GameContext, readonly kind: Kind, x: number, y: number, props: Record<string, unknown>) {
         super(ctx.scene, x, y, kind); ctx.scene.add.existing(this); this.setOrigin(.5, kind === 'hound' ? 1 : .5).setDepth(DEPTH.ENEMIES);
         this.hp = ENEMIES[kind].hp; this.wave = props.wave; this.facing = Number(props.facing) === 1 || props.facing === 'right' ? 1 : -1;
         this.startY = y; this.startX = x;
-        this.cue = ctx.scene.add.graphics().setDepth(DEPTH.ENEMIES - 1);
         this.offs.push(ctx.damage.register({ team: 'enemy', material: kind === 'hound' ? 'flesh' : 'metal', kind, owner: this,
             body: () => this.rect.setTo(this.x + (kind === 'hound' ? -17 : this.facing * 8 - 35), this.y - (kind === 'hound' ? 21 : 12), kind === 'hound' ? 34 : 70, kind === 'hound' ? 21 : 30),
             alive: () => this.active && this.hp > 0, hit: h => this.hit(h) }), ctx.onUpdate((dt, raw) => this.tick(dt, raw)));
         const stop = () => { this.buzz?.stop(0); this.buzz = null; };
         ctx.scene.events.once('shutdown', stop);
-        this.once('destroy', () => { stop(); ctx.scene.events.off('shutdown', stop); this.cue.destroy(); for (const off of this.offs) off(); });
+        this.once('destroy', () => { stop(); ctx.scene.events.off('shutdown', stop); this.cue?.destroy(); for (const off of this.offs) off(); });
         this.setFlipX(this.facing < 0);
         this.pose(kind === 'hound' ? 'run' : 'cruise', true);
     }
@@ -90,13 +90,22 @@ export class AssaultEnemy extends Phaser.GameObjects.Sprite {
         this.ctx.audio.sfx('heli_crash', { x: this.x });
     }
     private enter(state: string, ms: number): void { this.state = state; this.clock = ms; this.elapsed = 0; this.fired = 0; }
+    private clearCue(): void {
+        if (!this.cueUsed) return;
+        this.cue?.clear().setVisible(false); this.cueUsed = false;
+    }
+    private drawCue(): Phaser.GameObjects.Graphics {
+        this.cue ??= this.ctx.scene.add.graphics().setDepth(DEPTH.ENEMIES - 1);
+        this.cueUsed = true;
+        return this.cue.setVisible(true);
+    }
     private hit(h: HitInfo): boolean {
         if (this.hp <= 0) return false;
         this.hp -= h.damage; this.flash = 60; this.hurtMs = 180;
         const reduced = settings.get().reducedFlash;
         this.setTint(reduced ? 0xb8c8d8 : 0xffffff).setTintMode(reduced ? Phaser.TintModes.MULTIPLY : Phaser.TintModes.FILL);
         if (this.hp <= 0) {
-            this.enter('death', this.kind === 'hound' ? 800 : 1200); this.pose('death'); this.buzz?.stop(0); this.buzz = null; this.cue.clear();
+            this.enter('death', this.kind === 'hound' ? 800 : 1200); this.pose('death'); this.buzz?.stop(0); this.buzz = null; this.clearCue();
             this.ctx.events.emit('enemy:killed', { kind: this.kind, x: this.x, y: this.y, score: ENEMIES[this.kind].score, cause: h.kind });
             if (this.kind === 'buzzard') {
                 this.startX = this.x; this.startY = this.y;
@@ -125,6 +134,7 @@ export class AssaultEnemy extends Phaser.GameObjects.Sprite {
         this.buzzRetryMs = Math.max(0, this.buzzRetryMs - raw);
         if (this.flash > 0 && (this.flash -= raw) <= 0) this.clearTint();
         if (!dt || !this.active) return;
+        this.clearCue();
         this.lockedBounds();
         if (this.state !== 'death' && this.x < this.ctx.camera.leftEdge() - 96) { this.destroy(); return; }
         if (this.state !== 'death' && this.kind === 'buzzard' && this.age > 0 && !this.ctx.camera.isLocked() && !visible(this.ctx, this.x, this.y, 64)) { this.destroy(); return; }
@@ -134,7 +144,8 @@ export class AssaultEnemy extends Phaser.GameObjects.Sprite {
         if (this.state === 'death') {
             if (this.kind === 'buzzard') {
                 const t = Math.min(1, this.elapsed / 1200), v = this.ctx.camera.view();
-                this.x = Phaser.Math.Clamp(this.startX + (this.targetX - this.startX) * t, v.left + 56, v.right - 56);
+                this.x = this.startX + (this.targetX - this.startX) * t;
+                if (this.ctx.camera.isLocked()) this.x = Phaser.Math.Clamp(this.x, v.left + 56, v.right - 56);
                 this.y = this.startY + (this.targetY - 25 - this.startY) * t * t;
                 this.atmosphere(dt);
                 if (this.clock <= 0) this.crash();
@@ -143,7 +154,7 @@ export class AssaultEnemy extends Phaser.GameObjects.Sprite {
             return;
         }
         this.setFlipX(this.facing < 0);
-        const p = this.ctx.player(); this.cue.clear();
+        const p = this.ctx.player();
         if (this.kind === 'buzzard') {
             const audio = getAudio(this.ctx.scene);
             if (!this.buzz?.active && this.buzzRetryMs <= 0 && !audio.locked) { this.buzz = audio.loop('buzzard_rotor', { x: this.x }); this.buzzRetryMs = 500; }
@@ -167,8 +178,9 @@ export class AssaultEnemy extends Phaser.GameObjects.Sprite {
             }
             if (this.state === 'strafe') {
                 const v = this.ctx.camera.view(); const a = Math.max(v.left + 20, this.targetX - 56), b = Math.min(v.right - 20, this.targetX + 56);
-                this.cue.lineStyle(1, 0xffe066, .9).lineBetween(a, this.targetY - 2, b, this.targetY - 2);
-                for (let x = a; x < b; x += 16) this.cue.lineBetween(x, this.targetY - 7, x + 5, this.targetY - 2);
+                const cue = this.drawCue();
+                cue.lineStyle(1, 0xffe066, .9).lineBetween(a, this.targetY - 2, b, this.targetY - 2);
+                for (let x = a; x < b; x += 16) cue.lineBetween(x, this.targetY - 7, x + 5, this.targetY - 2);
                 if (this.elapsed >= 700 + this.fired * 180 && this.fired < 5) {
                     const mx = this.x + this.facing * 29, my = this.y + 32;
                     const tx = a + (b - a) * this.fired++ / 4, dy = this.targetY - my, dx = tx - mx, len = Math.max(1, Math.hypot(dx, dy));
@@ -182,7 +194,7 @@ export class AssaultEnemy extends Phaser.GameObjects.Sprite {
             return;
         }
         if (this.state === 'windup') {
-            this.cue.lineStyle(1, 0xffe066).lineBetween(this.x, this.y - 2, this.targetX, this.y - 2);
+            this.drawCue().lineStyle(1, 0xffe066).lineBetween(this.x, this.y - 2, this.targetX, this.y - 2);
             if (this.clock <= 0) { this.startX = this.x; this.startY = this.y; this.enter('charge', 280); this.pose('run', true); this.ctx.audio.sfx('hound_bark'); }
         } else if (this.state === 'charge') {
             const nx = this.x + this.facing * dt * .14;

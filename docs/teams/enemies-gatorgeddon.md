@@ -195,3 +195,32 @@ All H2 output is in **`/tmp/kbe-enemies-a/h2/`**, separate from H1 and Phase G e
 ### Requests for other teams
 
 **Lead / Engine / QA:** triage the one shared selftest load-error recovery failure in `/tmp/kbe-enemies-a/h2/selftest.log` (two JSON parse errors). No gameplay, map, shared helper, FX, audio or pack changes are requested for this leg pass.
+
+## Phase H3 — Buzzard/hound and GATORGEDDON fixes — 2026-10-20
+
+All seven assigned items **fixed**; no won't-fix items. No git state changes, real-time bot playthroughs or `playtest/` edits. HP, damage, hurtboxes, scoring, attack clocks and movement are unchanged, apart from the requested unlocked wreck correction.
+
+- **KBE-QA-H01:** `art-src/enemies/buzzard.lua` symmetrically pads both the drawing source and rotated output to **160×144**. Pivot `(56,40)` becomes `(80,72)` with the same `.5,.5` origin and world anchor. All live frames are pixel-identical relative to center; all 69 frames have transparent borders. Nose, rotor and detached tail remain complete. Rebuilt `buzzard.aseprite` and `public/assets/sprites/enemies/buzzard.{png,json}`.
+- **KBE-QA-H03:** both fire tags use **3×40 ms**, fitting the unchanged 120 ms muzzle window. Runtime healthy/damaged traces show frames **1/2/3**, five shots and the existing 180 ms schedule (fixed-step quantization).
+- **Rules H1:** `AssaultEnemy.ts` clamps death x only while locked. A lethal hit at `view.left−30` now moves **1.19 px** on the first death tick, exactly matching the tween. Locked clamps remain.
+- **Rules H2:** cue `Graphics` allocates on first draw; `cueUsed` clears/hides it only after drawing, including before dormancy. Optional destroy handles actors that never telegraphed. Lifecycle probe passes.
+- **Rules H3:** `hound.lua` extends only the last leap frame to **170 ms**, yielding **160/160/160/170 = 650 ms**. The combat leap stays 650 ms; two natural leaps retain frame four through elapsed 650 ms. Rebuilt `hound.aseprite` and atlas timing JSON; PNG unchanged.
+- **Rules H9:** `Gatorgeddon.ts` poses both legs to the current tier's idle during `roar`. Phase change during a natural moving lunge now yields idle damaged legs and zero footfall dust during an 800 ms roar sample.
+- **Rules H10:** a scoped flag suppresses synchronous footfall callbacks while repainting an existing walk to a new tier. Both tier swaps emit zero extra plants; normal walk starts/later contacts still plant. The critical-tier probe explicitly stages walk to isolate the repaint.
+
+**Reproduction/evidence:** all scratch output is **`/tmp/kbe-enemies-a/h3/`**. Browser runs are serial, fixed-step, bounded to 600 s, and close their resources. QA's real crane URL: `?debug=1&scene=Game&fast=1&mute=1&god=1&seed=731&part=2-2&x=2320`. Advance right 1800 ms, clear visible wave-one actors, allow queued wave-two spawns, then directly lethally hit the natural Buzzard and sample every 50 ms. Presentation probes are separate from arena acceptance.
+
+Opened and inspected `buzzard-death-art.png` (all 12 complete poses), `crane-death-sequence.png`, full-size `crane-death-1150.png` (complete final pre-impact silhouette), `fire-runtime-frames.png`, full-size `fire-healthy-3.png`, and `gator-roar-{300,150}.png`. `verification-fire.json` contains the full 16.67 ms fire traces; `art-review.log` verifies palette/binary alpha/transparent borders and unchanged live pixels. `final-verification.json` consolidates **14 passing assertions** from the fire, crane/fly-by, cue/hound and Gator probes, including page-error checks. Retained failed scratch attempts were setup/assertion corrections: queued spawn wait, cue drawing tick, and Gator camera-clamp tolerance/phase-two attack assumption; no product changes were needed for those corrections.
+
+```sh
+bash game/tools/build-art.sh art-src/enemies/buzzard.lua art-src/enemies/hound.lua
+UV_CACHE_DIR=/tmp/kbe-imagegen/uv-cache /home/knotz2/.local/bin/uv run --offline --with pillow,numpy python3 -I /tmp/kbe-enemies-a/h3/art-review.py
+timeout 600s node /tmp/kbe-enemies-a/h3/gator.mjs
+timeout 600s npm --prefix game run check
+timeout 600s npm --prefix game run audit
+timeout 600s npm --prefix game run selftest
+```
+
+**Verification / known issues:** `check-final.log` **PASS**, TypeScript + Phaser 4 checker, **115 files / zero errors / zero warnings**. `audit.log` **PASS** for reach and arenas in **all six parts**, including post-fix **2-3**: GATORGEDDON phases **1/2/3 → Results**, zero off-view time, 7.6 simulated seconds submerged, 32.4 simulated seconds in the boss arena. `selftest.log`: **FAIL / exit 1**, stopped at `engine-selftest.mjs:442`, a **20 s timeout waiting for Results after `clearPart()` in 1-3**. All preceding assertions passed; later campaign/mission assertions were not reached. Cause is unestablished and the full suite is not claimed green. No remaining owned issue identified; muted captures do not establish audible mix or sustained FPS. All owned browser/server resources closed.
+
+**Requests for other teams:** Engine / QA: triage the 1-3 → Results selftest timeout in `/tmp/kbe-enemies-a/h3/selftest.log`. No other requests for the seven fixes.

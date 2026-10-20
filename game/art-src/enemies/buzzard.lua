@@ -3,7 +3,11 @@
 -- Separate editable layers retain the tail, hull, turret, exhaust and rotor rig.
 local D=dofile(app.params.root..'/art-src/enemies/lib/draw.lua')
 local K=D.K
-local W,H=112,80
+-- Pad both source and rotated output symmetrically: detached tail pixels can
+-- leave the old source bounds before rotation. The world pivot stays unchanged.
+local W,H=160,144
+local OX,OY=24,32
+local CX,CY=56+OX,40+OY
 local function ellipse(im,cx,cy,rx,ry,c)
  for y=-ry,ry do for x=-rx,rx do if x*x/(rx*rx)+y*y/(ry*ry)<=1 then K.px(im,cx+x,cy+y,c) end end end
 end
@@ -81,7 +85,7 @@ local function transform(im,src,a,bob)
  -- Inverse sampling preserves clusters; this is a drawn art pose, never runtime rotation.
  local cs,sn=math.cos(a),math.sin(a)
  for y=0,H-1 do for x=0,W-1 do
-  local sx=math.floor(56+(x-56)*cs+(y-40-bob)*sn+.5);local sy=math.floor(40-(x-56)*sn+(y-40-bob)*cs+.5)
+  local sx=math.floor(CX+(x-CX)*cs+(y-CY-bob)*sn+.5);local sy=math.floor(CY-(x-CX)*sn+(y-CY-bob)*cs+.5)
   if sx>=0 and sy>=0 and sx<W and sy<H then local p=src:getPixel(sx,sy);if app.pixelColor.rgbaA(p)>0 then im:drawPixel(x,y,p)end end
  end end
 end
@@ -93,7 +97,8 @@ for _,p in ipairs({'cruise','aim','strafe','fire','damaged','damaged_aim','damag
  for i=1,n do local f=i;local angle=dead and (f-1)*.12 or (aim and .20 or hurt and -.06 or 0);local bob=dead and 0 or ({0,0,1,1,1,0,-1,-1})[(f-1)%8+1]
   local fr={}
   for _,layer in ipairs(layers)do local l=layer;fr[l]=function(im)
-   local tmp=Image(W,H,ColorMode.RGB)
+   local src=Image(W,H,ColorMode.RGB)
+   local tmp={drawPixel=function(_,x,y,c) src:drawPixel(x+OX,y+OY,c) end}
    if l=='tail' then tail(tmp,f,dead and f>=3)
    elseif l=='hull' then hull(tmp,f,damage,dead)
    elseif l=='turret' then turret(tmp,p:find('strafe') and 4 or f,aim,fire)
@@ -102,10 +107,10 @@ for _,p in ipairs({'cruise','aim','strafe','fire','damaged','damaged_aim','damag
     local t=(f-1)%4;D.disc(tmp,35-t*3,30-t,2+t//2,'ink2');D.line(tmp,32-t*3,29-t,35-t*3,29-t,'ink4')
     if dead then for j=0,2 do D.disc(tmp,43-j*8-f,32-j*4,3+j,'ink2');D.disc(tmp,42-j*8-f,30-j*4,2,'ink4')end end
    end
-   transform(im,tmp,angle,bob)
+   transform(im,src,angle,bob)
   end end
   frames[#frames+1]=fr
  end
- anims[#anims+1]={tag='buzzard_'..p,ms=dead and 100 or fire and 60 or hurt and 60 or 70,frames=frames}
+ anims[#anims+1]={tag='buzzard_'..p,ms=dead and 100 or fire and 40 or hurt and 60 or 70,frames=frames}
 end
-K.build{name='buzzard',w=W,h=H,src=D.root..'/art-src/enemies/buzzard.aseprite',sheet=D.root..'/public/assets/sprites/enemies/buzzard.png',data=D.root..'/public/assets/sprites/enemies/buzzard.json',layers=layers,anims=anims,anchor='center (56,40); right-facing'}
+K.build{name='buzzard',w=W,h=H,src=D.root..'/art-src/enemies/buzzard.aseprite',sheet=D.root..'/public/assets/sprites/enemies/buzzard.png',data=D.root..'/public/assets/sprites/enemies/buzzard.json',layers=layers,anims=anims,anchor='center (80,72); right-facing; original pivot (56,40) + symmetric padding (24,32)'}

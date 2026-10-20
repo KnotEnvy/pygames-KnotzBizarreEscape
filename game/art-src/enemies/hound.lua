@@ -85,6 +85,8 @@ for _,p in ipairs({'idle','run','crouch','leap','land','hurt','death'})do
   end
   frames[#frames+1]=fr
  end
+ -- Preserve the 650 ms combat leap; hold its landing approach for the final 10 ms.
+ if p=='leap' then frames[#frames].ms=170 end
  anims[#anims+1]={tag='hound_'..p,ms=p=='run' and 70 or p=='death' and 100 or p=='hurt' and 60 or p=='idle' and 140 or p=='crouch' and 110 or p=='leap' and 160 or 100,frames=frames}
 end
 K.build{name='hound',w=48,h=40,src=D.root..'/art-src/enemies/hound.aseprite',sheet=D.root..'/public/assets/sprites/enemies/hound.png',data=D.root..'/public/assets/sprites/enemies/hound.json',layers={'dog','helmet'},anims=anims,anchor='bottom-center; paws y39'}

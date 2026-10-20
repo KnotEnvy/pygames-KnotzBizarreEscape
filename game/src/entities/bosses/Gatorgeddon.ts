@@ -38,6 +38,7 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
     private cycle = 0;
     private fired = 0;
     private damageTier = 0;
+    private swappingLegTier = false;
     private podHp: number = T.podHp;
     private direction: 1 | -1 = -1;
     private targetX = 0;
@@ -115,11 +116,15 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
         const leg = id === 'legs_front' || id === 'legs_back';
         const suffix = leg && tag !== 'death' ? this.damageTier === 2 ? '_critical' : this.damageTier === 1 ? '_damaged' : '' : '';
         const key = `gatorgeddon_${id}_${tag}${suffix}`;
-        if (s.anims.currentAnim?.key !== key) animate(s, key, !leg || (tag === 'idle' || tag === 'walk'));
+        if (s.anims.currentAnim?.key === key) return;
+        // A damage repaint is not a new step, even though the animation restarts.
+        this.swappingLegTier = leg && tag === 'walk' && !!s.anims.currentAnim?.key.includes('_walk');
+        try { animate(s, key, !leg || (tag === 'idle' || tag === 'walk')); }
+        finally { this.swappingLegTier = false; }
     }
     /** The animation's contact frames own cosmetic plants; no collision or attack clock changes. */
     private footfall(id: PartId, sprite: Phaser.GameObjects.Sprite): void {
-        if (this.hp <= 0 || !sprite.visible || this.isUnder() || Math.abs(this.y - this.floor) > 2) return;
+        if (this.swappingLegTier || this.hp <= 0 || !sprite.visible || this.isUnder() || Math.abs(this.y - this.floor) > 2) return;
         if (!sprite.anims.currentAnim?.key.includes('_walk')) return;
         const frame = sprite.anims.currentFrame?.index;
         if (frame !== 1 && frame !== 5) return;
@@ -397,7 +402,10 @@ export class Gatorgeddon extends Phaser.GameObjects.Container implements Tracked
             }
             if (e >= this.duration) this.recover();
         } else if (this.state === 'recover' || this.state === 'roar') {
-            if (this.state === 'roar') { this.pose('head', 'roar'); this.pose('jaw', 'open'); }
+            if (this.state === 'roar') {
+                this.pose('head', 'roar'); this.pose('jaw', 'open');
+                this.pose('legs_front', 'idle'); this.pose('legs_back', 'idle');
+            }
             else {
                 const [a, b] = this.limits(); const home = this.direction < 0 ? b : a;
                 const moving = Math.abs(home - this.x) > 1;
