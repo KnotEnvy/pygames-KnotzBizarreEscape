@@ -367,3 +367,30 @@ None this round. The findings are art-timing (H3), draw-order or budget decision
 
 ## Counts
 E: 0 · W: 1 (H1) · N: 7 (H2-H8). `npm --prefix game run check` passes (0 errors, 0 warnings).
+
+---
+
+## H2 code (`df3d3c7..f9736c3`: Gatorgeddon leg rig, far-actor depth)
+
+Method: `npm --prefix game run check` on HEAD (tsc clean, `check-phaser4` 115 files, 0 errors, 0 warnings). Line-by-line read of the 3-file `game/src` diff (`bosses/Gatorgeddon.ts`, `level/background.ts`, `config/tuning/level.ts`) against `node_modules/phaser/src/animations`. Static reading only, nothing run in a browser.
+
+Verified OK (no action):
+- **Footfall hook (`animationstart`/`animationupdate`).** Both are real Phaser 4 sprite events. `AnimationState.updateFrame` emits `ANIMATION_UPDATE` on every frame change (also the loop restart to frame 1, so the frame-1 plant isn't lost), and `currentFrame.index` is 1-based, which matches the `1`/`5` test. Guarded by `hp <= 0`, `visible`, `isUnder()`, `|y - floor| <= 2` and the `_walk` key, so no dust under water or in the air. The two listeners die with the sprite (the parts are destroyed with the Container), so nothing leaks across a part restart.
+- **Allocation.** `footfall` and `plant` allocate only the `fx:emit` payload literal, about 4 per walk cycle, plus a few `includes` calls on a string in `setHp`. Fine.
+- **Anim keys.** All `legs_{front,back}_{idle,walk,stomp,crouch}{,_damaged,_critical}` and `_death` keys exist in the shipped data. Non-looping `stomp`/`crouch`/`death` hold their last frame, and `pose()` compares keys, so a held non-looping anim isn't replayed.
+- **Death.** `setHp` returns early at `hp <= 0`, so the `death` leg pose and `plantAll(.9)` run once. `hull.y` ramp is bounded (`min(9, ...)`) and `hull` is not touched after destroy. Locked view: the dust is emitted at `floor`, inside the arena.
+- **Depth.** `skeeters.depth: 2.5` is a new `BG_FAR`-relative number that sits between the far riverbank (2) and the QUEEN far view (3) / mid bank (5) at `level.ts:249-253`. Matches the comment. Nothing else uses `S.depth`, and tsc is clean.
+- **Tint/flash.** No tint changes in this diff; the leg parts are already in `flash.start(parts)` and `damageTier` suffixes don't affect the flash.
+
+| # | Sev | Where | Owner | Finding | Fix |
+|---|---|---|---|---|---|
+| H9 | N | `Gatorgeddon.ts:~397-400` (`roar` branch) vs `setHp:196-199` | Bosses | **Legs keep marching in place during the phase-change roar.** `setHp` re-poses a playing `walk` as `walk`, then `enter('roar', 900)`. Only the `recover` branch resets the legs to `idle` when `moving` is false. So a phase change hit during `lunge` (legs on `walk`) leaves them walking on the spot for the 900 ms roar, and `footfall` plants a dust puff on every contact frame while the boss does not move. | In the `roar` branch call `this.pose('legs_front', 'idle'); this.pose('legs_back', 'idle');` (same as the `recover` branch). |
+| H10 | N | `Gatorgeddon.ts:118` (`pose` + `animationstart` hook) | Bosses | **Spurious plant on a damage tier change.** A tier change switches the key (`walk` -> `walk_damaged`) while the boss is walking, which restarts the anim at frame 1 and fires `animationstart` -> an extra dust puff, up to twice (tier 1 and tier 2). Cosmetic and rare. | Optional: ignore `animationstart` when the previous key's base tag equals the new one, or accept it (it reads as a damage jolt). |
+| H11 | N | `Gatorgeddon.ts:~191` (`plant` x-offset) | Bosses | `plant()` places dust from a hard-coded art offset (`-56 + 25 + foot*63 - 8`) that duplicates the sprite geometry; any future leg re-slice will silently misplace the dust. Not wrong today. | Note only, or lift the three numbers into `T` (tuning) with a comment. |
+| H12 | N | `Gatorgeddon.ts:~425` (vent tick, `damageTier`) | Bosses | `mud_splat` at the feet is now emitted every vent tick (500 ms) for the whole fight once damaged, scale .25, via the generic `dust` pool. On top of the tier-2 `shield_spark` it is up to about 6 slots per 500 ms; well under the caps, so only worth watching if the `dust` pool is ever tightened. | None needed. |
+
+No E (will-break) findings: no removed or invented Phaser API, no leaked listener or timer, no FILL tint on opaque art, nothing that can leave the boss or its dust outside a locked arena, and no gameplay clock, hurtbox, HP or damage changed.
+
+**Linter changes:** none; H9 and H10 are state/animation timing and can't be matched textually.
+
+**Counts (H2 code):** E: 0 · W: 0 · N: 4 (H9-H12). `npm --prefix game run check` passes (0 errors, 0 warnings).
