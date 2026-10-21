@@ -73,3 +73,15 @@
     - FX: `rotor_wash`, `boat_wake`, `mech_pop`, `smoke_trail`.
     - UI/Audio: five sounds and the title card / radio overlap.
   - **H2:** QA and Rules review, the MEGA-SKEETER and GATORGEDDON leg passes, far background actors.
+- **Phase H ✅ (H1–H3, 2026-10-20):**
+  - **Imagegen:** references for 9 targets.
+  - **Rebuilt in Aseprite:**
+    - Buzzard (69 frames) and hound (37).
+    - hopper, airboat, piranha, gnat and lurker (217 frames, per-kind tag sets).
+    - MEGA-SKEETER as a mosquito, and GATORGEDDON's legs.
+  - **Far actors** (`bg_buzzard`, `bg_airboat`, `bg_skeeter`) match the new designs.
+  - **FX:** `rotor_wash`, `boat_wake`, `mech_pop`, `smoke_trail`.
+  - **UI/Audio:** 5 new sounds, and the radio opens after the title card leaves.
+  - **Reviews:** QA found 3 S4 issues and Rules 1 W and 11 N. All fixed in H3 except H11 and H12 (notes, no change needed).
+  - **Lessons:** in `docs/LESSONS.md` §8.
+  - **Next:** owner playtest, then Mission 3.

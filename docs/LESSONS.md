@@ -119,3 +119,24 @@ Mission 1 needed a whole extra phase to add these. In a new mission they're part
 - Part III opens at the wreck of Part II's vehicle (Ironhorn nose-down in the lake), so the parts feel like one escape.
 - Big set-piece motion with a static world: drift parallax, a foreground speed layer, trackside props whipping past.
 - The boss intro: letterbox, a slow camera push, the WARNING banner and siren, the gate bursting.
+
+## 8. From the Phase H enemy facelift (Missions 1–2)
+- **Reference first, then Aseprite.**
+  - Imagegen paints a concept, a game-scale pixel reference, poses and an exploded parts sheet (`art-src/refs/<kind>/`).
+  - The owning team rebuilds it as layered, animated, hand-cleaned pixel art.
+  - This lifted the Buzzard, the airboat, the hopper and MEGA-SKEETER a full tier, so do it for **every new enemy from Mission 3 on**,
+    before the first build, not as a later polish pass.
+- **Every enemy gets its own tag set,** named for what it does.
+  - The Phase G small enemies shared one generic 42-frame template and looked like placeholders.
+  - Minimums: idle 4–6 frames, locomotion 6–8, an anticipation pose, a hurt frame, and **death ≥ 8 frames as a mechanical break-up**, never an overlay.
+- **Contact sheet beside a grunt and Knotz at 1× and 4×,** plus an in-context shot in the real map, before you report.
+- **Death animations:**
+  - **Canvas:** tilted or spinning poses need a canvas big enough for the whole silhouette (the Buzzard crash clipped its own 112×80 canvas).
+  - **Runtime motion:** sink and fall motion must keep the action inside the locked view until cleanup (airboat sink).
+  - **Mid-air kills:** fall to the floor or the water line; they don't hang in the air.
+- **Cosmetic windows fit their clips.**
+  - A pose timer (such as `muzzleMs`) must last at least as long as its clip's frames (`buzzard_fire` lost its recoil frame).
+  - State durations must match one-shot clip lengths.
+- **Far actors follow the gameplay design but stay atmospheric.**
+  - After a redesign, redraw the far version, then push it back with cooler, darker haze colours so it never competes with the gameplay layer.
+- **Machine kills:** a kind that emits its own `mech_pop` debris skips the generic metal scatter, so swarm deaths don't starve the FX caps.
