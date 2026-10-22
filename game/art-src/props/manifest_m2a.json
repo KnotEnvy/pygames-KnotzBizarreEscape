@@ -1,0 +1,389 @@
+[
+  {
+    "key": "prop_shack_door",
+    "kind": "shack_door",
+    "png": "assets/sprites/props/prop_shack_door.png",
+    "json": "assets/sprites/props/prop_shack_door.json",
+    "w": 20,
+    "h": 40,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_shack_door_closed",
+      "prop_shack_door_open"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Stilt-shack plank door (Z-brace) in a grey cypress frame, red Regime padlock on the hasp. Canvas 20x40 (contract 16x32, +25% so 34 px enemies fit). open = 4f@70ms: hasp bursts, door swings out on its left hinge; play once and hold the last frame (dark interior). Enemies emerge from the opening x3..16, y4..39. Origin bottom-centre = deck line."
+  },
+  {
+    "key": "prop_lantern",
+    "kind": "lantern",
+    "png": "assets/sprites/props/prop_lantern.png",
+    "json": "assets/sprites/props/prop_lantern.json",
+    "w": 12,
+    "h": 20,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_lantern_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Hanging oil lantern. idle 4f@140ms flicker. Hook tip is at the top edge (x5..6, y0): to hang it place the sprite at (hookX, hookY + 20) with origin (0.5,1). Flame/light centre (5.5,13) = origin offset (-0.5,-7); add fx glow there. Binary alpha, no baked halo."
+  },
+  {
+    "key": "prop_lantern_post",
+    "kind": "lantern_post",
+    "png": "assets/sprites/props/prop_lantern_post.png",
+    "json": "assets/sprites/props/prop_lantern_post.json",
+    "w": 16,
+    "h": 44,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_lantern_post_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Crooked grey shepherd's-hook pole in a mud hummock with a hanging lantern. idle 4f@140ms flicker. Pole foot centred on the origin; lantern light centre (11.5,15) = origin offset (+3.5,-29)."
+  },
+  {
+    "key": "prop_net",
+    "kind": "net",
+    "png": "assets/sprites/props/prop_net.png",
+    "json": "assets/sprites/props/prop_net.json",
+    "w": 48,
+    "h": 40,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_net_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Fishing net strung between two poles: cork/red floats on the head rope, weed snagged in the mesh, a torn hole. idle 4f@180ms gentle sway (lower mesh and weed shift +-1-2 px). Decor, no body."
+  },
+  {
+    "key": "prop_sign_wade",
+    "kind": "sign_wade",
+    "png": "assets/sprites/props/prop_sign_wade.png",
+    "json": "assets/sprites/props/prop_sign_wade.json",
+    "w": 44,
+    "h": 34,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_sign_wade_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Dark plank sign on a stake: WADING (orange) / SLOWS YOU (white). Canvas 44x34 (contract 36x34; widened so SLOWS YOU fits the 3x5 font). Board y2..19, stake to the mud at the bottom."
+  },
+  {
+    "key": "prop_sign_logs",
+    "kind": "sign_logs",
+    "png": "assets/sprites/props/prop_sign_logs.png",
+    "json": "assets/sprites/props/prop_sign_logs.json",
+    "w": 44,
+    "h": 34,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_sign_logs_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Olive-painted plank sign: LOGS / SINK! with a sinking-log icon and red down arrow. 44x34 (same frame as the other M2 signs)."
+  },
+  {
+    "key": "prop_sign_gator",
+    "kind": "sign_gator",
+    "png": "assets/sprites/props/prop_sign_gator.png",
+    "json": "assets/sprites/props/prop_sign_gator.json",
+    "w": 44,
+    "h": 34,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_sign_gator_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Whitewashed plank sign: DANGER: / GATOR in red with a red gator-jaws mark; chewed (bite out of the lower-right corner, nibble top-left). 44x34. Den approach."
+  },
+  {
+    "key": "prop_skiff",
+    "kind": "skiff",
+    "png": "assets/sprites/props/prop_skiff.png",
+    "json": "assets/sprites/props/prop_skiff.json",
+    "w": 64,
+    "h": 22,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_skiff_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Hazel's olive flat-bottom skiff, outboard motor at the stern (left), oar, rope coil, red jerry can. idle 4f@160ms bob (frames 3-4 sit 1 px lower). Origin bottom-centre = WATERLINE: only the above-water part is drawn, hull cut flat at the canvas bottom with ripples at both ends. Gunwale top is y11 at the stern, y10 midships, bow tip y6 (frames 1-2); a deck stand height of ~10 px above the water fits (walkable x10..56)."
+  },
+  {
+    "key": "prop_gas_vent",
+    "kind": "gas_vent",
+    "png": "assets/sprites/props/prop_gas_vent.png",
+    "json": "assets/sprites/props/prop_gas_vent.json",
+    "w": 16,
+    "h": 12,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_gas_vent_idle",
+      "prop_gas_vent_bubble",
+      "prop_gas_vent_burn"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Rusty Regime well-head pipe (cracked flange) in a low mud mound with dead reeds. idle 2f@400ms (faint green wisp); bubble 4f@90ms = the telegraph (mud boils, green glow in the nozzle and crack, gas wisps); burn 2f@80ms = nozzle glowing hot (play with prop_gas_flame on top). Nozzle mouth = x6..9, y2 (centre x8): spawn prop_gas_flame at (vent.x, vent.y - 10)."
+  },
+  {
+    "key": "prop_gas_flame",
+    "kind": "gas_flame",
+    "png": "assets/sprites/props/prop_gas_flame.png",
+    "json": "assets/sprites/props/prop_gas_flame.json",
+    "w": 24,
+    "h": 72,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_gas_flame_start",
+      "prop_gas_flame_loop",
+      "prop_gas_flame_end"
+    ],
+    "body": [
+      7,
+      4,
+      10,
+      68
+    ],
+    "destructible": false,
+    "hp": null,
+    "notes": "Swamp-gas flame column: white/yellow core, fire3 band, green weird5/weird4 rim, embers and green sparks. start 3f@60ms (rises to 24/48/72 px), loop 4f@60ms (full 72 px), end 3f@60ms (collapses to 52/28 px then a sputter with drifting sparks). Origin bottom-centre = nozzle. Suggested damage box while looping: [7,4,10,68] (scale the height with start/end: ~24/48 px tall in start f1/f2)."
+  },
+  {
+    "key": "prop_fuel_drum",
+    "kind": "fuel_drum",
+    "png": "assets/sprites/props/prop_fuel_drum.png",
+    "json": "assets/sprites/props/prop_fuel_drum.json",
+    "w": 16,
+    "h": 20,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_fuel_drum_idle",
+      "prop_fuel_drum_damaged1",
+      "prop_fuel_drum_damaged2"
+    ],
+    "body": [
+      2,
+      4,
+      12,
+      16
+    ],
+    "destructible": true,
+    "hp": 3,
+    "notes": "Rusty red Regime fuel drum, dark stencil band with an orange flammable diamond, mud splashed up the chime (no snow). 1 frame each: damaged1 = dents + two leaking bullet holes (hp 2), damaged2 = crumpled rim + leaking flame tongue (hp 1); explode at 0 like prop_explosive_barrel (fx_explosion_m)."
+  },
+  {
+    "key": "prop_danger_post",
+    "kind": "danger_post",
+    "png": "assets/sprites/props/prop_danger_post.png",
+    "json": "assets/sprites/props/prop_danger_post.json",
+    "w": 16,
+    "h": 40,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_danger_post_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Regime warning post: red/pale striped pole on a concrete footing, orange warning triangle with '!', caged red lamp on top. idle 2f@300ms (lamp on / off). Lamp centre (7.5,3) = origin offset (-0.5,-37); add a red fx glow on the 'on' frame."
+  },
+  {
+    "key": "prop_queen_wreck",
+    "kind": "queen_wreck",
+    "png": "assets/sprites/props/prop_queen_wreck.png",
+    "json": "assets/sprites/props/prop_queen_wreck.json",
+    "w": 208,
+    "h": 120,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_queen_wreck_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "The beached BAYOU QUEEN: white/red sternwheeler with its back broken at x~100, bow sheared nose-down into the mud, torn red paddlewheel at the stern (left), standing smokestack + a snapped one fallen over the bow, Regime armour plates (one with the spiral eye), fires in the cabin windows, a burning breach in the hull. idle 4f@120ms (fires flicker, smoke plumes drift up-left, embers). Background prop (draw behind the hero; lower contrast, ink1 keyline). The lower ~24 px are dark hull/mud that blend into the ground; origin bottom-centre on the ground line. Smoke-stack mouth ~(152,14) = origin offset (+48,-106); hull-breach fire ~(112,88) = offset (+8,-32) for fx (sparks/light)."
+  },
+  {
+    "key": "prop_cage",
+    "kind": "cage",
+    "png": "assets/sprites/props/prop_cage.png",
+    "json": "assets/sprites/props/prop_cage.json",
+    "w": 32,
+    "h": 34,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_cage_intact",
+      "prop_cage_broken"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Rusted cage pen on a rotten pallet with a crane hook chain on top. intact: bent door with a red padlock; broken: bars torn outward around a ragged hole, door lying in the mud, claw scratches. Bars are see-through (interior x3..28, y5..28). Decor (no body)."
+  },
+  {
+    "key": "prop_bones",
+    "kind": "bones",
+    "png": "assets/sprites/props/prop_bones.png",
+    "json": "assets/sprites/props/prop_bones.json",
+    "w": 32,
+    "h": 10,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_bones_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Bone pile: ribs, femur, vertebrae and a big gator skull (snout right, teeth), mossy, on a mud bed. Ground decor."
+  },
+  {
+    "key": "prop_boat_wreck",
+    "kind": "boat_wreck",
+    "png": "assets/sprites/props/prop_boat_wreck.png",
+    "json": "assets/sprites/props/prop_boat_wreck.json",
+    "w": 64,
+    "h": 26,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_boat_wreck_idle",
+      "prop_boat_wreck_b"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Crushed boats. idle (variant a) = front half of a blue-grey skiff bitten off, stuck bow-up in the mud, splintered bite end, tooth punctures, dangling rope; b = capsized hull, keel up, broken and sagging in the middle with a bite hole and a broken oar. One frame each, decor."
+  },
+  {
+    "key": "prop_mill_gate",
+    "kind": "mill_gate",
+    "png": "assets/sprites/props/prop_mill_gate.png",
+    "json": "assets/sprites/props/prop_mill_gate.json",
+    "w": 64,
+    "h": 80,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_mill_gate_closed",
+      "prop_mill_gate_shake",
+      "prop_mill_gate_smashed"
+    ],
+    "body": [
+      8,
+      8,
+      48,
+      72
+    ],
+    "destructible": false,
+    "hp": null,
+    "notes": "The Drowned Mill's double doors in a heavy timber frame (MILL board on the lintel), iron straps, chained shut with a red Regime padlock, claw gouges and a bite dent. closed (1); shake 4f@60ms loop (leaves jitter, chain jiggles, dust and splinters); smashed 6f@60ms play once and hold the last frame: blast flash in the seam, doors blown outward on their outer hinges, splinters fly, smoke, chain snaps; final = mostly open dark doorway (faint green den glow), wrecked leaves hanging at the sides, splinter pile. Body while closed: [8,8,48,72] (remove on smashed)."
+  },
+  {
+    "key": "prop_waterwheel",
+    "kind": "waterwheel",
+    "png": "assets/sprites/props/prop_waterwheel.png",
+    "json": "assets/sprites/props/prop_waterwheel.json",
+    "w": 112,
+    "h": 112,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_waterwheel_spin"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "The mill's huge broken waterwheel, turning clockwise: 12 board paddles (every third missing), broken outer tip ring, 8 spokes (every second snapped), iron hub; water sheets off the paddles rising on the left, drips and foam at the bottom. spin 8f@120ms seamless loop (11.25 deg/frame, damage repeats every 90 deg). Set piece behind the action. Origin bottom-centre = the lowest paddle tip (it dips into the water); hub centre = origin offset (0,-56)."
+  },
+  {
+    "key": "prop_claw_marks",
+    "kind": "claw_marks",
+    "png": "assets/sprites/props/prop_claw_marks.png",
+    "json": "assets/sprites/props/prop_claw_marks.json",
+    "w": 32,
+    "h": 24,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_claw_marks_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Decal: three deep claw gouges (dark core, shadowed upper wall, pale fresh-splinter lip), mostly transparent. For walls or ground; flipX for variety."
+  }
+]

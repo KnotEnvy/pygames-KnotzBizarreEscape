@@ -36,7 +36,9 @@
     {"type":"aseprite","key":"fx_glow_8","textureURL":"assets/sprites/fx/fx_glow_8.png","atlasURL":"assets/sprites/fx/fx_glow_8.json"},
     {"type":"aseprite","key":"fx_glow_16","textureURL":"assets/sprites/fx/fx_glow_16.png","atlasURL":"assets/sprites/fx/fx_glow_16.json"},
     {"type":"aseprite","key":"fx_glow_32","textureURL":"assets/sprites/fx/fx_glow_32.png","atlasURL":"assets/sprites/fx/fx_glow_32.json"},
-    {"type":"aseprite","key":"fx_flare","textureURL":"assets/sprites/fx/fx_flare.png","atlasURL":"assets/sprites/fx/fx_flare.json"}
+    {"type":"aseprite","key":"fx_flare","textureURL":"assets/sprites/fx/fx_flare.png","atlasURL":"assets/sprites/fx/fx_flare.json"},
+    {"type":"aseprite","key":"fx_machine_bits","textureURL":"assets/sprites/fx/fx_machine_bits.png","atlasURL":"assets/sprites/fx/fx_machine_bits.json"},
+    {"type":"aseprite","key":"fx_boat_foam","textureURL":"assets/sprites/fx/fx_boat_foam.png","atlasURL":"assets/sprites/fx/fx_boat_foam.json"}
   ]},
   "meta": {"app":"KBE FX pipeline","version":"1.0"}
 }

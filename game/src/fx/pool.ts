@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { DEPTH, TEX, hasAnim, type GameContext, type Pool } from '../core';
 import { FX } from '../config/tuning/fx';
 
+export type Recipe = keyof typeof FX.recipes;
 export type Category = keyof typeof FX.caps;
 interface Bounds { x: number; y: number; width: number; height: number }
 export interface Clip { texture: string; frames: string[]; bounds: Bounds[]; ends: number[]; duration: number; kind: CombatKind }
@@ -80,6 +81,8 @@ export class Slot {
     age = 0; life = 1; vx = 0; vy = 0; gravity = 0; alpha = 1; fade = 120;
     bounce = 0; spin = false; loop = false; hot = false; cue = false; frame = -1;
     background = false;
+    recipe: Recipe | undefined;
+    growX = 0; growY = 0;
     constructor(readonly image: Phaser.GameObjects.Image, readonly category: Category) {}
 }
 
@@ -90,7 +93,12 @@ export class FxPool {
     private readonly pools = {} as Record<Category, Pool<Slot>>;
     readonly combatLive: Record<CombatKind, number> = { debris: 0, sparks: 0, embers: 0, snow: 0 };
     private readonly textureCounts = new Map<string, number>();
+    recipeScope: Recipe | undefined;
+    readonly recipeLive: Record<Recipe, number> = { rotor_wash: 0, boat_wake: 0, mech_pop: 0, smoke_trail: 0 };
+    ambientLive = 0;
     coverage = 0; cloudCoverage = 0;
+    // Recipe throttling is intentional; dropped still tracks shared-pool exhaustion.
+    recipeDropped = 0;
     dropped = 0; peak = 0; active = 0; hot = 0;
     /** Synchronous emission scope; reset by the director in finally. Existing slots retain their layer. */
     backgroundFactor: number | undefined;
@@ -107,6 +115,8 @@ export class FxPool {
     }
 
     spawn(category: Category, tag: string, x: number, y: number, delay = 0, scale = 1, reclaim = false): Slot | null {
+        const recipe = this.recipeScope;
+        if (recipe && this.recipeLive[recipe] >= FX.recipes[recipe]) { this.recipeDropped++; return null; }
         const clip = this.art.get(tag);
         const view = this.ctx.camera.view();
         const factor = this.backgroundFactor ?? 1;
@@ -121,6 +131,8 @@ export class FxPool {
         }
         if (pool.free === 0) { this.dropped++; return null; }
         const s = pool.get();
+        s.recipe = recipe; if (recipe) this.recipeLive[recipe]++;
+        s.growX = s.growY = 0;
         s.live = true; s.clip = clip; s.age = -delay; s.life = clip.duration;
         s.vx = s.vy = s.gravity = 0; s.alpha = 1; s.fade = 90;
         s.bounce = 0; s.spin = s.loop = s.hot = s.cue = false; s.frame = 0;
@@ -131,6 +143,7 @@ export class FxPool {
         // Presentation is committed in POST_UPDATE, after callers configure alpha/lifetime.
         this.textureCounts.set(clip.texture, this.countTexture(clip.texture) + 1);
         if (category === 'combat') this.combatLive[clip.kind]++;
+        if (category === 'ambient') this.ambientLive++;
         this.active++; this.peak = Math.max(this.active, this.peak);
         return s;
     }
@@ -139,8 +152,21 @@ export class FxPool {
         if (!s.live) return;
         this.textureCounts.set(s.clip!.texture, this.countTexture(s.clip!.texture) - 1);
         if (s.category === 'combat') this.combatLive[s.clip!.kind]--;
+        if (s.category === 'ambient') this.ambientLive--;
+        if (s.recipe) this.recipeLive[s.recipe]--;
+        s.recipe = undefined;
         s.live = false; s.image.setVisible(false); this.active--;
         this.pools[s.category].release(s);
+    }
+
+    /** Make room only when an ambience change leaves too many old pooled motes alive. */
+    reserveWeather(motes: number): void {
+        const limit = FX.caps.ambient - motes;
+        if (this.ambientLive <= limit) return;
+        for (const s of this.slots) {
+            if (s.live && s.category === 'ambient') this.release(s);
+            if (this.ambientLive <= limit) break;
+        }
     }
 
     update(dt: number): void {
@@ -157,6 +183,7 @@ export class FxPool {
             if (s.age >= s.life || worldX < view.left - FX.cullMargin || worldX > view.right + FX.cullMargin || worldY > view.bottom + FX.cullMargin) { this.release(s); continue; }
             // Only advance the part of this step after a delayed emission becomes live.
             const seconds = Math.min(dt, s.age - Math.max(0, oldAge)) / 1000;
+            if (s.growX || s.growY) s.image.setScale(s.image.scaleX + s.growX * seconds, s.image.scaleY + s.growY * seconds);
             const oldY = s.image.y;
             s.vy += s.gravity * seconds;
             s.image.x += s.vx * seconds; s.image.y += s.vy * seconds;

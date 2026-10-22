@@ -6,12 +6,18 @@ import { FxFilters } from './filters';
 
 import { CampaignFx, ambience, type Ambience, type SpatialFx } from './campaign';
 import { FxWeather } from './weather';
+import { FxLightning } from './lightning';
+import { MachineFx } from './machines';
+import { BayouFx } from './bayou';
 import { BackgroundFx } from './background';
 import type { Projectile } from '../core/projectiles';
-const MACHINE = /turret|drone|tank|moose|machine|snowcat|ironhorn/i;
+const MACHINE = /turret|drone|tank|moose|machine|snowcat|ironhorn|hopper|airboat|piranha|gnat|buzzard|skeeter|shellshock|gatorgeddon/i;
+// These actors already emit their own mech_pop hardware on death.
+const MECH_POP_KINDS = new Set(['gnat', 'hopper', 'piranha', 'airboat', 'buzzard']);
 const MUZZLES: Record<string, readonly [string, string]> = {
     pistol: ['fx_muzzle_pistol_right', 'fx_muzzle_pistol_diag'], hmg: ['fx_muzzle_hmg_right', 'fx_muzzle_hmg_diag'],
     spread: ['fx_muzzle_spread_right', 'fx_muzzle_spread_diag'], rocket: ['fx_muzzle_rocket_right', 'fx_muzzle_rocket_diag'],
+    shotgun: ['fx_muzzle_spread_right', 'fx_muzzle_spread_diag'],
     flame: ['fx_muzzle_flame_right', 'fx_muzzle_flame_diag']
 };
 const EXPLOSIONS = { s: 'fx_explosion_s_burst', m: 'fx_explosion_m_burst', l: 'fx_explosion_l_burst', xl: 'fx_explosion_xl_burst' };
@@ -28,6 +34,8 @@ export class FxDirector {
     readonly campaign: CampaignFx;
     readonly weather: FxWeather;
     readonly background: BackgroundFx;
+    readonly bayou: BayouFx;
+    readonly machines: MachineFx;
     private readonly impacts = Array.from({ length: FX.impactsPerFrame }, () => ({ x: 0, y: 0, material: 'flesh' as ImpactMaterial, primary: false, weapon: '' }));
     private impactCount = 0;
     private frameCpu = 0;
@@ -36,7 +44,7 @@ export class FxDirector {
     private explicitDustUntil = 0;
     private lastSplash = -1000; private splashX = 0; private splashY = 0;
     private readonly popups: { text: Phaser.GameObjects.Text; age: number; y: number }[] = [];
-    private readonly stats = { active: 0, peak: 0, dropped: 0, cpuMs: 0, cpuPeakMs: 0, filters: 'plain', ambience: null as Ambience, popups: 0, impacts: 0, explosions: 0, splashes: 0, combat: null as FxPool['combatLive'] | null, coverage: 0, cloudCoverage: 0, cues: 0 };
+    private readonly stats = { active: 0, peak: 0, dropped: 0, recipeDropped: 0, cpuMs: 0, cpuPeakMs: 0, filters: 'plain', ambience: null as Ambience, popups: 0, impacts: 0, explosions: 0, splashes: 0, combat: null as FxPool['combatLive'] | null, coverage: 0, cloudCoverage: 0, cues: 0 };
     private readonly offUpdate: () => void;
     private ambience: Ambience = null;
     private previewAmbience: Ambience | undefined;
@@ -55,10 +63,14 @@ export class FxDirector {
 
     constructor(readonly ctx: GameContext) {
         this.pool = new FxPool(ctx);
+        this.machines = new MachineFx(ctx, this.pool);
+        ctx.debug.register('fxRecipes', () => this.pool.recipeLive);
+        this.bayou = new BayouFx(ctx, this.pool);
         this.stats.combat = this.pool.combatLive;
         this.filters = new FxFilters(ctx);
-        this.weather = new FxWeather(ctx, this.pool);
-        this.background = new BackgroundFx(ctx);
+        const lightning = new FxLightning(ctx);
+        this.weather = new FxWeather(ctx, this.pool, lightning);
+        this.background = new BackgroundFx(ctx, lightning);
         this.campaign = new CampaignFx(ctx, this.pool,
             (x, y, size) => { this.explosion(x, y, size, false, true); this.ctx.audio.sfx(`explo_${size}`, { x }); },
             (x, y) => this.finale(x, y, 'IRONHORN'),
@@ -72,6 +84,7 @@ export class FxDirector {
         const on = <K extends keyof GameEvents>(key: K, handler: (e: GameEvents[K]) => unknown): void => {
             bus.on(key, e => { const start = performance.now(); handler(e); this.frameCpu += performance.now() - start; });
         };
+        on('water:splash', e => { this.stats.splashes++; this.bayou.water(e); });
         on('player:shoot', e => this.shoot(e));
         on('enemy:shoot', e => this.shoot(e, true));
         on('fx:emit', e => this.spatial(e));
@@ -88,9 +101,12 @@ export class FxDirector {
         });
         on('explosion', e => this.explosion(e.x, e.y, e.size));
         on('enemy:killed', e => {
+            // Hound is an armoured dog: retain flesh pop and ordinary/melee kill feel.
             const machine = MACHINE.test(e.kind);
             this.feel(0, this.bossDying ? 0 : machine ? FX.feel.machineKill : e.cause === 'melee' ? FX.feel.meleeKill : FX.feel.kill);
-            if (machine) this.scatter(e.x, e.y, METAL, 6, 75, 320, 700, true);
+            if (machine) {
+                if (!MECH_POP_KINDS.has(e.kind)) this.scatter(e.x, e.y, METAL, 6, 75, 320, 700, true);
+            }
             else {
                 const pop = this.pool.spawn('impact', 'fx_hit_pop_burst', e.x, e.y - 8, 0, 1.15, true);
                 if (pop) { pop.life = 90; pop.fade = 40; pop.alpha = .9; }
@@ -162,7 +178,7 @@ export class FxDirector {
         ctx.debug.register('fx', () => ({ ...this.stats, weather: this.weather.stats, campaign: this.campaign.stats, background: this.background.stats }));
     }
 
-    private midboss(name: string): boolean { return /snowcat|ironhorn/i.test(name); }
+    private midboss(name: string): boolean { return /snowcat|ironhorn|shellshock|skeeter/i.test(name); }
     private finishFeel(name: string): void {
         const mid = this.midboss(name);
         this.criticalStop = true;
@@ -220,7 +236,8 @@ export class FxDirector {
             this.lastSweep = this.realClock;
             this.scatter(x, y, SPARKS, 2, 115, 160, 150, false);
         }
-        if (material === 'water') { this.pool.spawn('impact', 'fx_water_ripple_expand', x, y); return; }
+        if (material === 'water') { this.bayou.water({ x, y, size: 's' }); return; }
+        if (material === 'mud') { this.bayou.emit({ effect: 'mud_splat', x, y }); return; }
         if (material === 'ice') {
             this.campaign.emit({ effect: 'ice_skid', x, y, count: 3, scale: .65 });
             const glint = this.pool.spawn('impact', 'fx_hit_pop_burst', x, y, 0, .55, true);
@@ -264,11 +281,11 @@ export class FxDirector {
         for (const s of this.pool.slots) if (s.live && s.category === 'muzzle' && Math.abs(s.image.x - e.x) < 12 && Math.abs(s.image.y - e.y) < 12) this.pool.release(s);
         const s = this.pool.spawn('muzzle', MUZZLES[weapon][diagonal ? 1 : 0], e.x, e.y, 0, 1, true);
         if (s) { s.image.setOrigin(8 / 48, 0.5).setRotation(angle + (diagonal ? Math.PI / 4 : 0)); s.fade = 0; }
-        if (!enemy && (this.weather.stats.mode === 'tunnel' || this.ctx.part.id === '1-3')) this.lightPool(e.x, e.y, weapon === 'rocket' ? 1.3 : .85, .18);
-        if (weapon === 'pistol' || weapon === 'hmg' || weapon === 'spread') {
+        if (!enemy && (this.weather.stats.mode === 'tunnel' || this.weather.stats.mode === 'fog' || (FX.darkParts as readonly string[]).includes(this.ctx.part.id))) this.lightPool(e.x, e.y, weapon === 'rocket' ? 1.3 : .85, .18);
+        if (weapon === 'pistol' || weapon === 'hmg' || weapon === 'spread' || weapon === 'shotgun') {
             const flare = this.pool.spawn('glow', 'fx_flare_still', e.x + Math.cos(e.angle) * 12, e.y + Math.sin(e.angle) * 12);
             if (flare) { flare.life = 35; flare.fade = 35; flare.alpha = 0.35; flare.image.setRotation(e.angle).setBlendMode(Phaser.BlendModes.ADD); }
-            if (weapon !== 'hmg' || this.realClock - this.lastCasing >= FX.casing.interval) {
+            if (weapon !== 'shotgun' && (weapon !== 'hmg' || this.realClock - this.lastCasing >= FX.casing.interval)) {
                 this.lastCasing = this.realClock;
                 const c = this.pool.spawn('casing', 'fx_casing_spin', e.x - Math.cos(e.angle) * 9, e.y, 0, 1, true);
                 if (c) { c.life = FX.casing.life; c.fade = 120; c.vx = -Math.cos(e.angle) * this.ctx.rng.range(35, 55); c.vy = this.ctx.rng.range(-100, -70); c.gravity = FX.casing.gravity; c.bounce = 2; c.spin = true; }
@@ -276,6 +293,15 @@ export class FxDirector {
         }
         if (!enemy && weapon === 'hmg' && this.realClock - this.lastHmg >= 160) { this.feel(1, 0); this.lastHmg = this.realClock; }
         if (!enemy && weapon === 'spread') this.feel(1, 0);
+        if (weapon === 'shotgun') {
+            if (s) s.image.setScale(1.3);
+            this.smoke(e.x, e.y, 35, .5);
+            for (let i = -2; i <= 2; i++) {
+                const spark = this.pool.spawn('combat', SPARKS[0], e.x, e.y);
+                if (spark) { const a = e.angle + i * .13; spark.vx = Math.cos(a) * 170; spark.vy = Math.sin(a) * 170; spark.life = 130; spark.fade = 100; spark.image.setScale(.6); }
+            }
+            if (!enemy) this.feel(2, 0);
+        }
         if (weapon === 'rocket') {
             if (!enemy) this.feel(2, 0);
             this.smoke(e.x, e.y, 0, 0.5); this.smoke(e.x, e.y, 45, 0.5);
@@ -440,6 +466,11 @@ export class FxDirector {
         // Campaign markers/chains sample terrain and schedule world effects: never run those in a backdrop.
         if (!e.bg && this.campaign.emit(e)) return;
         const scale = Math.max(0.25, Math.min(2, e.scale ?? 1));
+        if (this.machines.emit(e)) return;
+        if (this.bayou.emit(e)) {
+            if (e.effect === 'gas_flame' || e.effect === 'flame_jet') this.lightPool(e.x, e.y, 2, .25, 0xffad42);
+            return;
+        }
         switch (e.effect) {
             case 'ice_impact': if (!e.bg) this.impact(e.x, e.y, 'ice'); break;
             case 'boss_cannon_charge': case 'boss_flame_reach': case 'boss_charge_lane':
@@ -467,9 +498,17 @@ export class FxDirector {
                 if (s) s.image.setOrigin(8 / 48, 0.5).setRotation(e.angle ?? 0);
                 break;
             }
+            case 'shotgun_pump': {
+                const puff = this.pool.spawn('smoke', 'fx_smoke_drift', e.x, e.y, 0, .22);
+                if (puff) { puff.life = 230; puff.fade = 180; puff.alpha = .2; puff.vx = -Math.cos(e.angle ?? 0) * 8; puff.vy = -18; }
+                break;
+            }
             case 'casing': {
                 const s = this.pool.spawn('casing', 'fx_casing_spin', e.x, e.y, 0, scale, true);
-                if (s) { s.life = FX.casing.life; s.fade = 120; s.vx = -Math.cos(e.angle ?? 0) * 45; s.vy = -85; s.gravity = FX.casing.gravity; s.bounce = 2; s.spin = true; }
+                if (s) { s.life = FX.casing.life; s.fade = 120; s.vx = -Math.cos(e.angle ?? 0) * 45; s.vy = -85; s.gravity = FX.casing.gravity; s.bounce = 2; s.spin = true;
+                    // Player owns pump timing. Its scale 1.3 / player casing is the shotgun shell.
+                    if (e.team === 'player' && Math.abs(scale - 1.3) < .01) s.image.setTint(0xd4483a).setTintMode(Phaser.TintModes.FILL);
+                }
                 break;
             }
             case 'scorch': {
@@ -550,22 +589,35 @@ export class FxDirector {
             this.ctx.projectiles.forEach(this.projectileTrail);
         }
         this.campaign.update(dt, this.ctx.time.paused ? 0 : rawDt);
+        const fallback = this.previewAmbience === undefined ? this.ambience : this.previewAmbience;
+        const precipitation = fallback === 'rain' || fallback === 'storm' || fallback === 'snow' || fallback === 'blizzard';
+        if (this.ambientEnabled && (fallback === 'rain' || fallback === 'storm')) this.pool.reserveWeather(fallback === 'storm' ? 48 : 32);
         this.weather.begin(dt);
         this.observeMovement(dt);
         const view = this.ctx.camera.view();
+        // Global precipitation gets its mote budget first; local banks/foam/lights layer with it.
+        if (this.ambientEnabled && precipitation) {
+            this.weather.region(fallback, view.left, view.top, view.right, view.bottom);
+            this.weather.stats.precipitation = fallback;
+            this.ambientDebt += dt * FX.ambientRate[fallback] / 1000;
+            if (dt > 0 && this.ambientDebt >= 1) { this.ambientDebt -= 1; this.emitAmbient(fallback, view.left, view.top, view.right, view.bottom); }
+        }
         let hasZone = false;
         if (this.ambientEnabled && this.previewAmbience === undefined) for (const z of this.zones) {
-            if (!z.active || !z.kind) continue;
+            if (!z.active || !z.kind || (precipitation && z.kind === fallback)) continue;
             const left = Math.max(z.x, view.left), right = Math.min(z.x + z.width, view.right);
             const top = Math.max(z.y, view.top), bottom = Math.min(z.y + z.height, view.bottom);
-            if (left >= right || top >= bottom) { z.debt = 0; continue; }
+            // Keep near-offscreen fog alive for its wisps; never substitute a clipped camera edge for a bank edge.
+            const spill = z.kind === 'fog' ? 80 : 0;
+            if (z.x >= view.right + spill || z.x + z.width <= view.left - spill ||
+                z.y >= view.bottom + spill || z.y + z.height <= view.top - spill) { z.debt = 0; continue; }
             hasZone = true;
-            this.weather.region(z.kind, left, top, right, bottom);
+            this.weather.region(z.kind, left, top, right, bottom, z.kind === 'fog' ? z : undefined);
+            if (left >= right || top >= bottom) continue;
             z.debt += dt * FX.ambientRate[z.kind] / 1000;
             if (dt > 0 && z.debt >= 1) { z.debt -= 1; this.emitAmbient(z.kind, left, top, right, bottom); }
         }
-        const fallback = this.previewAmbience === undefined ? this.ambience : this.previewAmbience;
-        if (this.ambientEnabled && !hasZone && fallback) {
+        if (this.ambientEnabled && !precipitation && !hasZone && fallback) {
             this.weather.region(fallback, view.left, view.top, view.right, view.bottom);
             this.ambientDebt += dt * FX.ambientRate[fallback] / 1000;
             if (dt > 0 && this.ambientDebt >= 1) { this.ambientDebt -= 1; this.emitAmbient(fallback, view.left, view.top, view.right, view.bottom); }
@@ -577,6 +629,7 @@ export class FxDirector {
         }
         this.filters.update(this.pool.hot);
         this.stats.active = this.pool.active; this.stats.peak = this.pool.peak; this.stats.dropped = this.pool.dropped;
+        this.stats.recipeDropped = this.pool.recipeDropped;
         this.stats.filters = this.filters.mode; this.stats.ambience = this.ambience; this.stats.popups = popups;
         const elapsed = performance.now() - start;
         this.frameCpu += elapsed;

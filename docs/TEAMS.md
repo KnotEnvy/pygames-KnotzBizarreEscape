@@ -4,14 +4,15 @@
 |---|---|---|
 | Lead / Architect | Claude Opus 5.5 | docs, tooling, integration, commits, task routing |
 | Engine and core systems | Claude Opus 5.5 · medium | `src/core`, Boot/Preload/Game scenes, services, debug hooks |
-| Player and weapons | GPT-6.1-Sol · medium | Knotz, weapons, projectiles, pickups, POWs (code + sprites) |
-| Enemies, AI and bosses | GPT-6.1-Sol · medium | enemy roster, AI, MOOSEZILLA (code + sprites) |
+| Player and weapons | GPT-6.1-Sol · high | Knotz, weapons, projectiles, pickups, POWs (code + sprites) |
+| Enemies, AI and bosses | GPT-6.1-Sol · high (Phase G runs it as two agents, A and B, see MISSION2.md) | enemy roster, AI, bosses (code + sprites) |
 | Levels and content | Claude Opus 5.5 · high | tilesets, props, Tiled maps, level loader/spawner/triggers, parallax |
-| Effects and game feel | GPT-6-Astra · high | FX sprites, particles, hitstop/shake tuning, filters |
-| UI, HUD and audio | Claude Fable 5.1 · xhigh | all menus/HUD scenes, font, UI art, SFX + music, AudioService impl |
+| Effects and game feel | GPT-6-Astra · medium | FX sprites, particles, hitstop/shake tuning, filters |
+| UI, HUD and audio | Claude Fable 5.1 · high | all menus/HUD scenes, font, UI art, SFX + music, AudioService impl |
 | QA | GPT-6.1-Sol · high | Playwright e2e, playtests, bug reports |
 | Phaser 4 rules checker | Claude Sonnet 5.5 · medium | `tools/check-phaser4.mjs`, API compliance reviews |
 | Image generation (on demand) | GPT-6.1-Sol · low | painterly backgrounds/key art with transparency, palette-quantized |
+| Release / ops chores | GPT-6-Luna · medium | git merge/push, process cleanup (on the Lead's request) |
 
 ## Phases
 - **Phase 0 (Lead):** archive the pygame game, scaffold Phaser 4.2.1 + Vite + TS, docs, art pipeline, screenshot tool. ✅
@@ -34,3 +35,53 @@
   and background moments, richer parallax, a combat juice pass, the WARNING banner, HUD juice, background-moment sounds, and the boss-intro camera cinematic.
 - **Phase F ✅** (1ce8abc plus the tidy-up commit): consistent brief boss flashes, no FILL-tint white slabs in the HUD, callouts moved up, flyers kept
   below the radio strip, crows, yard smoke, boss framing in wide arenas, zoom-punch cap, rules review (0 E). **Next:** owner playtest of Phase F.
+- **Owner playtest 3 (2026-10-18):** Mission 1 plays really well; the upgraded graphics, background animations, sounds and transitions
+  are what the owner wants for every mission. Roster changes: Player and Enemies to Sol 6.1 high, FX to Astra 6 medium, UI/Audio
+  to Fable 5.1 high. Mission 1 merged to `master` (4546df2) and pushed over SSH.
+- **Phase G (now): Mission 2 "Bayou Blackout"** ([MISSION2.md](MISSION2.md)) on branch `mission-2`. Every team works to the
+  Mission 1 definition of done in [LESSONS.md](LESSONS.md) from the first build. G1: all teams in parallel (Enemies as A =
+  GATORGEDDON and B = mid-bosses and roster). G2: integration, QA, rules review, fix round, then owner playtest.
+- **Phase G1 ✅** (2bb8267): all of Mission 2 integrated. Three maps, three mech bosses, five new enemies, the shotgun, wading, mud,
+  sinking logs, gas vents, branches and fog, lazy mission packs, mission chaining, 72 SFX plus 5 songs, and 18 parallax layers.
+  `npm run audit` PASSes all six parts, and the selftest passes 44/44. **G2 (now):** QA review, Phaser 4 rules review, and polish
+  (UI bg ids, FX fog edges, mid-boss detail pass). The fix round follows from the QA and rules findings.
+- **Phase G2/G3 ✅:**
+  - QA: 8 findings, all fixed.
+    - Roof threats moved below the HUD and radio.
+    - The speed foreground no longer covers combat.
+    - Storm rain shows over the river.
+    - GATORGEDDON's slam holes open at the marker.
+    - Boss prompts sit above the HP bar.
+    - Murky wading water and wet mud.
+    - The sky swarm is lowered.
+  - Rules review: 0 E, 2 W, 9 N. Warnings fixed, plus four new lint rules.
+  - One FX lightning gate (`fx:lightning`), with Audio's thunder delayed by distance.
+  - A Back to Title option on a mission load error, and the carried run survives a reload.
+  - A detail pass on SHELLSHOCK and MEGA-SKEETER.
+  - `check`: 0 warnings. `audit`: all six parts PASS. `selftest`: 49/49.
+  - **Next:** owner playtest of Mission 2.
+- **Owner playtest 4 (2026-10-20):** "Mission 2 looks incredible." Before Mission 3, polish the newer enemies:
+  - the frog (hopper) is rough;
+  - the helicopter (Buzzard) needs another pass;
+  - the airboats could be better.
+  Work from Imagegen references, then rebuild in Aseprite.
+- **Phase H (enemy facelift), plan in `docs/PHASE-H.md`, briefs in `docs/briefs/phase-h/`:**
+  - **H1:**
+    - Imagegen: references in `art-src/refs/`.
+    - Enemies A: Buzzard and hound.
+    - Enemies B: hopper, airboat, piranha, gnat, lurker.
+    - FX: `rotor_wash`, `boat_wake`, `mech_pop`, `smoke_trail`.
+    - UI/Audio: five sounds and the title card / radio overlap.
+  - **H2:** QA and Rules review, the MEGA-SKEETER and GATORGEDDON leg passes, far background actors.
+- **Phase H ✅ (H1–H3, 2026-10-20):**
+  - **Imagegen:** references for 9 targets.
+  - **Rebuilt in Aseprite:**
+    - Buzzard (69 frames) and hound (37).
+    - hopper, airboat, piranha, gnat and lurker (217 frames, per-kind tag sets).
+    - MEGA-SKEETER as a mosquito, and GATORGEDDON's legs.
+  - **Far actors** (`bg_buzzard`, `bg_airboat`, `bg_skeeter`) match the new designs.
+  - **FX:** `rotor_wash`, `boat_wake`, `mech_pop`, `smoke_trail`.
+  - **UI/Audio:** 5 new sounds, and the radio opens after the title card leaves.
+  - **Reviews:** QA found 3 S4 issues and Rules 1 W and 11 N. All fixed in H3 except H11 and H12 (notes, no change needed).
+  - **Lessons:** in `docs/LESSONS.md` §8.
+  - **Next:** owner playtest, then Mission 3.

@@ -1,0 +1,7 @@
+{
+  "engine": {
+    "files": [
+      { "type": "json", "key": "engine_m2_probe", "url": "assets/packs/engine.json" }
+    ]
+  }
+}

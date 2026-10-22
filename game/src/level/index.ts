@@ -1,4 +1,6 @@
-// Levels and content: Mission 1 "Pine Ridge Breakout", in 3 parts (m1p1 THE CAMP, m1p2 TIMBER EXPRESS, m1p3 MOOSE LAKE).
+// Levels and content: Mission 1 "Pine Ridge Breakout" (m1p1 THE CAMP, m1p2 TIMBER EXPRESS, m1p3 MOOSE LAKE) and Mission 2
+// "Bayou Blackout" (m2p1 CYPRESS DEEP, m2p2 RIVER RUN, m2p3 GATOR'S DEN: wading water, sinking logs, swamp-gas vents, low
+// branches, fog banks, the den channel).
 // registerLevel loads the part's map (ctx.part.map), builds the tilemap + parallax (set and train drift from the map's
 // `parallax` / `drift` properties), publishes the LevelQuery (the engine sandbox then steps aside), registers the
 // prop factories, spawns the player and every prop, and runs the proximity spawner, arenas, triggers, the train
@@ -15,6 +17,8 @@ import { registerProps } from './props';
 import { ProximitySpawner, kindOf, spawnObject } from './spawner';
 import { TrainSystem } from './train';
 import { TriggerSystem } from './triggers';
+import { VentSystem } from './vents';
+import { WaterSystem } from './water';
 import { num, str, type LevelRuntime } from './types';
 
 export function registerLevel(ctx: RegisterContext): void {
@@ -36,7 +40,9 @@ export function registerLevel(ctx: RegisterContext): void {
     // The static group goes in as a collider (Arcade colliders accept groups; the contract types it as GameObject).
     const built = buildMap(scene, key, [rt.solids as unknown as Phaser.GameObjects.GameObject], part?.mission ?? LEVEL.map.stage);
     scene.cameras.main.setBackgroundColor(LEVEL.skies[key] ?? LEVEL.map.sky);
+    // Low bridges/branches and tunnels imply a moving map (train); fog banks can also roll over a static map at their own speed.
     const trainTriggers = built.triggers.some(t => t.type === 'hazard_sweep' || t.type === 'tunnel');
+    const fogTriggers = built.triggers.some(t => t.type === 'fog');
     const drift = num(built.props.drift, trainTriggers ? LEVEL.train.defaultDrift : 0);
     const parallax = createParallax(ctx, str(built.props.parallax, 'stage1'), drift);
     ctx.setLevel(built.query);
@@ -57,16 +63,20 @@ export function registerLevel(ctx: RegisterContext): void {
     const arenas = new ArenaController(ctx, rt, hooks, built.triggers, owned);
     const triggers = new TriggerSystem(ctx, built.triggers, str(built.props.clearSfx));
     triggers.publishZones();
-    const train = trainTriggers || drift ? new TrainSystem(ctx, built.triggers, drift || LEVEL.train.defaultDrift, parallax, k => triggers.setOverride(k), built.map.heightInPixels) : null;
+    const train = trainTriggers || fogTriggers || drift ? new TrainSystem(ctx, built.triggers, drift || LEVEL.train.defaultDrift, parallax, k => triggers.setOverride(k), built.map.heightInPixels) : null;
     const ice = new IceSystem(ctx, built);
+    const water = new WaterSystem(ctx, built, built.triggers);
+    const vents = new VentSystem(ctx, built.triggers);
     // Phase F: background moments (bg_event triggers + arena/tunnel/explosion hooks), see src/level/background.ts.
-    const bg = new BackgroundDirector(ctx, built.key, built.triggers, parallax);
+    const bg = new BackgroundDirector(ctx, built.key, built.triggers, parallax, k => triggers.setWeather(k));
 
     ctx.onUpdate(dt => {
         spawner.update();
         arenas.update(dt);
         train?.update(dt);
         if (ice.count) ice.update(dt);
+        if (water.active) water.update(dt);
+        if (vents.count) vents.update(dt);
         triggers.update(dt);
         bg.update(dt);
     });
@@ -89,6 +99,8 @@ export function registerLevel(ctx: RegisterContext): void {
     }));
     if (train) ctx.debug.register('train', () => train.debug());
     if (ice.count) ctx.debug.register('ice', () => ice.debug());
+    if (water.active) ctx.debug.register('water', () => water.debug());
+    if (vents.count) ctx.debug.register('vents', () => vents.debug());
     ctx.debug.register('bg', () => bg.debug());
     // Fire a background moment by id (screenshots / QA): window.__KBE_LEVEL.bg('zeppelin'). Cheat builds only.
     if (ctx.debug.cheatsEnabled) {

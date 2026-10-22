@@ -1,0 +1,116 @@
+{ "frames": {
+   "fx_boat_foam#0": {
+    "frame": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 50
+   },
+   "fx_boat_foam#1": {
+    "frame": { "x": 33, "y": 0, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 50
+   },
+   "fx_boat_foam#2": {
+    "frame": { "x": 66, "y": 0, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 50
+   },
+   "fx_boat_foam#3": {
+    "frame": { "x": 99, "y": 0, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 50
+   },
+   "fx_boat_foam#4": {
+    "frame": { "x": 0, "y": 17, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 50
+   },
+   "fx_boat_foam#5": {
+    "frame": { "x": 33, "y": 17, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 50
+   },
+   "fx_boat_foam#6": {
+    "frame": { "x": 66, "y": 17, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 100
+   },
+   "fx_boat_foam#7": {
+    "frame": { "x": 99, "y": 17, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 100
+   },
+   "fx_boat_foam#8": {
+    "frame": { "x": 0, "y": 34, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 100
+   },
+   "fx_boat_foam#9": {
+    "frame": { "x": 33, "y": 34, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 100
+   },
+   "fx_boat_foam#10": {
+    "frame": { "x": 66, "y": 34, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 100
+   },
+   "fx_boat_foam#11": {
+    "frame": { "x": 99, "y": 34, "w": 32, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 32, "h": 16 },
+    "sourceSize": { "w": 32, "h": 16 },
+    "duration": 100
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "fx_boat_foam.png",
+  "format": "RGBA8888",
+  "size": { "w": 131, "h": 50 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "fx_boat_foam_bow", "from": 0, "to": 5, "direction": "forward", "color": "#000000ff" },
+   { "name": "fx_boat_foam_stern", "from": 6, "to": 11, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

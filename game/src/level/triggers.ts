@@ -13,9 +13,10 @@ import type { GameContext, GameEvents } from '../core';
 import { LEVEL } from '../config/tuning/level';
 import { str, type LevelObject } from './types';
 
-/** Ambience ids FX understands (Phase E adds the train's speed weather, tunnel darkness and the lake blizzard). */
-type Ambience = 'snow' | 'embers' | 'fireflies' | 'steam' | 'train' | 'tunnel' | 'blizzard';
-const AMBIENCES = new Set<string>(['snow', 'embers', 'fireflies', 'steam', 'train', 'tunnel', 'blizzard']);
+/** Ambience ids FX understands (Phase E: train speed weather, tunnel darkness, lake blizzard; Phase G: the bayou's swamp,
+ *  rain, storm, fog and river beds). */
+type Ambience = 'snow' | 'embers' | 'fireflies' | 'steam' | 'train' | 'tunnel' | 'blizzard' | 'swamp' | 'rain' | 'storm' | 'fog' | 'river';
+const AMBIENCES = new Set<string>(['snow', 'embers', 'fireflies', 'steam', 'train', 'tunnel', 'blizzard', 'swamp', 'rain', 'storm', 'fog', 'river']);
 type AmbiencePayload = GameEvents['fx:ambience']['kind'];
 
 export class TriggerSystem {
@@ -30,6 +31,8 @@ export class TriggerSystem {
     private cleared = false;
     /** Set while a moving tunnel covers the player (train): wins over the map's ambience rects. */
     private override: Ambience | null = null;
+    /** Weather that replaces the map's ambience rects from now on (2-2's storm front turns the river to rain). */
+    private weather: Ambience | null = null;
     lastCheckpoint = '';
 
     constructor(private readonly ctx: GameContext, private readonly triggers: LevelObject[], private readonly clearSfx = '') {
@@ -82,7 +85,7 @@ export class TriggerSystem {
             }
         }
         // Innermost (smallest) ambience rect containing the player.
-        let kind: Ambience | null = this.override;
+        let kind: Ambience | null = this.override ?? this.weather;
         if (!kind) for (const t of this.ambience) if (x >= t.x && x <= t.x + t.width) { kind = str(t.props.fx) as Ambience; break; }
         if (kind !== this.currentAmbience) {
             this.currentAmbience = kind;
@@ -121,8 +124,11 @@ export class TriggerSystem {
         this.ctx.audio.music(key.startsWith(LEVEL.music.prefix) ? key : LEVEL.music.prefix + key);
     }
 
-    /** Ambience override (a tunnel passing over the player); null hands control back to the map's rects. */
+    /** Ambience override (a tunnel/fog bank passing over the player); null hands control back to the map's rects. */
     setOverride(kind: Ambience | null): void { this.override = kind; }
+
+    /** Weather change for the rest of the part (null restores the map's rects). */
+    setWeather(kind: Ambience | null): void { this.weather = kind; }
 
     /** Checkpoint x by id (boss cheat). */
     checkpointX(id: string): number | null {

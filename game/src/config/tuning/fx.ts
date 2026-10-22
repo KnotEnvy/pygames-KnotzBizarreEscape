@@ -1,6 +1,8 @@
 // FX-owned budgets, in world pixels and milliseconds at 384 × 216.
 export const FX = {
     caps: { explosion: 12, muzzle: 8, impact: 16, dust: 12, smoke: 16, combat: 160, ambient: 64, casing: 32, decal: 16, glow: 8 },
+    machineRecipesEnabled: true, // Disable only these four recipes for paired performance probes.
+    recipes: { rotor_wash: 36, boat_wake: 48, mech_pop: 56, smoke_trail: 8 },
     readability: { smokeAlpha: 0.28, coverage: 0.16, cloudCoverage: 0.08 },
     popup: { enabled: true, cap: 12, life: 700 }, // UI may set scene.registry 'fx.popups' = false.
     bloom: { enabled: true, threshold: 0.82, strength: 0.10, hotMs: 220 },
@@ -12,7 +14,8 @@ export const FX = {
         l: { smoke: 3, debris: 10, embers: 14, delay: 260, ring: 1, scorch: 0.85, shake: 3, stop: 65, glow: 2.2 },
         xl: { smoke: 4, debris: 16, embers: 24, delay: 320, ring: 1.35, scorch: 1.2, shake: 4, stop: 100, glow: 3.3 }
     },
-    ambientRate: { snow: 6, embers: 3, fireflies: 1, steam: 1.2, train: 22, tunnel: 0, blizzard: 30 },
+    ambientRate: { snow: 6, embers: 3, fireflies: 1, steam: 1.2, train: 22, tunnel: 0, blizzard: 30, swamp: 5, rain: 0, storm: 0, fog: 3, river: 5 },
+    darkParts: ['1-3', '2-2', '2-3'],
     weather: { drift: 180, snowCap: 48, tunnelAlpha: 0.84, lampSpacing: 192, blizzardAlpha: 0.075 },
     background: { slots: 8, motes: 96, perEffect: 24, depth: 18, redrawMs: 1000 / 30 },
     weapons: { trailInterval: 55, trailPerFrame: 6, hmgSparkInterval: 70, laserGlowInterval: 80 },

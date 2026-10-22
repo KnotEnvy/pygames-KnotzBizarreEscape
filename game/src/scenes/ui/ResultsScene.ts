@@ -1,18 +1,28 @@
 // Results (started by the engine 3.5 s after the mission's final stage:clear, Game already stopped): header slam,
 // RESULTS panel with the mission totals tallying in (score, POW bonus ×1000, accuracy, time, deaths, total), a
 // PARTS panel with one row per part (Phase E), then the rank stamp. Confirm → Title.
+// Phase G: mission chaining. When the data carries `next` (the next mission's first part) and `carry`, the rank stamp is
+// followed by CONTINUE TO MISSION n / QUIT TO TITLE. Continue plays Metal Slug's mission break: black, the next mission's
+// route map with the pin on its first part, "MISSION 2" and the mission name, Hazel's teaser and a radio blip, then
+// `scene.start('Game', { part: next.id, carry })` (Engine shows its loading bar while the mission packs load).
 import Phaser from 'phaser';
 import { tagFrame } from '../../core';
 import type { MissionResultsData } from '../../core/flow';
-import { partById, type PartResult } from '../../config/campaign';
+import { missionOf, partById, type CarryState, type PartDef, type PartResult } from '../../config/campaign';
 import { getAudio } from '../../audio';
 import { UI } from '../../config/tuning/ui';
-import { C, F, H, W, bar, mmss, pad, panel, roman, text } from '../../ui/widgets';
+import { C, F, H, W, bar, mmss, pad, panel, roman, text, wrapText } from '../../ui/widgets';
 import { Callout } from '../../ui/callout';
 import { MenuInput } from '../../ui/input';
+import { Menu } from '../../ui/menu';
 import { Tally } from '../../ui/tally';
+import { RouteMap } from '../../ui/routemap';
 import { computeRank, rankPoints, type ResultsData } from '../../ui/rank';
-import { wipeIn, wipeOut } from '../../ui/transitions';
+import { fadeOut, wipeIn, wipeOut } from '../../ui/transitions';
+import { uiLog } from '../../ui';
+
+/** Engine's Results data plus the Phase G chaining fields (read defensively: they are absent after the last mission). */
+type ResultsStartData = Partial<MissionResultsData> & { next?: PartDef | null; carry?: CarryState | null };
 
 interface PartRow { a: Phaser.GameObjects.BitmapText; b: Phaser.GameObjects.BitmapText; n: Phaser.GameObjects.BitmapText }
 
@@ -32,13 +42,23 @@ export class ResultsScene extends Phaser.Scene {
     private done = false;
     private leaving = false;
     private rank: 'S' | 'A' | 'B' | 'C' = 'C';
+    /** Phase G: the next mission's first part and the carried run state (null after the last mission). */
+    private next: PartDef | null = null;
+    private carry: CarryState | null = null;
+    private choice: Menu | null = null;
+    private breakMap: RouteMap | null = null;
+    /** Seconds left on the idle auto-continue as last drawn (the CONTINUE row re-renders when it changes). */
+    private countdownShown = -1;
 
     constructor() { super('Results'); }
 
-    init(data: Partial<MissionResultsData> | undefined): void {
+    init(data: ResultsStartData | undefined): void {
         const d = data ?? {};
         this.parts = Array.isArray(d.parts) ? d.parts.filter(p => p && typeof p === 'object') : [];
         this.mission = d.mission ?? d.stage ?? 1;
+        const next = d.next;
+        this.next = next && typeof next === 'object' && typeof next.id === 'string' && partById(next.id) ? partById(next.id) ?? null : null;
+        this.carry = this.next && d.carry && typeof d.carry === 'object' ? d.carry : null;
         this.res = {
             stage: d.stage ?? 1, score: d.score ?? 0, rescued: d.rescued ?? 0, kills: d.kills ?? 0, deaths: d.deaths ?? 0,
             accuracy: d.accuracy ?? 0, timeMs: d.timeMs ?? 0, difficulty: d.difficulty ?? 'arcade', parts: this.parts
@@ -48,7 +68,7 @@ export class ResultsScene extends Phaser.Scene {
     create(): void {
         const d = this.res;
         const R = UI.results;
-        this.clock = 0; this.blink = 0; this.done = false; this.leaving = false; this.partsShown = 0; this.partRows = [];
+        this.clock = 0; this.blink = 0; this.done = false; this.leaving = false; this.partsShown = 0; this.partRows = []; this.choice = null; this.breakMap = null; this.countdownShown = -1;
         this.rank = computeRank(d);
         this.cameras.main.setBackgroundColor(C.dim);
         if (this.textures.exists('ui_keyart_title')) this.add.image(0, 0, 'ui_keyart_title').setOrigin(0, 0).setAlpha(0.3);
@@ -89,6 +109,18 @@ export class ResultsScene extends Phaser.Scene {
         this.stamp = this.add.image(298, stampY, 'ui_rank', f).setOrigin(0.5, 0.5).setVisible(false).setDepth(15);
         text(this, 298, stampY + 24, 'RANK', F.hud, [0.5, 0]).setTint(C.ink5);
         this.press = text(this, W / 2, 204, 'PRESS START', F.hud, [0.5, 0.5]).setTint(C.sand5).setVisible(false);
+        // Phase G: with a next mission the confirm is a choice (CONTINUE first, so Enter/Start continues; Esc quits).
+        if (this.next) {
+            const R = UI.results;
+            this.choice = new Menu(this, {
+                x: W / 2, y: 196, rowHeight: 10, center: true, silent: false,
+                rows: [
+                    { label: () => this.continueLabel(), onSelect: () => this.continueMission() },
+                    { label: R.quitText, onSelect: () => this.leave() }
+                ]
+            });
+            this.choice.container.setDepth(20).setVisible(false);
+        }
         this.menuInput = new MenuInput(this);
         wipeIn(this);
     }
@@ -110,7 +142,7 @@ export class ResultsScene extends Phaser.Scene {
             onComplete: () => {
                 audio.sfx('rank_stamp');
                 this.cameras.main.shake(140, 0.012);
-                this.press.setVisible(true);
+                if (this.choice) { this.choice.setVisible(true); this.choice.refresh(); this.menuInput.rearm(); } else this.press.setVisible(true);
                 this.clock = 0;
                 text(this, 298, y + 34, `${rankPoints(this.res)} PTS`, F.plain, [0.5, 0]).setAlpha(0.6);
                 if (audio.musicKey !== 'jingle_complete') audio.music('music_title', { fade: 1500, volume: 0.7 });
@@ -127,8 +159,60 @@ export class ResultsScene extends Phaser.Scene {
     private leave(): void {
         if (this.leaving) return;
         this.leaving = true;
+        uiLog('results:title');
         getAudio(this).sfx('ui_start');
         wipeOut(this, () => this.scene.start('Title'));
+    }
+
+    /** Phase G: the mission break, then the next mission's first part with the carried run state. */
+    private continueMission(): void {
+        if (this.leaving || !this.next) return;
+        this.leaving = true;
+        const next = this.next;
+        const carry = this.carry ?? undefined;
+        const R = UI.results;
+        uiLog(`results:continue ${next.id}`);
+        const audio = getAudio(this);
+        audio.sfx('ui_start');
+        audio.music(null, { fade: R.breakFadeMs });
+        this.choice?.setVisible(false);
+        // Fade to black, then the break card on top of it.
+        fadeOut(this, () => {
+            const mission = missionOf(next.id);
+            const D = 6000;
+            const M = UI.partClear;
+            text(this, W / 2, 30, `MISSION ${next.mission}`, F.gold, [0.5, 0.5]).setDepth(D);
+            bar(this, W / 2 - 60, 39, 120, 1, C.sand4, 0.7).setDepth(D);
+            const name = new Callout(this, 58, D);
+            name.show((mission?.name ?? next.title).toUpperCase(), { font: F.steel, holdMs: 1e9, sfx: 'callout' });
+            // The next mission's route, the pin bouncing on its first part.
+            const mapX = Math.round(W / 2 - M.map.w / 2);
+            this.breakMap = new RouteMap(this, mapX, 80, next.part, next.part, missionOf(next.id)?.parts.map(p => p.part) ?? [1], next.mission);
+            this.breakMap.container.setDepth(D);
+            this.breakMap.finish();
+            text(this, W / 2, 158, `${roman(next.part)}  ${next.title.toUpperCase()}  ●  ${next.location.toUpperCase()}`, F.hud, [0.5, 0]).setTint(C.fire5).setDepth(D);
+            const line = M.teaser[next.id] ?? UI.tips[next.id] ?? '';
+            const rows = wrapText(line.toUpperCase(), 52).slice(0, 2);
+            text(this, W / 2 - 100, 174, 'HAZEL', F.gold).setDepth(D);
+            rows.forEach((r, i) => text(this, W / 2 - 60, 174 + i * 10, r, F.plain).setTint(C.ink5).setDepth(D));
+            audio.sfx('radio_static', { volume: 0.7 });
+            this.time.delayedCall(350, () => audio.sfx('radio_blip', { volume: 0.8 }));
+            this.time.delayedCall(R.breakMs, () => wipeOut(this, () => this.scene.start('Game', { part: next.id, carry })));
+        }, R.breakFadeMs);
+    }
+
+    /** Phase G fix round: the idle auto-continue is visible: "CONTINUE TO MISSION 2 IN 18" counts down while the choice is up. */
+    private continueLabel(): string {
+        const R = UI.results;
+        const base = `${R.continueText} ${this.next?.mission ?? ''}`;
+        const left = this.countdownLeft();
+        return left >= 0 && left <= R.countdownFromS ? `${base} IN ${left}` : base;
+    }
+
+    /** Whole seconds until the idle auto-continue fires (-1 before the choice is up or once leaving). */
+    private countdownLeft(): number {
+        if (!this.done || this.leaving || !this.choice?.container.visible) return -1;
+        return Math.max(0, Math.ceil((UI.results.autoAdvanceMs - this.clock) / 1000));
     }
 
     private skipAll(): void {
@@ -152,6 +236,17 @@ export class ResultsScene extends Phaser.Scene {
             if (this.partsShown < this.partRows.length) {
                 if (this.clock >= R.partRowMs) { this.showPart(this.partsShown++); this.clock = 0; }
             } else if (this.clock >= R.stampDelayMs) this.stampRank();
+            return;
+        }
+        if (this.leaving) return;
+        if (this.choice) {
+            // Phase G: Esc/back quits to the Title; the menu handles up/down + confirm; idle auto-continues.
+            if (this.menuInput.back) { this.leave(); return; }
+            if (this.menuInput.justDown('pause') && !this.menuInput.confirm) { this.continueMission(); return; }
+            this.choice.update(dt, this.menuInput);
+            const left = this.countdownLeft();
+            if (left !== this.countdownShown) { this.countdownShown = left; this.choice.refresh(); }
+            if (this.clock > R.autoAdvanceMs) this.continueMission();
             return;
         }
         this.press.setVisible(this.blink % 800 < 500);

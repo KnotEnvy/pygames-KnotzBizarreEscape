@@ -1,0 +1,60 @@
+{
+  "enemies_m2": {
+    "files": [
+      {
+        "type": "aseprite",
+        "key": "shellshock",
+        "textureURL": "assets/sprites/enemies/shellshock.png",
+        "atlasURL": "assets/sprites/enemies/shellshock.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "shellshock_head",
+        "textureURL": "assets/sprites/enemies/shellshock_head.png",
+        "atlasURL": "assets/sprites/enemies/shellshock_head.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "skeeter",
+        "textureURL": "assets/sprites/enemies/skeeter.png",
+        "atlasURL": "assets/sprites/enemies/skeeter.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "lurker",
+        "textureURL": "assets/sprites/enemies/lurker.png",
+        "atlasURL": "assets/sprites/enemies/lurker.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "piranha",
+        "textureURL": "assets/sprites/enemies/piranha.png",
+        "atlasURL": "assets/sprites/enemies/piranha.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "hopper",
+        "textureURL": "assets/sprites/enemies/hopper.png",
+        "atlasURL": "assets/sprites/enemies/hopper.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "gnat",
+        "textureURL": "assets/sprites/enemies/gnat.png",
+        "atlasURL": "assets/sprites/enemies/gnat.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "airboat",
+        "textureURL": "assets/sprites/enemies/airboat.png",
+        "atlasURL": "assets/sprites/enemies/airboat.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "turtle_egg",
+        "textureURL": "assets/sprites/enemies/turtle_egg.png",
+        "atlasURL": "assets/sprites/enemies/turtle_egg.json"
+      }
+    ]
+  }
+}

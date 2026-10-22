@@ -1,0 +1,51 @@
+{ "frames": {
+   "gatorgeddon_wave#0": {
+    "frame": { "x": 0, "y": 0, "w": 40, "h": 24 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 24 },
+    "sourceSize": { "w": 40, "h": 24 },
+    "duration": 90
+   },
+   "gatorgeddon_wave#1": {
+    "frame": { "x": 41, "y": 0, "w": 40, "h": 24 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 24 },
+    "sourceSize": { "w": 40, "h": 24 },
+    "duration": 90
+   },
+   "gatorgeddon_wave#2": {
+    "frame": { "x": 0, "y": 25, "w": 40, "h": 24 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 24 },
+    "sourceSize": { "w": 40, "h": 24 },
+    "duration": 90
+   },
+   "gatorgeddon_wave#3": {
+    "frame": { "x": 0, "y": 0, "w": 40, "h": 24 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 24 },
+    "sourceSize": { "w": 40, "h": 24 },
+    "duration": 90
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "gatorgeddon_wave.png",
+  "format": "RGBA8888",
+  "size": { "w": 81, "h": 49 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "gatorgeddon_wave_fly", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

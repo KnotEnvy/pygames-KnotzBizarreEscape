@@ -6,6 +6,8 @@ import Phaser from 'phaser';
 import { createEngineTextures } from '../core/textures';
 
 export const PACKS = ['engine', 'player', 'enemies', 'level', 'fx', 'ui'] as const;
+// Mission N >= 2 packs (`packs/<team>.m<N>.json`) are not loaded here: they load on demand when a part of that
+// mission starts (core/missionPacks.ts, Preload's mission mode).
 export const PACK_BASE = 'assets/packs/';
 /** Attempts per pack / per file before it counts as failed, and the wait before each retry (ms). */
 export const LOAD_ATTEMPTS = 3;

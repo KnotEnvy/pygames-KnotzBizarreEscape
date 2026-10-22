@@ -30,6 +30,20 @@ Shared contract files (marked 🔒) are owned by the Engine team; others propose
 | `tools/check-phaser4.mjs`, `docs/PHASER4-RULES.md` (additions) | Phaser 4 rules checker |
 | `tools/shot.mjs`, `tools/build-art.sh`, `tools/aseprite/kbe.lua`, `docs/*.md` | Lead |
 
+**Mission asset packs (Phase G):** from Mission 2 on, each team lists that mission's assets in `public/assets/packs/<team>.m<N>.json`
+(the team owns it, same format as its main pack). Engine loads them when a part of mission N starts (`src/core/missionPacks.ts`;
+names: engine, player, enemies, gatorgeddon, level, fx, ui, imagegen). Mission 1 stays in the main packs. Imagegen owns `packs/imagegen.m<N>.json`.
+
+**Enemies A/B split (Phase G):** Enemies B owns everything under Enemies' paths except Enemies A's files, including
+`src/entities/enemies/**`, `MachineBoss.ts`, `src/config/tuning/enemies.ts`, `packs/enemies.m2.json` and `docs/teams/enemies.md`.
+Enemies A owns only:
+- `src/entities/bosses/Gatorgeddon*.ts` and `src/config/tuning/gatorgeddon.ts`;
+- `art-src/enemies/gatorgeddon*` and `public/assets/sprites/enemies/gatorgeddon*`;
+- `public/assets/packs/gatorgeddon.m2.json` and `docs/teams/enemies-gatorgeddon.md`.
+
+A exports `registerGatorgeddon(ctx)` (it registers `boss:gatorgeddon` and its fixture), and B calls it from `registerEnemies`. Engine's mission-pack
+list includes `gatorgeddon`. Shared helpers (`BossDebris`, `BossFlash`) are B's; A uses them as they are and asks B for changes.
+
 **Campaign (Phase E):** missions have 3 parts. See [`docs/CAMPAIGN.md`](CAMPAIGN.md) for the part contract (`ctx.part`,
 `part:start`, `stage:clear {part, final}`, the PartClear scene data, `?part=`, progress save).
 
@@ -145,9 +159,11 @@ uses `delta` from `update(time, delta)` and Phaser timers, so it respects time s
 - Map properties: `music`, `parallax` (background set id), `name`.
 
 ## Debug and test hooks (Engine implements; QA depends on them)
-URL params: `?scene=Title|Game&stage=1&part=1-2&x=<warpX>&god=1&debug=1&mute=1&seed=<n>&difficulty=casual&fast=1` (fast skips intros).
-`window.__KBE` = `{ ready: boolean, game, version, state(): {...snapshot}, cheats: { god(on), warp(x), give(weapon), kill(), killEnemies(), hurt(dmg?), bombs(n), boss(), part(id, keepRun?), clearPart() }, press(action, ms?) }`.
-`state()` returns `{ scene, part, fps, player:{x,y,alive,weapon,ammo,bombs,lives}, score, rescued, enemies, cameraX, bossHp, errors }`.
+URL params: `?scene=Title|Game&stage=1&part=1-2&x=<warpX>&god=1&debug=1&mute=1&seed=<n>&difficulty=casual&fast=1&turbo=<n>` (fast skips intros).
+Phase G (cheat-gated): `?mission=<n>` also loads mission n's packs for any part; `?enemytest=<kind>` loads every mission's packs.
+`window.__KBE` = `{ ready: boolean, game, version, state(): {...snapshot}, cheats: { god(on), warp(x), give(weapon), kill(), killEnemies(), killVisible(), damageBoss(amount?) → boolean (false: no live boss hurtbox, e.g. submerged), hurt(dmg?), bombs(n), boss(), part(id, keepRun?), clearPart(), bg(id) → boolean (Phase G: fire a background moment through the Levels director) }, press(action, ms?), sim }`.
+`state()` returns `{ scene, part, fps, player:{x,y,alive,weapon,ammo,bombs,lives}, score, rescued, enemies, cameraX, bossHp, errors, missionPacks /* loaded missions, e.g. [1, 2] */ }`.
+`ready` is false while a mission's packs load (Preload's mission mode) and turns true once Game has created.
 Teams may add fields with `registerDebug(key, () => value)`.
 
 ## Rules for every agent

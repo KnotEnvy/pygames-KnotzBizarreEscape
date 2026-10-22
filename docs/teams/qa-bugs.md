@@ -1,3 +1,176 @@
+## Phase H — H2 review of the committed H1 enemy facelift (2026-10-20)
+
+**Verdict: three confirmed S4 presentation findings. Reach/arenas pass; full selftest remains unverified because of timeouts.** The required selftest and the shared-host performance caveats are recorded below. Review target is **`97d8e5c`**, compared with Phase G **`3704ab1`**. Starting shared HEAD was `df3d3c726d65b6245d75cf1070f8e323f6a58830` (H2 briefs only after H1); concurrent H2 art was excluded using a read-only `git archive` export under `/tmp/kbe-qa/phase-h/h1/`. No game code/art or git state was changed. Boss legs, MEGA-SKEETER, hopper hop changes and far actors are outside this review.
+
+Chromium, ANGLE Vulkan SwiftShader, Arcade, seed 731, keyboard/debug hooks, 1152×648 viewport / 384×216 game. Captures and scripts are under `/tmp/kbe-qa/phase-h/`. Substitute the capture server's free port for 8080 in these URLs.
+
+| Rank / ID | Severity | Owner | Finding |
+|---|---|---|---|
+| 1 · KBE-QA-H01 | S4 | Enemies A | Buzzard crash art clips its nose and rotor against its own sprite canvas |
+| 2 · KBE-QA-H02 | S4 | Enemies B | Airboat's final sink frames leave the locked crane view |
+| 3 · KBE-QA-H03 | S4 | Enemies A | Buzzard firing pose ends before the third animation frame |
+
+### KBE-QA-H01 — OPEN: crash pose is cropped before the ground impact
+
+- **Contract:** PHASE-H animation/death bar; QA criterion that death plays fully without clipping.
+- **URL:** `http://127.0.0.1:8080/?debug=1&scene=Game&fast=1&mute=1&god=1&seed=731&part=1-3&x=420&enemytest=buzzard`. Also reproduced on actual pump/crane wave-2 Buzzards in parts 2-1 and 2-2.
+- **Repro:** Freeze with `__KBE.sim.freeze()`. Find the live Buzzard through `Game.children.list`; deliver a lethal hit through the damage registry, then advance/render in 50 ms increments to death +900–1150 ms. The scratch scripts use a direct actor hit to isolate the presentation. `node /tmp/kbe-qa/phase-h/focused.mjs` captures the authored arena instances.
+- **Expected:** The bent rotor, snapped tail and nose remain complete throughout the crash pose and until the impact.
+- **Actual:** The 112×80 source canvas crops the increasingly vertical machine. Zero-based death poses 5–11 hit the bottom edge; the last four also lose rotor/tail pixels at the top. Pose 11 has 24 opaque pixels along the bottom boundary, producing a flat cut through the nose. This is baked into the atlas, independently of camera clipping. The actor's x clamp and the final crash event still work.
+- **Evidence, opened and inspected:** `/tmp/kbe-qa/phase-h/buzzard_death-sequence.png`; `/tmp/kbe-qa/phase-h/arena-2-2-buzzard-death-1100.png`; `/tmp/kbe-qa/phase-h/arena-2-1-buzzard-death-1100.png`. State: `focused.json`.
+- **Baseline:** This crop belongs to the new tilted H1 death artwork; the old Phase G sprite did not contain these vertical poses.
+
+### KBE-QA-H02 — OPEN: sink ending falls below the locked view
+
+- **Contract:** H2 death review: complete, unclipped death inside the locked view.
+- **URL:** `http://127.0.0.1:8080/?debug=1&scene=Game&fast=1&mute=1&god=1&seed=731&part=2-2&x=2320`.
+- **Repro:** Freeze, press right and advance 1800 ms to enter the real crane lock; lethally hit the wave-1 airboat and advance/render every 50 ms. Exact harness: `node /tmp/kbe-qa/phase-h/airboat-death.mjs`.
+- **Expected:** Crew exit, fan collapse and final debris remain visible through the ten-frame sink ending. Submergence can hide the hull beneath the water surface without cropping the remaining action at the viewport border.
+- **Actual:** The art already sinks within its canvas, while the actor also moves down at 35 px/s and rotates. In the locked view `y=152..368`, at capture +1000 ms the active frame-8 actor's root is `y=377.08`; at +1150 ms, frame 10 is at `y=382.33`. The fan/crew and final scraps are visibly cut by the bottom of the screen before cleanup. No arena progression failure results.
+- **Evidence, opened and inspected:** `/tmp/kbe-qa/phase-h/airboat-real-death-600.png`, `/tmp/kbe-qa/phase-h/airboat-real-death-1000.png`, `/tmp/kbe-qa/phase-h/airboat-real-death-1150.png`; `airboat-death.json` records the locked view and frames.
+- **Baseline:** The downward runtime motion predates H1; H1 adds the within-frame sinking/crew escape. This is an integration gap in the new death presentation, not a claim that H1 changed the sink speed.
+
+### KBE-QA-H03 — OPEN: firing animation's recovery frame never appears
+
+- **Contract:** H2 state/animation coverage; PHASE-H per-kind animation bar.
+- **URL:** Same Buzzard fixture as H01; the natural pump/crane Buzzards use the same path.
+- **Repro:** Freeze and advance at 16.67 ms intervals through a five-shot strafe; record `anims.currentAnim.key` and `anims.currentFrame.index`. Inspect `mechanics.json`, `mechanics[kind=buzzard].trace`.
+- **Expected:** All three frames of the 180 ms `buzzard_fire` clip, including its recoil recovery, are shown; the damaged equivalent has the same requirement.
+- **Actual:** `muzzleMs=120` selects the firing pose for 120 ms, while its three frames each last 60 ms. Only frame indices 1 and 2 appear before `visual()` switches back to strafe. The third frame is never reached in the measured five-shot burst. The damaged firing tag has the same timing mismatch in source. Projectile count/timing and `buzzard_gun` calls are correct.
+- **Evidence, opened and inspected:** `/tmp/kbe-qa/phase-h/buzzard-fire-frame-coverage.png` (atlas comparison; third panel explicitly labeled unobserved); `/tmp/kbe-qa/phase-h/fixture-buzzard-strafe-buzzard_fire.png` (runtime); `mechanics.json`.
+- **Baseline:** H1 introduces this firing tag and cosmetic timer; the Phase G attack clock remains unchanged.
+
+### Confirmed working
+
+- Seven enemies reviewed in fixtures and real-map galleries; scale sheets beside Knotz and a grunt at 1×/4× are `roster-<kind>-1x-4x.png`. The new silhouettes/materials read as the same family as the soldiers. Lurker ghillie uses clean clumps. Relevant natural arena waves were reviewed separately from direct map starts.
+- Hopper: **500 ms** tongue cue; at +100 ms extension, collision reach **63.35 px** and drawn cable **63 px**, aligned within a pixel horizontally and on the 5 px hit strip vertically. All eight tongue frames observed. A nonlethal shotgun hit still moves it **9.34 px** in the isolated probe. Hopper hop squash/stretch was not judged.
+- Airboat: three shots per volley, roughly 170 ms apart after the 600 ms gun cue; two actual leaper spawn calls. Damaged/fire variants, wake and smoke are present. Piranha swim/bulge/leap/bite/fall/splash and gnat hover/cue/dive/recovery all appear.
+- Buzzard: pilot, animated rotor, drawn tilt, five-shot strafe and damaged state appear. A separate controlled crash over solid ground leaves the unprotected player alive at **3 lives**; the crash calls no damage. Hound has a **450 ms** pounce cue, jointed run/leap/land, and retains flesh material/ordinary kill feel. Facing mirrors correctly in fresh live-actor captures.
+- Two fresh starts (1-2, 2-1) and native PartClear 2-1→2-2: **zero sampled title/radio overlap**. The fresh starts survive five idle seconds with god off; radio type is readable. `ui-contact-0.png`, `transition-contact-0.png` were opened.
+- All five new sound keys are loaded in the audio cache and observed at their corresponding action/death hooks, with **no unknown keys, missing-key warnings or page exceptions** in the review runs. Audible mix is not claimed.
+- New sprite art uses the master palette and binary alpha. No duplicate animation keys among **696** tags scanned under `sprites/`. Every new non-soldier death has 8–12 frames, and all three lurker deaths have 8.
+
+### Verification and limits
+
+Pinned H1 and final live `check`: PASS, 115 files / 0 errors / 0 warnings. Pinned `audit`: all six parts PASS. Full `selftest`: first run 44 PASS assertions then a 30 s mission-recovery timeout; final run timed out at initial readiness (0 assertions). An isolated mission diagnostic logged 18/18 PASS, but does not replace the full run. Long-running command sessions ended with transport status 143, so no successful full-suite exit is claimed. See the Phase H section in [qa.md](qa.md) for commands, performance windows and rejected harness setups. No real-time bot playthrough was run. Visual warps and direct hits are presentation probes; the stock arena audit supplies progression acceptance.
+
+### Top five visual improvements / Requests for other teams
+
+1. **Enemies A:** preserve the complete nose/rotor/tail silhouette through the Buzzard's last crash poses (H01).
+2. **Enemies B:** keep the airboat's crew escape and sink debris inside the visible water lane until their ending (H02).
+3. **Enemies A:** fit all three firing/recoil frames into the existing cosmetic firing window without changing attack timing (H03).
+4. **Enemies B:** strengthen the hopper's separation from olive ground and Knotz with a clearer lit belly/steel edge and a more legible red flank marking. Keep the current hop pass out of this request.
+5. **Enemies B:** make the gnat's glass wing panes read at 1×; the pale wing currently tends to read as a thin slash. Preserve its small body and dive hitbox.
+
+Additional requests: **Engine/Lead** investigate the full-selftest readiness/recovery timeouts before acceptance. **FX/Lead** recheck the mixed stress scene on a quieter host: it measured 47.97 FPS against its same-session 1-1 opening baseline of 58.04–60.02 FPS, while host load rose sharply; this is not attributed to an H1 regression. Corrected Buzzard and four-gnat burst windows are approximately 60 FPS.
+
+---
+
+## Phase G — Mission 2 acceptance (2026-10-19)
+
+**Verdict: functional progression passes; visual/combat acceptance needs fixes.** Ranked open findings are below. No S1 crash or arena stall was established. Judged against `docs/MISSION2.md` and `docs/LESSONS.md`, especially §§2–5.
+
+Reviewed branch `mission-2`, HEAD `2bb826759a93c78c3769345f67c67732491b72bd`, with concurrent polish present in the shared working tree. Chromium/ANGLE Vulkan SwiftShader, Linux, keyboard/debug input, Arcade, seed 731, 1152×648 viewport / 384×216 game. All coordinates below are native pixels. Screenshot paths are absolute and retained under `/tmp/kbe-qa/phase-g/`. See `qa.md`'s Phase G section for coverage, caveats and reproduction commands.
+
+| Rank / ID | Severity | Owner | Finding |
+|---|---|---|---|
+| 1 · KBE-QA-G01 | S2 | Engine + Levels | BAYOU QUEEN roof threats sit behind the HUD and Hazel's radio |
+| 2 · KBE-QA-G02 | S2 | Levels | Opaque moving foreground crosses enemies and firing lanes |
+| 3 · KBE-QA-G03 | S3 | Levels + FX | Storm-front rain is requested but suppressed by the river ambience zone |
+| 4 · KBE-QA-G04 | S3 | Levels; coordinate Enemies A | GATORGEDDON pier holes miss the marked slam point; edge slams open none |
+| 5 · KBE-QA-G05 | S3 | UI/Audio | Boss instructions cover the boss HP fill |
+| 6 · KBE-QA-G06 | S4 | Levels | Wading surfaces read as transparent rectangular boxes |
+| 7 · KBE-QA-G07 | S4 | Levels | Bog mud reads as speckled dirt/gravel rather than soft mud |
+| 8 · KBE-QA-G08 | S4 | Levels | Background mosquito swarm rises above the y62 minimum |
+
+### KBE-QA-G01 — OPEN: roof threats are covered by the HUD/radio
+
+- **Severity / owner:** S2; Engine (vertical camera framing) + Levels (multi-deck layout). **Contract:** LESSONS §5, important gameplay below y54, with the y62 clearance band.
+- **URL:** `http://127.0.0.1:8080/?scene=Game&part=2-2&debug=1&fast=1&god=1&mute=1&seed=731&x=3140` (substitute the harness's port).
+- **Repro:** Start directly on the main deck, toggle the debug overlay off with F2, and capture while the natural Hazel briefing is open, about 5.5 seconds after boot. Also inspect x3840 and x4160 from the main deck.
+- **Expected:** Roof enemies and their attack cues remain readable while the player uses the main deck.
+- **Actual:** Main-deck camera top is y152; the roof is y208, leaving its actors' feet at screen y56 and their upper bodies around y24–54. The roof grunt is reduced to a head behind the BOMB digits while the radio covers its body/weapon. The x4160 roof turret also has its root at screen y56. This persists independently of the moving foreground.
+- **Frequency / evidence:** Reproduced in direct boot and multiple section captures. `2-2/capture-states.json` records the view and roof actors; `roof-radio.log` records the fresh natural briefing.
+- **Screenshot:** `/tmp/kbe-qa/phase-g/2-2/roof-natural-radio.png`; overview `/tmp/kbe-qa/phase-g/2-2/09-queen-main.png`.
+
+### KBE-QA-G02 — OPEN: foreground trunks/canopy obscure combat
+
+- **Severity / owner:** S2; Levels (`m2p2_fg_speed`, parallax depth/coverage). **Contract:** LESSONS §5, gameplay contrast and visibility first.
+- **URL:** `http://127.0.0.1:8080/?scene=Game&part=2-2&debug=1&fast=1&god=1&mute=1&seed=731&x=3840`.
+- **Repro:** Freeze, move the player onto the real hurricane roof with `ctx.player().teleport(3900,208)`, and advance/render in 17–50 ms batches. Watch a foreground trunk pass in front of the roof grenadier. `node /tmp/kbe-qa/phase-g/supplement.mjs` preserves a deterministic overlap and a diagnostic comparison with just this strip hidden.
+- **Expected:** Speed scenery preserves enemy silhouettes, muzzle cues and dangerous bullets on every deck.
+- **Actual:** The opaque front-band strip is above enemies/projectiles. A trunk removes part of the roof grenadier's arm/body; the paired frame reveals it when that strip is hidden. Canopy/moss also crosses roof-height silhouettes when the camera follows the main deck. A thin enemy bullet can disappear entirely behind a trunk. The whole moving strip crossing combat, rather than its darkness alone, is the issue.
+- **Frequency / evidence:** Repeated across sections and boss captures. Focused overlap: grenadier `(3978,208)`, view approximately `(3770,75)`, torso screen `(208,118)`; opaque foreground texel sampled there. `supplement/report.json`, `probes.foreground`.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/supplement/foreground-real.png`, `/tmp/kbe-qa/phase-g/supplement/foreground-hidden-comparison.png`. The hidden-strip frame is a diagnostic, not a shipped fix.
+
+### KBE-QA-G03 — OPEN: the storm front does not render its rain
+
+- **Severity / owner:** S3; Levels + FX (`triggers.ts` ambience zones / `FxDirector` zone precedence). **Contract:** MISSION2 River Run storm-front beat; LESSONS §§1, 5.
+- **URL:** `http://127.0.0.1:8080/?scene=Game&part=2-2&debug=1&fast=1&god=1&mute=1&seed=731&x=2310`.
+- **Repro:** Let crane lock; advance its waves with `killVisible` only until `crane:done`, wait for the clear hook, then warp between sections to x4200. Alternatively, `__KBE.cheats.bg('storm_front')` reproduces the same renderer mismatch. Run `/tmp/kbe-qa/phase-g/storm-confirm.mjs` for the actual-clear path.
+- **Expected:** The storm sky arrives and rain continues over the riverboat after crane clear.
+- **Actual:** `arena.arenas='crane:done skeeter:idle'`, `fx.ambience='rain'`, audio bed `amb_rain`, but `fx.weather.mode='river'`, 24 motes, zero rain streaks. The static river `fx:zone` wins over the changed fallback ambience. A separate `fxtest=rain` capture demonstrates the missing 32-streak workload.
+- **Frequency / evidence:** Actual crane clear plus independent `storm_front` probe/performance run. `storm-confirm/report.json`, `supplement/report.json`, `perf/report.json`.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/storm-confirm/storm-after-crane.png`; comparison `/tmp/kbe-qa/phase-g/perf/storm-rain.png` (explicit rain fixture).
+
+### KBE-QA-G04 — OPEN: slam holes are displaced from the committed marker
+
+- **Severity / owner:** S3; Levels (`IceSystem.stomp`); coordinate Enemies A (`Gatorgeddon` already emits the tail's committed target). **Contract:** MISSION2 tail slam / pier holes; LESSONS §2 marked, fixed attack targets.
+- **URL:** `http://127.0.0.1:8080/?scene=Game&part=2-3&debug=1&fast=1&god=1&mute=1&seed=731&x=3700`.
+- **Repro:** `cheats.boss()`, press right/advance about 3 s to enter the real den, then damage the boss through the shared hook to phase 3. Reposition with `ctx.player().teleport` (keep the arena lock), first to x4236, then to x4064; wait for each real `slam` cue/release. Do not emit a synthetic stomp.
+- **Expected:** The marked tail impact breaks the planks at that position while preserving the edge refuge.
+- **Actual:** A marker at x4048 opens tiles x4096 and x4112 (hole spans x4096–4128), leaving the marked tile intact and damaging the route 48–80 px to its right. A mark at x4236 increments `stomps` but opens no tiles. The shared Moose Lake consumer adds another 56 px to the already-final tail target, and its wall-margin check then skips the edge case. Opened tiles do repair: 2 opened / 2 refrozen after moving away and advancing 7 s.
+- **Frequency / evidence:** Repeated edge slams in the gallery plus focused right/center comparisons, with real boss events. `supplement/report.json`, `slam-right`, `slam-middle`, `repair-middle`.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/supplement/slam-middle-cue.png`, `/tmp/kbe-qa/phase-g/supplement/slam-middle-holes.png`, `/tmp/kbe-qa/phase-g/supplement/slam-right-holes.png`.
+
+### KBE-QA-G05 — OPEN: DUCK/JUMP prompts mask boss health
+
+- **Severity / owner:** S3; UI/Audio (HUD prompt layout). **Contract:** LESSONS §5, important information remains readable; boss HP feedback.
+- **URL / steps:** Start the real 2-3 den as G04; wait for phase-2 `gatling` or phase-3 `gas`. Freeze/render at cue +350–500 ms.
+- **Expected:** The instruction and boss health remain legible together.
+- **Actual:** `DUCK!` and `JUMP THE FLAME!` sit at y200 over the bar at y198, covering its central HP fill precisely during the attack cue. The fill itself renders correctly when the prompt is gone.
+- **Frequency / evidence:** Both prompt types in repeated real-arena cycles. Tuning confirms prompt y200 / boss bar y198; gallery state preserves each attack.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/2-3/29-gatling-cue.png`, `/tmp/kbe-qa/phase-g/2-3/37-gas-flame.png` (original filenames; contact-sheet indices differ after removing unavailable cheat-only panels).
+
+### KBE-QA-G06 — OPEN: shallow water looks like a glass box
+
+- **Severity / owner:** S4; Levels (wading surface/edge art). **Contract:** requested water readability review; LESSONS §5.
+- **URL / steps:** `http://127.0.0.1:8080/?scene=Game&part=2-1&debug=1&fast=1&god=1&mute=1&x=600`; F2, settle and inspect. Repeat at SHELLSHOCK's pool and 2-3's opening.
+- **Expected:** A liquid surface over the submerged legs, with banks and water depth easy to distinguish.
+- **Actual:** Long straight horizontal highlights, bright curled/beveled end caps and a translucent flat face make a bounded green glass trough. The turtle arena is the clearest example. Water movement/splash and slowdown work; this is a visual acceptance gap.
+- **Frequency:** Consistent across both swamp parts.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/2-1/02-wading.png`, `/tmp/kbe-qa/phase-g/2-1/22-snap-high-cue.png`, `/tmp/kbe-qa/phase-g/2-3/01-wreck-shore.png`.
+
+### KBE-QA-G07 — OPEN: mud lacks a distinct soft/wet surface reading
+
+- **Severity / owner:** S4; Levels (mud tiles/dressing). **Contract:** requested bog readability review; MISSION2 mud verb and LESSONS §5.
+- **URL / steps:** `http://127.0.0.1:8080/?scene=Game&part=2-1&debug=1&fast=1&god=1&mute=1&x=4020`; compare the bog with the ordinary bank at x420.
+- **Expected:** Mud is identifiable before the speed/jump penalty takes effect.
+- **Actual:** The hard flat edge and repeated bright flecks read as dark dirt/gravel. Small bubbles/splats help in motion, but the main traversal surface does not clearly communicate soft bog mud; a player depends on the prompt/slowdown. The physical values are correct (63 px/s, jump −270.3).
+- **Frequency:** Bog and pump-area captures; visual judgment, not a collision defect.
+- **Screenshots:** `/tmp/kbe-qa/phase-g/2-1/08-bog-mud.png`, `/tmp/kbe-qa/phase-g/2-1/09-gas-vents.png`, `/tmp/kbe-qa/phase-g/2-1/16-bg-wisps.png`.
+
+### KBE-QA-G08 — OPEN: background skeeters enter the reserved clearance band
+
+- **Severity / owner:** S4; Levels (background swarm vertical spread/bob). **Contract:** LESSONS §5, sky actors at screen y62–110.
+- **URL / steps:** `http://127.0.0.1:8080/?scene=Game&part=2-2&debug=1&fast=1&god=1&mute=1&seed=731&x=3840`; fire `cheats.bg('skeeter_swarm')`; advance/render every 50 ms for 8 s. Measure current animation-frame opaque pixels, not transparent source padding.
+- **Expected:** Every visible sky swarm pixel stays at or below y62.
+- **Actual:** Visible background skeeters reach screen y57. In the final focused scan, 319 of 8,014 on-screen background-actor samples had opaque pixels above y62. This does not establish overlap with the radio itself (ends y54); it violates its clearance margin. The gameplay gnats in this probe remained below the limit.
+- **Frequency / evidence:** Two seeded scans; `supplement/report.json`, `probes.flyers`. The guide screenshot marks y62; JSON captures the exact extrema over time.
+- **Screenshot:** `/tmp/kbe-qa/phase-g/supplement/swarm-y62-guide.png`.
+
+### Verification and concurrent work notes
+
+- `npm --prefix game run check`: PASS initially with 112 files / zero warnings. Final typecheck passes; checker passes with 113 files / zero errors and **6 warnings** (three audio-loop handle retries, three background tuple allocations). These are reported as current checker warnings, not new reproduced gameplay bugs.
+- `npm --prefix game run audit`: reach and arenas PASS for **all six parts**, including final rerun. All Mission 2 wave arenas complete 3/3 waves with maxOff=0 ms; every boss reaches phases 1/2/3 and PartClear/Results. Arena acceptance is the audit, not the section warps used for galleries.
+- Full engine selftest: **44/44 PASS** initially and on the final rerun. Final mechanics probes **9/9 PASS** with a clean console; native flow/menu probes **7/7 PASS** with a clean console. The supplementary failures above are acceptance findings, not ignored green tests.
+- Inspected full sheets: `/tmp/kbe-qa/phase-g/2-1/contact.png` (**45 panels**), `/tmp/kbe-qa/phase-g/2-2/contact.png` (**51**), `/tmp/kbe-qa/phase-g/2-3/contact.png` (**50**), plus their larger `review-*.png` strips. All sections, authored moment families, new mechanics and real-arena boss attacks are represented; captioned comparison/forced-weather panels are diagnostics.
+- SwiftShader, approximately 10 s each, measured rAF FPS: integrated 2-2 storm trigger **60.04** (rain suppressed, G03); explicit rain workload **60.07**; 2-3 storm + GATORGEDDON phase 3 **60.07**; stilts wave 3 **60.10**. Full load-average triples, frame pacing and workload states are in `qa.md` / `perf/*.json`.
+- Healthy final per-part background capture logs, native flow, and performance runs have no browser exceptions, missing-texture or missing-sound warnings; sampled `state().errors` are empty. Host `ERR_NETWORK_CHANGED` interrupted some earlier starts and appeared in an earlier mechanics run despite successful gameplay probes; those logs are retained and are not counted as clean console runs. The final mechanics rerun has zero console entries.
+- **Concurrent polish:** initial `pond_shell` / `barge_blast` audio mapping warnings disappeared in fresh background captures. No duplicate audio-mapping bug filed. Fog-edge polish and SHELLSHOCK art detail work were left to their active owners. Audible mix, physical gamepad and human difficulty acceptance remain outside this deterministic review.
+
+---
+
 # Final QA — Phase D verification
 
 ## Release readiness

@@ -712,3 +712,244 @@ node tools/shot.mjs --out /tmp/kbe-ui/combo.png --query "scene=Game&fast=1&part=
 - `explosion` as a bg id deliberately maps to `bg_artillery`: Levels' director announces `explosion` for its far `bg_explosion` effect, and the
   gameplay alias `explosion → explo_m` would otherwise fire at full volume.
 - The combo callout yields to a weapon callout / the banner (the chain bonus popups still show), and the aurora pad is one-at-a-time (4 s gate).
+
+## 14. Phase G: Mission 2 "Bayou Blackout" (audio, mission chaining, PART SELECT, route map, HUD)
+
+Scratch: `/tmp/kbe-ui/g_*.png`, `/tmp/kbe-ui/audio/*_spec.png`, `/tmp/kbe-ui/audio/roll_music_m2p*.png`, `roll_music_boss_m2.png`,
+`roll_music_boss_gator.png`, `/tmp/kbe-ui/campaign_m2_x3.png`. `npm run check` clean. On `part=2-1` with every Mission 2 key called,
+every MISSION2.md `bg:event` id fired, `water:splash` step/sink, `player:shoot shotgun` + `fx:emit shotgun_pump` and `fx:ambience fog`:
+`audio.unknown []`, `audio.bgUnknown []`, `music music_m2p1`, `bed amb_fog`, `missionPacks [1, 2]` (`g_audio_probe.png`).
+
+### What was built (paths)
+| Path | What |
+|---|---|
+| `tools/audio/sfx.py` | **72 new recipes** (§ catalog below): shotgun, water (`splash_s/m/l/xl` from one `_splash()` recipe, `wade_step`, `mud_step`, `drown`), the bayou roster, SHELLSHOCK, MEGA-SKEETER, GATORGEDDON, level props, `warning_major`, 13 `bg_*` moments, 5 `amb_*` beds keyed by `fx:ambience` kind |
+| `tools/audio/music.py` | **5 songs** + bayou instruments (`inst_slide` glide + wide vibrato, `inst_banjo`, `inst_harp`, `inst_choir`, `inst_chug_low`), washboard (`DRUM.wb`) and timpani (`DRUM.ti`) drums, bass styles `swamp`/`doom`, beats `swamp`, `swamp_light`, `river`, `doom`, `doom_build`, `epic`, `epic_half` |
+| `tools/audio/make_pack.py` | `MISSION_AUDIO[2]` → **`packs/ui.m2.json`** (76 audio files); UI art and `warning_major` (MOOSEZILLA uses it too) stay in `ui.json` (149 files). Engine loads `ui.m2.json` when a Mission 2 part starts, before Game creates: verified above |
+| `tools/audio/pianoroll.py` | handles the 3-tuple song entries, colours for the new tracks |
+| `src/audio/catalog.ts` | meta for every key (voice caps, min gaps; `wade_step`/`mud_step`/`splash_s` fatigue like the HMG so wading never machine-guns), ~45 synonyms, `MUSIC_META` ×5, aliases (`m2p1`, `bayou`, `music_gator`...), `bossMusicFor`: GATOR → `music_boss_gator`, SHELLSHOCK/SKEETER → `music_boss_m2`; `MAJOR_BOSS` (GATORGEDDON, MOOSEZILLA) |
+| `src/audio/events.ts` | `water:splash` (`step` → `wade_step`; others → `splash_<size>`; `sink` adds `drown`), `player:shoot shotgun` → `shotgun_fire`, `fx:emit shotgun_pump` → `shotgun_pump`, `fx:ambience` kind → bed override (`UI.audio.ambienceKinds`; null/unlisted kinds fall back to the x-sections), `enemy:shoot` hints for `airboat/skeeter/shellshock/gatorgeddon/hopper`, `boss:intro` of a major boss → `warning_major` under the siren + deeper duck |
+| `src/config/tuning/ui.ts` | `tips`, `intro.taglines[2]`, `partClear.maps` (per-mission map key, pictograms, anchors, route), `partClear.bed`, `partClear.teaser` 2-1..2-3, `partSelect` (grouped layout), `results.continueText/quitText/breakMs`, `results.powTotalByPart` 2-1..2-3 (6/4/3: estimates until the maps report `powTotal`; 2-1 reported 4 in the probe), `warning.major`, `audio.ambienceKinds`, `audio.sections` 2-1..2-3, `audio.warningDuckMajor`, `audio.bgEvents` for every Mission 2 id (+ synonyms; `fireflies_swarm` and `riverbank` are deliberately silent) |
+| `src/scenes/ui/ResultsScene.ts` | **Mission chaining**: with `data.next`/`data.carry` the stamp is followed by a CONTINUE TO MISSION n / QUIT TO TITLE menu (Enter/Start continue, Esc quits, idle auto-continues); continue = fade to black → mission break (MISSION 2, the mission name slam, the next mission's route map with the pin on its first part, the part line, Hazel's teaser, `radio_static` + `radio_blip`) for `breakMs` → wipe → `scene.start('Game', { part: next.id, carry })` |
+| `src/scenes/ui/TitleScene.ts` | **PART SELECT** for every mission: a header per mission (`MISSION n  NAME`, fire-tinted once every part has a best), pictogram or lock per part, BEST/NEW/LOCKED, location + tip (or "CLEAR MISSION 1 TO UNLOCK") under the rows |
+| `src/ui/menu.ts` | `MenuRow.gap` and `rowY(i)` (group gaps) |
+| `src/ui/routemap.ts` | `RouteMap(..., mission)` reads `UI.partClear.maps[mission]`; `mapSpec()` |
+| `src/scenes/ui/PartClearScene.ts` | the mission's map and bed (`amb_swamp` for Mission 2, falls back to `wind` when the mission pack isn't loaded) |
+| `src/ui/titlecard.ts` | a mission's first part shows **`MISSION 2 · BAYOU BLACKOUT`** (fire) on the mission line instead of PART I, so the banner shows even with `?fast=1`; a cut card no longer reveals its location afterwards |
+| `src/ui/warning.ts` | **major variant**: band y 84..140 growing out from its centre line (rectangles, no texture scaling), slower heavier strobe, the name in the fire callout font, 2.8 s hold; `state.major` |
+| `src/ui/widgets.ts` | `WEAPON_NAMES.shotgun = 'SHOTGUN!'` |
+| `art-src/ui/hud.lua` | `icon_shotgun` (pump gun with the "S" badge) |
+| `art-src/ui/campaign.lua` | pictograms `map_bayou`, `map_boat`, `map_mill`; **`map_m2.png`** (Blackwater Bayou: the foothills north, the river winding south-east, the dock, the stilt village, the pump station, the fog bank, the Drowned Mill in black water, the trail dots) |
+
+### Music (measured on the encoded files; Mission 1 references: `music_stage1` −14.1 / `music_midboss` −13.5 / `music_boss` −13.2 RMS)
+| Key | Length | BPM / bars | Peak dBFS | RMS | Loop seam | Character |
+|---|---|---|---|---|---|---|
+| `music_m2p1` "Cypress Deep" | 88.9 s | 108 (swing) / 40 | −0.7 | −14.6 | 0.059 | E minor swamp blues: slide guitar glides, banjo ostinato, washboard + shaker, lazy bass, harmonica with a Bb against E on the B section |
+| `music_m2p2` "River Run" | 70.2 s | 164 / 48 | −1.3 | −14.2 | 0.059 | D minor chase: chug 8ths, driving kit with washboard 16ths, brass lead, slide answers, half-time fog-bank breakdown |
+| `music_m2p3` "Gator's Den" | 93.9 s | 92 / 36 | −1.5 | −15.1 | 0.017 | G minor storm doom: half-time low chug, timpani, dissonant organ (Ab/G), thunder swells (`inst_whoosh`), bells, sparse slide wail |
+| `music_boss_m2` (SHELLSHOCK, MEGA-SKEETER) | 44.7 s | 172 / 32 | −1.2 | −13.6 | 0.071 | B minor swamp chase: gallop bass, `river` kit, hard lead doubled by slide, organ stabs, chromatic climb turnaround |
+| `music_boss_gator` (GATORGEDDON) | 89.6 s | 150 / 56 | −0.5 | −13.1 | 0.093 | D minor / phrygian dominant epic: timpani + choir intro, brass fanfare motif over a thrash gallop, choir B with a slide wail, the big brass theme, a half-time tritone breakdown, chromatic climb back |
+The seams match Mission 1 (`music_stage1` 0.052, `music_boss` 0.109). No clipping on any file.
+
+### SFX tiers (encoded files; RMS = whole file, rmsMx = loudest 300 ms; Mission 1 refs: `boss_roar` −12.8/−10.2, `explo_l` −13.1/−9.5, `spread` −15.3)
+| Group | Keys (peak / RMS / rmsMx dBFS) |
+|---|---|
+| Player | `shotgun_fire` −4.2/−13.7/−12.0 (louder and lower than `spread`), `shotgun_pump` −0.9/−20.4, `wade_step` −4.8/−21.1, `mud_step` −6.7/−20.0, `splash_s` −1.4/−19.1, `splash_m` −0.9/−18.5/−16.6, `splash_l` −1.2/−19.0/−14.2, `splash_xl` −0.6/−18.1/−12.0, `drown` −5.2/−18.3/−13.0 |
+| Enemies | `lurker_rise` −6.6/−19.8, `piranha_leap` −1.2/−18.7, `piranha_bite` −1.7/−18.9, `hopper_croak` −6.7/−18.2, `hopper_hop` −2.5/−18.8, `hopper_tongue` −2.6/−16.0, `gnat_buzz` loop −14.5/−24.2 (seam 0.002), `airboat_motor` loop −12.2/−20.2 (0.004), `airboat_gun` −2.6/−16.0 |
+| SHELLSHOCK | `turtle_hiss` −2.2/−18.1, `turtle_snap` −0.5/−14.9, `shell_clank` −1.2/−20.7, `shell_spin` loop −6.8/−20.4 (0.002), `egg_lob` −5.3/−18.0, `egg_beep` −8.7/−18.0 |
+| MEGA-SKEETER | `skeeter_whine` loop −9.7/−22.0 (0.002), `skeeter_laser` −9.4/−18.8, `skeeter_dive` −2.7/−16.5, `skeeter_drill` −3.4/−14.2, `larva_pop` −1.7/−17.0, `stinger_fire` −2.3/−15.4 |
+| GATORGEDDON | `gator_roar` −0.5/−12.3/−9.8 (≥ MOOSEZILLA), `gator_snap` −1.2/−14.4, `gator_hiss` −4.6/−18.5, `gator_tail` −0.9/−15.9, `gator_submerge` −1.5/−18.1/−14.2, `gator_surface` −2.5/−15.9/−12.0, `gator_roll` −8.3/−17.8/−12.0, `gator_missile` −1.4/−18.6, `gator_gatling` −7.4/−17.0, `gator_gas` −0.1/−19.9, `gator_flame` −1.2/−15.2, `gator_death` −1.7/−15.3/−9.0 (3.7 s) |
+| Level | `log_bob` −3.5/−20.3, `log_sink` −4.1/−20.3, `gas_bubble` −7.1/−23.1, `gas_vent` −3.8/−16.9, `boardwalk_creak` −9.7/−23.0, `boat_horn` −3.7/−15.2 (2.3 s; `boat_horn_far` alias ×0.5 −250 ¢ for the map `clearSfx`), `branch_whoosh` −2.3/−17.0, `paddlewheel` loop −6.8/−24.2 (0.006), `mill_wheel` loop −13.1/−26.3 (0.001), `thunder` −6.6/−17.9/−10.9, `plank_break` −1.0/−17.9, `warning_major` −3.7/−16.5 |
+| bg moments | `bg_herons` −27.9, `bg_patrol_boat` −25.9, `bg_wisps` −31.0, `bg_pond_wake` −26.9, `bg_gator_pod` −27.9, `bg_burning_barge` −27.4, `bg_skeeter_swarm` −26.5, `bg_airboat_race` −25.1, `bg_mill_creak` −26.5, `bg_den_glow` −26.8, `bg_gator_roar` −21.3, `bg_wreck_collapse` −26.8, `bg_thunder` −25.2 (RMS; same −18…−28 distant tiers as Phase F) |
+| beds (loops) | `amb_swamp` −29.6 (seam 0.000), `amb_rain` −28.7 (0.000), `amb_storm` −30.0 (0.003), `amb_fog` −34.6 (0.000), `amb_riverboat` −28.5 (0.003); Mission 1's `amb_forest` is −31.4 |
+
+### bg:event mapping (Mission 2 ids → sound)
+`fireflies_swarm` silent (deliberate) · `herons` → `bg_herons` · `patrol_boat` → `bg_patrol_boat` · `wisps` → `bg_wisps` · `gator_glimpse` → `bg_gator_roar` ×0.7 ·
+`plane` → `bg_plane` · `pond_wake` → `bg_pond_wake` · `riverbank` silent (deliberate) · `gator_pod` → `bg_gator_pod` · `burning_barge` → `bg_burning_barge` ·
+`skeeter_swarm` → `bg_skeeter_swarm` · `storm_front` → `bg_thunder` · `airboat_race` → `bg_airboat_race` · `lightning` → `bg_thunder` (was the Mission 1
+`bg_tesla` synonym; Levels' real 1-3 ids `tesla`/`lab_tesla` are untouched) · `mill_wheel` → `bg_mill_creak` · `den_glow` → `bg_den_glow` · `gator_wake` →
+`bg_gator_roar` · `boat_wreck` → `bg_wreck_collapse`. Synonyms for each are in `UI.audio.bgEvents`.
+
+### See it
+```sh
+# PART SELECT (six parts, Mission 2 unlocked through the saved progress)
+node tools/shot.mjs --out /tmp/kbe-ui/g_partselect.png --query "scene=Title&mute=1" --wait 2600 --steps '[{"eval":"(localStorage.setItem(\"kbe.progress.v1\", JSON.stringify({unlocked:[\"1-1\",\"1-2\",\"1-3\",\"2-1\",\"2-2\"],best:{\"1-1\":12340}})),1)"},{"press":"ArrowDown"},{"wait":400},{"press":"ArrowDown"},{"wait":300},{"press":"Enter"},{"wait":700}]'
+# Results mission chain: choice at 7.5 s, Enter, the mission break at +1.4 s, then 2-1 with the carry
+node tools/shot.mjs --out /tmp/kbe-ui/g_results.png --query "scene=Title&mute=1&debug=1" --wait 1500 --steps '[{"eval":"(window.__KBE.game.scene.getScene(\"Title\").scene.start(\"Results\",{mission:1,score:48210,rescued:9,parts:[],next:{id:\"2-1\",mission:2,part:1,title:\"CYPRESS DEEP\",location:\"Blackwater Bayou\",map:\"m2p1\",music:\"music_m2p1\",briefing:[],final:false},carry:{score:48210,lives:3,bombs:7,weapon:\"hmg\",ammo:120,rescued:9,difficulty:\"arcade\",parts:[]}}), 1)"},{"wait":7500},{"shot":"/tmp/kbe-ui/g_results_choice.png"},{"press":"Enter"},{"wait":1400},{"shot":"/tmp/kbe-ui/g_results_break.png"},{"wait":3600}]'
+# 2-1 title card with the mission banner, Hazel's 5-page briefing, the bed and music
+node tools/shot.mjs --out /tmp/kbe-ui/g_card.png --query "scene=Game&fast=1&part=2-1&god=1&mute=1&debug=1" --wait 1700 --steps '[{"wait":2400},{"shot":"/tmp/kbe-ui/g_radio.png"},{"eval":"JSON.stringify(window.__KBE.state().hud.card)"}]'
+# Shotgun HUD + WARNING variants
+node tools/shot.mjs --out /tmp/kbe-ui/g_hud.png --query "scene=Game&fast=1&part=2-1&x=600&god=1&mute=1&debug=1" --wait 2000 --steps '[{"eval":"(window.__KBE.game.scene.getScene(\"Game\").ctx.state.setWeapon(\"shotgun\", 30), 1)"},{"wait":330},{"shot":"/tmp/kbe-ui/g_hud_shotgun.png"},{"eval":"(window.__KBE.game.scene.getScene(\"Game\").ctx.events.emit(\"boss:intro\",{name:\"GATORGEDDON\",x:900,y:300}),1)"},{"wait":950},{"shot":"/tmp/kbe-ui/g_warn_gator.png"}]'
+# PART CLEAR on the Mission 2 map
+node tools/shot.mjs --out /tmp/kbe-ui/g_pc.png --query "scene=Title&mute=1&debug=1" --wait 1500 --steps '[{"eval":"(window.__KBE.game.scene.getScene(\"Title\").scene.start(\"PartClear\",{from:{id:\"2-1\",mission:2,part:1,title:\"CYPRESS DEEP\",location:\"Blackwater Bayou\",map:\"m2p1\",music:\"music_m2p1\",briefing:[],final:false},next:{id:\"2-2\",mission:2,part:2,title:\"RIVER RUN\",location:\"Blackwater River\",map:\"m2p2\",music:\"music_m2p2\",briefing:[\"x\"],final:false},result:{id:\"2-1\",score:14300,rescued:5,kills:63,deaths:1,shots:300,hits:190,timeMs:254000}}), 1)"},{"wait":8500}]'
+# Audio: render only the new keys / songs, split packs, analyze
+bash tools/audio/build.sh sfx; bash tools/audio/build.sh music; uv run --with numpy python3 -I tools/audio/make_pack.py; bash tools/audio/build.sh analyze
+```
+
+### Tuning decisions
+- Mission-only audio lives in `ui.m2.json`; UI art for the menus stays global because PART SELECT, PART CLEAR previews and the Results
+  mission break need `ui_map_m2` and the Mission 2 pictograms before any Mission 2 part has loaded.
+- Beds: `fx:ambience` kinds win while on (Levels' triggers), the camera-x `sections` are the fallback per part (2-1 swamp → village
+  quieter → rain in the bog → swamp at the pond; 2-2 riverboat; 2-3 storm). Arena ducking and part/clear handling are unchanged.
+- `water:splash kind:'step'` is one quiet key with HMG-style fatigue (`burst 260 ms`, floor 0.55, min 120 ms); the Player emits a
+  step every ~180 ms, so wading settles under the music instead of machine-gunning.
+- Hazel's 2-1 briefing is two long lines → 5 radio pages (~15 s at 26 ms/char); the strip pages through and closes by itself.
+- `warning_major` plays under `warning_siren` for GATORGEDDON and MOOSEZILLA; the duck is 0.3 for 2.8 s. The regular banner is unchanged
+  for SHELLSHOCK and MEGA-SKEETER (`g_warn_skeeter.png`).
+
+### Known issues
+- Nobody has heard the new audio; every level above is numeric against the Mission 1 references.
+- ~~`powTotalByPart` 2-1..2-3 are estimates (6/4/3)~~ → 4/4/4 from Levels' final counts (G1 follow-up below); the maps' `powTotal` still wins when reported.
+- The Results mission break runs from the Title with sample data; the real path (1-3 clear → Results with `next`) was exercised by Engine's
+  selftest, not by a playthrough.
+
+### Phase G1 follow-up (Levels' final `bg:event` ids, POW counts, fog bed, briefing paging)
+Scratch: `/tmp/kbe-ui/g1_probe_21.png`, `g1_probe_22.png`, `g1_probe_22b.png`, `g1_probe_23.png`, `g1_probe_23b.png`, `g1_card_c.png`,
+`g1_radio_p1..p5.png`. `npm run check` clean. Probes on 2-1 / 2-2 / 2-3 firing every id of Levels' final list through
+`__KBE.cheats.bg('<id>')`: `audio.unknown []`, `audio.bgUnknown []` in all three parts, every id in `audio.bg` as `id→key` or `id→(silent)`.
+
+- **`UI.audio.bgEvents`** (`src/config/tuning/ui.ts`): `pond_shell` → `bg_pond_shell`; `barge_blast` → `bg_barge_blast`; `gator_roar` →
+  `bg_gator_roar_huge`; **`gator_wake` repointed** to `bg_gator_wake` (it was the far roar; the roar has its own id now).
+  `fireflies_swarm` and `riverbank` stay `key: ''` (known, silent). Synonyms added next to each (`shell_splash`, `barge_explosion`,
+  `gatorgeddon_roar`, `gator_surge`, ...); `gator_far` / `gator_roar_far` keep the plain distant tier `bg_gator_roar`.
+- **Layered aliases** (`src/audio/catalog.ts` `SFX_ALIASES`, no new files): an `also` layer plays at the *caller's* volume/detune, not the
+  alias's, so every quieter layer is its own alias.
+  | Alias | Layers |
+  |---|---|
+  | `bg_pond_shell` | `splash_xl` 0.45 / −500 ct + `bg_shell_hiss` (= `turtle_hiss` 0.4 / −400 ct): a big far splash and the turtle's hiss |
+  | `bg_barge_blast` | `bg_artillery` −300 ct + `bg_barge_spray` (= `splash_l` 0.3 / −600 ct): the far thump and debris hitting the water |
+  | `bg_gator_roar_huge` | `gator_roar` 0.35 / −500 ct + `bg_gator_roar`: the boss roar itself, far and huge, under the distant tier |
+  | `bg_gator_wake` | `bg_pond_wake` −400 ct + `bg_gator_surge` (= `gator_surface` 0.3 / −700 ct): a bigger, lower wake with a surfacing surge |
+- **`UI.results.powTotalByPart`** 2-1 / 2-2 / 2-3 = **4 / 4 / 4** (Levels' real counts).
+- **`amb_fog`** target −30 → −27 dB in `tools/audio/sfx.py` (`set_loudness` targets the loudest 300 ms window, so the file sits a few dB
+  under the target); rendered with `sfx.py amb_fog` only: peak −24.3 / RMS **−31.6** dBFS (was −27.3 / −34.6), next to `amb_forest` −31.4.
+  Only `amb_fog.ogg` and its manifest entry changed; `ambienceKinds.fog` stays at 1.
+- **Radio paging** (`src/ui/radio.ts` `balancedWrap`): rows are word-wrapped at `lineChars`, then the column is narrowed while the row
+  count holds, so a line that needs N rows gets N rows of similar length. The Lead's shortened 2-1 briefing paged as 48 / 40 / **10**
+  + 47 / **10** chars (two one-word pages, "DELACROIX." and "THEM DOWN."); it now pages 34 / 33 / 31 + 24 / 33 (5 pages, ~15 s, closes by
+  itself; `g1_radio_p1..p5.png`). 2-2's single line becomes 43 / 44 / 38. The title card is unchanged (mission banner + title, `g1_card_c.png`),
+  and the radio still opens as the title leaves (`phase: opening` at ~4.2 s).
+- **For Levels (director behaviour, not bugs):** `barge_blast` is not a shot of its own: the `burning_barge` shot announces it 4.2 s in
+  (`blastMs`), so `cheats.bg('barge_blast')` returns false. `gator_wake` waits for camera x ≥ 3280 (`minCamX`, up to 20 s) and announces
+  `gator_roar` 3.4 s later (`tailAtMs`); the probe ran at `x=3400`.
+
+```bash
+# bg:event probe per part (ids = Levels' final list); barge_blast / gator_roar come from the director's own shots
+node tools/shot.mjs --out /tmp/kbe-ui/g1_probe_21.png --query "scene=Game&fast=1&part=2-1&god=1&mute=1&debug=1" --wait 2500 --steps '[{"eval":"JSON.stringify([\"fireflies_swarm\",\"herons\",\"patrol_boat\",\"wisps\",\"gator_glimpse\",\"lightning\",\"plane\",\"pond_wake\",\"pond_shell\"].map(id=>id+\":\"+window.__KBE.cheats.bg(id)))"},{"wait":1500},{"eval":"JSON.stringify((s=>({unknown:s.audio.unknown,bgUnknown:s.audio.bgUnknown,bg:s.audio.bg}))(window.__KBE.state()))"}]'
+node tools/shot.mjs --out /tmp/kbe-ui/g1_probe_22b.png --query "scene=Game&fast=1&part=2-2&god=1&mute=1&debug=1" --wait 2500 --steps '[{"eval":"window.__KBE.cheats.bg(\"burning_barge\")"},{"wait":5200},{"eval":"JSON.stringify(window.__KBE.state().audio.bg)"}]'
+node tools/shot.mjs --out /tmp/kbe-ui/g1_probe_23b.png --query "scene=Game&fast=1&part=2-3&x=3400&god=1&mute=1&debug=1" --wait 2500 --steps '[{"eval":"window.__KBE.cheats.bg(\"gator_wake\")"},{"wait":5200},{"eval":"JSON.stringify(window.__KBE.state().audio.bg)"}]'
+# Hazel's 2-1 pages (radio state is in hud.card.radio)
+node tools/shot.mjs --out /tmp/kbe-ui/g1_card.png --query "scene=Game&fast=1&part=2-1&god=1&mute=1&debug=1" --wait 1700 --steps '[{"wait":2400},{"shot":"/tmp/kbe-ui/g1_radio_p1.png"},{"eval":"JSON.stringify(window.__KBE.state().hud.card.radio)"},{"wait":2900},{"shot":"/tmp/kbe-ui/g1_radio_p2.png"},{"eval":"JSON.stringify(window.__KBE.state().hud.card.radio)"}]'
+# fog bed only
+uv run --with numpy,scipy,soundfile,pillow python3 -I tools/audio/sfx.py amb_fog
+```
+
+### Phase G fix round (KBE-QA-G05 prompts off the boss bar, Results countdown, thunder on `fx:lightning`)
+Scratch: `/tmp/kbe-ui/g05-gatling.png`, `g05-flame.png` (real 2-3 den, `cheats.boss()` + 3 s right, then frozen fixed-step sim:
+`damageBoss(25)` to phases 2/3, `sim.advance` until `hud.prompt` is the cue, +420/450 ms, `sim.render`), `g10-results-a/b.png`,
+`thunder-probe3.png`. `npm run check` clean (the 3 warnings are Levels' `background.ts`).
+
+- **KBE-QA-G05 — prompts never cover the boss bar.** One prompt box serves every `ui:prompt` (boss cues, Levels' trigger hints, train
+  prompts, `WAVE n/N` / `FINAL WAVE!`), so the fix is one rule in `HudScene`: `promptY()` is `UI.hud.prompt.y` (200) normally and
+  `UI.hud.prompt.bossY` (**178**) while the boss bar is up; `placePrompt()` slides it there on show, on `boss:spawn` (a prompt already up
+  moves) and when the bar leaves after `boss:defeated`. The panel (18 px) then sits at y 169..187: one row above the boss name (188..195,
+  frame from 198), one row under the pier's walking lane (feet y 168 in the den), far from Hazel's strip (30..55) and the top HUD.
+  `__KBE.state().hud.promptY` reports the resting row. Verified in the real den: `DUCK!` at 300/450 and `JUMP THE FLAME!` at 150/450,
+  fill fully visible (`g05-gatling.png`, `g05-flame.png`).
+- **Rules G10 — visible auto-continue.** `ResultsScene`'s CONTINUE row is now a live label: `CONTINUE TO MISSION 2 IN 20` … `IN 0`,
+  counting the same `UI.results.autoAdvanceMs` (22 s) clock that fires the continue; it appears once the stamp is down and the seconds
+  are at or below `UI.results.countdownFromS` (20) and re-renders through `Menu.refresh()` only when the number changes (the cursor
+  re-centres with the width). `g10-results-a.png` (IN 20) / `g10-results-b.png` (IN 15, 5 s later).
+- **Thunder follows FX's flashes (`fx:lightning`).** `src/audio/events.ts`: the clap trails the flash by distance when the flash has an x
+  (`UI.audio.thunder`: 300 ms at the camera centre → 1200 ms at 900 px), else by a random beat in that range; volume `0.9 × strength`
+  (reduced flash → .14, a far rumble) less 35 % at full distance, panned like a `bg:event`; a `double` flash adds `bg_thunder` at
+  55 % 280 ms later. Scheduled with `engine.after` (engine clock, cleared on `endRun`).
+  **No doubling:** one `claimThunder()` gate (`gapMs` 1800) is shared with the `bg:event` path for `thunder` / `bg_thunder` keys
+  (Levels' `lightning` announce maps to `bg_thunder`; the id is still noted in `audio.bg`), so a strike Levels both flashes and
+  announces claps once; and the catalog's `thunder.minMs` goes 600 → **1400** (FX's flash spacing) as the backstop for any direct
+  `sfx('thunder')`. Probe on 2-1 (`thunder-probe3`): flash at +300 px → clap at 641 ms; a `cheats.bg('lightning')` 1.5 s later →
+  silent; one at 3.0 s → `bg_thunder`; a flash at −40 px → clap at 347 ms; a bare `fx:lightning {double}` → clap + `bg_thunder` 280 ms later.
+- **For FX:** `weather.ts` still plays `thunder` directly at the flash (`.45`); while it stays, the catalog `minMs` means that immediate
+  clap wins and the delayed one is dropped (never both). Remove the direct call and the distance-delayed clap takes over by itself.
+  **For Levels:** the `bg:event lightning` announce can stay (it is gated), but a strike that goes through `fx:emit bg_lightning` no
+  longer needs it.
+
+```bash
+# KBE-QA-G05: both cues in the real den, frozen sim (steps JSON = /tmp/kbe-ui/g05-steps.json: cheats.boss(), hold right 3.2 s,
+# sim.freeze(), damageBoss(25)+advance(50) to the phase, advance until hud.prompt matches, +420/450 ms, render, shot)
+node tools/shot.mjs --out /tmp/kbe-ui/g05-final.png --query "scene=Game&part=2-3&debug=1&fast=1&god=1&mute=1&seed=731&x=3700" --wait 2500 --size 1152x648 --steps "$(cat /tmp/kbe-ui/g05-steps.json)"
+# Results countdown (Title → Results with a next mission)
+node tools/shot.mjs --out /tmp/kbe-ui/g10-results-c.png --query "scene=Title&debug=1&fast=1&mute=1" --wait 2500 --size 1152x648 --steps "$(cat /tmp/kbe-ui/g10-steps.json)"
+# thunder timing/gate (in-page poller diffs audio.played / audio.recent every 40 ms)
+node tools/shot.mjs --out /tmp/kbe-ui/thunder-probe3.png --query "scene=Game&part=2-1&debug=1&fast=1&god=1&x=600" --wait 3000 --steps "$(cat /tmp/kbe-ui/thunder-steps3.json)"
+```
+
+## 15. Phase H: enemy facelift sounds and the title card / radio hand-off
+
+Scratch: `/tmp/kbe-ui/audio/sheet_phaseh.png` (spectrogram + waveform of the five new keys), `/tmp/kbe-ui/h_card/sheet_{11,12,13,21,22,23}.png`
+(28 frames at 0.25 s from each part's start), `sheet_mid12.png` (PART CLEAR 1-1 → 1-2 with a carry, 28 frames from 1-2's start),
+`sheet_fine11.png` / `sheet_fine21.png` (16 frames at 50 ms across the hand-off, 3.05–3.80 s). `npm run check` clean, `npm run audit` PASS ×6, `npm run selftest` all passed.
+
+### Five new enemy sounds (`tools/audio/sfx.py` "Phase H" block; Enemies plays them with `ctx.audio.sfx`)
+| Key | Pack | Length | Peak / RMS / loudest 300 ms (dBFS, encoded) | Family reference | Recipe |
+|---|---|---|---|---|---|
+| `buzzard_gun` | `ui.json` | 0.34 s | −7.4 / −15.5 / −15.0 | `hmg` −7.6/−16.1, `airboat_gun` −2.6/−16.0 | four cracks at ~14/s (hp 380 + 200→70 Hz thump, drive 2.3), lower and rounder than the HMG, over a short 150→230 Hz turret whir |
+| `heli_crash` | `ui.json` | 2.18 s | −5.6 / −16.7 / −10.9 | `explo_l` −3.2/−13.1/−9.5, `boss_death` −9.0 | turbine shriek up then down (1850→2600→260 Hz) while the 13 Hz blade thumps slow ×1.09 per beat, gated hard-clipped metal tear + a formant groan, then `explo(1.0 s)` with three clanks and a rumble tail |
+| `hopper_land` | `ui.m2.json` | 0.33 s | −3.4 / −16.4 / −16.0 | `hopper_hop` −2.5/−18.8, `hopper_croak` −6.7/−18.2 | 150→45 Hz thud (drive 2.2) + a hard-clipped crunch, a low-pass-swept wet slap, the leg-piston hiss (hp 1800) and a short servo creak |
+| `mech_pop` | `ui.json` | 0.34 s | −2.2 / −16.9 / −16.4 | `crate_break` −3.0/−17.0, `larva_pop` −1.7/−17.0 | plate crunch (thump + three band-passed clicks), a cartoon spring boing (520→300 Hz with 28 Hz vibrato), four glass tinkles at 4.2–6.3 kHz |
+| `airboat_sink` | `ui.m2.json` | 2.01 s | −5.4 / −18.0 / −14.0 | `drown` −5.2/−18.3/−13.0, `log_sink` −4.1/−20.3 | the V8 putter and fan chop wind down (55→14 Hz, chop 27→4 Hz) to a stall, steam hiss from 0.6 s, a gurgle gated at 11→5 Hz and eight descending bubbles |
+
+- **Catalog** (`src/audio/catalog.ts`): `buzzard_gun` vol .8 vary 40 max 2 minMs 150; `heli_crash` vol 1 vary 30 max 1 minMs 300; `hopper_land` vol .85
+  vary 60 max 3 minMs 60; **`mech_pop` vol .9 vary 120 max 3 minMs 50 + burst fatigue (220 ms, −.12/shot, floor .5)** so a 6-gnat swarm dying in one
+  burst is three punchy pops settling to half, not a wall; `airboat_sink` vol .9 vary 40 max 1 minMs 300.
+- **Packs** (`tools/audio/make_pack.py` `MISSION_AUDIO[2]`): `hopper_land` and `airboat_sink` are Mission 2 only (`ui.m2.json` 78 files); `buzzard_gun`,
+  `heli_crash` and `mech_pop` stay in `ui.json` (152 files) because the Buzzard flies (and dies) in Mission 1.
+- **Peak rule:** the SFX `CATALOG` tuple takes an optional 4th field, the peak ceiling before encoding; the five new keys use **0.8** (Vorbis overshoots
+  ~1 dB; `mech_pop` encodes at −2.2 dBFS). Older keys keep the 0.89 default, so nothing else re-renders differently.
+- **Pipeline fix:** `kbe_synth.set_loudness` and `analyze.py` measured the loudest 300 ms window with `np.convolve` over a 13 230-sample box, which is
+  O(N·w) and took minutes on a 2 s sound (the render looked hung). Both now use a cumulative sum (same numbers, linear time).
+- **Run it offline:** `uv run` without `--offline` waits on the network for minutes in this sandbox. Use
+  `/home/knotz2/.local/bin/uv run --offline --with numpy,scipy,soundfile,pillow python3 -I tools/audio/sfx.py --wav <keys>` (the default `~/.cache/uv` has the wheels).
+
+### Title card / radio hand-off (`src/ui/titlecard.ts`, `src/ui/callout.ts`, `src/config/tuning/ui.ts`)
+- **Before:** the radio opened on a fixed `UI.radio.delayMs` (2650) while the title held until `titleAt + holdMs` (2840) plus the Callout's drop (220) and
+  out (220), so Hazel's strip (y 30..55) dropped onto the big title text (Lead's `ctx_hopper_1.png`).
+- **Now, event-driven:** `Callout.show()` takes `onHidden`, fired when its out-tween completes. The card shows the title with
+  `onHidden: () => openRadio(info)`; `out()` (the card's hold timeout **or** a `cut()` from a weapon callout / `boss:intro`) hides the title together
+  with the mission line and location, and the radio opens only when the title is fully gone. A `cut()` before the title ever showed (inside the first
+  240 ms) opens the radio after `outMs`. `hide()` (stage clear, game over, a new `show()`) clears the owed part (`radioFor`), so a stale title's
+  `onHidden` can't open a briefing for the wrong part. `UI.radio.delayMs` is gone.
+- **Measured** (frozen fixed-step sim, `card.state` + shots every 250 ms, then every 50 ms): in every part the title is on screen 0.75–3.25 s
+  (1-3: 1.0–3.5 s, its restart passes the loader), the out-tween runs 3.19–3.41 s, the strip starts fading in at 3.45 s and types from 3.70 s. No frame
+  shows both. The briefing's first page is fully typed by ~4.75 s; the openings keep their first threat ≥ 224 px out (Mission 2 QA), so it still reads
+  before anything shoots. The radio now opens ~0.8 s later than before (3.41 s vs 2.65 s).
+- **Mid-run flow** (`PartClear` 1-1 → auto-advance → `Game 1-2` with the carry): same order, `sheet_mid12.png`.
+
+### See it
+```sh
+# frames at 0.25 s from a part's start (restart the Game under a frozen sim, advance 250 ms, render, shot; 28 frames) — steps JSON from /tmp/kbe-ui/h_steps.py
+node tools/shot.mjs --out /tmp/kbe-ui/h_card/21_final.png --query "debug=1&scene=Game&fast=1&mute=1&god=1&part=2-1" --wait 4000 --steps "$(python3 -I /tmp/kbe-ui/h_steps.py 2-1 28)"
+# 50 ms frames across the hand-off (pre-roll 3.0 s in rendered 250 ms chunks: a scene restart only lands on a rendered frame)
+node tools/shot.mjs --out /tmp/kbe-ui/h_card/fine21_final.png --query "debug=1&scene=Game&fast=1&mute=1&god=1&part=2-1" --wait 4500 --steps "$(python3 -I /tmp/kbe-ui/h_steps.py 2-1 16 restart 50 3000 fine21)"
+# PART CLEAR → next part (Title → PartClear with real from/next/result, auto-advance, stop at 1-2's card, then 28 frames)
+node tools/shot.mjs --out /tmp/kbe-ui/h_card/mid12_final.png --query "debug=1&scene=Title&fast=1&mute=1" --wait 4500 --steps "$(python3 -I /tmp/kbe-ui/h_steps.py 1-2 28 partclear 250 0 mid12)"
+# audio: render the five keys, split the packs, analyze against the references
+/home/knotz2/.local/bin/uv run --offline --with numpy,scipy,soundfile,pillow python3 -I tools/audio/sfx.py --wav buzzard_gun heli_crash hopper_land mech_pop airboat_sink
+/home/knotz2/.local/bin/uv run --offline --with numpy python3 -I tools/audio/make_pack.py
+/home/knotz2/.local/bin/uv run --offline --with numpy,scipy,soundfile,pillow python3 -I tools/audio/analyze.py /tmp/kbe-ui/audio public/assets/audio/sfx/{buzzard_gun,heli_crash,hopper_land,mech_pop,airboat_sink,hmg,airboat_gun,hopper_hop,explo_l,crate_break,drown}.ogg
+```
+
+### Known issues
+- Nobody has heard the five sounds; levels are numeric against the Mission 1–2 references.
+- Test-harness only: booting with `--wait 1500` while other teams load the machine sometimes starts the probe before Preload has finished, so the
+  HUD icons come up magenta, UI audio keys log as unknown and the Title logo stays over the Game. Not a game bug (plain boots are clean); use
+  `--wait 4000+` (Mission 2: 4500).
+- Optional item 3 (other strip/callout overlaps): desk check only. The strip (30..55) is under the top HUD and above the weapon callout (74),
+  the WARNING band (84..140), the prompts (178/200) and the boss bar (198); the one known offender is the Buzzard cruising up into the strip,
+  which Enemies A is moving to the 62–110 flier band.
+
+### Requests for other teams
+- **Enemies A/B:** play `buzzard_gun` per burst, `heli_crash` + `explosion l` on the Buzzard death, `hopper_land` on the landing squash,
+  `mech_pop` on every small-mech death (hopper, airboat, piranha, gnat, Buzzard), `airboat_sink` with the airboat's splash. All five are in the catalog;
+  unknown keys stay silent, so nothing breaks before the wiring lands.
+- **Engine/Lead:** none.

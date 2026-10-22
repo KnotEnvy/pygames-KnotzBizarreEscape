@@ -152,6 +152,20 @@ export function prepareTileLayer(layer: Phaser.Tilemaps.TilemapLayer): void {
     layer.calculateFacesWithin(0, 0, layer.layer.width, layer.layer.height);
 }
 
+const TERRAIN: ReadonlySet<string> = new Set<TerrainMaterial>(['dirt', 'stone', 'metal', 'wood', 'snow', 'water', 'mud']);
+
+/**
+ * Raw tile `material` → impact/footstep material. Phase G: `shallow` (wading water) → 'water', `mud` → 'mud'.
+ * `ice` → 'snow' (FX upgrades it to its ice recipe through surfaceAt). Unknown or missing → 'dirt'.
+ * surfaceAt keeps returning the raw string ('shallow', 'mud', 'ice').
+ */
+export function terrainMaterial(raw: unknown): TerrainMaterial {
+    if (typeof raw !== 'string' || raw === '') return 'dirt';
+    if (raw === 'shallow') return 'water';
+    if (raw === 'ice') return 'snow';
+    return TERRAIN.has(raw) ? raw as TerrainMaterial : 'dirt';
+}
+
 export interface TileLevelOptions {
     /** The collision layer (tile properties: collides, oneway, hazard, material). */
     ground: Phaser.Tilemaps.TilemapLayer;
@@ -203,7 +217,7 @@ export function createTileLevelQuery(opts: TileLevelOptions): LevelQuery {
         },
         materialAt(x, y) {
             const t = tileAt(x, y);
-            return ((t && t.index >= 0 ? t.properties?.material : undefined) as TerrainMaterial | undefined) ?? 'dirt';
+            return terrainMaterial(t && t.index >= 0 ? t.properties?.material : undefined);
         }
     };
 }

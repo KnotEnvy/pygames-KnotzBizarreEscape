@@ -1,10 +1,16 @@
 // Part title card (Phase E), shown by the HUD on part:start: "MISSION 1 · PART II" slides in, the part title slams
 // (Callout), the location fades in, and Hazel's radio box opens underneath. Everything is non-blocking and times
 // itself out; hide() cancels it (stage clear, game over).
+// Phase G: a mission's first part carries the mission banner instead of the part numeral ("MISSION 2 · BAYOU BLACKOUT"),
+// so the mission name shows even when the Intro slam is skipped (?fast=1, a restart).
+// Phase H: Hazel's radio strip (y 30..55) opens from the title's out-tween completion (Callout `onHidden`), never from a
+// guessed delay, so the strip can't land on the big title text (it used to open at 2650 ms while the title held to 2840 +
+// its out-tween). The title, mission line and location all leave together at titleAt + holdMs.
 import Phaser from 'phaser';
 import type { GameEvents } from '../core';
 import { getAudio } from '../audio';
 import { UI } from '../config/tuning/ui';
+import { missionOf } from '../config/campaign';
 import { C, F, W, bar, roman, text } from './widgets';
 import { Callout } from './callout';
 import { RadioBox } from './radio';
@@ -22,6 +28,8 @@ export class TitleCard {
     private readonly title: Callout;
     private readonly location: Phaser.GameObjects.BitmapText;
     private readonly timers: Phaser.Time.TimerEvent[] = [];
+    /** The part whose briefing is still owed to the radio: cleared by hide(), so a stale title's onHidden can't open it. */
+    private radioFor: PartStartInfo | null = null;
     private shown: PartStartInfo | null = null;
     private visible = false;
 
@@ -49,12 +57,14 @@ export class TitleCard {
     show(info: PartStartInfo, delayMs: number = UI.titleCard.delayMs): void {
         this.hide(true);
         this.shown = info;
+        this.radioFor = info;
         const T = UI.titleCard;
         this.after(delayMs, () => {
             this.visible = true;
-            // mission line: "MISSION n ● PART II" centred, slid in from the left
+            // mission line: "MISSION n ● PART II" centred, slid in from the left; the first part shows the mission's name instead.
+            const mission = info.part === 1 ? missionOf(info.id)?.name : undefined;
             this.missionText.setText(`MISSION ${info.mission}`);
-            this.partText.setText(`PART ${roman(info.part)}`);
+            this.partText.setText(mission ? mission.toUpperCase() : `PART ${roman(info.part)}`).setTint(mission ? C.fire5 : C.white);
             const gap = 5;
             const w = this.missionText.width + gap + 2 + gap + this.partText.width;
             this.missionText.setPosition(0, 0);
@@ -66,22 +76,36 @@ export class TitleCard {
             this.missionLine.setPosition(-w - 60, T.missionY).setAlpha(1).setVisible(true);
             this.scene.tweens.add({ targets: this.missionLine, x: cx, duration: T.lineMs, ease: 'Back.easeOut' });
             getAudio(this.scene).sfx('ui_move', { volume: 0.6 });
-            this.after(T.titleAt, () => this.title.show(info.title.toUpperCase(), { font: info.final ? F.fire : F.steel, holdMs: T.holdMs, sfx: 'callout' }));
+            // Hazel opens when the title has fully left (its out-tween's completion), whether the card timed out or was cut.
+            this.after(T.titleAt, () => this.title.show(info.title.toUpperCase(), { font: info.final ? F.fire : F.steel, holdMs: T.holdMs, sfx: 'callout', onHidden: () => this.openRadio(info) }));
             this.after(T.locationAt, () => {
                 this.location.setText(info.location.toUpperCase()).setAlpha(0);
                 this.scene.tweens.add({ targets: this.location, alpha: 1, duration: 200 });
             });
-            this.after(UI.radio.delayMs, () => this.radio.open(info.briefing ?? []));
             this.after(T.titleAt + T.holdMs, () => this.out());
         });
+    }
+
+    /** Open the briefing once the title is gone. `info` must still be the part the radio is owed to (hide() clears it). */
+    private openRadio(info: PartStartInfo): void {
+        if (this.radioFor !== info) return;
+        this.radioFor = null;
+        this.radio.open(info.briefing ?? []);
     }
 
     private out(): void {
         if (!this.visible) return;
         this.visible = false;
+        // Pending title/location reveals must not land on top of whatever cut the card (Phase G: a weapon callout on part start).
+        for (const t of this.timers) t.remove(false);
+        this.timers.length = 0;
         const T = UI.titleCard;
         this.scene.tweens.add({ targets: this.missionLine, x: W + 40, alpha: 0, duration: T.outMs, ease: 'Quad.easeIn', onComplete: () => this.missionLine.setVisible(false) });
         this.scene.tweens.add({ targets: this.location, alpha: 0, duration: T.outMs });
+        // The title leaves with the rest of the card; its onHidden opens the radio. Cut before the title ever showed
+        // (a weapon callout inside the first 240 ms): Hazel still talks, once the mission line is gone.
+        if (this.title.active) this.title.hide();
+        else if (this.shown) { const info = this.shown; this.after(T.outMs, () => this.openRadio(info)); }
     }
 
     /** Shoot/jump while the briefing types: reveal the page (never blocks, never closes on its own key). */
@@ -89,17 +113,17 @@ export class TitleCard {
         this.radio.skip();
     }
 
-    /** A weapon callout wants the centre of the screen: end the title/location early, keep Hazel talking. */
+    /** A weapon callout wants the centre of the screen: end the title/location early, keep Hazel talking (she opens as the title leaves). */
     cut(): void {
         if (!this.visible) return;
         this.out();
-        this.title.hide();
     }
 
     /** Cancel everything (stage clear, game over). `keepRadioClosedSilently` avoids the close blip when nothing was open. */
     hide(silent = false): void {
         for (const t of this.timers) t.remove(false);
         this.timers.length = 0;
+        this.radioFor = null;
         if (this.visible) {
             this.visible = false;
             this.scene.tweens.killTweensOf([this.missionLine, this.location]);

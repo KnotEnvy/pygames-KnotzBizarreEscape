@@ -14,7 +14,7 @@ export type Difficulty = 'arcade' | 'casual';
 /** Materials a hurtbox can be made of. */
 export type HurtMaterial = 'flesh' | 'metal' | 'wood' | 'shield';
 /** Materials terrain can be made of (tile property `material`, default 'dirt'). */
-export type TerrainMaterial = 'dirt' | 'stone' | 'metal' | 'wood' | 'snow' | 'water';
+export type TerrainMaterial = 'dirt' | 'stone' | 'metal' | 'wood' | 'snow' | 'water' | 'mud';
 /** What a projectile hit (hurtbox material, or terrain material for tiles). */
 export type ImpactMaterial = HurtMaterial | TerrainMaterial;
 
@@ -144,8 +144,6 @@ export interface LevelQuery {
     name?: string;
     /** Optional (Phase E): raw `material` tile property at the point, or null. Engine falls back to groundLayer. */
     surfaceAt?(x: number, y: number): string | null;
-    /** Optional (Phase E): raw `material` tile property at the point, or null. Engine falls back to groundLayer. */
-    surfaceAt?(x: number, y: number): string | null;
     /** Optional: number of POWs placed in the level (Results rank uses it; falls back to UI's estimate when absent). */
     powTotal?: number;
 }
@@ -272,6 +270,7 @@ export interface LevelPhysics {
     solidAt(x: number, y: number): boolean;
     oneWayAt(x: number, y: number): boolean;
     hazardAt(x: number, y: number): HazardKind | null;
+    /** Impact/footstep material: tile `material` mapped (Phase G: `shallow` → 'water', `mud` → 'mud', `ice` → 'snow'), default 'dirt'. */
     materialAt(x: number, y: number): TerrainMaterial;
     /** World y of the first standable surface (solid or one-way top) at x, scanning down from `fromY`. null if none. */
     groundBelow(x: number, fromY: number, maxDist?: number): number | null;

@@ -1,0 +1,279 @@
+[
+  {
+    "key": "prop_container_door",
+    "kind": "container_door",
+    "png": "assets/sprites/props/prop_container_door.png",
+    "json": "assets/sprites/props/prop_container_door.json",
+    "w": 32,
+    "h": 32,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_container_door_closed",
+      "prop_container_door_open"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Shipping-container end doors (rust-red corrugated leaves, 4 lock bars, cam handles, corner castings). Place over a container face, origin bottom-centre on the deck (y 304). open = 4f@70ms: both leaves swing out toward the viewer, revealing the dark interior (opening x3..28, y3..28); play once and hold the last frame, then grunts emerge."
+  },
+  {
+    "key": "prop_branch",
+    "kind": "branch",
+    "png": "assets/sprites/props/prop_branch.png",
+    "json": "assets/sprites/props/prop_branch.json",
+    "w": 96,
+    "h": 136,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_branch_idle"
+    ],
+    "body": [
+      6,
+      96,
+      84,
+      40
+    ],
+    "destructible": false,
+    "hp": null,
+    "notes": "LOW BRANCH hazard_sweep (replaces Mission 1's low_bridge 64x128). Mossy cypress limb coming down from the top-right (trunk off-screen above), drooping elbow with a thick Spanish-moss beard. Origin bottom-centre = row 135 = lowest point the hero's head can touch: beard tips reach row 135 across x~18..80 in every frame. Danger body = bottom 40 px (bark underside y~96..118 + beard). idle = 4f@160ms loop (moss/vines sway; bottom edge constant). Moves right->left at drift speed."
+  },
+  {
+    "key": "prop_sign_branch",
+    "kind": "sign_branch",
+    "png": "assets/sprites/props/prop_sign_branch.png",
+    "json": "assets/sprites/props/prop_sign_branch.json",
+    "w": 32,
+    "h": 144,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_sign_branch_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Warning sign on a piling standing in the river: yellow plank 'LOW / BRANCHES / ! v !' (board y14..42) with a hurricane lantern on the post top (flame centre ~(16,6), add a warm glow if desired). Canvas bottom = waterline (ripples on rows 142..143). Place ahead of each branch sweep, like sign_duck."
+  },
+  {
+    "key": "prop_paddlewheel",
+    "kind": "paddlewheel",
+    "png": "assets/sprites/props/prop_paddlewheel.png",
+    "json": "assets/sprites/props/prop_paddlewheel.json",
+    "w": 128,
+    "h": 104,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_paddlewheel_spin"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "BAYOU QUEEN's red sternwheel, side view with slight oblique depth (far frame offset +7,-3). Near wheel centre (62,54), bucket-tip radius 49; origin bottom-centre at the lowest bucket tip (row 103). The lower ~16 px go below the waterline (cover with the foam strip). Water cascades off the rising LEFT (aft) side, churn at the lower left. spin = 8f@70ms loop, clockwise (bottom moves left), 11.25 deg/frame = 3/8 of the 30-deg bucket spacing (12 buckets): direction reads clearly, seamless every 90 deg."
+  },
+  {
+    "key": "prop_crane_hook",
+    "kind": "crane_hook",
+    "png": "assets/sprites/props/prop_crane_hook.png",
+    "json": "assets/sprites/props/prop_crane_hook.json",
+    "w": 16,
+    "h": 56,
+    "origin": [
+      0.5,
+      0
+    ],
+    "tags": [
+      "prop_crane_hook_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Crane hook block on a twin wire rope. ORIGIN TOP-CENTRE (0.5, 0) at the boom tip: the cable leaves the top edge at x7..8. Yellow/black hazard sheave block (y31..46), steel J-hook opening right (y47..55). idle = 6f@140ms loop, slow pendulum (block offset -2,0,+2,+2,0,-2 px)."
+  },
+  {
+    "key": "prop_fuel_cell",
+    "kind": "fuel_cell",
+    "png": "assets/sprites/props/prop_fuel_cell.png",
+    "json": "assets/sprites/props/prop_fuel_cell.json",
+    "w": 16,
+    "h": 20,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_fuel_cell_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Regime fuel-cell canister in a steel cage frame, glowing weird4/weird5 through a glass window (glow centre ~(7,9)). Flat top plate (rows 0..1) and base (rows 18..19): stack them directly (16 px pitch horizontally, 20 px vertically). idle = 4f@160ms glow pulse (dim, mid, bright, mid) with rising bubbles; status light at (11,0). Decor."
+  },
+  {
+    "key": "prop_life_ring",
+    "kind": "life_ring",
+    "png": "assets/sprites/props/prop_life_ring.png",
+    "json": "assets/sprites/props/prop_life_ring.json",
+    "w": 14,
+    "h": 14,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_life_ring_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Red-and-white life ring with grab rope, hung on a peg (peg at (6..7,0)). Wall decor on cabins/rails."
+  },
+  {
+    "key": "prop_queen_board",
+    "kind": "queen_board",
+    "png": "assets/sprites/props/prop_queen_board.png",
+    "json": "assets/sprites/props/prop_queen_board.json",
+    "w": 112,
+    "h": 18,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_queen_board_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Riverboat name board 'BAYOU QUEEN': gold slab-serif letters on red planks with scroll ends, battered (crack, bullet holes, missing corner chip bottom-left), Regime spiral stencil sprayed over the right scroll end. Two hanging brackets on the top edge at x22..23 and x89..90. Hang on the cabin wall."
+  },
+  {
+    "key": "prop_bell",
+    "kind": "bell",
+    "png": "assets/sprites/props/prop_bell.png",
+    "json": "assets/sprites/props/prop_bell.json",
+    "w": 14,
+    "h": 16,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_bell_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Brass ship's bell hanging from an iron wall bracket; the wall plate is on the LEFT edge (x0..1), so place it against a wall to its left (flipX for a wall on the right). Clapper/lanyard at the bottom."
+  },
+  {
+    "key": "prop_buoy",
+    "kind": "buoy",
+    "png": "assets/sprites/props/prop_buoy.png",
+    "json": "assets/sprites/props/prop_buoy.json",
+    "w": 14,
+    "h": 24,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_buoy_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Red channel buoy (squat float, open lattice tower, red lamp) in the river. Origin bottom-centre at the waterline (row 23 = ripple). idle = 2f@400ms: lamp on (centre ~(6,3)) / lamp off with the buoy bobbed up 1 px. Decor in the water; can drift with the background."
+  },
+  {
+    "key": "prop_boiler_lamp",
+    "kind": "boiler_lamp",
+    "png": "assets/sprites/props/prop_boiler_lamp.png",
+    "json": "assets/sprites/props/prop_boiler_lamp.json",
+    "w": 10,
+    "h": 14,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_boiler_lamp_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Caged bulkhead work lamp for the dark boiler-room passage; hangs from its mounting plate (rows 0..1, mount to a ceiling/beam: with origin bottom-centre, place the sprite bottom 14 px below the ceiling). Bulb centre (4,8) for an additive warm glow. idle = 4f@120ms flicker (bright, mid, bright, dim)."
+  },
+  {
+    "key": "prop_rope_coil",
+    "kind": "rope_coil",
+    "png": "assets/sprites/props/prop_rope_coil.png",
+    "json": "assets/sprites/props/prop_rope_coil.json",
+    "w": 16,
+    "h": 8,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_rope_coil_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Coil of mooring rope lying on deck, loose end trailing right. Decor."
+  },
+  {
+    "key": "prop_drum_rack",
+    "kind": "drum_rack",
+    "png": "assets/sprites/props/prop_drum_rack.png",
+    "json": "assets/sprites/props/prop_drum_rack.json",
+    "w": 32,
+    "h": 24,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_drum_rack_idle"
+    ],
+    "body": [
+      0,
+      3,
+      32,
+      21
+    ],
+    "destructible": false,
+    "hp": null,
+    "notes": "Three lashed oil drums (steel, rust-brown, steel; hazard diamond on the middle one) in a timber rack on a skid. Decor with a solid look; body given if you want it as cover/platform (top at row 3)."
+  },
+  {
+    "key": "prop_wheelhouse_light",
+    "kind": "wheelhouse_light",
+    "png": "assets/sprites/props/prop_wheelhouse_light.png",
+    "json": "assets/sprites/props/prop_wheelhouse_light.json",
+    "w": 16,
+    "h": 16,
+    "origin": [
+      0.5,
+      1
+    ],
+    "tags": [
+      "prop_wheelhouse_light_idle"
+    ],
+    "body": null,
+    "destructible": false,
+    "hp": null,
+    "notes": "Small searchlight on a yoke and pedestal for the wheelhouse roof, facing RIGHT (flipX to face left). Lens centre ~(13,6) (x13..14, y2..10) for a beam/glow. idle = 2f@600ms (lens bright / slightly dimmer, glint moves)."
+  }
+]

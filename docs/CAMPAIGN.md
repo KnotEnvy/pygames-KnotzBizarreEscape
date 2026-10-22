@@ -12,19 +12,21 @@ Score, lives, bombs, weapon, ammo and the rescue tally carry from part to part. 
 Between parts there's a **PART CLEAR** tally, then a **title card** with a short radio briefing (story stays light:
 one to three lines a part).
 
-## The escape route (outline; only Mission 1 is being built)
+## The escape route and the mech hunt (outline)
 
 Knotz breaks out of the Bizarre Regime's mountain prison and flees south. Radio contact **Hazel** (resistance
 operator, heard on the radio, never seen) guides him. Behind every war machine is the Regime's mad engineer,
-**Dr. Von Antler**, who builds animal-shaped war machines.
+**Dr. Von Antler**, who builds animal-shaped war mechs. When MOOSEZILLA falls (end of Mission 1), Von Antler opens the pens:
+his menagerie of war mechs **escapes** and heads south toward the city, **Port Delacroix**. From Mission 2 on, Knotz and
+Hazel **hunt the escaped mechs down to save the city**. Every mission has several different mechs to fight.
 
 | # | Mission | Biome | Main boss |
 |---|---|---|---|
-| 1 | **Pine Ridge Breakout** | Snowy mountains: prison camp, logging railway, frozen lake | **MOOSEZILLA** |
-| 2 | Rust Canyon *(future)* | Desert mining railyard | Sand-scorpion drill tank |
-| 3 | Bayou Blackout *(future)* | Swamp, stilt villages | Gator-naut |
-| 4 | Neon Harbor *(future)* | Night city docks | Octo-dreadnought |
-| 5 | The Bizarre Citadel *(future)* | Regime HQ | Von Antler's mech, KING ANTLER |
+| 1 | **Pine Ridge Breakout** ✅ | Snowy mountains: prison camp, logging railway, frozen lake | **MOOSEZILLA** |
+| 2 | **Bayou Blackout** (Phase G, [MISSION2.md](MISSION2.md)) | Deep cypress forest and river bayous | **GATORGEDDON** (mech alligator); mid-bosses SHELLSHOCK (mech snapping turtle) and MEGA-SKEETER (mech mosquito gunship) |
+| 3 | Rust Canyon *(future)* | Desert mining railyard | Sand-scorpion drill mech |
+| 4 | Neon Harbor *(future)* | Night city docks on the edge of Port Delacroix | Octo-dreadnought |
+| 5 | The Bizarre Citadel *(future)* | The city / Regime HQ | **The final boss is an Arachnid mech**, Von Antler's masterpiece (working name WIDOWMAKER). It must be the most epic fight in the game |
 
 ## Mission 1: Pine Ridge Breakout
 
@@ -141,7 +143,8 @@ The key is `localStorage['kbe.progress.v1']`, and it must work without storage. 
 
 ### Assets
 Each part's map is listed in the level pack (`m1p1`, `m1p2`, `m1p3`). Per-part backgrounds go under
-`backgrounds/m1p2/`, `backgrounds/m1p3/`. Everything still loads at boot (small); lazy per-mission loading comes with Mission 2.
+`backgrounds/m1p2/`, `backgrounds/m1p3/`. Mission 1 loads at boot. **From Mission 2 on**, each team lists that mission's assets in
+`packs/<team>.m<N>.json`, and Engine loads them when a part of mission N starts (see MISSION2.md).
 
 ### Tiled additions (Levels owns)
 - Boss objects: `boss` + `kind=snowcat|ironhorn|moosezilla` in a `camera_lock` arena. The gate prop is optional (no gate → boss

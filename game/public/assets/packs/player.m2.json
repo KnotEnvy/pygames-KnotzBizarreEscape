@@ -1,0 +1,47 @@
+{
+  "player_m2": {
+    "files": [
+      {
+        "type": "aseprite",
+        "key": "knotz_torso_shotgun",
+        "textureURL": "assets/sprites/player/knotz_torso_shotgun.png",
+        "atlasURL": "assets/sprites/player/knotz_torso_shotgun.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "knotz_sink",
+        "textureURL": "assets/sprites/player/knotz_sink.png",
+        "atlasURL": "assets/sprites/player/knotz_sink.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "knotz_crawl",
+        "textureURL": "assets/sprites/player/knotz_crawl.png",
+        "atlasURL": "assets/sprites/player/knotz_crawl.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "shotgun_pellet",
+        "textureURL": "assets/sprites/player/shotgun_pellet.png",
+        "atlasURL": "assets/sprites/player/shotgun_pellet.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "shotgun_shell",
+        "textureURL": "assets/sprites/player/shotgun_shell.png",
+        "atlasURL": "assets/sprites/player/shotgun_shell.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "pickup_shotgun",
+        "textureURL": "assets/sprites/player/pickup_shotgun.png",
+        "atlasURL": "assets/sprites/player/pickup_shotgun.json"
+      },
+      {
+        "type": "json",
+        "key": "knotz_m2_meta",
+        "url": "assets/sprites/player/knotz_m2_meta.json"
+      }
+    ]
+  }
+}

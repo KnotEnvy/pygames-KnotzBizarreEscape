@@ -200,6 +200,24 @@ ICONS.laser = grid(16, 16, {
   "................",
   "................",
   "................" })
+-- Phase G: the shotgun (pump gun, wooden stock, sand furniture) with the Metal Slug "S" badge in the corner.
+ICONS.shotgun = grid(16, 16, {
+  "................",
+  "................",
+  ".......oooooooo.",
+  ".oooooooDDDDDDDo",
+  "oNnnnDDCCCCCCCCo",
+  "oNnnnDDoCBBBoooo",
+  ".ooooooooBBoo...",
+  "......oNNo.oo...",
+  ".....oNNo.......",
+  "....oNNo..oooo..",
+  "....ooo..oYyyYo.",
+  ".........oYoooo.",
+  ".........oYyyYo.",
+  ".........ooooYo.",
+  ".........oYyyYo.",
+  "..........oooo.." })
 ICONS.lock = grid(16, 16, {
   "................",
   "................",
@@ -278,7 +296,7 @@ U.sheet{ name = "ui_icons", w = 16, h = 16, src = SRC .. "ui_icons.aseprite", sh
     { name = "icon_rocket", img = ICONS.rocket }, { name = "icon_flame", img = ICONS.flame }, { name = "icon_bomb", img = ICONS.bomb },
     { name = "icon_life", img = ICONS.life }, { name = "icon_pow", img = ICONS.pow }, { name = "icon_medal", img = ICONS.medal },
     { name = "icon_skull", img = ICONS.skull }, { name = "icon_check", img = ICONS.check },
-    { name = "icon_laser", img = ICONS.laser }, { name = "icon_lock", img = ICONS.lock },
+    { name = "icon_laser", img = ICONS.laser }, { name = "icon_lock", img = ICONS.lock }, { name = "icon_shotgun", img = ICONS.shotgun },
     { name = "ui_cursor", ms = 120, frames = { ICONS.cursor1, ICONS.cursor3, ICONS.cursor2, ICONS.cursor3 } },
   } }
 

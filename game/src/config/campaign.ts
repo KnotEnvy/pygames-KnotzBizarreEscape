@@ -46,6 +46,32 @@ export const CAMPAIGN: MissionDef[] = [
                 briefing: ["Von Antler's lab is across the lake. Whatever he's got in there, end it, then we're gone."]
             }
         ]
+    },
+    {
+        // Phase G (docs/MISSION2.md): Von Antler's escaped war mechs head south for Port Delacroix.
+        id: 2,
+        name: 'BAYOU BLACKOUT',
+        biome: 'bayou',
+        parts: [
+            {
+                id: '2-1', mission: 2, part: 1, title: 'CYPRESS DEEP', location: 'Blackwater Bayou',
+                map: 'm2p1', music: 'music_m2p1', final: false,
+                briefing: [
+                    'Bad news, Knotz. Von Antler opened the pens. His war mechs are loose and heading for Port Delacroix.',
+                    'Their trail runs through Blackwater Bayou. Hunt them down.'
+                ]
+            },
+            {
+                id: '2-2', mission: 2, part: 2, title: 'RIVER RUN', location: 'Blackwater River',
+                map: 'm2p2', music: 'music_m2p2', final: false,
+                briefing: ['That turtle was the welcome party. A Regime riverboat is hauling fuel cells to something big downriver. Get aboard and stop it.']
+            },
+            {
+                id: '2-3', mission: 2, part: 3, title: "GATOR'S DEN", location: 'The Drowned Mill',
+                map: 'm2p3', music: 'music_m2p3', final: true,
+                briefing: ["That boat was feeding GATORGEDDON, Von Antler's prize. It nests under the old mill. Put it down, Knotz. The city's counting on us."]
+            }
+        ]
     }
 ];
 
@@ -65,6 +91,12 @@ export function nextPart(id: PartId): PartDef | null {
         if (i >= 0) return m.parts[i + 1] ?? null;
     }
     return null;
+}
+
+/** Phase G: the first part of the mission after `id`'s mission, else null (the last mission). */
+export function nextMissionStart(id: PartId): PartDef | null {
+    const i = CAMPAIGN.findIndex(m => m.parts.some(p => p.id === id));
+    return i >= 0 ? CAMPAIGN[i + 1]?.parts[0] ?? null : null;
 }
 
 export function missionOf(id: PartId): MissionDef | undefined {

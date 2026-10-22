@@ -1,0 +1,83 @@
+{ "frames": {
+   "prop_waterwheel#0": {
+    "frame": { "x": 0, "y": 0, "w": 112, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 112 },
+    "sourceSize": { "w": 112, "h": 112 },
+    "duration": 120
+   },
+   "prop_waterwheel#1": {
+    "frame": { "x": 113, "y": 0, "w": 112, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 112 },
+    "sourceSize": { "w": 112, "h": 112 },
+    "duration": 120
+   },
+   "prop_waterwheel#2": {
+    "frame": { "x": 226, "y": 0, "w": 112, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 112 },
+    "sourceSize": { "w": 112, "h": 112 },
+    "duration": 120
+   },
+   "prop_waterwheel#3": {
+    "frame": { "x": 0, "y": 113, "w": 112, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 112 },
+    "sourceSize": { "w": 112, "h": 112 },
+    "duration": 120
+   },
+   "prop_waterwheel#4": {
+    "frame": { "x": 113, "y": 113, "w": 112, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 112 },
+    "sourceSize": { "w": 112, "h": 112 },
+    "duration": 120
+   },
+   "prop_waterwheel#5": {
+    "frame": { "x": 226, "y": 113, "w": 112, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 112 },
+    "sourceSize": { "w": 112, "h": 112 },
+    "duration": 120
+   },
+   "prop_waterwheel#6": {
+    "frame": { "x": 0, "y": 226, "w": 112, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 112 },
+    "sourceSize": { "w": 112, "h": 112 },
+    "duration": 120
+   },
+   "prop_waterwheel#7": {
+    "frame": { "x": 113, "y": 226, "w": 112, "h": 112 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 112, "h": 112 },
+    "sourceSize": { "w": 112, "h": 112 },
+    "duration": 120
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.3.18.6-dev",
+  "image": "prop_waterwheel.png",
+  "format": "RGBA8888",
+  "size": { "w": 338, "h": 338 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "prop_waterwheel_spin", "from": 0, "to": 7, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "main", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

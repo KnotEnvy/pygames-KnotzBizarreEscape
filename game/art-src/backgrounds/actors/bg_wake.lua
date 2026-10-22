@@ -1,0 +1,95 @@
+-- Background actor: a big V wake + bubble trail on far water, travelling LEFT (something huge swims beneath).
+-- 64x10, origin BOTTOM-CENTRE. Apex (displaced water hump) at the left; arms spread back to the right in flat perspective
+-- (far arm rises toward the horizon, near arm drops). Low contrast: steel3/ink3 foam, steel2/ink2 as it fades.
+-- Tag bg_wake_run 4 f @100 ms: foam dashes crawl back along the arms, bubbles pop along the centre line.
+-- Build: bash tools/build-art.sh art-src/backgrounds/actors/bg_wake.lua
+local K = dofile(app.params.kbe)
+local ROOT = app.params.root
+local W, HH = 64, 10
+
+-- deterministic hash in [0,1)
+local function H(x, y, s)
+  local h = (math.floor(x) * 374761393 + math.floor(y) * 668265263 + math.floor(s or 0) * 1442695041) & 0xffffffff
+  h = ((h ~ (h >> 13)) * 1274126177) & 0xffffffff
+  h = h ~ (h >> 16)
+  return h / 4294967296
+end
+-- pixel buffer of palette names (key y*W+x)
+local function inb(x, y) return x >= 0 and y >= 0 and x < W and y < HH end
+local function set(c, x, y, col) x, y = math.floor(x + 0.5), math.floor(y + 0.5); if inb(x, y) then c[y * W + x] = col end end
+local function get(c, x, y) if not inb(x, y) then return nil end return c[y * W + x] end
+local function del(c, x, y) if inb(x, y) then c[y * W + x] = nil end end
+local function rect(c, x, y, w, h, col) for j = y, y + h - 1 do for i = x, x + w - 1 do set(c, i, j, col) end end end
+local function ell(c, cx, cy, rx, ry, col)
+  for j = math.floor(cy - ry - 1), math.ceil(cy + ry + 1) do for i = math.floor(cx - rx - 1), math.ceil(cx + rx + 1) do
+    local dx, dy = (i - cx) / rx, (j - cy) / ry
+    if dx * dx + dy * dy <= 1.0 then set(c, i, j, col) end
+  end end
+end
+local function disc(c, cx, cy, r, col) ell(c, cx, cy, r + 0.3, r + 0.3, col) end
+local function poly(c, pts, col)
+  local minx, maxx, miny, maxy = 1e9, -1e9, 1e9, -1e9
+  for _, p in ipairs(pts) do minx = math.min(minx, p[1]); maxx = math.max(maxx, p[1]); miny = math.min(miny, p[2]); maxy = math.max(maxy, p[2]) end
+  for y = math.floor(miny), math.ceil(maxy) do for x = math.floor(minx), math.ceil(maxx) do
+    local inside, j = false, #pts
+    for i = 1, #pts do
+      local xi, yi, xj, yj = pts[i][1], pts[i][2], pts[j][1], pts[j][2]
+      if ((yi > y + 0.5) ~= (yj > y + 0.5)) and (x + 0.5 < (xj - xi) * (y + 0.5 - yi) / (yj - yi) + xi) then inside = not inside end
+      j = i
+    end
+    if inside then set(c, x, y, col) end
+  end end
+end
+local function line(c, x0, y0, x1, y1, col)
+  x0, y0, x1, y1 = math.floor(x0 + 0.5), math.floor(y0 + 0.5), math.floor(x1 + 0.5), math.floor(y1 + 0.5)
+  local dx, dy = math.abs(x1 - x0), -math.abs(y1 - y0)
+  local sx, sy = x0 < x1 and 1 or -1, y0 < y1 and 1 or -1; local err = dx + dy
+  while true do set(c, x0, y0, col); if x0 == x1 and y0 == y1 then break end
+    local e2 = 2 * err; if e2 >= dy then err = err + dy; x0 = x0 + sx end; if e2 <= dx then err = err + dx; y0 = y0 + sy end end
+end
+local function thick(c, x0, y0, x1, y1, r, col)
+  local n = math.max(1, math.ceil(math.max(math.abs(x1 - x0), math.abs(y1 - y0))))
+  for i = 0, n do local t = i / n; if r <= 0 then set(c, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, col) else disc(c, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, r, col) end end
+end
+local function copy(c) local o = {}; for k, v in pairs(c) do o[k] = v end; return o end
+local function flush(c) return function(img) for k, col in pairs(c) do img:drawPixel(k % W, k // W, K.color(col)) end end end
+local function frame(f)
+  return function(img)
+    local c = {}
+    -- hump of displaced water at the apex
+    for x = 2, 9 do set(c, x, 5, (x < 7) and "steel3" or "steel2") end
+    for x = 3, 6 do set(c, x, 4, "steel2") end
+    set(c, 1, 5, "ink4"); set(c, 2, 4, (f % 2 == 0) and "ink4" or "steel3")
+    -- arms
+    for x = 6, 63 do
+      local t = (x - 6) / 57
+      local ya = 4.5 - t * 4.2              -- far arm
+      local yb = 5.6 + t * 4.2              -- near arm
+      local phase = (x + f * 2) % 7
+      local dense = 1 - t
+      local onA = phase < 4 + math.floor(dense * 3) and H(x, 1, f // 2) < 0.4 + dense * 0.8
+      local onB = ((x + f * 2 + 3) % 7) < 4 + math.floor(dense * 3) and H(x, 2, f // 2) < 0.4 + dense * 0.8
+      local ca = (t < 0.35) and "steel3" or ((t < 0.7) and "ink3" or "ink2")
+      local cb = (t < 0.35) and "steel3" or ((t < 0.7) and "steel2" or "ink2")
+      if onA then set(c, x, ya, ca) end
+      if onB then set(c, x, yb, cb) end
+    end
+    -- centre-line bubble trail
+    for x = 9, 44 do
+      local k = (x + f * 3) % 9
+      if k == 0 then set(c, x, 6, "ink3") elseif k == 4 and x < 30 then set(c, x, 5, "ink4") elseif k == 6 then set(c, x, 6, "steel2") end
+    end
+    -- churn just behind the hump
+    for i = 0, 3 do local x = 9 + ((i * 3 + f) % 8); set(c, x, 6 + (i % 2) * 0, (i % 2 == 0) and "steel3" or "ink3") end
+    flush(c)(img)
+  end
+end
+local frames = {}; for f = 1, 4 do frames[f] = { grid = frame(f) } end
+K.build{
+  name = "bg_wake", w = W, h = HH,
+  src = ROOT .. "/art-src/backgrounds/actors/bg_wake.aseprite",
+  sheet = ROOT .. "/public/assets/sprites/bg/bg_wake.png",
+  data = ROOT .. "/public/assets/sprites/bg/bg_wake.json",
+  anims = { { tag = "bg_wake_run", ms = 100, frames = frames } },
+  anchor = "bottom-center",
+}

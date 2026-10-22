@@ -21,7 +21,7 @@ from kbe_synth import (SR, adsr, bandpass, decay, distort, expsweep, filter_swee
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.normpath(os.path.join(HERE, "..", "..", "public", "assets", "audio", "music"))
 
-DRUM = dict(k=36, s=38, h=42, o=46, c=49, tl=45, tm=47, th=50, r=51, g=37, w=76)
+DRUM = dict(k=36, s=38, h=42, o=46, c=49, tl=45, tm=47, th=50, r=51, g=37, w=76, wb=39, ti=41)
 
 
 # ----------------------------------------------------------------- instruments: fn(midi, dur_s, vel) -> mono
@@ -213,7 +213,79 @@ def inst_drums(midi, dur, vel):
         return _tom(200, vel)
     if midi == 76:
         return _block(vel)
+    if midi == 39:
+        return _washboard(vel)
+    if midi == 41:
+        return _timpani(vel)
     return np.zeros(10)
+
+
+# ----------------------------------------------------------------- Phase G (Mission 2): bayou instruments
+def inst_slide(midi, dur, vel):
+    """Slide guitar: glides into the note from about a semitone below over ~110 ms, wide slow vibrato, saw+tri body, light drive."""
+    d = dur + 0.25
+    f0 = midi_to_freq(midi)
+    glide = lin(d, [(0, 0.9), (0.11, 1.0), (d, 1.0)])
+    f = f0 * glide * _vibrato(d, 5.2, 0.012, 0.2)
+    x = saw(f, d) * 0.55 + tri(f, d) * 0.45 + sine(2 * f, d) * 0.1
+    x = lowpass(x, 2600)
+    x = distort(x, 1.6)
+    return x * adsr(d, 0.01, 0.15, 0.7, 0.25) * vel * 0.6
+
+
+def inst_banjo(midi, dur, vel):
+    """Banjo-ish pluck: bright snap, fast decay, a touch of body resonance."""
+    d = min(dur, 0.35) + 0.08
+    f = midi_to_freq(midi)
+    x = square(f, d, 0.35) * 0.5 + saw(f * 1.002, d) * 0.5 + sine(2 * f, d) * 0.2
+    cutoff = lin(d, [(0, 6500), (0.08, 1600), (d, 900)])
+    x = filter_sweep(x, "lp", cutoff, 1.2)
+    return x * perc(d, 0.001, 0.12) * vel * 0.8
+
+
+def inst_harp(midi, dur, vel):
+    """Harmonica: reedy pulse with vibrato through a nasal peak, slow-ish attack."""
+    d = dur + 0.12
+    f = midi_to_freq(midi) * _vibrato(d, 6.0, 0.01, 0.15)
+    x = pulse(f, d, 0.45) * 0.6 + saw(f, d) * 0.4
+    x = S.peak_eq(lowpass(x, 3800), 1900, 6, 1.5)
+    return x * adsr(d, 0.05, 0.1, 0.8, 0.12) * vel * 0.5
+
+
+def inst_choir(midi, dur, vel):
+    """Choir / string pad for the epic theme: wide supersaw with a vowel-ish peak, slow attack and release."""
+    d = dur + 0.5
+    f = midi_to_freq(midi)
+    x = supersaw(f, d, 7, 0.018)
+    x = S.peak_eq(highpass(lowpass(x, 1500), 120), 650, 5, 1.2)
+    return x * adsr(d, 0.3, 0.2, 0.85, 0.45) * vel * 0.5
+
+
+def inst_chug_low(midi, dur, vel):
+    """Heavier, lower chug for the storm theme: longer gate, more drive."""
+    d = min(dur, 0.3) + 0.05
+    f = midi_to_freq(midi)
+    x = saw(f, d) + saw(f * 1.004, d) * 0.8 + square(f * 0.5, d, 0.5) * 0.5
+    cutoff = lin(d, [(0, 2800), (0.08, 700), (d, 380)])
+    x = filter_sweep(x, "lp", cutoff, 1.3)
+    x = distort(x, 3.0) * 0.5
+    return x * perc(d, 0.002, 0.12) * vel
+
+
+def _washboard(vel):
+    """Washboard scrape: a 45 Hz ratchet on band-passed noise with a thimble ring."""
+    d = 0.1
+    x = bandpass(noise(d), 3600, 2.0) * (0.5 + 0.5 * square(45, d, 0.5)) * perc(d, 0.001, 0.035)
+    x += sine(4300, d) * perc(d, 0.0005, 0.012) * 0.3
+    return x * vel * 0.8
+
+
+def _timpani(vel):
+    d = 1.0
+    x = sine(expsweep(d, 98, 82), d) * perc(d, 0.002, 0.3)
+    x = distort(x, 1.4)
+    mallet = lowpass(noise(0.04), 800) * perc(0.04, 0.001, 0.01) * 0.6
+    return S.mix(x, mallet) * vel
 
 
 # ----------------------------------------------------------------- sequencer
@@ -369,6 +441,10 @@ def bassline(song, track, bar0, chords, style="drive", octave=2, vel=1.0):
             steps = [(0, 6, r), (6, 2, r + 7), (8, 4, r), (12, 2, r + 7), (14, 2, walk)]
         elif style == "tension":
             steps = [(0, 4, r), (4, 4, r), (8, 4, r), (12, 3, r), (15, 1, r + 1)]
+        elif style == "swamp":    # Phase G: lazy swing: root, fifth on the 'and', flat seventh pickup
+            steps = [(0, 3, r), (3, 1, r), (4, 2, r + 7), (6, 2, r), (8, 3, r), (11, 1, r + 10), (12, 2, r + 7), (14, 2, walk)]
+        elif style == "doom":     # Phase G: long roots with an octave drop and a chromatic approach
+            steps = [(0, 8, r), (8, 4, r - 12), (12, 2, r), (14, 1, r + 6), (15, 1, walk)]
         else:
             raise ValueError(style)
         for st, ln, m in steps:
@@ -451,6 +527,32 @@ def beat(song, track, bar0, nbars, style, fill_every=4, crash_first=True, vel=1.
             g = dict(k="x.x.x.x.x.x.x.x.", s="....X.......X...", h="x.x.x.x.x.x.x.x.", r="")
             if last:
                 g = dict(k="x.x.x.x.x.x.....", s="....X...X.X.XXXX", h="x.x.x.x.........", tl="............x...", th="..............x.")
+        elif style == "swamp":       # Phase G 2-1: lazy kick, washboard off-beats, shaker 8ths
+            g = dict(k="x.......x..x...." if i % 2 == 0 else "x.......x.......", s="....x.......x...", h="x.x.x.x.x.x.x.x.", wb="..x...x...x...x.")
+            if last:
+                g = dict(k="x.......x.......", s="....x.......xxXX", h="x.x.x.x.x.x.....", wb="..x...x...xxxxxx")
+        elif style == "swamp_light":
+            g = dict(h="x.x.x.x.x.x.x.x.", wb="..x...x...x...x.", k="x..............." if i >= 2 else "")
+        elif style == "river":       # Phase G 2-2: driving kick, snare backbeat, washboard 16ths
+            g = dict(k="x.x.x.x.x.x.x.x.", s="....X.......X...", h="x.x.x.x.x.x.x.o.", wb="x.xxx.xxx.xxx.xx")
+            if last:
+                g = dict(k="x.x.x.x.x.x.....", s="....X...X.X.XXXX", h="x.x.x.x.........", wb="x.xxx.xxx.......", tl="............x...", th="..............x.")
+        elif style == "doom":        # Phase G 2-3: half-time, timpani on the one, ride
+            g = dict(k="x.........x.....", s="........x.......", r="x...x...x...x...", ti="x...............")
+            if last:
+                g = dict(k="x.........x.....", s="........x...xxXX", r="x...x...x...x...", ti="x.......x.......", th="..............x.")
+        elif style == "doom_build":
+            g = dict(k="x...x...x...x...", s="........x.......", h="x.x.x.x.x.x.x.x.", r="x...x...x...x...", ti="x...............")
+            if last:
+                g = dict(k="x...x...x...x...", s="........x...xxXX", h="x.x.x.x.x.x.....", ti="x.......x.......")
+        elif style == "epic":        # Phase G GATORGEDDON: thrash gallop with timpani
+            g = dict(k="x.xxx.x.x.xxx.x.", s="....X.......X...", h="x.x.x.x.x.x.x.x.", ti="x.......x.......")
+            if last:
+                g = dict(k="x.xxx.x.x.......", s="....X...XXXXxxXX", h="x.x.x.x.........", ti="x.......x...x...", tl="............x...", th="..............x.")
+        elif style == "epic_half":
+            g = dict(k="x.........x.....", s="........x.......", r="x...x...x...x...", ti="x.......x.......")
+            if last:
+                g = dict(k="x.........x.....", s="........x...xxXX", r="x...x...x...x...", ti="x.......x.......", th="..............x.")
         elif style == "none":
             g = {}
         else:
@@ -905,6 +1007,347 @@ def song_part_clear():
     return s, tracks
 
 
+# ----------------------------------------------------------------- Phase G: Mission 2 "Bayou Blackout"
+def _lead_bars(s, track, bar0, bars, transpose=0, vel=1.0, gate=0.9):
+    pos = bar0
+    for bar_pat in bars:
+        pos = s.pat(track, pos, bar_pat, transpose, vel, gate)
+    return pos
+
+
+def song_m2p1():
+    """'Cypress Deep' (2-1) - E minor swamp blues, 108 BPM swung, 40 bars (~89 s), seamless loop. Slide guitar over a banjo
+    ostinato, washboard and shaker, a lazy bass, harmonica tension on the B section (Bb against E)."""
+    s = Song("music_m2p1", 108, 40, swing=0.12)
+    A = ["Em", "Em", "G", "Em", "Em", "C", "B7", "Em"]
+    B = ["Am", "Am", "Em", "Em", "C", "Bb", "B7", "B7"]
+    T = ["Em", "G", "B7", "Em"]
+    INTRO = ["Em", "Em", "Em", "Em"]
+    lead = {
+        "A": ["r:4 e5:4 g5:2 a5:6", "b5:8 a5:4 g5:4", "r:4 e5:2 g5:2 a5:4 b5:4", "d6:6 b5:2 a5:8",
+              "r:4 g5:4 a5:2 b5:6", "a5:4 g5:4 e5:8", "r:2 d5:2 e5:4 g5:4 a5:4", "b5:4 a5:2 g5:2 e5:8"],
+        "B": ["a5:8 c6:4 b5:4", "a5:4 g5:4 e5:8", "r:4 b5:4 d6:4 e6:4", "d6:2 b5:2 a5:4 g5:8",
+              "c6:8 b5:4 a5:4", "bb5:8 a5:4 g5:4", "d#5:4 f#5:4 a5:4 b5:4", "b5:16"],
+        "T": ["e6:8 d6:4 b5:4", "a5:4 g5:4 e5:8", "r:4 b4:4 d5:4 e5:4", "g5:2 e5:2 d5:4 e5:8"],
+        "intro": ["r:16", "r:16", "r:8 e5:4 g5:4", "a5:4 g5:4 e5:8"],
+    }
+    harp = {
+        "B": ["r:8 e5:4 g5:4", "a5:8 r:8", "r:8 g5:4 a5:4", "b5:8 r:8", "r:8 e5:2 g5:2 c6:4", "bb5:8 r:8", "r:4 d#5:4 f#5:8", "r:16"],
+    }
+    sections = [(0, INTRO, "intro"), (4, A, "A1"), (12, A, "A2"), (20, B, "B"), (28, A, "A3"), (36, T, "T")]
+    for bar0, chords, tag in sections:
+        kind = tag[0] if tag[0] in "ABT" else tag
+        if tag == "intro":
+            beat(s, "drums", 0, 4, "swamp_light", 4, False)
+            arpeggio(s, "banjo", 0, chords, 4, (0, 2, 1, 3), 2, 0.6)
+            sustain(s, "pad", 0, chords, 3, 0.6)
+            s.hit("bass", 2, 0, root_midi("E", 2), 14, 0.8)
+            s.hit("bass", 3, 0, root_midi("E", 2), 14, 0.8)
+        elif kind == "B":
+            bassline(s, "bass", bar0, chords, "swamp", 2)
+            beat(s, "drums", bar0, 8, "swamp", 4)
+            arpeggio(s, "banjo", bar0, chords, 4, (0, 1, 2, 3, 2, 1), 2, 0.7)
+            sustain(s, "pad", bar0, chords, 3, 0.8)
+            _lead_bars(s, "harp", bar0, harp["B"], 0, 0.9)
+        elif kind == "T":
+            bassline(s, "bass", bar0, chords, "swamp", 2)
+            beat(s, "drums", bar0, 4, "swamp", 4)
+            arpeggio(s, "banjo", bar0, chords, 4, (0, 2, 1, 3), 2, 0.7)
+            stabs(s, "organ", bar0, chords, "x.......x.......", 3, 0.5, 4)
+        else:
+            bassline(s, "bass", bar0, chords, "swamp", 2)
+            beat(s, "drums", bar0, 8, "swamp" if tag != "A1" else "swamp_light", 4, tag != "A1")
+            arpeggio(s, "banjo", bar0, chords, 4, (0, 2, 1, 3) if kind == "A" else (0, 1, 2, 1), 2, 0.7 if tag != "A1" else 0.6)
+            if tag in ("A2", "A3"):
+                sustain(s, "pad", bar0, chords, 3, 0.6)
+            if tag == "A3":
+                stabs(s, "organ", bar0, chords, "x.......x.......", 3, 0.45, 4)
+        if kind in lead:
+            _lead_bars(s, "slide", bar0, lead[kind], 0, 1.0 if tag != "A1" else 0.85, 0.95)
+            if tag == "A3":
+                _lead_bars(s, "slide2", bar0, lead[kind], -12, 0.5, 0.95)
+    tracks = {
+        "drums": dict(inst=inst_drums, gain=0.78, reverb=0.12, comp=True),
+        "bass": dict(inst=inst_bass, gain=0.7, lp=1200),
+        "banjo": dict(inst=inst_banjo, gain=0.4, pan=0.35, reverb=0.18, comp=True),
+        "pad": dict(inst=inst_pad, gain=0.85, pan=-0.3, reverb=0.3),
+        "organ": dict(inst=inst_organ, gain=0.4, pan=-0.2, reverb=0.3),
+        "harp": dict(inst=inst_harp, gain=0.55, pan=0.25, reverb=0.3),
+        "slide": dict(inst=inst_slide, gain=0.62, pan=-0.12, reverb=0.28, delay=(60 / 108 * 0.75, 0.3, 0.2)),
+        "slide2": dict(inst=inst_slide, gain=0.4, pan=0.3, reverb=0.25),
+    }
+    return s, tracks
+
+
+def song_m2p2():
+    """'River Run' (2-2) - D minor river chase, 164 BPM, 48 bars (~70 s), seamless loop. Chug 8ths, driving kit with washboard
+    16ths, brass lead, slide answers, a half-time breakdown for the fog bank."""
+    s = Song("music_m2p2", 164, 48)
+    A = ["Dm", "Dm", "Bb", "C", "Dm", "Dm", "Gm", "A7"]
+    B = ["F", "C", "Dm", "Bb", "F", "C", "A7", "A7"]
+    C = ["Gm", "Gm", "Dm", "Dm", "Gm", "Bb", "A7", "A7"]
+    T = ["Dm", "Bb", "A7", "A7"]
+    INTRO = ["Dm", "Dm", "Dm", "Dm"]
+    lead = {
+        "A": ["d5:2 f5:2 a5:4 r:2 a5:2 g5:2 f5:2", "d5:2 f5:2 d5:8 r:4", "d5:2 f5:2 a5:4 r:2 c6:2 bb5:2 a5:2", "g5:2 a5:2 bb5:2 a5:2 g5:4 r:4",
+              "d5:2 f5:2 a5:4 r:2 d6:2 c6:2 a5:2", "bb5:2 a5:2 g5:2 a5:6 r:4", "g5:2 a5:2 bb5:2 c6:4 r:2 d6:2 c6:2", "a5:2 g5:2 e5:2 c#5:6 r:4"],
+        "B": ["f5:4 a5:2 c6:2 a5:4 g5:4", "e5:2 g5:2 c6:8 r:4", "d6:4 c6:2 a5:2 f5:4 d5:4", "f5:2 g5:2 bb5:8 r:4",
+              "f5:4 a5:2 c6:2 a5:4 c6:4", "e6:2 d6:2 c6:2 g5:2 e5:8", "a5:2 bb5:2 c#6:2 e6:2 g6:4 e6:4", "c#6:2 e6:2 a6:12"],
+        "C": ["g5:6 f5:2 d5:8", "r:4 d5:2 f5:2 g5:4 a5:4", "bb5:6 a5:2 g5:8", "r:16",
+              "g5:6 f5:2 d5:8", "r:4 d5:2 f5:2 bb5:4 d6:4", "c#6:6 e6:2 g6:8", "a6:2 g6:2 e6:2 c#6:2 a5:8"],
+        "T": ["d6:4 c6:2 a5:2 f5:8", "g5:2 a5:2 bb5:2 d6:2 f6:8", "e6:4 c#6:4 a5:4 e5:4", "f5:2 g5:2 a5:2 c#6:2 d6:4 r:4"],
+        "intro": ["r:16", "r:16", "r:16", "a4:2 c5:2 d5:2 f5:2 a5:8"],
+    }
+    sections = [(0, INTRO, "intro"), (4, A, "A1"), (12, A, "A2"), (20, B, "B1"), (28, C, "C"), (36, A, "A3"), (44, T, "T")]
+    for bar0, chords, tag in sections:
+        kind = tag[0] if tag[0] in "ABCT" else tag
+        if tag == "intro":
+            beat(s, "drums", 0, 4, "swamp_light", 4, False)
+            s.drums("drums", 3, dict(s="........x.x.xxxx", k="x.......x......."))
+            chug(s, "chug", 2, ["Dm", "Dm"], "x.x.x.x.x.x.x.x.", 3, 0.8)
+            for i in range(2, 4):
+                for st in (0, 4, 8):
+                    s.hit("bass", i, st, root_midi("D", 2), 2, 1.0)
+                s.hit("bass", i, 12, root_midi("D", 2) + 7, 2, 0.9)
+        elif kind == "C":
+            bassline(s, "bass", bar0, chords, "half")
+            beat(s, "drums", bar0, 8, "halftime", 4)
+            sustain(s, "pad", bar0, chords, 3, 0.8)
+            chug(s, "chug", bar0, chords, "x.......x.x.....", 3, 0.9, 2.0)
+            _lead_bars(s, "slide", bar0, lead["C"], 0, 0.9, 0.95)
+        elif kind == "T":
+            bassline(s, "bass", bar0, chords, "drive")
+            beat(s, "drums", bar0, 4, "river", 4)
+            chug(s, "chug", bar0, chords, "x.xxx.xxx.xxx.xx", 3, 0.85, 0.8)
+            stabs(s, "harm", bar0, chords, "x...x...x...x...", 4, 0.7)
+            _lead_bars(s, "brass", bar0, lead["T"], 0, 1.0, 0.9)
+        else:
+            bassline(s, "bass", bar0, chords, "pump" if kind == "A" else "drive")
+            beat(s, "drums", bar0, 8, "river" if tag != "A1" else "double", 4)
+            chug(s, "chug", bar0, chords, "x.x.x.x.x.x.x.x." if kind == "A" else "x.xxx.xxx.xxx.xx", 3, 0.85 if kind == "A" else 0.75, 1.0 if kind == "A" else 0.8)
+            if tag in ("A2", "A3", "B1"):
+                stabs(s, "harm", bar0, chords, "..x...x...x...x." if kind == "A" else "x.......x.......", 4, 0.6, 1.5 if kind == "A" else 3)
+            if tag == "A3":
+                sustain(s, "pad", bar0, chords, 3, 0.45)
+            if tag == "A1":
+                _lead_bars(s, "slide", bar0, lead["A"], 0, 0.8, 0.9)
+            else:
+                _lead_bars(s, "brass", bar0, lead[kind], 0, 1.0, 0.9)
+                if tag in ("A3", "B1"):
+                    _lead_bars(s, "lead2", bar0, lead[kind], -12 if tag == "A3" else -5, 0.5, 0.9)
+    tracks = {
+        "drums": dict(inst=inst_drums, gain=0.85, reverb=0.08, comp=True),
+        "bass": dict(inst=inst_bass, gain=0.7),
+        "chug": dict(inst=inst_chug, gain=0.55, pan=-0.22, comp=True),
+        "harm": dict(inst=inst_harm, gain=0.38, pan=0.35, reverb=0.12, comp=True),
+        "pad": dict(inst=inst_pad, gain=0.9, pan=-0.3, reverb=0.2),
+        "brass": dict(inst=inst_brass, gain=0.62, pan=-0.1, reverb=0.16, delay=(60 / 164 * 0.75, 0.25, 0.16)),
+        "slide": dict(inst=inst_slide, gain=0.55, pan=0.2, reverb=0.25, delay=(60 / 164 * 0.75, 0.3, 0.2)),
+        "lead2": dict(inst=inst_lead, gain=0.4, pan=0.3, reverb=0.14),
+    }
+    return s, tracks
+
+
+def song_m2p3():
+    """'Gator's Den' (2-3) - G minor storm doom, 92 BPM, 36 bars (~94 s), seamless loop. Half-time heavy chug on low power chords,
+    timpani, a dissonant organ (Ab against G), thunder swells, bells and a sparse slide wail."""
+    s = Song("music_m2p3", 92, 36)
+    A = ["Gm", "Gm", "Eb", "Gm", "Gm", "Ab", "D7", "Gm"]
+    B = ["Cm", "Gm", "Ab", "D7", "Cm", "Eb", "F#dim", "D7"]
+    T = ["Gm", "Ab", "D7", "Gm"]
+    INTRO = ["Gm", "Gm", "Ab", "Gm"]
+    lead = {
+        "A": ["r:8 g5:4 bb5:4", "d6:8 c6:4 bb5:4", "r:8 g5:4 ab5:4", "g5:12 r:4",
+              "r:8 d5:4 g5:4", "bb5:8 a5:4 g5:4", "r:4 eb5:4 d5:4 bb4:4", "g4:16"],
+        "B": ["c6:8 bb5:4 g5:4", "r:8 d5:4 g5:4", "ab5:8 g5:4 eb5:4", "f#5:4 a5:4 d5:8",
+              "c6:8 d6:4 eb6:4", "d6:8 bb5:4 g5:4", "eb6:4 c6:4 a5:4 f#5:4", "d5:16"],
+        "T": ["g5:8 ab5:8", "g5:12 r:4", "r:4 d5:4 eb5:4 f#5:4", "g5:16"],
+    }
+    sections = [(0, INTRO, "intro"), (4, A, "A1"), (12, B, "B1"), (20, A, "A2"), (28, B, "B2"), (32, T, "T")]
+    for bar0, chords, tag in sections:
+        kind = tag[0] if tag[0] in "ABT" else tag
+        sustain(s, "pad", bar0, chords, 2, 0.9)
+        s.hit("wind", bar0, 0, 48, 24, 0.8)
+        if tag == "intro":
+            arpeggio(s, "bell", bar0, chords, 5, (0, 2, 1, 3), 4, 0.5)
+            s.pat("organ", 2, "ab3+d4:16 g3+d4:16", 0, 0.5)
+            s.drums("drums", 3, dict(ti="x.......x.......", s="............xxXX"))
+        elif kind == "A":
+            bassline(s, "bass", bar0, chords, "doom", 2)
+            beat(s, "drums", bar0, 8, "doom", 4, tag == "A2")
+            chug(s, "chug", bar0, chords, "x.........x....." if tag == "A1" else "x...x.....x...x.", 2, 0.9, 3.0)
+            arpeggio(s, "bell", bar0, chords, 5, (0, 2, 1, 3), 4, 0.45)
+            s.pat("organ", bar0 + 5, "ab3+c4+eb4:16", 0, 0.55)
+            s.pat("organ", bar0 + 6, "d3+f#3+c4:16", 0, 0.5)
+            _lead_bars(s, "slide", bar0, lead["A"], 0, 0.9, 0.95)
+        elif kind == "B":
+            bassline(s, "bass", bar0, chords[:len(chords) if tag == "B1" else 4], "doom" if tag == "B1" else "pump", 2)
+            beat(s, "drums", bar0, 8 if tag == "B1" else 4, "doom_build", 4, tag == "B2")
+            chug(s, "chug", bar0, chords[:8 if tag == "B1" else 4], "x...x.x...x...x." if tag == "B1" else "x.x.x.x.x.x.x.x.", 2, 0.9, 2.0)
+            arpeggio(s, "bell", bar0, chords[:8 if tag == "B1" else 4], 5, (0, 1, 2, 3, 2, 1), 2, 0.5)
+            stabs(s, "organ", bar0, chords[:8 if tag == "B1" else 4], "x.......x.......", 3, 0.5, 3)
+            _lead_bars(s, "slide", bar0, lead["B"][:8 if tag == "B1" else 4], 0, 0.9, 0.95)
+            if tag == "B2":
+                _lead_bars(s, "slide2", bar0, lead["B"][:4], 12, 0.5, 0.95)
+        elif kind == "T":
+            bassline(s, "bass", bar0, chords, "half", 2)
+            beat(s, "drums", bar0, 4, "doom", 4, True)
+            chug(s, "chug", bar0, chords, "x.........x.....", 2, 0.9, 3.0)
+            s.pat("organ", bar0 + 1, "ab3+c4+eb4+g4:16", 0, 0.6)
+            s.pat("organ", bar0 + 2, "d3+f#3+a3+c4:16", 0, 0.6)
+            _lead_bars(s, "slide", bar0, lead["T"], 0, 0.9, 0.95)
+    tracks = {
+        "drums": dict(inst=inst_drums, gain=0.85, reverb=0.25, comp=True),
+        "bass": dict(inst=inst_bass_saw, gain=0.72, lp=800),
+        "chug": dict(inst=inst_chug_low, gain=0.6, pan=-0.2, comp=True),
+        "pad": dict(inst=inst_pad, gain=1.0, pan=0.0, reverb=0.4),
+        "bell": dict(inst=inst_bell, gain=0.38, pan=0.35, reverb=0.45, delay=(60 / 92 * 0.5, 0.35, 0.3)),
+        "organ": dict(inst=inst_organ, gain=0.5, pan=-0.3, reverb=0.35),
+        "slide": dict(inst=inst_slide, gain=0.58, pan=-0.1, reverb=0.4, delay=(60 / 92 * 0.5, 0.3, 0.25)),
+        "slide2": dict(inst=inst_slide, gain=0.35, pan=0.3, reverb=0.35),
+        "wind": dict(inst=inst_whoosh, gain=0.4, pan=0.2, hp=300),
+    }
+    return s, tracks
+
+
+def song_boss_m2():
+    """Mid-boss theme (SHELLSHOCK, MEGA-SKEETER) - B minor swamp chase, 172 BPM, 32 bars (~45 s), loop. Gallop bass, chase kit with
+    washboard 16ths, a hard lead doubled by slide bends, organ stabs."""
+    s = Song("music_boss_m2", 172, 32)
+    A = ["Bm", "Bm", "G", "A", "Bm", "Bm", "F#7", "F#7"]
+    B = ["Em", "Bm", "G", "F#7", "Em", "G", "A", "F#7"]
+    T = ["Bm", "G", "F#7", "F#7"]
+    INTRO = ["Bm", "Bm", "Bm", "F#7"]
+    lead = {
+        "A": ["b5:2 b5:1 b5:1 d6:2 c#6:2 b5:2 a5:2 b5:4", "f#6:2 f#6:1 f#6:1 e6:2 d6:2 c#6:4 a5:4", "g6:2 g6:1 g6:1 f#6:2 e6:2 d6:2 e6:2 f#6:4", "a6:2 g6:2 f#6:2 e6:2 d6:4 c#6:4",
+              "b5:2 b5:1 b5:1 d6:2 c#6:2 b5:2 a5:2 b5:4", "f#6:2 f#6:1 f#6:1 g6:2 f#6:2 e6:2 d6:2 c#6:4", "a#5:2 c#6:2 f#6:2 a#6:2 c#7:4 r:4", "c#7:2 a#6:2 f#6:2 c#6:2 a#5:8"],
+        "B": ["e6:4 d6:2 e6:2 g6:4 f#6:4", "d6:2 b5:2 d6:8 r:4", "g6:4 f#6:2 e6:2 d6:4 b5:4", "a#5:2 c#6:2 f#6:8 r:4",
+              "e6:4 d6:2 e6:2 g6:4 b6:4", "a6:4 g6:2 f#6:2 d6:8", "e6:2 g6:2 a6:4 c#7:4 e7:4", "f#7:2 e7:2 c#7:2 a#6:2 f#6:8"],
+        "T": ["b5:1 c6:1 c#6:1 d6:1 d#6:1 e6:1 f6:1 f#6:1 g6:1 g#6:1 a6:1 a#6:1 b6:4", "b6:2 r:2 b6:2 r:2 a6:2 g6:2 f#6:4", "a#6:2 r:2 a#6:2 r:2 c#7:2 a#6:2 f#6:4", "f#6:1 g6:1 f#6:1 e6:1 d6:1 c#6:1 a#5:1 a5:1 b5:8"],
+        "intro": ["r:16", "r:16", "r:16", "f#5:1 g5:1 a5:1 a#5:1 c#6:1 d6:1 e6:1 f#6:1 g6:1 a6:1 a#6:1 c#7:1 d7:4"],
+    }
+    sections = [(0, INTRO, "intro"), (4, A, "A1"), (12, B, "B1"), (20, A, "A2"), (28, T, "T")]
+    for bar0, chords, tag in sections:
+        kind = tag[0] if tag[0] in "ABT" else tag
+        if tag == "intro":
+            bassline(s, "bass", 0, chords, "gallop16", 2, 1.0)
+            beat(s, "drums", 0, 4, "none", 4, True)
+            s.drums("drums", 1, dict(tl="x...x...........", th="........x...x...", wb="x.x.x.x.x.x.x.x."))
+            s.drums("drums", 2, dict(k="x.x.x.x.x.x.x.x.", wb="x.xxx.xxx.xxx.xx"))
+            s.drums("drums", 3, dict(s="xxxxxxxxXXXXXXXX", k="x...x...x...x...", tl="............x...", th="..............x."))
+        elif kind == "T":
+            bassline(s, "bass", bar0, chords, "gallop16", 2)
+            beat(s, "drums", bar0, 4, "river", 4)
+            stabs(s, "harm", bar0, chords, "x.x.x.x.x.x.x.x.", 4, 0.75)
+        else:
+            bassline(s, "bass", bar0, chords, "gallop16" if kind == "A" else "drive", 2)
+            beat(s, "drums", bar0, 8, "river" if tag != "A1" else "chase", 4)
+            if tag in ("B1", "A2"):
+                stabs(s, "harm", bar0, chords, "..x...x...x...x." if kind == "A" else "x...x...x...x...", 4, 0.7, 1.2 if kind == "A" else 2.5)
+            if tag == "B1":
+                sustain(s, "pad", bar0, chords, 3, 0.5)
+        if kind in lead:
+            _lead_bars(s, "lead", bar0, lead[kind], 0, 1.0)
+            if tag in ("A2", "B1"):
+                _lead_bars(s, "slide", bar0, lead[kind], -12, 0.6, 0.95)
+    tracks = {
+        "drums": dict(inst=inst_drums, gain=0.9, reverb=0.06, comp=True),
+        "bass": dict(inst=inst_bass_saw, gain=0.75),
+        "harm": dict(inst=inst_organ, gain=0.5, pan=0.4, reverb=0.1, comp=True),
+        "pad": dict(inst=inst_pad, gain=0.9, pan=-0.3, reverb=0.25),
+        "lead": dict(inst=inst_lead_hard, gain=0.68, pan=-0.1, reverb=0.12, delay=(60 / 172 * 0.75, 0.3, 0.18)),
+        "slide": dict(inst=inst_slide, gain=0.45, pan=0.35, reverb=0.2),
+    }
+    return s, tracks
+
+
+def song_boss_gator():
+    """'GATORGEDDON' - D minor / phrygian dominant, 150 BPM, 56 bars (~90 s), loop. The headline: timpani and a choir swell,
+    a brass fanfare motif over a thrash gallop, a choir B section with a slide wail, the big brass theme, a half-time
+    breakdown on the tritone, then a chromatic climb back in."""
+    s = Song("music_boss_gator", 150, 56)
+    A = ["Dm", "Dm", "Bb", "A7", "Dm", "Dm", "Eb", "A7"]
+    B = ["Gm", "Dm", "Eb", "A7", "Gm", "Bb", "A7", "A7"]
+    C = ["Dm", "F", "Gm", "A7", "Dm", "Bb", "Eb", "A7"]
+    D = ["Dm", "Eb", "Dm", "G#dim", "Dm", "Eb", "F", "A7"]
+    T = ["Dm", "G#dim", "A7", "A7"]
+    INTRO = ["Dm", "Dm", "Eb", "A7"]
+    lead = {
+        "A": ["d5:3 d5:1 f5:2 e5:2 d5:4 a5:4", "r:2 a5:2 bb5:2 a5:2 f5:8", "d5:3 d5:1 f5:2 e5:2 d5:4 bb5:4", "a5:2 g5:2 f5:2 e5:2 d5:8",
+              "d5:3 d5:1 f5:2 e5:2 d5:4 a5:4", "r:2 c6:2 bb5:2 a5:2 g5:8", "eb5:3 eb5:1 g5:2 f5:2 eb5:4 bb5:4", "c#6:2 e6:2 a6:4 g6:2 e6:2 c#6:4"],
+        "B": ["g5:8 bb5:4 d6:4", "f6:8 d6:8", "eb6:8 d6:4 bb5:4", "c#6:4 e6:4 a5:8",
+              "g5:8 bb5:4 d6:4", "f6:8 g6:8", "a6:8 g6:4 e6:4", "c#6:16"],
+        "C": ["d6:4 r:2 d6:2 e6:2 f6:2 a6:4", "g6:2 f6:2 e6:2 f6:2 c6:8", "d6:4 r:2 d6:2 e6:2 f6:2 bb6:4", "a6:2 g6:2 f6:2 e6:2 d6:8",
+              "d6:4 r:2 d6:2 e6:2 f6:2 a6:4", "bb6:2 a6:2 g6:2 f6:2 d6:8", "eb6:4 g6:4 bb6:4 eb7:4", "e7:2 c#7:2 a6:2 e6:2 c#6:8"],
+        "D": ["d5:16", "eb5:8 d5:8", "r:4 d5:2 e5:2 f5:4 a5:4", "g#5:16", "d5:16", "eb5:8 e5:8", "f5:4 g5:4 a5:4 bb5:4", "c#6:4 e6:4 g6:4 a6:4"],
+        "T": ["d6:2 r:2 d6:2 r:2 c6:2 r:2 bb5:2 a5:2", "g#5:4 r:4 g#5:2 r:2 g5:2 r:2", "a5:1 bb5:1 b5:1 c6:1 c#6:1 d6:1 eb6:1 e6:1 f6:1 f#6:1 g6:1 g#6:1 a6:4", "a6:2 bb6:2 a6:2 g6:2 f6:2 e6:2 d6:4"],
+        "intro": ["r:16", "r:16", "r:16", "d5:1 eb5:1 e5:1 f5:1 f#5:1 g5:1 g#5:1 a5:1 bb5:1 b5:1 c6:1 c#6:1 d6:4"],
+    }
+    sections = [(0, INTRO, "intro"), (4, A, "A1"), (12, A, "A2"), (20, B, "B"), (28, C, "C"), (36, A, "A3"), (44, D, "D"), (52, T, "T")]
+    for bar0, chords, tag in sections:
+        kind = tag[0] if tag[0] in "ABCDT" else tag
+        if tag == "intro":
+            sustain(s, "choir", 0, chords, 3, 0.9)
+            beat(s, "drums", 0, 4, "none", 4, True)
+            s.drums("drums", 0, dict(ti="x.......x......."))
+            s.drums("drums", 1, dict(ti="x.......x.......", tl="............x.x."))
+            s.drums("drums", 2, dict(ti="x...x...x...x...", k="x.x.x.x.x.x.x.x."))
+            s.drums("drums", 3, dict(s="xxxxxxxxXXXXXXXX", k="x...x...x...x...", ti="x.......x.......", tl="............x...", th="..............x."))
+            s.hit("bass", 2, 0, root_midi("Eb", 2), 15, 1.0)
+            s.hit("bass", 3, 0, root_midi("A", 2), 15, 1.0)
+            _lead_bars(s, "lead", 0, lead["intro"], 0, 1.0)
+        elif kind == "B":
+            bassline(s, "bass", bar0, chords, "half", 2)
+            beat(s, "drums", bar0, 8, "epic_half", 4)
+            sustain(s, "choir", bar0, chords, 3, 0.9)
+            stabs(s, "harm", bar0, chords, "x.......x.......", 4, 0.6, 4)
+            _lead_bars(s, "slide", bar0, lead["B"], 0, 1.0, 0.95)
+        elif kind == "C":
+            bassline(s, "bass", bar0, chords, "drive", 2)
+            beat(s, "drums", bar0, 8, "epic", 4)
+            sustain(s, "choir", bar0, chords, 3, 0.7)
+            stabs(s, "harm", bar0, chords, "x.x.x.x.x.x.x.x.", 4, 0.7, 1.2)
+            _lead_bars(s, "brass", bar0, lead["C"], 0, 1.0, 0.92)
+            _lead_bars(s, "brass2", bar0, lead["C"], -12, 0.55, 0.92)
+        elif kind == "D":
+            bassline(s, "bass", bar0, chords, "doom", 2)
+            beat(s, "drums", bar0, 8, "epic_half", 4)
+            sustain(s, "pad", bar0, chords, 3, 0.9)
+            s.pat("harm", bar0 + 3, "d4+g#4:8 r:8", 0, 0.9)
+            s.pat("harm", bar0 + 7, "c#4+g4:8 r:8", 0, 0.9)
+            _lead_bars(s, "slide", bar0, lead["D"], 12, 0.9, 0.95)
+            _lead_bars(s, "choir", bar0, lead["D"], 0, 0.5, 0.95)
+        elif kind == "T":
+            bassline(s, "bass", bar0, chords, "gallop16", 2)
+            beat(s, "drums", bar0, 4, "epic", 4)
+            stabs(s, "harm", bar0, chords, "x.x.x.x.x.x.x.x.", 4, 0.8)
+            _lead_bars(s, "lead", bar0, lead["T"], 0, 1.0)
+            _lead_bars(s, "brass", bar0, lead["T"], 0, 0.8, 0.92)
+        else:
+            bassline(s, "bass", bar0, chords, "gallop16", 2)
+            beat(s, "drums", bar0, 8, "epic" if tag != "A1" else "thrash", 4)
+            if tag in ("A2", "A3"):
+                stabs(s, "harm", bar0, chords, "x.xxx.x.x.xxx.x.", 4, 0.75, 1.2)
+                sustain(s, "choir", bar0, chords, 3, 0.55)
+            _lead_bars(s, "brass", bar0, lead["A"], 0, 1.0, 0.92)
+            if tag != "A1":
+                _lead_bars(s, "lead", bar0, lead["A"], 0, 0.7)
+            if tag == "A3":
+                _lead_bars(s, "brass2", bar0, lead["A"], -5, 0.5, 0.92)
+    tracks = {
+        "drums": dict(inst=inst_drums, gain=0.92, reverb=0.08, comp=True),
+        "bass": dict(inst=inst_bass_saw, gain=0.75),
+        "harm": dict(inst=inst_harm, gain=0.42, pan=0.4, reverb=0.1, comp=True),
+        "pad": dict(inst=inst_pad, gain=1.0, pan=-0.3, reverb=0.3),
+        "choir": dict(inst=inst_choir, gain=0.95, pan=0.0, reverb=0.35),
+        "brass": dict(inst=inst_brass, gain=0.7, pan=-0.1, reverb=0.2, delay=(60 / 150 * 0.75, 0.25, 0.16)),
+        "brass2": dict(inst=inst_brass, gain=0.45, pan=0.3, reverb=0.2),
+        "lead": dict(inst=inst_lead_hard, gain=0.6, pan=0.15, reverb=0.12),
+        "slide": dict(inst=inst_slide, gain=0.62, pan=-0.15, reverb=0.35, delay=(60 / 150 * 0.75, 0.3, 0.22)),
+    }
+    return s, tracks
+
+
 SONGS = {
     "music_title": (song_title, -16.0),
     "music_stage1": (song_stage1, -14.0),
@@ -918,6 +1361,12 @@ SONGS = {
     "music_m1p3": (song_m1p3, -15.5),
     "music_midboss": (song_midboss, -13.5),
     "part_clear_jingle": (song_part_clear, -14.0),
+    # Phase G (Mission 2). Loudness matched to Mission 1: stages -14..-15.5, mid-boss -13.5, main boss -13.
+    "music_m2p1": (song_m2p1, -14.5),
+    "music_m2p2": (song_m2p2, -14.0, 0.7),
+    "music_m2p3": (song_m2p3, -15.0),
+    "music_boss_m2": (song_boss_m2, -13.5),
+    "music_boss_gator": (song_boss_gator, -13.0),
 }
 
 

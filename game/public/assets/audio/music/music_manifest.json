@@ -26,6 +26,24 @@
     "peak_db": -1.9,
     "rms_db": -13.2
   },
+  "music_boss_gator": {
+    "bars": 56,
+    "bpm": 150,
+    "duration": 89.6,
+    "file": "assets/audio/music/music_boss_gator.ogg",
+    "loop": true,
+    "peak_db": -1.9,
+    "rms_db": -13.1
+  },
+  "music_boss_m2": {
+    "bars": 32,
+    "bpm": 172,
+    "duration": 44.651,
+    "file": "assets/audio/music/music_boss_m2.ogg",
+    "loop": true,
+    "peak_db": -2.2,
+    "rms_db": -13.5
+  },
   "music_continue": {
     "bars": 4,
     "bpm": 120,
@@ -52,6 +70,33 @@
     "loop": true,
     "peak_db": -3.2,
     "rms_db": -15.5
+  },
+  "music_m2p1": {
+    "bars": 40,
+    "bpm": 108,
+    "duration": 88.889,
+    "file": "assets/audio/music/music_m2p1.ogg",
+    "loop": true,
+    "peak_db": -1.9,
+    "rms_db": -14.6
+  },
+  "music_m2p2": {
+    "bars": 48,
+    "bpm": 164,
+    "duration": 70.244,
+    "file": "assets/audio/music/music_m2p2.ogg",
+    "loop": true,
+    "peak_db": -3.1,
+    "rms_db": -14.1
+  },
+  "music_m2p3": {
+    "bars": 36,
+    "bpm": 92,
+    "duration": 93.913,
+    "file": "assets/audio/music/music_m2p3.ogg",
+    "loop": true,
+    "peak_db": -2.4,
+    "rms_db": -15.0
   },
   "music_midboss": {
     "bars": 32,

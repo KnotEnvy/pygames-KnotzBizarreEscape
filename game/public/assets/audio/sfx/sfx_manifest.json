@@ -1,10 +1,38 @@
 {
+  "airboat_gun": {
+    "duration": 0.25,
+    "file": "assets/audio/sfx/airboat_gun.ogg",
+    "loop": false,
+    "peak_db": -2.5,
+    "rms_db": -16.0
+  },
+  "airboat_motor": {
+    "duration": 1.0,
+    "file": "assets/audio/sfx/airboat_motor.ogg",
+    "loop": true,
+    "peak_db": -11.8,
+    "rms_db": -20.2
+  },
+  "airboat_sink": {
+    "duration": 2.013,
+    "file": "assets/audio/sfx/airboat_sink.ogg",
+    "loop": false,
+    "peak_db": -5.6,
+    "rms_db": -18.1
+  },
   "amb_camp": {
     "duration": 3.2,
     "file": "assets/audio/sfx/amb_camp.ogg",
     "loop": true,
     "peak_db": -24.6,
     "rms_db": -33.5
+  },
+  "amb_fog": {
+    "duration": 3.2,
+    "file": "assets/audio/sfx/amb_fog.ogg",
+    "loop": true,
+    "peak_db": -24.3,
+    "rms_db": -31.6
   },
   "amb_forest": {
     "duration": 3.2,
@@ -34,6 +62,13 @@
     "peak_db": -20.8,
     "rms_db": -29.5
   },
+  "amb_rain": {
+    "duration": 3.2,
+    "file": "assets/audio/sfx/amb_rain.ogg",
+    "loop": true,
+    "peak_db": -14.3,
+    "rms_db": -28.6
+  },
   "amb_river": {
     "duration": 3.2,
     "file": "assets/audio/sfx/amb_river.ogg",
@@ -41,12 +76,40 @@
     "peak_db": -16.5,
     "rms_db": -29.8
   },
+  "amb_riverboat": {
+    "duration": 3.2,
+    "file": "assets/audio/sfx/amb_riverboat.ogg",
+    "loop": true,
+    "peak_db": -15.9,
+    "rms_db": -28.4
+  },
+  "amb_storm": {
+    "duration": 3.2,
+    "file": "assets/audio/sfx/amb_storm.ogg",
+    "loop": true,
+    "peak_db": -17.6,
+    "rms_db": -30.0
+  },
+  "amb_swamp": {
+    "duration": 3.2,
+    "file": "assets/audio/sfx/amb_swamp.ogg",
+    "loop": true,
+    "peak_db": -16.7,
+    "rms_db": -29.6
+  },
   "ammo_click": {
     "duration": 0.04,
     "file": "assets/audio/sfx/ammo_click.ogg",
     "loop": false,
     "peak_db": -10.4,
     "rms_db": -24.0
+  },
+  "bg_airboat_race": {
+    "duration": 3.446,
+    "file": "assets/audio/sfx/bg_airboat_race.ogg",
+    "loop": false,
+    "peak_db": -14.2,
+    "rms_db": -25.1
   },
   "bg_artillery": {
     "duration": 2.055,
@@ -69,12 +132,26 @@
     "peak_db": -17.9,
     "rms_db": -25.6
   },
+  "bg_burning_barge": {
+    "duration": 3.662,
+    "file": "assets/audio/sfx/bg_burning_barge.ogg",
+    "loop": false,
+    "peak_db": -10.7,
+    "rms_db": -27.4
+  },
   "bg_crows": {
     "duration": 1.85,
     "file": "assets/audio/sfx/bg_crows.ogg",
     "loop": false,
     "peak_db": -11.4,
     "rms_db": -24.5
+  },
+  "bg_den_glow": {
+    "duration": 2.639,
+    "file": "assets/audio/sfx/bg_den_glow.ogg",
+    "loop": false,
+    "peak_db": -17.9,
+    "rms_db": -26.8
   },
   "bg_engine": {
     "duration": 2.345,
@@ -97,6 +174,27 @@
     "peak_db": -10.9,
     "rms_db": -24.6
   },
+  "bg_gator_pod": {
+    "duration": 3.156,
+    "file": "assets/audio/sfx/bg_gator_pod.ogg",
+    "loop": false,
+    "peak_db": -12.4,
+    "rms_db": -27.8
+  },
+  "bg_gator_roar": {
+    "duration": 2.794,
+    "file": "assets/audio/sfx/bg_gator_roar.ogg",
+    "loop": false,
+    "peak_db": -9.3,
+    "rms_db": -21.2
+  },
+  "bg_herons": {
+    "duration": 1.921,
+    "file": "assets/audio/sfx/bg_herons.ogg",
+    "loop": false,
+    "peak_db": -8.9,
+    "rms_db": -27.9
+  },
   "bg_loco": {
     "duration": 2.976,
     "file": "assets/audio/sfx/bg_loco.ogg",
@@ -104,12 +202,33 @@
     "peak_db": -22.5,
     "rms_db": -30.2
   },
+  "bg_mill_creak": {
+    "duration": 2.288,
+    "file": "assets/audio/sfx/bg_mill_creak.ogg",
+    "loop": false,
+    "peak_db": -12.0,
+    "rms_db": -26.4
+  },
+  "bg_patrol_boat": {
+    "duration": 3.919,
+    "file": "assets/audio/sfx/bg_patrol_boat.ogg",
+    "loop": false,
+    "peak_db": -15.6,
+    "rms_db": -25.9
+  },
   "bg_plane": {
     "duration": 3.508,
     "file": "assets/audio/sfx/bg_plane.ogg",
     "loop": false,
     "peak_db": -13.3,
     "rms_db": -27.6
+  },
+  "bg_pond_wake": {
+    "duration": 2.427,
+    "file": "assets/audio/sfx/bg_pond_wake.ogg",
+    "loop": false,
+    "peak_db": -11.6,
+    "rms_db": -26.8
   },
   "bg_roar": {
     "duration": 2.338,
@@ -132,12 +251,26 @@
     "peak_db": -17.0,
     "rms_db": -28.5
   },
+  "bg_skeeter_swarm": {
+    "duration": 3.066,
+    "file": "assets/audio/sfx/bg_skeeter_swarm.ogg",
+    "loop": false,
+    "peak_db": -12.4,
+    "rms_db": -26.5
+  },
   "bg_tesla": {
     "duration": 0.804,
     "file": "assets/audio/sfx/bg_tesla.ogg",
     "loop": false,
     "peak_db": -9.0,
     "rms_db": -25.0
+  },
+  "bg_thunder": {
+    "duration": 2.909,
+    "file": "assets/audio/sfx/bg_thunder.ogg",
+    "loop": false,
+    "peak_db": -15.4,
+    "rms_db": -25.3
   },
   "bg_train_pass": {
     "duration": 3.971,
@@ -153,12 +286,40 @@
     "peak_db": -13.2,
     "rms_db": -28.3
   },
+  "bg_wisps": {
+    "duration": 2.767,
+    "file": "assets/audio/sfx/bg_wisps.ogg",
+    "loop": false,
+    "peak_db": -17.7,
+    "rms_db": -31.0
+  },
+  "bg_wreck_collapse": {
+    "duration": 2.597,
+    "file": "assets/audio/sfx/bg_wreck_collapse.ogg",
+    "loop": false,
+    "peak_db": -8.7,
+    "rms_db": -26.8
+  },
   "bg_zeppelin": {
     "duration": 4.496,
     "file": "assets/audio/sfx/bg_zeppelin.ogg",
     "loop": false,
     "peak_db": -18.4,
     "rms_db": -28.5
+  },
+  "boardwalk_creak": {
+    "duration": 0.38,
+    "file": "assets/audio/sfx/boardwalk_creak.ogg",
+    "loop": false,
+    "peak_db": -9.7,
+    "rms_db": -23.0
+  },
+  "boat_horn": {
+    "duration": 2.344,
+    "file": "assets/audio/sfx/boat_horn.ogg",
+    "loop": false,
+    "peak_db": -3.5,
+    "rms_db": -15.2
   },
   "boss_cannon": {
     "duration": 0.431,
@@ -209,12 +370,26 @@
     "peak_db": -1.0,
     "rms_db": -13.9
   },
+  "branch_whoosh": {
+    "duration": 0.65,
+    "file": "assets/audio/sfx/branch_whoosh.ogg",
+    "loop": false,
+    "peak_db": -1.7,
+    "rms_db": -16.9
+  },
   "bridge_whoosh": {
     "duration": 0.6,
     "file": "assets/audio/sfx/bridge_whoosh.ogg",
     "loop": false,
     "peak_db": -2.9,
     "rms_db": -16.5
+  },
+  "buzzard_gun": {
+    "duration": 0.34,
+    "file": "assets/audio/sfx/buzzard_gun.ogg",
+    "loop": false,
+    "peak_db": -7.8,
+    "rms_db": -15.5
   },
   "buzzard_rotor": {
     "duration": 0.9,
@@ -292,6 +467,27 @@
     "loop": false,
     "peak_db": -10.5,
     "rms_db": -18.9
+  },
+  "drown": {
+    "duration": 1.577,
+    "file": "assets/audio/sfx/drown.ogg",
+    "loop": false,
+    "peak_db": -5.3,
+    "rms_db": -18.3
+  },
+  "egg_beep": {
+    "duration": 0.105,
+    "file": "assets/audio/sfx/egg_beep.ogg",
+    "loop": false,
+    "peak_db": -8.4,
+    "rms_db": -18.0
+  },
+  "egg_lob": {
+    "duration": 0.38,
+    "file": "assets/audio/sfx/egg_lob.ogg",
+    "loop": false,
+    "peak_db": -5.3,
+    "rms_db": -18.0
   },
   "enemy_alert": {
     "duration": 0.11,
@@ -391,12 +587,117 @@
     "peak_db": -6.2,
     "rms_db": -15.0
   },
+  "gas_bubble": {
+    "duration": 0.493,
+    "file": "assets/audio/sfx/gas_bubble.ogg",
+    "loop": false,
+    "peak_db": -7.2,
+    "rms_db": -23.1
+  },
+  "gas_vent": {
+    "duration": 1.05,
+    "file": "assets/audio/sfx/gas_vent.ogg",
+    "loop": false,
+    "peak_db": -4.0,
+    "rms_db": -16.8
+  },
   "gate_smash": {
     "duration": 0.727,
     "file": "assets/audio/sfx/gate_smash.ogg",
     "loop": false,
     "peak_db": -1.0,
     "rms_db": -15.2
+  },
+  "gator_death": {
+    "duration": 3.737,
+    "file": "assets/audio/sfx/gator_death.ogg",
+    "loop": false,
+    "peak_db": -1.7,
+    "rms_db": -15.3
+  },
+  "gator_flame": {
+    "duration": 1.0,
+    "file": "assets/audio/sfx/gator_flame.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -15.1
+  },
+  "gator_gas": {
+    "duration": 0.944,
+    "file": "assets/audio/sfx/gator_gas.ogg",
+    "loop": false,
+    "peak_db": -1.1,
+    "rms_db": -19.6
+  },
+  "gator_gatling": {
+    "duration": 0.5,
+    "file": "assets/audio/sfx/gator_gatling.ogg",
+    "loop": false,
+    "peak_db": -8.4,
+    "rms_db": -17.0
+  },
+  "gator_hiss": {
+    "duration": 1.0,
+    "file": "assets/audio/sfx/gator_hiss.ogg",
+    "loop": false,
+    "peak_db": -3.6,
+    "rms_db": -18.4
+  },
+  "gator_missile": {
+    "duration": 0.5,
+    "file": "assets/audio/sfx/gator_missile.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -18.5
+  },
+  "gator_roar": {
+    "duration": 2.188,
+    "file": "assets/audio/sfx/gator_roar.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -12.2
+  },
+  "gator_roll": {
+    "duration": 1.893,
+    "file": "assets/audio/sfx/gator_roll.ogg",
+    "loop": false,
+    "peak_db": -8.4,
+    "rms_db": -17.8
+  },
+  "gator_snap": {
+    "duration": 0.517,
+    "file": "assets/audio/sfx/gator_snap.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -14.5
+  },
+  "gator_submerge": {
+    "duration": 1.194,
+    "file": "assets/audio/sfx/gator_submerge.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -18.1
+  },
+  "gator_surface": {
+    "duration": 1.238,
+    "file": "assets/audio/sfx/gator_surface.ogg",
+    "loop": false,
+    "peak_db": -2.4,
+    "rms_db": -15.9
+  },
+  "gator_tail": {
+    "duration": 0.65,
+    "file": "assets/audio/sfx/gator_tail.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -15.8
+  },
+  "gnat_buzz": {
+    "duration": 0.6,
+    "file": "assets/audio/sfx/gnat_buzz.ogg",
+    "loop": true,
+    "peak_db": -14.6,
+    "rms_db": -24.2
   },
   "grenade_bounce": {
     "duration": 0.103,
@@ -412,6 +713,13 @@
     "peak_db": -5.3,
     "rms_db": -20.0
   },
+  "heli_crash": {
+    "duration": 2.183,
+    "file": "assets/audio/sfx/heli_crash.ogg",
+    "loop": false,
+    "peak_db": -5.6,
+    "rms_db": -16.8
+  },
   "hmg": {
     "duration": 0.07,
     "file": "assets/audio/sfx/hmg.ogg",
@@ -425,6 +733,34 @@
     "loop": false,
     "peak_db": -8.3,
     "rms_db": -18.0
+  },
+  "hopper_croak": {
+    "duration": 0.55,
+    "file": "assets/audio/sfx/hopper_croak.ogg",
+    "loop": false,
+    "peak_db": -6.9,
+    "rms_db": -18.3
+  },
+  "hopper_hop": {
+    "duration": 0.36,
+    "file": "assets/audio/sfx/hopper_hop.ogg",
+    "loop": false,
+    "peak_db": -2.9,
+    "rms_db": -18.8
+  },
+  "hopper_land": {
+    "duration": 0.33,
+    "file": "assets/audio/sfx/hopper_land.ogg",
+    "loop": false,
+    "peak_db": -2.7,
+    "rms_db": -16.4
+  },
+  "hopper_tongue": {
+    "duration": 0.261,
+    "file": "assets/audio/sfx/hopper_tongue.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -15.5
   },
   "hound_bark": {
     "duration": 0.32,
@@ -496,6 +832,13 @@
     "peak_db": -10.2,
     "rms_db": -21.0
   },
+  "larva_pop": {
+    "duration": 0.25,
+    "file": "assets/audio/sfx/larva_pop.ogg",
+    "loop": false,
+    "peak_db": -1.7,
+    "rms_db": -17.0
+  },
   "laser": {
     "duration": 0.3,
     "file": "assets/audio/sfx/laser.ogg",
@@ -524,6 +867,34 @@
     "peak_db": -2.0,
     "rms_db": -20.4
   },
+  "log_bob": {
+    "duration": 0.32,
+    "file": "assets/audio/sfx/log_bob.ogg",
+    "loop": false,
+    "peak_db": -3.4,
+    "rms_db": -20.3
+  },
+  "log_sink": {
+    "duration": 0.969,
+    "file": "assets/audio/sfx/log_sink.ogg",
+    "loop": false,
+    "peak_db": -4.1,
+    "rms_db": -20.3
+  },
+  "lurker_rise": {
+    "duration": 0.836,
+    "file": "assets/audio/sfx/lurker_rise.ogg",
+    "loop": false,
+    "peak_db": -6.8,
+    "rms_db": -19.7
+  },
+  "mech_pop": {
+    "duration": 0.335,
+    "file": "assets/audio/sfx/mech_pop.ogg",
+    "loop": false,
+    "peak_db": -1.9,
+    "rms_db": -16.9
+  },
   "melee_hit": {
     "duration": 0.15,
     "file": "assets/audio/sfx/melee_hit.ogg",
@@ -537,6 +908,13 @@
     "loop": false,
     "peak_db": -3.7,
     "rms_db": -17.0
+  },
+  "mill_wheel": {
+    "duration": 2.4,
+    "file": "assets/audio/sfx/mill_wheel.ogg",
+    "loop": true,
+    "peak_db": -12.5,
+    "rms_db": -26.1
   },
   "mission_complete": {
     "duration": 1.346,
@@ -559,12 +937,26 @@
     "peak_db": -4.6,
     "rms_db": -16.2
   },
+  "mud_step": {
+    "duration": 0.24,
+    "file": "assets/audio/sfx/mud_step.ogg",
+    "loop": false,
+    "peak_db": -6.6,
+    "rms_db": -20.0
+  },
   "one_up": {
     "duration": 0.51,
     "file": "assets/audio/sfx/one_up.ogg",
     "loop": false,
     "peak_db": -5.8,
     "rms_db": -13.3
+  },
+  "paddlewheel": {
+    "duration": 1.6,
+    "file": "assets/audio/sfx/paddlewheel.ogg",
+    "loop": true,
+    "peak_db": -6.5,
+    "rms_db": -24.1
   },
   "pickup": {
     "duration": 0.26,
@@ -580,12 +972,33 @@
     "peak_db": -7.6,
     "rms_db": -16.6
   },
+  "piranha_bite": {
+    "duration": 0.112,
+    "file": "assets/audio/sfx/piranha_bite.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -18.7
+  },
+  "piranha_leap": {
+    "duration": 0.378,
+    "file": "assets/audio/sfx/piranha_leap.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -18.5
+  },
   "pistol": {
     "duration": 0.12,
     "file": "assets/audio/sfx/pistol.ogg",
     "loop": false,
     "peak_db": -2.0,
     "rms_db": -15.0
+  },
+  "plank_break": {
+    "duration": 0.499,
+    "file": "assets/audio/sfx/plank_break.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -17.9
   },
   "player_death": {
     "duration": 0.7,
@@ -664,12 +1077,68 @@
     "peak_db": -13.8,
     "rms_db": -20.0
   },
+  "shell_clank": {
+    "duration": 0.202,
+    "file": "assets/audio/sfx/shell_clank.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -20.7
+  },
+  "shell_spin": {
+    "duration": 0.5,
+    "file": "assets/audio/sfx/shell_spin.ogg",
+    "loop": true,
+    "peak_db": -6.6,
+    "rms_db": -20.3
+  },
   "shield_tink": {
     "duration": 0.166,
     "file": "assets/audio/sfx/shield_tink.ogg",
     "loop": false,
     "peak_db": -1.0,
     "rms_db": -19.3
+  },
+  "shotgun_fire": {
+    "duration": 0.454,
+    "file": "assets/audio/sfx/shotgun_fire.ogg",
+    "loop": false,
+    "peak_db": -5.1,
+    "rms_db": -13.8
+  },
+  "shotgun_pump": {
+    "duration": 0.217,
+    "file": "assets/audio/sfx/shotgun_pump.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -20.2
+  },
+  "skeeter_dive": {
+    "duration": 0.6,
+    "file": "assets/audio/sfx/skeeter_dive.ogg",
+    "loop": false,
+    "peak_db": -2.4,
+    "rms_db": -16.4
+  },
+  "skeeter_drill": {
+    "duration": 0.87,
+    "file": "assets/audio/sfx/skeeter_drill.ogg",
+    "loop": false,
+    "peak_db": -3.3,
+    "rms_db": -14.1
+  },
+  "skeeter_laser": {
+    "duration": 0.7,
+    "file": "assets/audio/sfx/skeeter_laser.ogg",
+    "loop": false,
+    "peak_db": -10.0,
+    "rms_db": -18.7
+  },
+  "skeeter_whine": {
+    "duration": 0.8,
+    "file": "assets/audio/sfx/skeeter_whine.ogg",
+    "loop": true,
+    "peak_db": -9.8,
+    "rms_db": -22.0
   },
   "snowcat_engine": {
     "duration": 1.2,
@@ -685,6 +1154,34 @@
     "peak_db": -9.8,
     "rms_db": -22.3
   },
+  "splash_l": {
+    "duration": 1.076,
+    "file": "assets/audio/sfx/splash_l.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -18.9
+  },
+  "splash_m": {
+    "duration": 0.476,
+    "file": "assets/audio/sfx/splash_m.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -18.4
+  },
+  "splash_s": {
+    "duration": 0.304,
+    "file": "assets/audio/sfx/splash_s.ogg",
+    "loop": false,
+    "peak_db": -1.2,
+    "rms_db": -19.1
+  },
+  "splash_xl": {
+    "duration": 1.466,
+    "file": "assets/audio/sfx/splash_xl.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -18.0
+  },
   "spread": {
     "duration": 0.352,
     "file": "assets/audio/sfx/spread.ogg",
@@ -698,6 +1195,20 @@
     "loop": false,
     "peak_db": -5.6,
     "rms_db": -24.9
+  },
+  "stinger_fire": {
+    "duration": 0.275,
+    "file": "assets/audio/sfx/stinger_fire.ogg",
+    "loop": false,
+    "peak_db": -2.5,
+    "rms_db": -15.0
+  },
+  "thunder": {
+    "duration": 3.063,
+    "file": "assets/audio/sfx/thunder.ogg",
+    "loop": false,
+    "peak_db": -6.6,
+    "rms_db": -18.0
   },
   "train_clack": {
     "duration": 1.6,
@@ -733,6 +1244,20 @@
     "loop": false,
     "peak_db": -7.1,
     "rms_db": -18.6
+  },
+  "turtle_hiss": {
+    "duration": 0.9,
+    "file": "assets/audio/sfx/turtle_hiss.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -17.9
+  },
+  "turtle_snap": {
+    "duration": 0.351,
+    "file": "assets/audio/sfx/turtle_snap.ogg",
+    "loop": false,
+    "peak_db": -1.0,
+    "rms_db": -14.9
   },
   "ui_back": {
     "duration": 0.24,
@@ -775,6 +1300,20 @@
     "loop": false,
     "peak_db": -7.1,
     "rms_db": -17.0
+  },
+  "wade_step": {
+    "duration": 0.18,
+    "file": "assets/audio/sfx/wade_step.ogg",
+    "loop": false,
+    "peak_db": -4.5,
+    "rms_db": -21.0
+  },
+  "warning_major": {
+    "duration": 2.104,
+    "file": "assets/audio/sfx/warning_major.ogg",
+    "loop": false,
+    "peak_db": -3.4,
+    "rms_db": -16.5
   },
   "warning_siren": {
     "duration": 2.124,

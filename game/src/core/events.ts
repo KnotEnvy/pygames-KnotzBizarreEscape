@@ -87,7 +87,18 @@ export interface GameEvents {
     'fx:flash': { color: number; ms: number };
     'fx:slowmo': { scale: number; ms: number };
     /** Ambient particles requested by a level trigger (null = stop). FX listens. */
-    'fx:ambience': { kind: 'snow' | 'embers' | 'fireflies' | 'train' | 'tunnel' | 'blizzard' | null; drift?: number };
+    'fx:ambience': { kind: 'snow' | 'embers' | 'fireflies' | 'train' | 'tunnel' | 'blizzard' | 'swamp' | 'rain' | 'storm' | 'fog' | 'river' | null; drift?: number };
+    /**
+     * Phase G (docs/MISSION2.md): something touched water. Player (wading steps, landing, sinking), Enemies (piranha leaps,
+     * lurkers rising, bosses surfacing/submerging), Levels (sinking logs) emit; FX (splash + rings) and Audio (splash_s..xl) listen.
+     */
+    'water:splash': Pos & { size: 's' | 'm' | 'l' | 'xl'; kind?: 'step' | 'enter' | 'leap' | 'surface' | 'sink' };
+    /**
+     * Phase G fix round: FX emits this when a lightning flash actually happens. FX is the single gate for lightning
+     * (global rate limit, reduced flash). Others request lightning via `fx:emit { effect: 'bg_lightning' }` and react
+     * here (Levels' sky crossfade, Audio's thunder). `strength` is 0..1 after reduced-flash dimming.
+     */
+    'fx:lightning': { x?: number; y?: number; strength: number; double?: boolean };
     /**
      * Generic spatial one-shot effect (Phase B). Anyone emits; FX listens and maps `effect` to a recipe.
      * Suggested effect ids: 'dust_run', 'dust_skid', 'dust_land', 'splash', 'waterfall', 'vent_steam', 'debris',

@@ -128,7 +128,7 @@ export class HudScene extends Phaser.Scene {
         registerDebug('hud', () => ({
             score: this.scoreText.text, lives: this.livesText.text, ammo: this.ammoText.text, bombs: this.bombText.text,
             weapon: this.weapon, rescued: this.rescuedText.text, go: this.goLeft > 0, boss: this.bossShown ? { name: this.bossName.text, hp: this.bossHp, max: this.bossMax } : null,
-            callout: this.callout.text, prompt: this.promptShown ? this.promptText.text : '', popups: this.popups.filter(p => p.age < UI.hud.popup.life).length,
+            callout: this.callout.text, prompt: this.promptShown ? this.promptText.text : '', promptY: Math.round(this.promptBox.y), popups: this.popups.filter(p => p.age < UI.hud.popup.life).length,
             card: this.card.state, warning: this.warning.state, combo: this.combo.text, chain: this.killChain
         }));
         uiDebug.hud = 'running';
@@ -268,6 +268,7 @@ export class HudScene extends Phaser.Scene {
         this.bossCrop();
         this.tweens.killTweensOf(this.bossBox);
         this.tweens.add({ targets: this.bossBox, y: UI.hud.bossBar.y, duration: UI.hud.bossBar.slideMs, ease: 'Back.easeOut' });
+        if (this.promptShown) this.placePrompt();
     }
 
     private bossSetHp(e: GameEvents['boss:hp']): void {
@@ -284,6 +285,7 @@ export class HudScene extends Phaser.Scene {
         this.time.delayedCall(900, () => {
             this.bossShown = false;
             this.tweens.add({ targets: this.bossBox, y: UI.hud.bossBar.hiddenY, duration: UI.hud.bossBar.slideMs, ease: 'Quad.easeIn' });
+            if (this.promptShown) this.placePrompt();
         });
     }
 
@@ -354,9 +356,23 @@ export class HudScene extends Phaser.Scene {
         this.promptUntil = this.clock + (ms ?? UI.hud.prompt.defaultMs);
         if (!this.promptShown) {
             this.promptShown = true;
-            this.tweens.killTweensOf(this.promptBox);
-            this.tweens.add({ targets: this.promptBox, y: UI.hud.prompt.y, duration: UI.hud.prompt.slideMs, ease: 'Back.easeOut' });
+            this.placePrompt();
         }
+    }
+
+    /**
+     * The prompt's resting row: over the lower band, or the row just above the boss name while the boss bar is up, so a
+     * boss cue (DUCK!, JUMP THE FLAME!) never covers the HP fill it is timed with (KBE-QA-G05). Both rows stay under the
+     * walking lane and well clear of Hazel's radio strip (y 30..55) and the top HUD.
+     */
+    private promptY(): number {
+        return this.bossShown ? UI.hud.prompt.bossY : UI.hud.prompt.y;
+    }
+
+    /** Slide the shown prompt to its current row (on show, and when the boss bar arrives or leaves while it is up). */
+    private placePrompt(): void {
+        this.tweens.killTweensOf(this.promptBox);
+        this.tweens.add({ targets: this.promptBox, y: this.promptY(), duration: UI.hud.prompt.slideMs, ease: 'Back.easeOut' });
     }
 
     private hidePrompt(): void {

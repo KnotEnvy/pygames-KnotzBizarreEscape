@@ -66,6 +66,11 @@
       },
       {
         "type": "image",
+        "key": "ui_map_m2",
+        "url": "assets/ui/map_m2.png"
+      },
+      {
+        "type": "image",
         "key": "ui_panel",
         "url": "assets/ui/panel.png"
       },
@@ -340,6 +345,13 @@
       },
       {
         "type": "audio",
+        "key": "buzzard_gun",
+        "url": [
+          "assets/audio/sfx/buzzard_gun.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "buzzard_rotor",
         "url": [
           "assets/audio/sfx/buzzard_rotor.ogg"
@@ -536,6 +548,13 @@
       },
       {
         "type": "audio",
+        "key": "heli_crash",
+        "url": [
+          "assets/audio/sfx/heli_crash.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "hmg",
         "url": [
           "assets/audio/sfx/hmg.ogg"
@@ -644,6 +663,13 @@
         "key": "loco_steam",
         "url": [
           "assets/audio/sfx/loco_steam.ogg"
+        ]
+      },
+      {
+        "type": "audio",
+        "key": "mech_pop",
+        "url": [
+          "assets/audio/sfx/mech_pop.ogg"
         ]
       },
       {
@@ -900,6 +926,13 @@
       },
       {
         "type": "audio",
+        "key": "warning_major",
+        "url": [
+          "assets/audio/sfx/warning_major.ogg"
+        ]
+      },
+      {
+        "type": "audio",
         "key": "warning_siren",
         "url": [
           "assets/audio/sfx/warning_siren.ogg"
@@ -1005,6 +1038,6 @@
     "app": "Knotz Bizarre Escape",
     "team": "ui-audio",
     "generated_by": "tools/audio/make_pack.py",
-    "version": "1.0"
+    "version": "1.1"
   }
 }

@@ -1,0 +1,412 @@
+{
+  "level_m2": {
+    "files": [
+      {
+        "type": "tilemapTiledJSON",
+        "key": "m2p1",
+        "url": "assets/maps/m2p1.tmj"
+      },
+      {
+        "type": "tilemapTiledJSON",
+        "key": "m2p2",
+        "url": "assets/maps/m2p2.tmj"
+      },
+      {
+        "type": "tilemapTiledJSON",
+        "key": "m2p3",
+        "url": "assets/maps/m2p3.tmj"
+      },
+      {
+        "type": "image",
+        "key": "tiles_m2_bayou",
+        "url": "assets/tiles/m2_bayou.png"
+      },
+      {
+        "type": "image",
+        "key": "tiles_m2_boat",
+        "url": "assets/tiles/m2_boat.png"
+      },
+      {
+        "type": "image",
+        "key": "tiles_m2_mill",
+        "url": "assets/tiles/m2_mill.png"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_shack_door",
+        "textureURL": "assets/sprites/props/prop_shack_door.png",
+        "atlasURL": "assets/sprites/props/prop_shack_door.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_lantern",
+        "textureURL": "assets/sprites/props/prop_lantern.png",
+        "atlasURL": "assets/sprites/props/prop_lantern.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_lantern_post",
+        "textureURL": "assets/sprites/props/prop_lantern_post.png",
+        "atlasURL": "assets/sprites/props/prop_lantern_post.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_net",
+        "textureURL": "assets/sprites/props/prop_net.png",
+        "atlasURL": "assets/sprites/props/prop_net.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_wade",
+        "textureURL": "assets/sprites/props/prop_sign_wade.png",
+        "atlasURL": "assets/sprites/props/prop_sign_wade.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_logs",
+        "textureURL": "assets/sprites/props/prop_sign_logs.png",
+        "atlasURL": "assets/sprites/props/prop_sign_logs.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_gator",
+        "textureURL": "assets/sprites/props/prop_sign_gator.png",
+        "atlasURL": "assets/sprites/props/prop_sign_gator.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_skiff",
+        "textureURL": "assets/sprites/props/prop_skiff.png",
+        "atlasURL": "assets/sprites/props/prop_skiff.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_gas_vent",
+        "textureURL": "assets/sprites/props/prop_gas_vent.png",
+        "atlasURL": "assets/sprites/props/prop_gas_vent.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_gas_flame",
+        "textureURL": "assets/sprites/props/prop_gas_flame.png",
+        "atlasURL": "assets/sprites/props/prop_gas_flame.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_fuel_drum",
+        "textureURL": "assets/sprites/props/prop_fuel_drum.png",
+        "atlasURL": "assets/sprites/props/prop_fuel_drum.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_danger_post",
+        "textureURL": "assets/sprites/props/prop_danger_post.png",
+        "atlasURL": "assets/sprites/props/prop_danger_post.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_queen_wreck",
+        "textureURL": "assets/sprites/props/prop_queen_wreck.png",
+        "atlasURL": "assets/sprites/props/prop_queen_wreck.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_cage",
+        "textureURL": "assets/sprites/props/prop_cage.png",
+        "atlasURL": "assets/sprites/props/prop_cage.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_bones",
+        "textureURL": "assets/sprites/props/prop_bones.png",
+        "atlasURL": "assets/sprites/props/prop_bones.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_boat_wreck",
+        "textureURL": "assets/sprites/props/prop_boat_wreck.png",
+        "atlasURL": "assets/sprites/props/prop_boat_wreck.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_mill_gate",
+        "textureURL": "assets/sprites/props/prop_mill_gate.png",
+        "atlasURL": "assets/sprites/props/prop_mill_gate.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_waterwheel",
+        "textureURL": "assets/sprites/props/prop_waterwheel.png",
+        "atlasURL": "assets/sprites/props/prop_waterwheel.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_claw_marks",
+        "textureURL": "assets/sprites/props/prop_claw_marks.png",
+        "atlasURL": "assets/sprites/props/prop_claw_marks.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_container_door",
+        "textureURL": "assets/sprites/props/prop_container_door.png",
+        "atlasURL": "assets/sprites/props/prop_container_door.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_branch",
+        "textureURL": "assets/sprites/props/prop_branch.png",
+        "atlasURL": "assets/sprites/props/prop_branch.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_sign_branch",
+        "textureURL": "assets/sprites/props/prop_sign_branch.png",
+        "atlasURL": "assets/sprites/props/prop_sign_branch.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_paddlewheel",
+        "textureURL": "assets/sprites/props/prop_paddlewheel.png",
+        "atlasURL": "assets/sprites/props/prop_paddlewheel.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_crane_hook",
+        "textureURL": "assets/sprites/props/prop_crane_hook.png",
+        "atlasURL": "assets/sprites/props/prop_crane_hook.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_fuel_cell",
+        "textureURL": "assets/sprites/props/prop_fuel_cell.png",
+        "atlasURL": "assets/sprites/props/prop_fuel_cell.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_life_ring",
+        "textureURL": "assets/sprites/props/prop_life_ring.png",
+        "atlasURL": "assets/sprites/props/prop_life_ring.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_queen_board",
+        "textureURL": "assets/sprites/props/prop_queen_board.png",
+        "atlasURL": "assets/sprites/props/prop_queen_board.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_bell",
+        "textureURL": "assets/sprites/props/prop_bell.png",
+        "atlasURL": "assets/sprites/props/prop_bell.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_buoy",
+        "textureURL": "assets/sprites/props/prop_buoy.png",
+        "atlasURL": "assets/sprites/props/prop_buoy.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_boiler_lamp",
+        "textureURL": "assets/sprites/props/prop_boiler_lamp.png",
+        "atlasURL": "assets/sprites/props/prop_boiler_lamp.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_rope_coil",
+        "textureURL": "assets/sprites/props/prop_rope_coil.png",
+        "atlasURL": "assets/sprites/props/prop_rope_coil.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_drum_rack",
+        "textureURL": "assets/sprites/props/prop_drum_rack.png",
+        "atlasURL": "assets/sprites/props/prop_drum_rack.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "prop_wheelhouse_light",
+        "textureURL": "assets/sprites/props/prop_wheelhouse_light.png",
+        "atlasURL": "assets/sprites/props/prop_wheelhouse_light.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_heron",
+        "textureURL": "assets/sprites/bg/bg_heron.png",
+        "atlasURL": "assets/sprites/bg/bg_heron.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_patrolboat",
+        "textureURL": "assets/sprites/bg/bg_patrolboat.png",
+        "atlasURL": "assets/sprites/bg/bg_patrolboat.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_wisp",
+        "textureURL": "assets/sprites/bg/bg_wisp.png",
+        "atlasURL": "assets/sprites/bg/bg_wisp.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_gator_sil",
+        "textureURL": "assets/sprites/bg/bg_gator_sil.png",
+        "atlasURL": "assets/sprites/bg/bg_gator_sil.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_shell",
+        "textureURL": "assets/sprites/bg/bg_shell.png",
+        "atlasURL": "assets/sprites/bg/bg_shell.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_wake",
+        "textureURL": "assets/sprites/bg/bg_wake.png",
+        "atlasURL": "assets/sprites/bg/bg_wake.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_gator_ridge",
+        "textureURL": "assets/sprites/bg/bg_gator_ridge.png",
+        "atlasURL": "assets/sprites/bg/bg_gator_ridge.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_barge_fire",
+        "textureURL": "assets/sprites/bg/bg_barge_fire.png",
+        "atlasURL": "assets/sprites/bg/bg_barge_fire.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_skeeter",
+        "textureURL": "assets/sprites/bg/bg_skeeter.png",
+        "atlasURL": "assets/sprites/bg/bg_skeeter.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_airboat",
+        "textureURL": "assets/sprites/bg/bg_airboat.png",
+        "atlasURL": "assets/sprites/bg/bg_airboat.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_shack",
+        "textureURL": "assets/sprites/bg/bg_shack.png",
+        "atlasURL": "assets/sprites/bg/bg_shack.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_jetty",
+        "textureURL": "assets/sprites/bg/bg_jetty.png",
+        "atlasURL": "assets/sprites/bg/bg_jetty.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_millwheel",
+        "textureURL": "assets/sprites/bg/bg_millwheel.png",
+        "atlasURL": "assets/sprites/bg/bg_millwheel.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_millwheel_big",
+        "textureURL": "assets/sprites/bg/bg_millwheel_big.png",
+        "atlasURL": "assets/sprites/bg/bg_millwheel_big.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_den_glow",
+        "textureURL": "assets/sprites/bg/bg_den_glow.png",
+        "atlasURL": "assets/sprites/bg/bg_den_glow.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_gator_wake",
+        "textureURL": "assets/sprites/bg/bg_gator_wake.png",
+        "atlasURL": "assets/sprites/bg/bg_gator_wake.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_debris",
+        "textureURL": "assets/sprites/bg/bg_debris.png",
+        "atlasURL": "assets/sprites/bg/bg_debris.json"
+      },
+      {
+        "type": "aseprite",
+        "key": "bg_bolt",
+        "textureURL": "assets/sprites/bg/bg_bolt.png",
+        "atlasURL": "assets/sprites/bg/bg_bolt.json"
+      },
+      {
+        "type": "image",
+        "key": "m2p1_wade",
+        "url": "assets/backgrounds/m2p1/wade.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p1_wade_crest",
+        "url": "assets/backgrounds/m2p1/wade_crest.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p1_wade_edge",
+        "url": "assets/backgrounds/m2p1/wade_edge.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p1_haze",
+        "url": "assets/backgrounds/m2p1/haze.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p2_river_front",
+        "url": "assets/backgrounds/m2p2/river_front.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p2_river_wake",
+        "url": "assets/backgrounds/m2p2/river_wake.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p2_fg_speed",
+        "url": "assets/backgrounds/m2p2/fg_speed.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p2_fg_reeds",
+        "url": "assets/backgrounds/m2p2/fg_reeds.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p2_fg_trunks",
+        "url": "assets/backgrounds/m2p2/fg_trunks.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p2_haze",
+        "url": "assets/backgrounds/m2p2/haze.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p3_channel",
+        "url": "assets/backgrounds/m2p3/channel.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p3_channel_glint",
+        "url": "assets/backgrounds/m2p3/channel_glint.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p3_haze",
+        "url": "assets/backgrounds/m2p3/haze.png"
+      },
+      {
+        "type": "image",
+        "key": "m2p3_rain_sheet",
+        "url": "assets/backgrounds/m2p3/rain_sheet.png"
+      }
+    ]
+  }
+}

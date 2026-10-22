@@ -7,7 +7,7 @@ local names={
  'casing','sparks','debris_metal','debris_wood','debris_rock',
  'impact_snow','heat','impact_dirt','impact_metal','impact_wood','impact_shield','water_splash','water_ripple',
  'dust','hit_pop','death_poof','snow','foliage','embers','firefly','steam',
- 'glow_8','glow_16','glow_32','flare'
+ 'glow_8','glow_16','glow_32','flare','machine_bits','boat_foam'
 }
 local function quote(s) return '"'..s..'"' end
 local files,records={},{}

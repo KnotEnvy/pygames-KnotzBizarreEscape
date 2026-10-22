@@ -93,6 +93,17 @@ function P.gun(im,sx,sy,ang,len,weapon,phase)
   for u=len-3,len-1,2 do box(u,-2,1,2,'sand3') end
   stroke(-2,3,-5,6,'dirt1'); stroke(-5,6,-9,4,'sand2')
   box(len,0,1,1,phase==3 and 'fire5' or 'fire3')
+ elseif weapon=='shotgun' then
+  -- Walnut stock, twin dark barrel/tube silhouette, ribbed sliding pump, red saddle shells.
+  box(-7,-1,8,4,'dirt2'); stroke(-7,-1,-1,-1,'dirt5'); stroke(-6,2,-2,2,'dirt3')
+  box(-1,-3,7,5,'steel1'); stroke(0,-3,5,-3,'steel5'); box(0,-1,4,2,'steel3')
+  box(5,-3,len-4,2,'steel2'); stroke(6,-3,len,-3,'steel5')
+  box(5,0,len-5,2,'steel1'); stroke(6,0,len-2,0,'steel3')
+  local pump=type(phase)=='number' and phase<0 and -3 or 0
+  box(7+pump,1,5,3,'dirt2'); stroke(7+pump,1,11+pump,1,'dirt5')
+  for u=7+pump,11+pump,2 do stroke(u,2,u,3,'sand1') end
+  for u=0,4,2 do box(u,-1,1,2,'red4'); box(u,1,1,1,'sand4') end
+  box(len,-4,1,2,'steel1'); box(len,-2,1,2,'outline')
  elseif weapon=='spread' then
   box(-4,-2,6,4,'dirt2'); stroke(-4,-2,0,-2,'dirt5')
   box(1,-2,len,2,'steel2'); stroke(2,-2,len,-2,'steel5')
@@ -140,8 +151,9 @@ function P.torso(im,pose)
  if pose.noGun then K.outline(im,'outline'); return end
  local ang=pose.angle or 0; local dx,dy=math.cos(ang),math.sin(ang); local sx,sy=27-rx,y+4
  local len=pose.barrelLength or (pose.heavy and 15 or 12)
- P.limb(im,{21,y+2},{24,y+7},{math.floor(sx+dx*6),math.floor(sy+dy*6)+2},2,'skin2','skin4')
- P.gun(im,sx,sy,ang,len,pose.weapon or (pose.heavy and 'hmg' or 'pistol'),phase)
+ local reach=pose.weapon=='shotgun' and (pose.pump and 3 or 8) or 6
+ P.limb(im,{21,y+2},{24,y+7},{math.floor(sx+dx*reach),math.floor(sy+dy*reach)+2},2,'skin2','skin4')
+ P.gun(im,sx,sy,ang,len,pose.weapon or (pose.heavy and 'hmg' or 'pistol'),pose.pump and -1 or phase)
  P.limb(im,{27-rx,y+2},{29-rx,y+5},{sx+1,sy+2},2,'skin3','skin5')
  -- Finger separation and thumb on grip remain readable at 1x.
  K.rect(im,sx-1,sy+1,3,3,'skin4'); K.px(im,sx-1,sy+1,'skin5')

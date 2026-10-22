@@ -2,7 +2,7 @@
 // Arena audit: fast, deterministic check that every camera_lock arena of a part can be finished by a player who only
 // shoots what's on screen. No bot, no terrain navigation: turbo simulation (__KBE.sim) + warps between arenas.
 //
-//   node tools/arena-audit.mjs --part 1-1|1-2|1-3|all [--verbose] [--budget 90] [--no-shots] [--strict] [--cycle 6] [--inject-stray]
+//   node tools/arena-audit.mjs --part 1-1|...|2-3|all [--verbose] [--budget 90] [--no-shots] [--strict] [--cycle 6] [--inject-stray]
 //   --cycle <s>: simulated seconds between killVisible() calls (default 6; longer = a soak that lets enemies roam).
 //   --strict: also turn the level's off-view safety net off (LEVEL.arena.offscreenPull/CullMs, runtime only), so a
 //   member that drifts off-view fails instead of being pulled back. Shows latent drift the net is hiding.
@@ -19,7 +19,12 @@
 //                WARN: a member pulled back by the level's off-view safety net, or one that vanished off-view.
 //   boss arenas: damageBoss(5) every 200 ms (25 HP/s) and killVisible() every 3 s; assert phases 1..3 reached,
 //                boss:defeated, the boss never off-view > 2 s, stage:clear { part, final } right, and the next scene
-//                (PartClear, or Results after 1-3) starts. FAIL if the boss isn't down in 90 s sim.
+//                (PartClear, or Results after a mission's final part) starts. FAIL if the boss isn't down in 90 s sim.
+// Phase G: parts and `final` come from src/config/campaign.ts; a part whose map file is missing is SKIP (map missing).
+//   Flying bosses (MEGA-SKEETER) are checked against the view like any boss (x and y). A boss with no live hurtbox
+//   (GATORGEDDON submerged) is waited out: damageBoss() no-ops, the no-damage stall clock and the off-view clock pause,
+//   and only a boss that stays untouchable > 15 s fails (`boss-never-surfaced`). Wave members in a hidden entry state
+//   (lurker rising, piranha under water, airboat drop) are exempt from the off-view clock like leapers.
 // Writes tests/artifacts/arena-audit-<part>.json (+ a PNG per failing arena) and exits non-zero on any failure.
 // Every part has a hard wall-clock budget (default 90 s); the whole run has one too. Nothing can hang.
 import { createServer } from 'vite';
@@ -33,13 +38,29 @@ const libs = '/home/knotz2/.local/opt/chromium-libs/root/usr/lib/x86_64-linux-gn
 process.env.LD_LIBRARY_PATH = [libs, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
 const { chromium } = await import(path.join(root, 'node_modules/@playwright/test/index.mjs'));
 
-const PARTS = { '1-1': 'm1p1', '1-2': 'm1p2', '1-3': 'm1p3' };
+const { PARTS, FINAL } = await loadParts();
 const argv = process.argv.slice(2);
 const arg = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
 const flag = k => argv.includes(`--${k}`);
 const partArg = arg('part', 'all');
 const parts = partArg === 'all' ? Object.keys(PARTS) : partArg.split(',');
-for (const p of parts) if (!PARTS[p]) { console.error(`arena-audit: unknown part '${p}' (use 1-1, 1-2, 1-3 or all)`); process.exit(2); }
+for (const p of parts) if (!PARTS[p]) { console.error(`arena-audit: unknown part '${p}' (use ${Object.keys(PARTS).join(', ')} or all)`); process.exit(2); }
+
+/** Part id → map key and the final-part set, from src/config/campaign.ts (regex fallback on older Node). */
+async function loadParts() {
+    const file = path.join(root, 'src/config/campaign.ts');
+    try {
+        const { CAMPAIGN } = await import(file);
+        const all = CAMPAIGN.flatMap(m => m.parts);
+        return { PARTS: Object.fromEntries(all.map(p => [p.id, p.map])), FINAL: new Set(all.filter(p => p.final).map(p => p.id)) };
+    } catch {
+        const src = fs.readFileSync(file, 'utf8');
+        const PARTS = {}, FINAL = new Set();
+        for (const m of src.matchAll(/id:\s*'(\d+-\d+)'[^}]*?map:\s*'([^']+)'[^}]*?final:\s*(true|false)/gs)) { PARTS[m[1]] = m[2]; if (m[3] === 'true') FINAL.add(m[1]); }
+        return { PARTS, FINAL };
+    }
+}
+const mapFile = part => path.join(root, 'public/assets/maps', `${PARTS[part]}.tmj`);
 const VERBOSE = flag('verbose');
 const INJECT = flag('inject-stray');
 const STRICT = flag('strict');
@@ -72,7 +93,7 @@ watchdog.unref();
 
 // ------------------------------------------------------------------------------------------------ map data
 function readMap(part) {
-    const file = path.join(root, 'public/assets/maps', `${PARTS[part]}.tmj`);
+    const file = mapFile(part);
     const m = JSON.parse(fs.readFileSync(file, 'utf8'));
     const props = o => Object.fromEntries((o.properties ?? []).map(p => [p.name, p.value]));
     const layer = n => m.layers.find(l => l.name === n)?.objects ?? [];
@@ -94,7 +115,8 @@ function readMap(part) {
 // Runs inside the page (serialised with toString). All game access goes through __KBE (state/cheats/sim).
 function installHelper(L) {
     const K = window.__KBE;
-    const EXEMPT = new Set(['dead', 'descent', 'land', 'leap_entry']);
+    // Entry states that may legitimately be off-view or hidden (Phase G: lurker rise, piranha under water, airboat drop).
+    const EXEMPT = new Set(['dead', 'descent', 'land', 'leap_entry', 'rise', 'rising', 'submerged', 'underwater', 'hidden', 'ripple', 'drop']);
     const arenaInfo = () => K.state().arena ?? null;
     const stateOf = id => {
         const all = String(arenaInfo()?.arenas ?? '');
@@ -225,7 +247,7 @@ function installHelper(L) {
         },
         /** Boss fight in chunks: 25 HP/s of normal hits, killVisible for adds, position checks. */
         bossChunk(ms) {
-            const B = T.bossLog ??= { offMs: 0, maxOff: 0, phases: [], hp0: null, lastHp: null, lastHpAt: 0, stallMs: 0, spawned: false, defeated: false, sinceKill: 0 };
+            const B = T.bossLog ??= { offMs: 0, maxOff: 0, phases: [], hp0: null, lastHp: null, lastHpAt: 0, stallMs: 0, spawned: false, defeated: false, sinceKill: 0, hiddenMs: 0, maxHidden: 0, hiddenTotal: 0 };
             const r = K.sim.advance(ms, {
                 every: L.bossHitMs,
                 onStep: () => {
@@ -235,14 +257,19 @@ function installHelper(L) {
                     B.spawned = true;
                     if (B.hp0 === null) B.hp0 = b.hp;
                     if (b.phase && !B.phases.includes(b.phase)) B.phases.push(b.phase);
+                    // Submerged (no live hurtbox): damageBoss no-ops; wait for it to surface instead of failing.
+                    const hidden = b.hp > 0 && K.cheats.damageBoss(L.bossHit) === false;
+                    B.hiddenMs = hidden ? B.hiddenMs + L.bossHitMs : 0;
+                    if (hidden) B.hiddenTotal += L.bossHitMs;
+                    B.maxHidden = Math.max(B.maxHidden, B.hiddenMs);
+                    if (B.hiddenMs > 15000) fail('boss-never-surfaced', { kind: s.boss.kind ?? 'boss', mapId: 'boss', x: Math.round(b.x), y: Math.round(b.y), state: b.state, hp: b.hp }, { hiddenMs: B.hiddenMs });
                     const v = K.sim.view();
                     const inView = v && b.x >= v.x && b.x <= v.x + v.w && b.y >= v.y && b.y <= v.y + v.h + 24;
-                    B.offMs = inView ? 0 : B.offMs + L.bossHitMs;
+                    B.offMs = inView || hidden ? 0 : B.offMs + L.bossHitMs;
                     B.maxOff = Math.max(B.maxOff, B.offMs);
                     if (B.offMs > L.offFailMs) fail('boss-off-view>2s', { kind: s.boss.kind ?? 'boss', mapId: 'boss', x: Math.round(b.x), y: Math.round(b.y), state: b.state, hp: b.hp }, { offMs: B.offMs });
-                    if (b.hp !== B.lastHp) { B.lastHp = b.hp; B.stallMs = 0; } else if (b.hp > 0) B.stallMs += L.bossHitMs;
+                    if (b.hp !== B.lastHp) { B.lastHp = b.hp; B.stallMs = 0; } else if (b.hp > 0 && !hidden) B.stallMs += L.bossHitMs;
                     if (B.stallMs > 15000) fail('boss-not-taking-damage', { kind: s.boss.kind ?? 'boss', mapId: 'boss', x: Math.round(b.x), y: Math.round(b.y), state: b.state, hp: b.hp }, { stallMs: B.stallMs });
-                    if (b.hp > 0) K.cheats.damageBoss(L.bossHit);
                     B.sinceKill += L.bossHitMs;
                     if (B.sinceKill >= L.bossKillVisibleMs) { B.sinceKill = 0; killVisible(); }
                 },
@@ -251,7 +278,7 @@ function installHelper(L) {
             });
             B.defeated = K.sim.events(T.v0).some(e => e.name === 'boss:defeated');
             const s = K.state();
-            return { r, simMs: Math.round(K.sim.stats().simMs - T.t0), defeated: B.defeated, spawned: B.spawned, hp: s.bossHp, phase: s.bossPhase, phases: B.phases, maxOff: B.maxOff, st: stateOf(T.id), scene: s.scene };
+            return { r, simMs: Math.round(K.sim.stats().simMs - T.t0), defeated: B.defeated, spawned: B.spawned, hp: s.bossHp, phase: s.bossPhase, phases: B.phases, maxOff: B.maxOff, maxHidden: B.maxHidden, hiddenTotal: B.hiddenTotal, st: stateOf(T.id), scene: s.scene };
         },
         /** After boss:defeated: wait for stage:clear and the next scene. */
         waitClear(ms, want) {
@@ -341,11 +368,11 @@ async function auditPart(browser, base, part) {
                     if (VERBOSE) console.log(`  [${a.id}] boss → ${JSON.stringify(b)}`);
                     if (b.r.stopped === 'error') throw new Error(`game step threw: ${b.r.error}`);
                 } while (!b.defeated && b.simMs < LIMITS.bossSimMs + walk.simMs);
-                res.boss = { phases: b.phases, defeated: b.defeated, maxOffMs: b.maxOff };
+                res.boss = { phases: b.phases, defeated: b.defeated, maxOffMs: b.maxOff, maxHiddenMs: b.maxHidden, hiddenMs: b.hiddenTotal };
                 if (!b.spawned) res.fails.push({ type: 'boss-never-spawned', arena: a.id, state: b.st });
                 else if (!b.defeated) res.fails.push({ type: 'boss-not-defeated-in-90s', arena: a.id, hp: b.hp, phase: b.phase, phases: b.phases, simMs: b.simMs });
                 if (b.defeated) {
-                    const final = part === '1-3';
+                    const final = FINAL.has(part);
                     const want = final ? 'Results' : 'PartClear';
                     const wc = await ev(([ms, want]) => window.__AUD.waitClear(ms, want), [LIMITS.clearWaitSimMs, want], 'clear');
                     if (VERBOSE) console.log(`  [${a.id}] clear → ${JSON.stringify(wc)}`);
@@ -395,13 +422,18 @@ function printPart(r) {
     console.log(`\nPART ${r.part} (${r.map})${r.strict ? ' [strict]' : ''}  ${r.ok ? 'PASS' : 'FAIL'}  wall ${(r.wallMs / 1000).toFixed(1)} s  sim ${(r.simMs / 1000).toFixed(1)} s  stepping ${r.speedup}x real time`);
     console.log('  ' + [pad('arena', 9), pad('kind', 16), pad('waves', 6), pad('lock', 7), pad('sim', 7), pad('killed', 7), pad('maxOff', 7), pad('wall', 6), 'result'].join(' '));
     for (const a of r.arenas) {
-        const extra = a.boss ? ` phases ${a.boss.phases?.join('/')} → ${a.boss.nextScene ?? '-'}` : '';
+        const extra = a.boss ? ` phases ${a.boss.phases?.join('/')} → ${a.boss.nextScene ?? '-'}${a.boss.hiddenMs ? ` (submerged ${(a.boss.hiddenMs / 1000).toFixed(1)} s)` : ''}` : '';
         console.log('  ' + [pad(a.id, 9), pad(a.kind, 16), pad(a.boss ? '-' : `${a.maxWave ?? 0}/${a.waves}`, 6), pad(`${(a.lockSimMs / 1000).toFixed(1)}s`, 7), pad(`${(a.simMs / 1000).toFixed(1)}s`, 7), pad(a.boss ? '-' : `${a.kills}${a.selfDied ? '+' + a.selfDied : ''}/${a.members}`, 7), pad(`${a.maxOffMs}ms`, 7), pad(`${(a.wallMs / 1000).toFixed(1)}s`, 6), (a.ok ? 'ok' : 'FAIL') + (a.warns.length ? ` (${a.warns.length} warn)` : '') + extra].join(' '));
     }
     for (const f of r.failures) console.log(`  FAIL ${JSON.stringify(f)}`);
     for (const w of r.warnings) console.log(`  warn ${JSON.stringify(w)}`);
 }
 
+// Phase G: parts whose map isn't there yet are SKIP, so every team can run the audit from day one.
+const skipped = parts.filter(p => !fs.existsSync(mapFile(p)));
+for (const p of skipped) console.log(`\nPART ${p} (${PARTS[p]})  SKIP (map missing: ${path.relative(root, mapFile(p))})`);
+const toRun = parts.filter(p => !skipped.includes(p));
+if (toRun.length === 0) { console.log(`\narena-audit: ${parts.map(p => `${p} SKIP`).join(', ')}`); process.exit(0); }
 const server = await createServer({ root, configFile: path.join(root, 'vite.config.ts'), server: { port: 0, host: '127.0.0.1', strictPort: false, hmr: false, watch: null }, logLevel: 'error' });
 await server.listen();
 const base = `http://127.0.0.1:${server.httpServer.address().port}`;
@@ -409,7 +441,7 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const results = [];
 let code = 0;
 try {
-    for (const part of parts) {
+    for (const part of toRun) {
         const r = await auditPart(browser, base, part);
         results.push(r);
         printPart(r);
@@ -423,5 +455,5 @@ try {
     await withTimeout(browser.close(), 10000, 'browser close').catch(() => {});
     await withTimeout(server.close(), 5000, 'server close').catch(() => {});
 }
-console.log(`\narena-audit: ${results.map(r => `${r.part} ${r.ok ? 'PASS' : 'FAIL'} (${(r.wallMs / 1000).toFixed(1)} s)`).join(', ')}; artifacts in ${path.relative(process.cwd(), ART) || ART}`);
+console.log(`\narena-audit: ${[...results.map(r => `${r.part} ${r.ok ? 'PASS' : 'FAIL'} (${(r.wallMs / 1000).toFixed(1)} s)`), ...skipped.map(p => `${p} SKIP`)].join(', ')}; artifacts in ${path.relative(process.cwd(), ART) || ART}`);
 process.exit(code);

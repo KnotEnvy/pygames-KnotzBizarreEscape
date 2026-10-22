@@ -6,10 +6,13 @@
 //               in 2-tile holes toward the player, and refreeze faster.
 // Slippery ice needs no level code: tiles carry material=ice and the player reads ctx.physics.surfaceAt().
 // The frame gids come from the map property `crack_gids` ("f1,f2,f3,water", written by the generator by tile name).
+// Map property `crack_style` picks the sounds/effects (LEVEL.ice.styles): 'ice' (default, Moose Lake) or 'wood' (Mission 2's
+// den pier, where GATORGEDDON's tail slams splinter planks into holes).
 import Phaser from 'phaser';
 import type { GameContext, GameEvents } from '../core';
-import { LEVEL } from '../config/tuning/level';
+import { LEVEL, type CrackStyle } from '../config/tuning/level';
 import type { BuiltMap } from './map';
+import { swapTile } from './tiles';
 
 type State = 'intact' | 'cracking' | 'open' | 'freezing';
 interface Cell { tx: number; ty: number; base: number; kind: 'step' | 'stomp'; state: State; t: number; stage: number; refreeze: number }
@@ -23,12 +26,16 @@ export class IceSystem {
     private readonly frames: number[];
     private readonly layer: Phaser.Tilemaps.TilemapLayer;
     private readonly ts: number;
+    private readonly style: CrackStyle;
     stats = { cracked: 0, opened: 0, refrozen: 0, stomps: 0 };
+    /** Tile columns of the last stomp hole (debug / QA). */
+    private lastHole: [number, number] | null = null;
 
     constructor(private readonly ctx: GameContext, private readonly built: BuiltMap) {
         this.layer = built.ground;
         this.ts = built.map.tileWidth;
         this.frames = String(built.props.crack_gids ?? '').split(',').map(Number).filter(n => n > 0);
+        this.style = LEVEL.ice.styles[String(built.props.crack_style ?? 'ice')] ?? LEVEL.ice.styles.ice;
         this.layer.forEachTile(t => {
             const c = t.properties?.crack;
             if (c === undefined || c === null || c === false || c === '') return;
@@ -68,8 +75,9 @@ export class IceSystem {
         this.live.add(c);
         this.setFrame(c, 1);
         const x = (c.tx + 0.5) * this.ts, y = c.ty * this.ts;
-        this.ctx.events.emit('fx:emit', { effect: 'ice_crack', x, y, width: this.ts, duration: LEVEL.ice.stageMs * 4 } as IceFx);
-        this.ctx.audio.sfx('ice_crack', { x });
+        const S = this.style;
+        this.ctx.events.emit('fx:emit', { effect: S.crackFx, x, y, width: this.ts, duration: LEVEL.ice.stageMs * 4, material: S.material, count: 3 } as IceFx);
+        if (S.crackSfx) this.ctx.audio.sfx(S.crackSfx, { x });
         this.stats.cracked++;
     }
 
@@ -96,8 +104,10 @@ export class IceSystem {
         c.state = 'open'; c.t = 0;
         this.setTile(c, this.frames[3]);
         const x = (c.tx + 0.5) * this.ts, y = c.ty * this.ts;
-        this.ctx.events.emit('fx:emit', { effect: 'ice_shatter', x, y, width: this.ts, count: 8 } as IceFx);
-        this.ctx.audio.sfx('ice_break', { x });
+        const S = this.style;
+        this.ctx.events.emit('fx:emit', { effect: S.breakFx, x, y, width: this.ts, count: 8, material: S.material } as IceFx);
+        if (S.breakSfx) this.ctx.audio.sfx(S.breakSfx, { x });
+        if (S.splash) this.ctx.events.emit('water:splash', { x, y: y + this.ts, size: 'm', kind: 'enter' });
         this.stats.opened++;
     }
 
@@ -106,23 +116,9 @@ export class IceSystem {
         this.setTile(c, this.frames[stage - 1]);
     }
 
-    /** Swap the tile's index, copy that tile's properties and rebuild its collision (faces of the neighbours too). */
+    /** Swap the tile (copies its tileset properties and rebuilds collision). The cell's own base keeps its crack marker. */
     private setTile(c: Cell, gid: number): void {
-        const tile = this.layer.getTileAt(c.tx, c.ty, true);
-        if (!tile) return;
-        tile.index = gid;
-        const ts = this.built.map.tilesets.find(s => s.containsTileIndex(gid));
-        const raw = ts?.getTileProperties(gid) as unknown;
-        const props: Record<string, unknown> = {};
-        if (Array.isArray(raw)) for (const p of raw as Array<{ name: string; value: unknown }>) props[p.name] = p.value;
-        else if (raw && typeof raw === 'object') Object.assign(props, raw);
-        // Keep the crack marker on the cell's own frames so a refrozen tile can crack again.
-        if (gid === c.base) props.crack = c.kind === 'stomp' ? 'stomp' : 'true';
-        tile.properties = props;
-        if (props.collides === true) {
-            if (props.oneway) tile.setCollision(false, false, true, false, true);
-            else tile.setCollision(true, true, true, true, true);
-        } else tile.resetCollision(true);
+        swapTile(this.layer, this.built.map, c.tx, c.ty, gid, gid === c.base ? { crack: c.kind === 'stomp' ? 'stomp' : 'true' } : undefined);
     }
 
     private playerOver(c: Cell): boolean {
@@ -132,19 +128,37 @@ export class IceSystem {
         return p.x > x0 - 6 && p.x < x0 + this.ts + 6 && p.y > y0 - 2 && p.y < y0 + this.ts + 30;
     }
 
-    /** boss:stomp: crack 2-tile holes in the arena ice toward the player (phase-3 power), clear of the arena walls. */
+    /** boss:stomp: crack 2-tile holes in the arena floor toward the player (phase-3 power), clear of the arena walls.
+     *  MOOSEZILLA (m1p3) leads its stomp by stompOffset; maps in perMap (m2p3) open the hole at the stomp x itself. */
     private stomp(x: number, power: number): void {
         const I = LEVEL.ice;
         if (power < I.stompMinPower || this.frames.length < 4) return;
         this.stats.stomps++;
+        const pm = I.perMap[this.built.key];
+        const lead = pm ? pm.offset : I.stompOffset, nearest = pm?.nearest ?? 0;
         const p = this.ctx.player();
         const dir = p ? (p.x >= x ? 1 : -1) : -1;
         const v = this.ctx.camera.view();
+        const lo = v.left + I.wallMargin, hi = v.right - I.wallMargin;
         const holes = Math.max(1, Math.round(power) - 1);
         for (let i = 0; i < holes; i++) {
-            const cx = x + dir * (I.stompOffset + i * I.stompSpacing);
-            if (cx < v.left + I.wallMargin || cx > v.right - I.wallMargin) continue;
-            const t0 = Math.round(cx / this.ts) - 1;
+            let cx = x + dir * (lead + i * I.stompSpacing);
+            if (cx < lo || cx > hi) {
+                if (!nearest) continue;
+                cx = Phaser.Math.Clamp(cx, lo, hi);
+            }
+            let t0 = Math.round(cx / this.ts) - 1;
+            if (nearest) {
+                // Off the crackable planks (the refuge at the walls): the nearest pair of crackable columns inside the margin.
+                const ok = (t: number) => (t + 1) * this.ts >= lo && (t + 1) * this.ts <= hi && this.columnCells(t).length > 0 && this.columnCells(t + 1).length > 0;
+                if (!ok(t0)) {
+                    let found: number | null = null;
+                    for (let d = 1; d <= nearest && found === null; d++) for (const t of [t0 - d, t0 + d]) if (found === null && ok(t)) found = t;
+                    if (found === null) continue;
+                    t0 = found;
+                }
+            }
+            this.lastHole = [t0, t0 + 1];
             for (let tx = t0; tx <= t0 + 1; tx++) {
                 for (const c of this.columnCells(tx)) if (c.state === 'intact') this.crack(c, I.stompRefreezeMs);
             }
@@ -161,6 +175,6 @@ export class IceSystem {
     }
 
     debug(): unknown {
-        return { tiles: this.cells.size, live: this.live.size, ...this.stats };
+        return { tiles: this.cells.size, live: this.live.size, ...this.stats, lastHole: this.lastHole };
     }
 }

@@ -13,6 +13,8 @@ export interface MenuRow {
     /** Left/right (and confirm when there is no onSelect) adjust a value. */
     onAdjust?: (dir: -1 | 1) => void;
     disabled?: () => boolean;
+    /** Phase G: extra px above this row (a gap between groups, e.g. PART SELECT's missions). */
+    gap?: number;
 }
 
 export interface MenuOptions {
@@ -37,6 +39,7 @@ export class Menu {
     private readonly values: Phaser.GameObjects.BitmapText[] = [];
     private readonly cursor: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite;
     private readonly rowH: number;
+    private readonly rowYs: number[] = [];
     private bounce = 0;
     private readonly selectedTint: number;
     private readonly tint: number;
@@ -47,8 +50,10 @@ export class Menu {
         this.tint = opts.tint ?? C.white;
         this.container = scene.add.container(0, 0);
         const font = opts.font ?? F.hud;
-        opts.rows.forEach((row, i) => {
-            const y = opts.y + i * this.rowH;
+        let y = opts.y;
+        opts.rows.forEach(row => {
+            y += row.gap ?? 0;
+            this.rowYs.push(y);
             const l = text(scene, opts.x, y, this.labelOf(row), font, opts.center ? [0.5, 0] : [0, 0]);
             this.labels.push(l);
             this.container.add(l);
@@ -56,6 +61,7 @@ export class Menu {
             v.setVisible(!!row.value);
             this.values.push(v);
             this.container.add(v);
+            y += this.rowH;
         });
         if (hasAnim(scene, 'ui_cursor')) {
             const s = scene.add.sprite(0, 0, 'ui_icons').setOrigin(0, 0);
@@ -73,6 +79,9 @@ export class Menu {
     }
 
     get rows(): MenuRow[] { return this.opts.rows; }
+
+    /** Screen y of row i (the owner places headers and icons beside the rows). */
+    rowY(i: number): number { return this.rowYs[i] ?? this.opts.y; }
 
     setIndex(i: number): void {
         const n = this.opts.rows.length;

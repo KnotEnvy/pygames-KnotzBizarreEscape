@@ -51,6 +51,8 @@ export function createParallax(ctx: GameContext, setId: string, drift: number): 
     }
 
     let travelled = 0;
+    /** Scaled seconds since the part started (rain sheets fall with it). */
+    let fallen = 0;
     let cover = 0;
     const covers: Record<string, number> = {};
     let last = ctx.time.now;
@@ -58,6 +60,7 @@ export function createParallax(ctx: GameContext, setId: string, drift: number): 
         // Scaled gameplay clock: the drift stops during hitstop/pause like everything else.
         const now = ctx.time.now;
         travelled += drift * Math.max(0, now - last) / 1000;
+        fallen += Math.max(0, now - last) / 1000;
         last = now;
         const camX = cam.scrollX, camY = cam.scrollY;
         const cf = set.crossfade;
@@ -77,6 +80,10 @@ export function createParallax(ctx: GameContext, setId: string, drift: number): 
                 const [from, to, fadePx] = d.span;
                 a *= Phaser.Math.Clamp(Math.min(camX - from, to - camX) / Math.max(1, fadePx) + 1, 0, 1);
             }
+            if (d.gaps) for (const [from, to, fadePx] of d.gaps) {
+                a *= 1 - Phaser.Math.Clamp(Math.min(camX - from, to - camX) / Math.max(1, fadePx) + 1, 0, 1);
+            }
+            if (d.fall && l.sprite instanceof Phaser.GameObjects.TileSprite) l.sprite.tilePositionY = Math.round(-fallen * d.fall);
             l.sprite.setAlpha(a).setVisible(a > 0.001);
         }
     };

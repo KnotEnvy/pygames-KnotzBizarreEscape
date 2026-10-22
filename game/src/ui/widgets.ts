@@ -70,7 +70,7 @@ export function mmss(ms: number): string {
 }
 
 export const WEAPON_NAMES: Record<string, string> = {
-    hmg: 'HEAVY MACHINE GUN!', spread: 'SPREAD SHOT!', rocket: 'ROCKET LAUNCHER!', flame: 'FLAME SHOT!', laser: 'LASER GUN!'
+    hmg: 'HEAVY MACHINE GUN!', spread: 'SPREAD SHOT!', rocket: 'ROCKET LAUNCHER!', flame: 'FLAME SHOT!', laser: 'LASER GUN!', shotgun: 'SHOTGUN!'
 };
 
 /** 1 → 'I', 2 → 'II', 3 → 'III', 4 → 'IV' (part numerals on title cards and tallies). */
